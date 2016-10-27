@@ -7,6 +7,16 @@
  * Manage a shopping basket of diverse products
  */
 
+class SEEDBasketProductHandler
+/*****************************
+    Every time you do something with a product, you use a derivation of this.
+    So you have to make a Handler for every productType that you use.
+ */
+{
+
+}
+
+
 class SEEDBasketDB extends KeyFrameNamedRelations
 {
     function __construct( KeyFrameDB $kfdb, $uid )
@@ -142,6 +152,8 @@ CREATE TABLE SEEDBasket_Products (
         _status     INTEGER DEFAULT 0,
 
     uid_seller      INTEGER NOT NULL DEFAULT '0',
+    product_type    VARCHAR(100) NOT NULL,
+
     title           VARCHAR(200) NOT NULL DEFAULT '',
     name            VARCHAR(100) NOT NULL DEFAULT '',
     img             VARCHAR(100) NOT NULL DEFAULT '',
@@ -149,7 +161,7 @@ CREATE TABLE SEEDBasket_Products (
     bask_quant_min  INTEGER NOT NULL DEFAULT '0',   -- you have to put at least this many in a basket if you have any
     bask_quant_max  INTEGER NOT NULL DEFAULT '0',   -- you can't put more than this in a basket at once (-1 means no limit)
 
-    prod_type       ENUM('ITEM-1',                  -- it only makes sense to order one of this product at a time
+    quant_type      ENUM('ITEM-1',                  -- it only makes sense to order one of this product at a time
                          'ITEM-N',                  -- you can order one or more at a time
                          'MONEY'),                  -- this product is a buyer-specified amount of money (e.g. a donation)
 
@@ -209,9 +221,9 @@ CREATE TABLE SEEDBasket_BP (
 
 INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus ) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,title,name,bask_quant_min,bask_quant_max,prod_type,item_price ) VALUES (1,'Donation','donation',0,-1,'MONEY',-1);
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,title,name,bask_quant_min,bask_quant_max,prod_type,item_price ) VALUES (1,'How to Save Your Own Seeds, 6th edition','ssh6-en',1,-1,'ITEM-N',15);
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,title,name,bask_quant_min,bask_quant_max,prod_type,item_price ) VALUES (1,'Membership - One Year','mbr25',1,1,'ITEM-1',25);
+INSERT INTO seeds.SEEDBasket_Products ( product_type,uid_seller,title,name,bask_quant_min,bask_quant_max,quant_type,item_price ) VALUES ('donation',1,'Donation','donation',0,-1,'MONEY',-1);
+INSERT INTO seeds.SEEDBasket_Products ( product_type,uid_seller,title,name,bask_quant_min,bask_quant_max,quant_type,item_price ) VALUES ('book',1,'How to Save Your Own Seeds, 6th edition','ssh6-en',1,-1,'ITEM-N',15);
+INSERT INTO seeds.SEEDBasket_Products ( product_type,uid_seller,title,name,bask_quant_min,bask_quant_max,quant_type,item_price ) VALUES ('membership',1,'Membership - One Year','mbr25',1,1,'ITEM-1',25);
 
 INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
 INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
