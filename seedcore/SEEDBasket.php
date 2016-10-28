@@ -7,12 +7,96 @@
  * Manage a shopping basket of diverse products
  */
 
+class SEEDBasketCore
+/*******************
+    Core class for managing a shopping basket
+ */
+{
+    private $oDB;
+    private $raHandlerDefs;
+
+    private $raHandlers = array();
+
+    function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs )
+    {
+        $uid = method_exists( $sess, 'GetUID' ) ? $sess->GetUID() : 0;
+        $this->oDB = new SEEDBasketDB( $kfdb, $uid );
+        $this->raHandlerDefs = $raHandlerDefs;
+    }
+
+    function DrawProductNewForm( $sProductType )
+    {
+        $s = "";
+
+        if( !($oHandler = $this->getHandler( $sProductType )) ) goto done;
+
+        $s .= $oHandler->DrawForm( null );
+
+        done:
+        return( $s );
+    }
+
+    function DrawProductForm( KFRelation $kfrP )
+    {
+        $s = "";
+
+        if( !($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) goto done;
+
+        $s .= $oHandler->DrawForm( $kfrP );
+
+        done:
+        return( $s );
+    }
+
+    private function getHandler( $prodType )
+    {
+        if( isset($this->raHandlers[$prodType]) )  return( $this->raHandlers[$prodType] );
+
+        $o = null;
+        if( isset($this->raHandlerDefs[$prodType]['classname']) ) {
+            $o = new $this->raHandlerDefs[$prodType]['classname']( $this );
+            if( $o ) {
+                $this->raHandlers[$prodType] = $o;
+            }
+        }
+        return( $o );
+    }
+
+
+}
+
+
 class SEEDBasketProductHandler
 /*****************************
     Every time you do something with a product, you use a derivation of this.
     So you have to make a Handler for every productType that you use.
  */
 {
+    private $oSB;
+
+    function __construct( SEEDBasketCore $oSB )
+    {
+        $this->oSB = $oSB;
+    }
+
+    function DrawForm( KFRelation $kfrP )
+    /************************************
+        Draw a form to edit the given product.
+        If kfrP is null draw a New product form.
+     */
+    {
+        die( "Override DrawForm" );
+    }
+
+    function AddToBasket_Before( KFRelation $kfrP, KFRelation $kfrBP )
+    /*****************************************************************
+        This is called before adding a product to a basket.
+        Make any necessary changes to the Product and BasketXProduct.
+        Return true if it's okay, false if not.
+     */
+    {
+        return( true ); // default is assume everything is normal
+    }
 
 }
 
