@@ -12,9 +12,9 @@ class SEEDBasketCore
     Core class for managing a shopping basket
  */
 {
-    private $oDB;
-    private $raHandlerDefs;
+    public $oDB;
 
+    private $raHandlerDefs;
     private $raHandlers = array();
 
     function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs )
@@ -24,29 +24,31 @@ class SEEDBasketCore
         $this->raHandlerDefs = $raHandlerDefs;
     }
 
+
     function DrawProductNewForm( $sProductType )
     {
         $s = "";
 
         if( !($oHandler = $this->getHandler( $sProductType )) ) goto done;
 
-        $s .= $oHandler->DrawForm( null );
+        $s .= $oHandler->ProductDefine0( null );
 
         done:
         return( $s );
     }
 
-    function DrawProductForm( KFRelation $kfrP )
+    function DrawProductForm( KFRecord $kfrP )
     {
-        $s = "";
-
-        if( !($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) goto done;
-
-        $s .= $oHandler->DrawForm( $kfrP );
-
-        done:
-        return( $s );
+        return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
+                ? $oHandler->ProductDefine0( $kfrP ) : "" );
     }
+
+    function DrawProduct( KFRecord $kfrP, $bDetail )
+    {
+        return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
+                ? $oHandler->ProductDraw( $kfrP, $bDetail ) : "" );
+    }
+
 
     private function getHandler( $prodType )
     {
@@ -70,6 +72,20 @@ class SEEDBasketProductHandler
 /*****************************
     Every time you do something with a product, you use a derivation of this.
     So you have to make a Handler for every productType that you use.
+
+    ProductDefine0          Draw a form to create/update a product definition
+    ProductDefine1          Validate a product definition
+    ProductDefine2          Save a product definition
+    ProductDraw( bDetail)   Show a description of a product in more or less detail
+    ProductDelete           Remove a product from the system (this does a soft delete if the product is referenced by any BxP)
+
+    Purchase0               Draw a form for the purchase details stored in a BasketXProduct
+    Purchase1               Validate a purchase before adding/updating a BxP
+    Purchase2               Add/update a BxP
+    PurchaseDraw( bDetail ) Show a description of a BxP in more or less detail
+    PurchaseDelete          Remove a BxP from its basket
+
+
  */
 {
     private $oSB;
@@ -79,8 +95,8 @@ class SEEDBasketProductHandler
         $this->oSB = $oSB;
     }
 
-    function DrawForm( KFRelation $kfrP )
-    /************************************
+    function ProductDefine0( KFRecord $kfrP )
+    /******************************************
         Draw a form to edit the given product.
         If kfrP is null draw a New product form.
      */
@@ -88,8 +104,41 @@ class SEEDBasketProductHandler
         die( "Override DrawForm" );
     }
 
-    function AddToBasket_Before( KFRelation $kfrP, KFRelation $kfrBP )
-    /*****************************************************************
+    function ProductDefine1( KFRecord $kfrP )
+    /******************************************
+        Validate a new/updated product definition.
+        Return true if the product definition makes sense, otherwise false and an error message.
+     */
+    {
+        return( array(true,"No error") );
+    }
+
+    function ProductDefine2( KFRecord $kfrP )
+    /******************************************
+        Save a product definition
+     */
+    {
+        // probably never used because SEEDBasketCore is just going to use PutDBRow()
+    }
+
+    function ProductDraw( KFRecord $kfrP, $bDetail )
+    {
+        die( "Override ProductDraw" );
+    }
+
+    function ProductDelete( $kP )
+    {
+        if( ($kfrP = $this->oDB->GetProduct( $kP )) ) {
+            // if exist BxP where BP.fk_SEEDBasket_Products='$kP'
+            //     $kfrP->SetValue( 'bDeleted', true );
+            // else
+            //     $kfrP->Delete();
+        }
+    }
+
+
+    function AddToBasket_Before( KFRecord $kfrP, KFRecord $kfrBP )
+    /*************************************************************
         This is called before adding a product to a basket.
         Make any necessary changes to the Product and BasketXProduct.
         Return true if it's okay, false if not.
@@ -113,8 +162,9 @@ class SEEDBasketDB extends KeyFrameNamedRelations
     function GetProduct( $kProduct )  { return( $this->GetKFR( 'P', $kBasket ) ); }
 
     function GetBasketList( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
-    function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetList( 'P', $sCond, $raKFParms ) ); }
-
+    function GetBasketKFRC( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
+    function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
+    function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
 
     protected function initKfrel( KeyFrameDB $kfdb, $uid )
     {
