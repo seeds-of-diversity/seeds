@@ -15,9 +15,9 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         parent::__construct( $oSB );
     }
 
-    function ProductDefine0( KFRecord $kfrP = null )        // the default = null allows a null to be passed here without error from the type hinting
+    function ProductDefine0( KeyFrameUIForm $oFormP )
     {
-        if( $kfrP ) {
+        if( $oFormP->GetKey() ) {
             return( "<P>This is the Membership Form</P>" );
         } else {
             return( "<P>This is the Membership Form for a NEW product</P>" );
@@ -42,9 +42,9 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         parent::__construct( $oSB );
     }
 
-    function ProductDefine0( KFRecord $kfrP = null )        // the default = null allows a null to be passed here without error from the type hinting
+    function ProductDefine0( KeyFrameUIForm $oFormP )
     {
-        if( $kfrP ) {
+        if( $oFormP->GetKey() ) {
             return( "<P>This is the Book Form</P>" );
         } else {
             return( "<P>This is the Book Form for a NEW book</P>" );

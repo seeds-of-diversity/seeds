@@ -7,6 +7,8 @@
  * Manage a shopping basket of diverse products
  */
 
+include_once( STDINC."KeyFrame/KFUIForm.php" );
+
 class SEEDBasketCore
 /*******************
     Core class for managing a shopping basket
@@ -25,22 +27,21 @@ class SEEDBasketCore
     }
 
 
-    function DrawProductNewForm( $sProductType )
+    function DrawProductNewForm( $sProductType, $cid = 'A' )
     {
-        $s = "";
+        $kfrP = $this->oSB->oDB->GetKfrel("P")->CreateRecord();
+        $kfrP->SetValue( 'product_type', $sProductType );
 
-        if( !($oHandler = $this->getHandler( $sProductType )) ) goto done;
-
-        $s .= $oHandler->ProductDefine0( null );
-
-        done:
-        return( $s );
+        return( $this->DrawProductForm( $kfrP, $cid ) );
     }
 
-    function DrawProductForm( KFRecord $kfrP )
+    function DrawProductForm( KFRecord $kfrP, $cid = 'A' )
     {
+        $oFormP = new KeyFrameUIForm( $this->oDB->GetKfrel("P"), $cid );
+        $oFormP->SetKFR( $kfrP );
+
         return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
-                ? $oHandler->ProductDefine0( $kfrP ) : "" );
+                ? $oHandler->ProductDefine0( $oFormP ) : "" );
     }
 
     function DrawProduct( KFRecord $kfrP, $bDetail )
@@ -60,6 +61,9 @@ class SEEDBasketCore
             if( $o ) {
                 $this->raHandlers[$prodType] = $o;
             }
+        } else {
+            // the base class can handle some basic stuff but you should really make a derived class for every product type
+            $o = new SEEDBasketProductHandler( $this );
         }
         return( $o );
     }
@@ -76,16 +80,16 @@ class SEEDBasketProductHandler
     ProductDefine0          Draw a form to create/update a product definition
     ProductDefine1          Validate a product definition
     ProductDefine2          Save a product definition
-    ProductDraw( bDetail)   Show a description of a product in more or less detail
-    ProductDelete           Remove a product from the system (this does a soft delete if the product is referenced by any BxP)
+    ProductDraw( bDetail )  Show a description of a product in more or less detail
+    ProductDelete( bHard )  Remove a product from the system (only does soft delete if the product is referenced by any BP)
 
     Purchase0               Draw a form for the purchase details stored in a BasketXProduct
-    Purchase1               Validate a purchase before adding/updating a BxP
-    Purchase2               Add/update a BxP
-    PurchaseDraw( bDetail ) Show a description of a BxP in more or less detail
-    PurchaseDelete          Remove a BxP from its basket
+    Purchase1               Validate a purchase before adding/updating a BP
+    Purchase2               Add/update a BP
+    PurchaseDraw( bDetail ) Show a description of a BP in more or less detail, from a buyer's perspective
+    PurchaseDelete          Remove a BP from its basket
 
-
+    FulfilDraw( bDetail )   Show a description of a BP in more or less detail, from the seller's perspective
  */
 {
     private $oSB;
@@ -95,13 +99,43 @@ class SEEDBasketProductHandler
         $this->oSB = $oSB;
     }
 
-    function ProductDefine0( KFRecord $kfrP )
-    /******************************************
+    function ProductDefine0( KeyFrameUIForm $oFormP )
+    /************************************************
         Draw a form to edit the given product.
-        If kfrP is null draw a New product form.
+        If _key==0 draw a New product form.
      */
     {
-        die( "Override DrawForm" );
+        /* Override this with a form for the product type
+         */
+
+        $s = "<h3>Default Product Form</h3>";
+
+        $s .= $oFormP->HiddenKey()
+             ."<table>"
+             .$oFormP->ExpandForm(
+                     "||| Seller       || [[text:uid_seller|readonly]]"
+                    ."||| Product type || [[text:product_type]]"
+                    ."||| Status       || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."<br/><br/>"
+                    ."||| Title   || [[text:title]]"
+                    ."||| Name    || [[text:name]]"
+                    ."||| Images  || [[text:img]]"
+                    ."<br/><br/>"
+                    ."||| Quantity type  || ".$oFormP->Select2( 'quant_type', array('ITEM-N'=>'ITEM-N','ITEM-1'=>'ITEM-1','MONEY'=>'MONEY') )
+                    ."||| Min in basket  || [[text:bask_quant_min]]"
+                    ."||| Max in basket  || [[text:bask_quant_max]]"
+                    ."<br/><br/>"
+                    ."||| Price          || [[text:item_price]]"
+                    ."||| Discount       || [[text:item_discount]]"
+                    ."||| Shipping       || [[text:item_shipping]]"
+                    ."||| Price U.S.     || [[text:item_price_US]]"
+                    ."||| Discount U.S.  || [[text:item_discount_US]]"
+                    ."||| Shipping U.S.  || [[text:item_shipping_US]]"
+
+                     )
+             ."</table> ";
+
+        return( $s );
     }
 
     function ProductDefine1( KFRecord $kfrP )
@@ -122,17 +156,37 @@ class SEEDBasketProductHandler
     }
 
     function ProductDraw( KFRecord $kfrP, $bDetail )
+    /***********************************************
+        Show a product definition in more or less detail
+     */
     {
-        die( "Override ProductDraw" );
+        // Override this with a product type specific method
+
+        $s = "<h3>Default Product Type</h3>";
+
+        if( $kfrP ) {
+            $s .= $kfrP->Expand( "[[title]]" );
+        }
+
+        return( $s );
     }
 
-    function ProductDelete( $kP )
+    function ProductDelete( $kP, $bHardDelete = false )
+    /**************************************************
+         Remove a product from the system.
+         Soft delete just inactivates and hides the record.
+         Hard delete actually deletes the record (not allowed if a BP refers to it).
+     */
     {
-        if( ($kfrP = $this->oDB->GetProduct( $kP )) ) {
-            // if exist BxP where BP.fk_SEEDBasket_Products='$kP'
-            //     $kfrP->SetValue( 'bDeleted', true );
-            // else
-            //     $kfrP->Delete();
+        if( ($kfrP = $this->oSB->oDB->GetProduct( $kP )) ) {
+            $kfrP->SetValue( 'eStatus', 'DELETED' );
+
+            // do hard delete only if there is not a BP that references the product
+            if( $bHardDelete && !($kfrBPDummy = $this->oSB->oDB->GetKFRCond( "BP", "fk_SEEDBasket_Products='$kP'" )) ) {
+                $kfrP->StatusSet( KFRECORD_STATUS_DELETED );    // not really all that hard of a delete anyway
+            }
+
+            $kfrP->PutDBRow();
         }
     }
 
@@ -159,7 +213,7 @@ class SEEDBasketDB extends KeyFrameNamedRelations
 
 
     function GetBasket( $kBasket )    { return( $this->GetKFR( 'B', $kBasket ) ); }
-    function GetProduct( $kProduct )  { return( $this->GetKFR( 'P', $kBasket ) ); }
+    function GetProduct( $kProduct )  { return( $this->GetKFR( 'P', $kProduct ) ); }
 
     function GetBasketList( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
     function GetBasketKFRC( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
@@ -287,17 +341,19 @@ CREATE TABLE SEEDBasket_Products (
 
     uid_seller      INTEGER NOT NULL DEFAULT '0',
     product_type    VARCHAR(100) NOT NULL,
+    eStatus         ENUM( 'ACTIVE', 'INACTIVE', 'DELETED' ) NOT NULL DEFAULT 'ACTIVE',
 
     title           VARCHAR(200) NOT NULL DEFAULT '',
     name            VARCHAR(100) NOT NULL DEFAULT '',
-    img             VARCHAR(100) NOT NULL DEFAULT '',
+    img             TEXT NOT NULL DEFAULT '',          -- multiple images can be separated by \t
 
-    bask_quant_min  INTEGER NOT NULL DEFAULT '0',   -- you have to put at least this many in a basket if you have any
-    bask_quant_max  INTEGER NOT NULL DEFAULT '0',   -- you can't put more than this in a basket at once (-1 means no limit)
+    quant_type      ENUM('ITEM-N',                     -- you can order one or more at a time
+                         'ITEM-1',                     -- it only makes sense to order one of this product at a time
+                         'MONEY')                      -- this product is a buyer-specified amount of money (e.g. a donation)
+                      NOT NULL DEFAULT 'ITEM-N',
 
-    quant_type      ENUM('ITEM-1',                  -- it only makes sense to order one of this product at a time
-                         'ITEM-N',                  -- you can order one or more at a time
-                         'MONEY'),                  -- this product is a buyer-specified amount of money (e.g. a donation)
+    bask_quant_min  INTEGER NOT NULL DEFAULT '0',      -- you have to put at least this many in a basket if you have any
+    bask_quant_max  INTEGER NOT NULL DEFAULT '0',      -- you can't put more than this in a basket at once (-1 means no limit)
 
     item_price      VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '15', '15:1-9,10:10-24,8:25+'
     item_discount   VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '0', '0:1-9,5:10-24,7:25+'
@@ -307,7 +363,6 @@ CREATE TABLE SEEDBasket_Products (
 
     shipping        VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '10', '10:1-9,5:10-14,0:15+'
     shipping_US     VARCHAR(100) NOT NULL DEFAULT '',
-
 
 
 
@@ -355,9 +410,9 @@ CREATE TABLE SEEDBasket_BP (
 
 INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus ) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
-INSERT INTO seeds.SEEDBasket_Products ( product_type,uid_seller,title,name,bask_quant_min,bask_quant_max,quant_type,item_price ) VALUES ('donation',1,'Donation','donation',0,-1,'MONEY',-1);
-INSERT INTO seeds.SEEDBasket_Products ( product_type,uid_seller,title,name,bask_quant_min,bask_quant_max,quant_type,item_price ) VALUES ('book',1,'How to Save Your Own Seeds, 6th edition','ssh6-en',1,-1,'ITEM-N',15);
-INSERT INTO seeds.SEEDBasket_Products ( product_type,uid_seller,title,name,bask_quant_min,bask_quant_max,quant_type,item_price ) VALUES ('membership',1,'Membership - One Year','mbr25',1,1,'ITEM-1',25);
+INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
+INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
+INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
 
 INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
 INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
