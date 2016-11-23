@@ -17,16 +17,41 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
 
     function ProductDefine0( KeyFrameUIForm $oFormP )
     {
-        if( $oFormP->GetKey() ) {
-            return( "<P>This is the Membership Form</P>" );
-        } else {
-            return( "<P>This is the Membership Form for a NEW product</P>" );
+        $s = "<h3>Membership Definition Form</h3>";
+
+        if( !$oFormP->GetKey() ) {
+            // initialize values for new form
+            $oFormP->SetValue( 'quant_type', "ITEM-1" );
         }
+
+        $s .= $oFormP->HiddenKey()
+             ."<table>"
+             .$oFormP->ExpandForm(
+                     "||| Seller        || [[text:uid_seller|readonly]]"
+                    ."||| Product type  || [[text:product_type|readonly]]"
+                    ."||| Quantity type || [[text:quant_type|readonly]]"
+                    ."||| Status        || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."<br/><br/>"
+                    ."||| Title EN      || [[text:title_en]]"
+                    ."||| Title FR      || [[text:title_fr]]"
+                    ."||| Name          || [[text:name]]"
+                    ."<br/><br/>"
+                    ."||| Price         || [[text:item_price]]"
+                    ."||| Price U.S.    || [[text:item_price_US]]"
+                     )
+             ."</table> ";
+
+        return( $s );
+    }
+
+    function ProductDefine1( KeyFrameDataStore $oDS )
+    {
+        return( parent::ProductDefine1( $oDS ) );
     }
 
     function ProductDraw( KFRecord $kfrP, $bDetail )
     {
-        $s = "<h4>".$kfrP->Value('title')."</h4>";
+        $s = "<h4>".$kfrP->Value('title_en')."</h4>";
 
         if( $bDetail ) {
             $s .= $kfrP->Expand( "Name: [[name]]<br/>Price: [[item_price]]" );
@@ -53,7 +78,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
 
     function ProductDraw( KFRecord $kfrP, $bDetail )
     {
-        $s = "<h4>".$kfrP->Value('title')."</h4>";
+        $s = "<h4>".$kfrP->Value('title_en')."</h4>";
 
         if( $bDetail ) {
             $s .= $kfrP->Expand( "Name: [[name]]<br/>Price: [[item_price]]" );
