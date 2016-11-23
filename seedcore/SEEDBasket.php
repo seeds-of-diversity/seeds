@@ -15,33 +15,90 @@ class SEEDBasketCore
  */
 {
     public $oDB;
+    public $sess;   // N.B. user might not be logged in so use $this->GetUID() instead of $this->sess->GetUID()
 
     private $raHandlerDefs;
     private $raHandlers = array();
 
     function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs )
     {
-        $uid = method_exists( $sess, 'GetUID' ) ? $sess->GetUID() : 0;
-        $this->oDB = new SEEDBasketDB( $kfdb, $uid );
+        $this->sess = $sess;
+        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB() );
         $this->raHandlerDefs = $raHandlerDefs;
     }
 
-
-    function DrawProductNewForm( $sProductType, $cid = 'A' )
+    function GetUID_SB()
+    /*******************
+     */
     {
-        $kfrP = $this->oSB->oDB->GetKfrel("P")->CreateRecord();
-        $kfrP->SetValue( 'product_type', $sProductType );
-
-        return( $this->DrawProductForm( $kfrP, $cid ) );
+        return( method_exists( $this->sess, 'GetUID' ) ? $this->sess->GetUID() : 0 );
     }
 
-    function DrawProductForm( KFRecord $kfrP, $cid = 'A' )
+    function DrawProductNewForm( $sProductType, $cid = 'A' )
+    /*******************************************************
+        Draw a new product form for a given product type
+     */
     {
-        $oFormP = new KeyFrameUIForm( $this->oDB->GetKfrel("P"), $cid );
+        return( $this->drwProductForm( 0, $sProductType, $cid ) );
+    }
+
+    function DrawProductForm( $kP, $cid = 'A' )
+    /******************************************
+        Update and draw the form for an existing product
+     */
+    {
+        return( $this->drwProductForm( $kP, "", $cid ) );
+    }
+
+    private function drwProductForm( $kP, $sProductType_ifNew, $cid )
+    /****************************************************************
+        Multiplex a New and Edit form.
+        New:  kP==0, $sProductType specified
+        Edit: kP<>0, $sProductType==""
+     */
+    {
+        $s = "";
+
+        // Catch-22: need to know the product_type to get the oHandler, but need the oHandler to get ProductDefine1 before loading the kfr.
+        // Solution: load the current record to get the oHandler, Update(), and reload the record.
+        if( $kP ) {
+            if( !($kfrP = $this->oDB->GetKfrel("P")->GetRecordFromDBKey( $kP )) ) goto done;
+            $sPT = $kfrP->Value('product_type');
+        } else {
+            $sPT = $sProductType_ifNew;
+        }
+        if( !($oHandler = $this->getHandler( $sPT )) )  goto done;
+
+        /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
+         * then load up the current product (or create a new one) and draw the form for it.
+         */
+        $oFormP = new KeyFrameUIForm( $this->oDB->GetKfrel("P"), $cid,
+                                      array('DSParms'=>array('fn_DSPreStore'=>array($oHandler,'ProductDefine1'))) );
+        $oFormP->Update();
+
+        if( $kP ) {
+            $kfrP = $this->oDB->GetKfrel("P")->GetRecordFromDBKey( $kP );
+        } else {
+            if( ($kfrP = $this->oDB->GetKfrel("P")->CreateRecord()) ) {
+                $kfrP->SetValue( 'product_type', $sProductType_ifNew );
+            }
+        }
+        if( !$kfrP ) goto done;
+
         $oFormP->SetKFR( $kfrP );
 
-        return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
-                ? $oHandler->ProductDefine0( $oFormP ) : "" );
+        // This part is the common form setup for all products
+        if( !$oFormP->Value('uid_seller') ) {
+            if( !($uid = $this->oSB->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
+
+            $oFormP->SetValue( 'uid_seller', $uid );
+        }
+
+        // This part is the custom form setup for the productType
+        $s = $oHandler->ProductDefine0( $oFormP );
+
+        done:
+        return( $s );
     }
 
     function DrawProduct( KFRecord $kfrP, $bDetail )
@@ -117,9 +174,10 @@ class SEEDBasketProductHandler
                     ."||| Product type || [[text:product_type]]"
                     ."||| Status       || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
-                    ."||| Title   || [[text:title]]"
-                    ."||| Name    || [[text:name]]"
-                    ."||| Images  || [[text:img]]"
+                    ."||| Title EN  || [[text:title_en]]"
+                    ."||| Title FR  || [[text:title_fr]]"
+                    ."||| Name     || [[text:name]]"
+                    ."||| Images    || [[text:img]]"
                     ."<br/><br/>"
                     ."||| Quantity type  || ".$oFormP->Select2( 'quant_type', array('ITEM-N'=>'ITEM-N','ITEM-1'=>'ITEM-1','MONEY'=>'MONEY') )
                     ."||| Min in basket  || [[text:bask_quant_min]]"
@@ -138,13 +196,24 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
-    function ProductDefine1( KFRecord $kfrP )
-    /******************************************
+    function ProductDefine1( KeyFrameDataStore $oDS )
+    /************************************************
         Validate a new/updated product definition.
         Return true if the product definition makes sense, otherwise false and an error message.
      */
     {
-        return( array(true,"No error") );
+        // set current user as seller if seller is not defined
+        if( !$oDS->Value('uid_seller') ) {
+            if( !($uid = $this->oSB->GetUID_SB()) ) die( "ProductDefine1 not logged in" );
+
+            $oDS->SetValue( 'uid_seller', $uid );
+        }
+
+        if( $oDS->Value('bask_quant_min') > $oDS->Value('bask_quant_max') ) {
+            $oDS->SetValue( 'bask_quant_max', $oDS->Value('bask_quant_min') );
+        }
+
+        return( true );
     }
 
     function ProductDefine2( KFRecord $kfrP )
@@ -165,7 +234,7 @@ class SEEDBasketProductHandler
         $s = "<h3>Default Product Type</h3>";
 
         if( $kfrP ) {
-            $s .= $kfrP->Expand( "[[title]]" );
+            $s .= $kfrP->Expand( "[[title_en]]" );
         }
 
         return( $s );
@@ -343,7 +412,8 @@ CREATE TABLE SEEDBasket_Products (
     product_type    VARCHAR(100) NOT NULL,
     eStatus         ENUM( 'ACTIVE', 'INACTIVE', 'DELETED' ) NOT NULL DEFAULT 'ACTIVE',
 
-    title           VARCHAR(200) NOT NULL DEFAULT '',
+    title_en        VARCHAR(200) NOT NULL DEFAULT '',
+    title_fr        VARCHAR(200) NOT NULL DEFAULT '',
     name            VARCHAR(100) NOT NULL DEFAULT '',
     img             TEXT NOT NULL DEFAULT '',          -- multiple images can be separated by \t
 
@@ -376,6 +446,13 @@ CREATE TABLE SEEDBasket_Products (
     pub_rl          INTEGER,
 
 
+    v_i1             INTEGER NOT NULL DEFAULT 0,
+    v_i2             INTEGER NOT NULL DEFAULT 0,
+    v_i3             INTEGER NOT NULL DEFAULT 0,
+
+    v_t1             TEXT NOT NULL DEFAULT '',
+    v_t2             TEXT NOT NULL DEFAULT '',
+    v_t3             TEXT NOT NULL DEFAULT '',
 
     sExtra          TEXT NOT NULL DEFAULT ''            -- e.g. urlencoded metadata about the product
 );
@@ -410,9 +487,9 @@ CREATE TABLE SEEDBasket_BP (
 
 INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus ) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
+INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
+INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
+INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
 
 INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
 INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
