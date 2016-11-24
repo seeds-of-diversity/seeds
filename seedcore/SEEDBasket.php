@@ -81,6 +81,13 @@ class SEEDBasketCore
         } else {
             if( ($kfrP = $this->oDB->GetKfrel("P")->CreateRecord()) ) {
                 $kfrP->SetValue( 'product_type', $sProductType_ifNew );
+
+                // force per-prodtype fixed values
+                if( isset(SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds']) ) {
+                    foreach( SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds'] as $k => $v ) {
+                        $kfrP->SetValue( $k, $v );
+                    }
+                }
             }
         }
         if( !$kfrP ) goto done;
@@ -233,9 +240,10 @@ class SEEDBasketProductHandler
 
         if( !$kfrP ) return( "Error: no product record" );
 
-        $s = $kfrP->Expand( "<h4>Default Product: [[product_type]]</h4>" );
+        $s = $kfrP->Expand( "<h4>[[product_type]] [[title_en]]</h4>" );
         if( $bDetail ) {
-            $s .= $kfrP->Expand( "[[title_en]]<br/>Price: [[item_price]]" );
+            $s .= $kfrP->Expand( "Name: [[name]]<br/>" )
+                 .$this->ExplainPrices( $kfrP );
         }
 
         return( $s );
