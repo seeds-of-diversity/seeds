@@ -89,7 +89,7 @@ class SEEDBasketCore
 
         // This part is the common form setup for all products
         if( !$oFormP->Value('uid_seller') ) {
-            if( !($uid = $this->oSB->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
+            if( !($uid = $this->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
 
             $oFormP->SetValue( 'uid_seller', $uid );
         }
@@ -231,10 +231,11 @@ class SEEDBasketProductHandler
     {
         // Override this with a product type specific method
 
-        $s = "<h3>Default Product Type</h3>";
+        if( !$kfrP ) return( "Error: no product record" );
 
-        if( $kfrP ) {
-            $s .= $kfrP->Expand( "[[title_en]]" );
+        $s = $kfrP->Expand( "<h4>Default Product: [[product_type]]</h4>" );
+        if( $bDetail ) {
+            $s .= $kfrP->Expand( "[[title_en]]<br/>Price: [[item_price]]" );
         }
 
         return( $s );
@@ -269,6 +270,61 @@ class SEEDBasketProductHandler
     {
         return( true ); // default is assume everything is normal
     }
+
+
+    function ExplainPrices( $kfrP )
+    {
+        $s = "";
+
+        if( $kfrP->Value('item_price') )       $s .= "<br/>Price: ".$this->ExplainPriceRange( $kfrP->Value('item_price') );
+        if( $kfrP->Value('item_discount') )    $s .= "<br/>Discount: ".$this->ExplainPriceRange( $kfrP->Value('item_discount') );
+        if( $kfrP->Value('item_shipping') )    $s .= "<br/>Shipping: ".$this->ExplainPriceRange( $kfrP->Value('item_shipping') );
+
+        if( $kfrP->Value('item_price_US') )    $s .= "<br/>Price U.S.: ".$this->ExplainPriceRange( $kfrP->Value('item_price_US') );
+        if( $kfrP->Value('item_discount_US') ) $s .= "<br/>Discount U.S.: ".$this->ExplainPriceRange( $kfrP->Value('item_discount_US') );
+        if( $kfrP->Value('item_shipping_US') ) $s .= "<br/>Shipping U.S.: ".$this->ExplainPriceRange( $kfrP->Value('item_shipping_US') );
+
+        return( $s );
+    }
+
+    function dollar( $d )  { return( "$".$d ); }
+
+    function ExplainPriceRange( $sRange )
+    /************************************
+        Explain the contents of a price range
+
+        e.g. '15', '15:1-9,12:10-19,10:20+'
+     */
+    {
+        $s = "";
+
+        if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
+            // There is just a single price for all quantities
+            $s = $this->dollar( $sRange );
+        } else {
+            $raRanges = explode( ',', $sRange );
+            foreach( $raRanges as $r ) {
+                $r = trim($r);
+
+                // $r has to be price:N or price:M-N or price:M+
+                list($price,$sQRange) = explode( ":", $r );
+                if( strpos( '-', $sQRange) !== false ) {
+                    list($sQ1,$sQ2) = explode( '-', $sQRange );
+                    $s .= ($s ? ", " : "").$this->dollar($price)." for $sQ1 to $sQ2 items";
+                } else if( substr( $sQRange, -1, 1 ) == "+" ) {
+                    $sQ1 = intval($sQRange);
+                    $s .= ($s ? ", " : "").$this->dollar($price)." for $sQ1 items or more";
+                } else {
+                    $s .= ($s ? ", " : "").$this->dollar($price)." for $sQRange items";
+                }
+
+
+            }
+        }
+
+        return( $s );
+    }
+
 
 }
 
@@ -431,8 +487,8 @@ CREATE TABLE SEEDBasket_Products (
     item_price_US    VARCHAR(100) NOT NULL DEFAULT '',
     item_discount_US VARCHAR(100) NOT NULL DEFAULT '',
 
-    shipping        VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '10', '10:1-9,5:10-14,0:15+'
-    shipping_US     VARCHAR(100) NOT NULL DEFAULT '',
+    item_shipping    VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '10', '10:1-9,5:10-14,0:15+'
+    item_shipping_US VARCHAR(100) NOT NULL DEFAULT '',
 
 
 
