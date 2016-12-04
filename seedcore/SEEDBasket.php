@@ -19,12 +19,30 @@ class SEEDBasketCore
 
     private $raHandlerDefs;
     private $raHandlers = array();
+    private $kBasket;
 
     function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs )
     {
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB() );
         $this->raHandlerDefs = $raHandlerDefs;
+        $this->kBasket = $this->GetBasketKey();
+    }
+
+    function GetBasketKey()
+    {
+        if( !$this->kBasket ) {
+            $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
+            $this->kBasket = $oSVA->VarGetInt( 'kBasket' );
+        }
+        return( $this->kBasket );
+    }
+
+    function SetBasketKey( $kB )
+    {
+        $this->kBasket = $kB;
+        $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
+        $oSVA->VarSet( 'kBasket', $kB );
     }
 
     function GetUID_SB()
@@ -112,6 +130,93 @@ class SEEDBasketCore
     {
         return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
                 ? $oHandler->ProductDraw( $kfrP, $bDetail ) : "" );
+    }
+
+    function DrawPurchaseForm( $prodName )
+    /*************************************
+        Given a product name, get the form that you would see in a store for purchasing it
+     */
+    {
+        $s = "";
+
+        if( !($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" )) ) {
+            $s .= "<div style='display:inline-block' class='alert alert-danger'>Unknown product $prodName</div>";
+            goto done;
+        }
+
+        $oHandler = $this->getHandler( $kfrP->Value('product_type') );
+        $s .= $oHandler->Purchase0( $kfrP );
+
+        done:
+        return( $s );
+    }
+
+    function DrawBasketContents( $kBP = 0 )
+    /**************************************
+        Draw the contents of the current basket. If kBP is set, highlight it.
+     */
+    {
+        $s = "";
+
+        if( !$this->kBasket ) goto done;
+
+        if( ($kfrBP = $this->oDB->GetKFRC( 'BP', "fk_SEEDBasket_Baskets='{$this->kBasket}'" )) ) {
+            while( $kfrBP->CursorFetch() ) {
+                if( ($kfrP = $this->oDB->GetProduct( $kfrBP->Value( 'fk_SEEDBasket_Products' ) )) ) {
+                    $oHandler = $this->getHandler( $kfrP->Value('product_type') );
+                    $sStyle = ($kBP && $kBP == $kfrBP->Key()) ? "background-color:#cec" : "";
+                    $s .= "<div style='$sStyle'>".$oHandler->PurchaseDraw( $kfrBP, $kfrP )."</div>";
+                }
+            }
+        }
+
+        done:
+        return( $s ? $s : "Your Basket is Empty" );
+    }
+
+    function AddProductToBasket_kProd( $kP, $raBP, $bGPC = false )
+    /*************************************************************
+        Add a product to the current basket.
+        $raBP are the BxP parameters with names appropriate for http, bGPC is true if raBP are http
+     */
+    {
+        if( ($kfrP = $this->oDB->GetProduct( 'P', $kP )) ) {
+            $oHandler = $this->getHandler( $kfrP->Value('product_type') );
+            return( $oHandler->Purchase2( $kfrP, $raBP, $bGPC ) );
+        } else {
+            return( array( false, "There is no product '$kP'" ) );
+        }
+    }
+
+    function AddProductToBasket_Name( $prodName, $raBP, $bGPC = false )
+    /******************************************************************
+        Add a named product to the current basket.
+     */
+    {
+        if( ($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" )) ) {
+            $oHandler = $this->getHandler( $kfrP->Value('product_type') );
+            return( $oHandler->Purchase2( $kfrP, $raBP, $bGPC ) );
+        } else {
+            return( array( false, "There is no product called '$name'" ) );
+        }
+    }
+
+    function GetCurrentBasketKFR()
+    /*****************************
+        Return a kfr of the current basket.
+        If there isn't one, create one and start using it.
+     */
+    {
+        if( $this->kBasket ) {
+            $kfrB = $this->oDB->GetBasket( $this->kBasket );
+        } else {
+            // create a new basket and save it
+            $kfrB = $this->oDB->GetKfrel('B')->CreateRecord();
+            $kfrB->PutDBRow();
+            $this->SetBasketKey( $kfrB->Key() );    // sets $this->kBasket and stores in session var
+        }
+
+        return( $kfrB );
     }
 
 
@@ -268,15 +373,48 @@ class SEEDBasketProductHandler
         }
     }
 
-
-    function AddToBasket_Before( KFRecord $kfrP, KFRecord $kfrBP )
-    /*************************************************************
-        This is called before adding a product to a basket.
-        Make any necessary changes to the Product and BasketXProduct.
-        Return true if it's okay, false if not.
+    function Purchase0( KFRecord $kfrP )
+    /***********************************
+        Given a product, draw the form that a store would show to purchase it
      */
     {
-        return( true ); // default is assume everything is normal
+        return( $kfrP->Value('title_en') );
+    }
+
+    function Purchase2( KFRecord $kfrP, $raBP, $bGPC )
+    /*************************************************
+        Given a product, add it to the current basket
+     */
+    {
+        $bOk = false;
+        $s = "";
+
+        if( !($kfrB = $this->oSB->GetCurrentBasketKFR()) )  goto done;
+
+        if( ($kfrBP = $this->oSB->oDB->GetKfrel('BP')->CreateRecord()) ) {
+            $kfrBP->SetValue( 'fk_SEEDBasket_Products', $kfrP->Key() );
+            $kfrBP->SetValue( 'fk_SEEDBasket_Baskets', $kfrB->Key() );
+            $kfrBP->SetValue( 'n', ($bGPC ? SEEDSafeGPC_GetInt('n') : intval(@$raBP['n'])) );
+            $kfrBP->SetValue( 'f', ($bGPC ? SEEDSafeGPC_GetStrPlain('f') : floatval(@$raBP['f'])) );
+            $kfrBP->PutDBRow();
+            $bOk = true;
+            $s = $this->oSB->DrawBasketContents( $kfrBP->Key() );
+        }
+
+        done:
+        return( array($bOk, $s) );
+    }
+
+    function PurchaseDraw( KFRecord $kfrBP, $bDetail = false, KFRecord $kfrP = null )
+    /********************************************************************************
+        Draw a product in a basket, in more or less detail. Give kfrP for convenience if you already know it.
+     */
+    {
+        if( !$kfrP )  $kfrP = $this->oSB->oDB->GetProduct( $kfrBP->Value('fk_SEEDBasket_Products') );
+
+        $s = $kfrP->Value( 'title_en' );
+
+        return( $s );
     }
 
 
