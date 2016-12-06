@@ -163,12 +163,20 @@ class SEEDBasketCore
 
         if( !$this->kBasket ) goto done;
 
+// use BPxP
         if( ($kfrBP = $this->oDB->GetKFRC( 'BP', "fk_SEEDBasket_Baskets='{$this->kBasket}'" )) ) {
             while( $kfrBP->CursorFetch() ) {
                 if( ($kfrP = $this->oDB->GetProduct( $kfrBP->Value( 'fk_SEEDBasket_Products' ) )) ) {
                     $oHandler = $this->getHandler( $kfrP->Value('product_type') );
                     $sClass = ($kBP && $kBP == $kfrBP->Key()) ? " sb_bp-change" : "";
-                    $s .= "<div class='sb_bp$sClass'>".$oHandler->PurchaseDraw( $kfrBP, $kfrP )."</div>";
+                    $s .= "<div class='sb_bp$sClass'>"
+                         .$oHandler->PurchaseDraw( $kfrBP, $kfrP )
+                         ."<div style='display:inline-block;float:right;padding-left:10px' onclick='RemoveFromBasket(".$kfrBP->Key().");'>"
+                             // use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
+                             ."<img class='slsrcedit_cvBtns_del' height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
+                             ."</div>"
+                         ."<div style='display:inline-block;float:right'>$".$kfrP->Value('item_price')."</div>"
+                         ."</div>";
                 }
             }
         }
@@ -214,7 +222,7 @@ class SEEDBasketCore
 
     function DeleteProductFromBasket( $kBP )
     /***************************************
-        Delete the given BxP from the current basket
+        Delete the given BP from the current basket
      */
     {
 // Verify that basket is open
@@ -228,6 +236,7 @@ $kfrP = $this->oDB->GetProduct($kfrBP->Value('fk_SEEDBasket_Products'));
             $oHandler = $this->getHandler( $kfrP->Value('product_type') );
             $bOk = $oHandler->PurchaseDelete( $kfrBP );
         }
+        // always return the current basket because some interfaces will just draw it no matter what happened
         $s = $this->DrawBasketContents();
         return( array($bOk,$s) );
     }
