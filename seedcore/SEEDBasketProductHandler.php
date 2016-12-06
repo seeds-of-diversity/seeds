@@ -167,19 +167,17 @@ class SEEDBasketProductHandler
         return( $kfrBP ? $kfrBP->Key() : 0 );
     }
 
-    function PurchaseDraw( KFRecord $kfrBP, $bDetail = false, KFRecord $kfrP = null )
-    /********************************************************************************
-        Draw a product in a basket, in more or less detail. Give kfrP for convenience if you already know it.
+    function PurchaseDraw( KFRecord $kfrBPxP, $bDetail = false )
+    /***********************************************************
+        Draw a product in a basket, in more or less detail.
      */
     {
-        if( !$kfrP )  $kfrP = $this->oSB->oDB->GetProduct( $kfrBP->Value('fk_SEEDBasket_Products') );
-
-        $s = $kfrP->Value( 'title_en' );
+        $s = $kfrBPxP->Value( 'P_title_en' );
 
         return( $s );
     }
 
-    function PurchaseDelete( KFRecord $kfrBP )
+    function PurchaseDelete( KFRecord $kfrBP )  // this can also receive a kfrBPxP or kfrBPxPxB
     /*****************************************
         Delete the given BP from the current basket.
 

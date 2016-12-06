@@ -27,10 +27,11 @@ class SEEDBasketDB extends KeyFrameNamedRelations
 
     protected function initKfrel( KeyFrameDB $kfdb, $uid )
     {
-        /* raKfrel['B']   base relation for SEEDBasket_Baskets
-         * raKfrel['P']   base relation for SEEDBasket_Products
-         * raKfrel['BP']  base relation for SEEDBasket_BP map table
-         * raKfrel['BxP'] joins baskets and products via B x BP x P
+        /* raKfrel['B']    base relation for SEEDBasket_Baskets
+         * raKfrel['P']    base relation for SEEDBasket_Products
+         * raKfrel['BP']   base relation for SEEDBasket_BP map table
+         * raKfrel['BxP']  joins baskets and products via B x BP x P
+         * raKfrel['BPxP'] tells you about the products in a basket and allows updates to the purchases
          */
         $kdefBaskets =
             array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Baskets',
@@ -47,6 +48,7 @@ class SEEDBasketDB extends KeyFrameNamedRelations
                                              "Alias" => "BP",
                                              "Type" => "Base",
                                              "Fields" => "Auto" ) ) );
+        // really BxBPxP but this abbreviation is not ambiguous
         $kdefBxP =
             array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Baskets',
                                              "Alias" => "B",
@@ -60,13 +62,23 @@ class SEEDBasketDB extends KeyFrameNamedRelations
                                              "Alias" => "P",
                                              "Type" => "Children",
                                              "Fields" => "Auto" ) ) );
+        $kdefBPxP =
+            array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_BP',
+                                             "Alias" => "BP",
+                                             "Type" => "Base",
+                                             "Fields" => "Auto" ),
+                                      array( "Table" => 'seeds.SEEDBasket_Products',
+                                             "Alias" => "P",
+                                             "Type" => "Children",
+                                             "Fields" => "Auto" ) ) );
 
         $raParms = array( 'logfile' => SITE_LOG_ROOT."SEEDBasket.log" );
         $raKfrel = array();
-        $raKfrel['B']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBaskets ),  $uid, $raParms );
-        $raKfrel['P']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProducts ), $uid, $raParms );
-        $raKfrel['BP']  = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBP ),       $uid, $raParms );
-        $raKfrel['BxP'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBxP ),      $uid, $raParms );
+        $raKfrel['B']    = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBaskets ),  $uid, $raParms );
+        $raKfrel['P']    = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProducts ), $uid, $raParms );
+        $raKfrel['BP']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBP ),       $uid, $raParms );
+        $raKfrel['BxP']  = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBxP ),      $uid, $raParms );
+        $raKfrel['BPxP'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBPxP ),     $uid, $raParms );
 
         return( $raKfrel );
     }
