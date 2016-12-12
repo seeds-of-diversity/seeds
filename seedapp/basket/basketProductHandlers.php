@@ -54,8 +54,8 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
                     ."||| Quantity type || [[text:quant_type|readonly]]"
                     ."||| Status        || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
-                    ."||| Title EN      || [[text:title_en]]"
-                    ."||| Title FR      || [[text:title_fr]]"
+                    ."||| Title EN      || [[text:title_en | size:40]]"
+                    ."||| Title FR      || [[text:title_fr | size:40]]"
                     ."||| Name          || [[text:name]]"
                     ."<br/><br/>"
                     ."||| Price         || [[text:item_price]]"
@@ -79,6 +79,24 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
             $s .= $kfrP->Expand( "Name: [[name]]<br/>Price: [[item_price]]" );
         }
         return( $s );
+    }
+
+    function Purchase2( KFRecord $kfrP, $raParmsBP, $bGPC )
+    /******************************************************
+        Add a membership to the basket. Only one membership is allowed per basket, so remove any others.
+     */
+    {
+//        $s = "";
+
+        $raBPxP = $this->oSB->oDB->GetPurchasesList( $this->oSB->GetBasketKey() );
+        foreach( $raBPxP as $ra ) {
+            if( $ra['P_product_type'] == 'membership' ) {
+                $this->oSB->RemoveProductFromBasket( $ra['_key'] );
+//                $s .= "<p>Removed a membership</p>";
+            }
+        }
+
+        return( parent::Purchase2( $kfrP, $raParmsBP, $bGPC ) );
     }
 }
 

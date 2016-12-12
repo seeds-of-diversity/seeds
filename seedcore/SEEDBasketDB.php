@@ -25,6 +25,9 @@ class SEEDBasketDB extends KeyFrameNamedRelations
     function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
     function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
 
+    function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('BPxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
+    function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('BPxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
+
     protected function initKfrel( KeyFrameDB $kfdb, $uid )
     {
         /* raKfrel['B']    base relation for SEEDBasket_Baskets

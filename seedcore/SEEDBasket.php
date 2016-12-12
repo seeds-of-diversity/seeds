@@ -22,7 +22,7 @@ class SEEDBasketCore
 
     private $raHandlerDefs;
     private $raHandlers = array();
-    private $kBasket;
+    private $kBasket;       // always access this via GetBasketKey
 
     function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs )
     {
@@ -154,34 +154,97 @@ class SEEDBasketCore
         return( $s );
     }
 
-    function DrawBasketContents( $kBP = 0 )
-    /**************************************
-        Draw the contents of the current basket. If kBP is set, highlight it.
+    function DrawBasketContents( $kBPHighlight = 0 )
+    /***********************************************
+        Draw the contents of the current basket.
      */
     {
         $s = "";
 
-        if( !$this->kBasket ) goto done;
+        if( !$this->GetBasketKey() ) goto done;
 
-        if( ($kfrBPxP = $this->oDB->GetKFRC( 'BPxP', "fk_SEEDBasket_Baskets='{$this->kBasket}'" )) ) {
-            while( $kfrBPxP->CursorFetch() ) {
-                $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
-                $sClass = ($kBP && $kBP == $kfrBPxP->Key()) ? " sb_bp-change" : "";
+        $raSummary = $this->ComputeBasketSummary();
+
+        foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
+            $s .= "<div>Seller $uidSeller (total $".$raSeller['fTotal'].")</div>";
+
+            foreach( $raSeller['raItems'] as $raItem ) {
+                $sClass = ($kBPHighlight && $kBPHighlight == $raItem['kBP']) ? " sb_bp-change" : "";
                 $s .= "<div class='sb_bp$sClass'>"
-                     .$oHandler->PurchaseDraw( $kfrBPxP )
-                     ."<div style='display:inline-block;float:right;padding-left:10px' onclick='RemoveFromBasket(".$kfrBPxP->Key().");'>"
+                     .$raItem['sItem']
+                     ."<div style='display:inline-block;float:right;padding-left:10px' onclick='RemoveFromBasket(".$raItem['kBP'].");'>"
                          // use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
                          ."<img class='slsrcedit_cvBtns_del' height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
                          ."</div>"
-                     ."<div style='display:inline-block;float:right'>$".$kfrBPxP->Value('P_item_price')."</div>"
+                     ."<div style='display:inline-block;float:right'>$".$raItem['fAmount']."</div>"
                      ."</div>";
             }
         }
+
+        if( !$s ) goto done;
+
+        $s .= "<div style='text-alignment:right;font-size:12pt;color:green'>Your Total: \${$raSummary['fTotal']}</div>";
 
         $s = "<div class='sb_basket-contents'>$s</div>";
 
         done:
         return( $s ? $s : "Your Basket is Empty" );
+    }
+
+    function ComputeBasketSummary()
+    /******************************
+        Compute information about the current basket
+
+        fTotal            : the total amount to pay
+        raSellers         : array( uidSeller1 => array( fTotal => the total amount to pay to this seller,
+                                                        raItems => array( kBP=>kBP, sItem => describes the item, fAmount => amount to pay ) )
+
+                            N.B. shipping / discount are formatted as individual raItems immediately following their item with kBP==0
+     */
+    {
+        $raOut = array( 'fTotal'=>0.0, 'raSellers'=>array() );
+
+        if( ($kfrBPxP = $this->oDB->GetPurchasesKFRC( $this->GetBasketKey() )) ) {
+            while( $kfrBPxP->CursorFetch() ) {
+                $uidSeller = $kfrBPxP->Value('P_uid_seller');
+// handle volume pricing, shipping, discount
+                $fAmount = $this->getAmount( $kfrBPxP );
+                $raOut['fTotal'] += $fAmount;
+                if( !isset($raOut['raSellers'][$uidSeller]) ) {
+                    $raOut['raSellers'][$uidSeller] = array( 'fTotal'=>0.0, 'raContents'=>array() );
+                }
+
+                $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
+                $sItem = $oHandler->PurchaseDraw( $kfrBPxP );
+                $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
+                $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
+
+                // add other items for shipping / discount
+
+            }
+        }
+        return( $raOut );
+    }
+
+    private function getAmount( KFRecord $kfrBPxP )
+    {
+        $amount = 0.0;
+
+        switch( $kfrBPxP->Value('P_quant_type') ) {
+            case 'ITEM-1':
+                $amount = $kfrBPxP->Value('P_item_price');
+                break;
+
+            case 'ITEM-N':
+                $amount = $kfrBPxP->Value('P_item_price') * $kfrBPxP->Value('n');
+                break;
+
+            case 'MONEY':
+                $amount = $kfrBPxP->Value('f');
+                break;
+        }
+
+        return( $amount );
     }
 
     function AddProductToBasket_kProd( $kP, $raParmsBP, $bGPC = false )
@@ -217,7 +280,7 @@ class SEEDBasketCore
                   : array( false, "" ) );
     }
 
-    function DeleteProductFromBasket( $kBP )
+    function RemoveProductFromBasket( $kBP )
     /***************************************
         Delete the given BP from the current basket
      */
@@ -243,8 +306,8 @@ class SEEDBasketCore
         If there isn't one, create one and start using it.
      */
     {
-        if( $this->kBasket ) {
-            $kfrB = $this->oDB->GetBasket( $this->kBasket );
+        if( ($kB = $this->GetBasketKey()) ) {
+            $kfrB = $this->oDB->GetBasket( $kB );
         } else {
             // create a new basket and save it
             $kfrB = $this->oDB->GetKfrel('B')->CreateRecord();

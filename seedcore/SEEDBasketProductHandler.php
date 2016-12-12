@@ -28,7 +28,7 @@ class SEEDBasketProductHandler
     FulfilDraw( bDetail )   Show a description of a BP in more or less detail, from the seller's perspective
  */
 {
-    private $oSB;
+    protected $oSB;
 
     function __construct( SEEDBasketCore $oSB )
     {

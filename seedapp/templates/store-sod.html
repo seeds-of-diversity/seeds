@@ -115,13 +115,16 @@ function RemoveFromBasket( kBP )
 </div>
 
 
-# English
+# ****** Donation
 
 %% storeFormBlockDonation
 {% extends 'storeFormBlock' %}
 {% block title %}Make a Charitable Donation{% endblock %}
 {% block body1 %}Donation form{% endblock %}
 {% block body2 %}More donation form{% endblock %}
+
+
+# ******  Membership
 
 %% storeFormBlockMembership
 {% extends 'storeFormBlock' %}
@@ -138,16 +141,15 @@ function RemoveFromBasket( kBP )
       remercions de penser &agrave; faire un don.
     {% endif %}
   </div>
-  <button style='font-size:8px' onclick="AddToBasket_Name('mbr1_35');">Add to basket</button>&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:mbr1_35]]<br/>
-  <button style='font-size:8px' onclick="AddToBasket_Name('mbr1_45');">Add to basket</button>&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:mbr1_45]]<br/>
-  <button style='font-size:8px' onclick="AddToBasket_Name('mbr1_35');">Add to basket</button>[[FormRadio: mbr_type | radioValue=mbr1_35 ]]&nbsp;&nbsp;&nbsp;S('One Year Membership form line - no SED')&nbsp;&nbsp;&nbsp;<br/>
-  [[FormRadio: mbr_type | radioValue=mbr1_45sed]]&nbsp;&nbsp;&nbsp;S('One Year Membership form line')<br/>
-  [[FormRadio: mbr_type | bNoBlankMatches=1]]&nbsp;&nbsp;&nbsp;S('mbr_none')
+  <button style='font-size:8px' onclick="AddToBasket_Name('mbr1_35');">Add to basket</button>&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:mbr1_35]] ($35)<br/>
+  <button style='font-size:8px' onclick="AddToBasket_Name('mbr1_45sed');">Add to basket</button>&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:mbr1_45sed]] ($45)<br/>
 {% endblock %}
+
+
+# ****** Books
 
 %% storeFormBlockBooks
 {% extends 'storeFormBlock' %}
 {% block title %}Buy Some Books{% endblock %}
 {% block body1 %}Book form{% endblock %}
-
 
