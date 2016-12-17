@@ -142,15 +142,26 @@ class SEEDBasketProductHandler
 
     function Purchase0( KFRecord $kfrP )
     /***********************************
-        Given a product, draw the form that a store would show to purchase it
+        Given a product, draw the form that a store would show to purchase it.
+        Form parms can be:
+            n     (int)
+            f     (float)
+            sbp_* (string)
      */
     {
         return( $kfrP->Value('title_en') );
     }
 
-    function Purchase2( KFRecord $kfrP, $raParmsBP, $bGPC )
-    /******************************************************
+    function Purchase2( KFRecord $kfrP, $raPurchaseParms )
+    /*****************************************************
         Given a product, add it to the current basket and return the new kBP
+
+        raPurchaseParms:
+            n (int)    : quantity to add
+            f (float)  : amount to add
+            * (string) : any parms from Purchase0 that were prefixed with sbp_ (prefix has been removed)
+
+        Return the new BP._key
      */
     {
         if( !($kfrB = $this->oSB->GetCurrentBasketKFR()) )  goto done;
@@ -158,8 +169,16 @@ class SEEDBasketProductHandler
         if( ($kfrBP = $this->oSB->oDB->GetKfrel('BP')->CreateRecord()) ) {
             $kfrBP->SetValue( 'fk_SEEDBasket_Products', $kfrP->Key() );
             $kfrBP->SetValue( 'fk_SEEDBasket_Baskets', $kfrB->Key() );
-            $kfrBP->SetValue( 'n', ($bGPC ? SEEDSafeGPC_GetInt('n') : intval(@$raParmsBP['n'])) );
-            $kfrBP->SetValue( 'f', ($bGPC ? SEEDSafeGPC_GetStrPlain('f') : floatval(@$raParmsBP['f'])) );
+
+            $kfrBP->SetValue( 'n', @$raPurchaseParms['n'] );
+            $kfrBP->SetValue( 'f', @$raPurchaseParms['f'] );
+            unset( $raPurchaseParms['n'] );
+            unset( $raPurchaseParms['f'] );
+
+            if( count($raPurchaseParms) ) {
+                $kfrBP->SetValue( 'sExtra', SEEDStd_ParmsRA2URL($raPurchaseParms) );
+            }
+
             $kfrBP->PutDBRow();
         }
 
@@ -174,6 +193,10 @@ class SEEDBasketProductHandler
     {
         $s = $kfrBPxP->Value( 'P_title_en' );
 
+        if( $kfrBPxP->Value('quant_type') == 'ITEM_N' && ($n = $kfrBPxP->Value('n')) > 1 ) {
+            $s .= " ($n @ ".$this->oSB->dollar($this->oSB->priceFromRange($kfrBPxP->Value('item_price'), $n)).")";
+        }
+
         return( $s );
     }
 
@@ -186,7 +209,7 @@ class SEEDBasketProductHandler
     {
         $bOk = false;
 
-        if( !$this->BasketIsOpen() ) goto done;
+        if( !$this->oSB->BasketIsOpen() ) goto done;
 // should this verify that the BP belongs to this basket? Every derivation would have to, unless the Core checks this and everyone promises not to call here independently
 
         $bOk = $kfrBP->kfrel->kfdb->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE _key='".$kfrBP->Key()."'" );
@@ -199,16 +222,6 @@ class SEEDBasketProductHandler
     /*****
         Support methods
      */
-
-    function BasketIsOpen()
-    /**********************
-        True if there is a current basket and it is open for adding/updating/deleting by the purchaser
-     */
-    {
-
-
-        return( true );
-    }
 
     function ExplainPrices( $kfrP )
     {
@@ -225,8 +238,6 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
-    function dollar( $d )  { return( "$".$d ); }
-
     function ExplainPriceRange( $sRange )
     /************************************
         Explain the contents of a price range
@@ -238,7 +249,7 @@ class SEEDBasketProductHandler
 
         if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
             // There is just a single price for all quantities
-            $s = $this->dollar( $sRange );
+            $s = $this->oSB->dollar( $sRange );
         } else {
             $raRanges = explode( ',', $sRange );
             foreach( $raRanges as $r ) {
@@ -248,12 +259,12 @@ class SEEDBasketProductHandler
                 list($price,$sQRange) = explode( ":", $r );
                 if( strpos( '-', $sQRange) !== false ) {
                     list($sQ1,$sQ2) = explode( '-', $sQRange );
-                    $s .= ($s ? ", " : "").$this->dollar($price)." for $sQ1 to $sQ2 items";
+                    $s .= ($s ? ", " : "").$this->oSB->dollar($price)." for $sQ1 to $sQ2 items";
                 } else if( substr( $sQRange, -1, 1 ) == "+" ) {
                     $sQ1 = intval($sQRange);
-                    $s .= ($s ? ", " : "").$this->dollar($price)." for $sQ1 items or more";
+                    $s .= ($s ? ", " : "").$this->oSB->dollar($price)." for $sQ1 items or more";
                 } else {
-                    $s .= ($s ? ", " : "").$this->dollar($price)." for $sQRange items";
+                    $s .= ($s ? ", " : "").$this->oSB->dollar($price)." for $sQRange items";
                 }
 
 
