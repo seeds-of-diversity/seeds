@@ -81,8 +81,8 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function Purchase2( KFRecord $kfrP, $raParmsBP, $bGPC )
-    /******************************************************
+    function Purchase2( KFRecord $kfrP, $raPurchaseParms )
+    /*****************************************************
         Add a membership to the basket. Only one membership is allowed per basket, so remove any others.
      */
     {
@@ -91,12 +91,12 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         $raBPxP = $this->oSB->oDB->GetPurchasesList( $this->oSB->GetBasketKey() );
         foreach( $raBPxP as $ra ) {
             if( $ra['P_product_type'] == 'membership' ) {
-                $this->oSB->RemoveProductFromBasket( $ra['_key'] );
+                $this->oSB->Cmd( 'removeFromBasket', array('kBP'=> $ra['_key']) );
 //                $s .= "<p>Removed a membership</p>";
             }
         }
 
-        return( parent::Purchase2( $kfrP, $raParmsBP, $bGPC ) );
+        return( parent::Purchase2( $kfrP, $raPurchaseParms ) );
     }
 }
 
