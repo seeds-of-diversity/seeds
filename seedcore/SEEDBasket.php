@@ -9,6 +9,7 @@
 
 include_once( "SEEDBasketDB.php" );
 include_once( "SEEDBasketProductHandler.php" );
+include_once( "SEEDBasketUpdater.php" );
 include_once( STDINC."KeyFrame/KFUIForm.php" );
 
 
@@ -32,6 +33,53 @@ class SEEDBasketCore
         $this->kBasket = $this->GetBasketKey();
     }
 
+    function Cmd( $cmd, $raParms = array(), $bGPC = false )
+    /******************************************************
+        If raParms is _REQUEST, set bGPC=true
+        If raParms is an ordinary array, set bGPC=false
+        Then SEEDSafeGPC will do the right thing
+     */
+    {
+        $raOut = array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"" );
+
+        switch( strtolower($cmd) ) {    // don't have to strip slashes because no arbitrary commands
+            case "addtobasket":
+                /* Add a product to the current basket
+                 * 'name' = name of product add to current basket
+                 * 'kP'   = key of product to add
+                 * $raParms also contains BP parameters known to Purchase0() and Purchase2()
+                 */
+                $raOut['bHandled'] = true;
+                $kfrP = null;
+
+                if( ($name = SEEDSafeGPC_GetStrPlain('name',$raParms,$bGPC)) ) {
+                    if( !($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($name)."'" )) ) {
+                        $raOut['sErr'] = "There is no product called '$name'";
+                        goto done;
+                    }
+                } else if( ($kP = SEEDSafeGPC_GetInt('kP',$raParms)) ) {
+                    if( !($kfrP = $this->oDB->GetProduct( 'P', $kP )) ) {
+                        $raOut['sErr'] = "There is no product '$kP'";
+                        goto done;
+                    }
+                }
+                list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms, $bGPC );
+                break;
+
+            case "removefrombasket":
+                // kBP = key of purchase to remove
+                $raOut['bHandled'] = true;
+
+                if( ($kBP = SEEDSafeGPC_GetInt('kBP',$raParms)) ) {
+                    list($raOut['bOk'],$raOut['sOut']) = $this->removeProductFromBasket( $kBP );
+                }
+                break;
+        }
+
+        done:
+        return( $raOut );
+    }
+
     function GetBasketKey()
     {
         if( !$this->kBasket ) {
@@ -46,6 +94,22 @@ class SEEDBasketCore
         $this->kBasket = $kB;
         $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
         $oSVA->VarSet( 'kBasket', $kB );
+    }
+
+    function BasketIsOpen()
+    /**********************
+        True if there is a current basket and it is open for adding/updating/deleting by the purchaser
+     */
+    {
+        $bOk = false;
+
+        if( ($kB = $this->GetBasketKey()) &&
+            ($kfrB = $this->oDB->GetBasket($kB)) &&
+            ($kfrB->Value('eStatus') == 'New') ) {
+            $bOk = true;
+        }
+
+        return( $bOk );
     }
 
     function GetUID_SB()
@@ -154,14 +218,19 @@ class SEEDBasketCore
         return( $s );
     }
 
-    function DrawBasketContents( $kBPHighlight = 0 )
-    /***********************************************
+    function DrawBasketContents( $raParms = array() )
+    /************************************************
         Draw the contents of the current basket.
+
+        raParms:
+            kBPHighlight : highlight this BP entry
      */
     {
         $s = "";
 
         if( !$this->GetBasketKey() ) goto done;
+
+        $kBPHighlight = intval(@$raParms['kBPHighlight']);
 
         $raSummary = $this->ComputeBasketSummary();
 
@@ -236,7 +305,8 @@ class SEEDBasketCore
                 break;
 
             case 'ITEM-N':
-                $amount = $kfrBPxP->Value('P_item_price') * $kfrBPxP->Value('n');
+                $n = $kfrBPxP->Value('n');
+                $amount = $this->priceFromRange( $kfrBPxP->Value('P_item_price'), $n ) * $n;
                 break;
 
             case 'MONEY':
@@ -247,53 +317,91 @@ class SEEDBasketCore
         return( $amount );
     }
 
-    function AddProductToBasket_kProd( $kP, $raParmsBP, $bGPC = false )
-    /******************************************************************
-        Add a product to the current basket.
-        $raBP are the BxP parameters with names appropriate for http, bGPC is true if raBP are http
-     */
+    function priceFromRange( $sRange, $n )
     {
-// Verify that basket is open
+        $f = 0.00;
 
-        return( ($kfrP = $this->oDB->GetProduct( 'P', $kP ))
-                  ? $this->addProductToBasket( $kfrP, $raParmsBP, $bGPC )
-                  : array( false, "There is no product '$kP'" ) );
+        if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
+            // There is just a single price for all quantities
+            $f = $this->dollar( $sRange );
+        } else {
+            $raRanges = explode( ',', $sRange );
+            foreach( $raRanges as $r ) {
+                $r = trim($r);
+
+                // $r has to be price:N or price:M-N or price:M+
+                list($price,$sQRange) = explode( ":", $r );
+                if( strpos( '-', $sQRange) !== false ) {
+                    list($sQ1,$sQ2) = explode( '-', $sQRange );
+                    if( $n >= intval($sQ1) && $n <= intval($sQ2) )  $f = $price;
+                } else if( substr( $sQRange, -1, 1 ) == "+" ) {
+                    $sQ1 = $sQRange;
+                    if( $n >= intval($sQ1) )  $f = $price;
+                } else {
+                    $sQ1 = $sQRange;
+                    if( $n == intval($sQ1) ) $f = $price;
+                }
+
+                if( $f ) break;
+            }
+        }
+        return( floatval($f) );
     }
 
-    function AddProductToBasket_Name( $prodName, $raParmsBP, $bGPC = false )
-    /***********************************************************************
-        Add a named product to the current basket.
-     */
-    {
-// Verify that basket is open
+    function dollar( $d )  { return( "$".$d ); }
 
-        return( ($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" ))
-                  ? $this->addProductToBasket( $kfrP, $raParmsBP, $bGPC )
-                  : array( false, "There is no product called '$prodName'" ) );
-    }
+
+    /**
+        Command methods
+     */
 
     private function addProductToBasket( KFRecord $kfrP, $raParmsBP, $bGPC )
     {
-        $oHandler = $this->getHandler( $kfrP->Value('product_type') );
-        return( ($kBP = $oHandler->Purchase2( $kfrP, $raParmsBP, $bGPC ))
-                  ? array( true, $this->DrawBasketContents( $kBP ) )
-                  : array( false, "" ) );
+        $kBPNew = 0;
+
+        if( !$this->BasketIsOpen() )  goto done;
+
+        // The input parms can be http or just ordinary arrays
+        //     n     (int):    quantity to add
+        //     f     (float):  amount to add
+        //     sbp_* (string): arbitrary parameters known to Purchase0 and Purchase2
+        $raPurchaseParms = array();
+        if( ($n = intval(@$raParmsBP['n'])) )    $raPurchaseParms['n'] = $n;
+        if( ($f = floatval(@$raParmsBP['f'])) )  $raPurchaseParms['f'] = $f;
+        foreach( $raParmsBP as $k => $v ) {
+            if( substr($k,0,3) != 'sbp_' || strlen($k) < 5 ) continue;
+
+            $raPurchaseParms[substr($k,4)] = $bGPC ? SEEDSafeGPC_GetStrPlain($v) : $v;
+        }
+
+        if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) {
+            $kBP = $oHandler->Purchase2( $kfrP, $raPurchaseParms );
+        }
+
+        done:
+        return( $kBP ? array( true, $this->DrawBasketContents( array( 'kBPHighlight'=>$kBP ) ) )
+                     : array( false, "" ) );
     }
 
-    function RemoveProductFromBasket( $kBP )
-    /***************************************
+    private function removeProductFromBasket( $kBP )
+    /***********************************************
         Delete the given BP from the current basket
      */
     {
-// Verify that basket is open
-// Verify that kBP belongs to the current basket
         $bOk = false;
         $s = "";
 
+        if( !$this->BasketIsOpen() )  goto done;
+
         if( ($kfrBPxP = $this->oDB->GetKFR( 'BPxP', $kBP )) ) {
-            $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
-            $bOk = $oHandler->PurchaseDelete( $kfrBPxP );   // takes a kfrBP
+            // Verify that kBP belongs to the current basket
+            if( $kfrBPxP->Value('fk_SEEDBasket_Baskets') == $this->GetBasketKey() ) {
+                $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
+                $bOk = $oHandler->PurchaseDelete( $kfrBPxP );   // takes a kfrBP
+            }
         }
+
+        done:
         // always return the current basket because some interfaces will just draw it no matter what happened
         $s = $this->DrawBasketContents();
         return( array($bOk,$s) );
