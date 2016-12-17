@@ -71,11 +71,12 @@ function RemoveFromBasket( kBP )
                            { var rQ = window.JSON.parse(data); 
                              var bOk = rQ['bOk'];
                              var sOut = rQ['sOut'];
+                             var sErr = rQ['sErr'];
                              if( bOk ) { 
                                  $('.storeBasketContent').html(sOut);
                                  $('.storeBasketErrmsg').html("");
                              } else {
-                                 $('.storeBasketErrmsg').html(sOut);
+                                 $('.storeBasketErrmsg').html(sErr);
                              }
                            },
                   error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
