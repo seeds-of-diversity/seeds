@@ -172,6 +172,23 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         }
         return( $s );
     }
+
+    function Purchase0( KFRecord $kfrP )
+    /***********************************
+        Given a product, draw the form that a store would show to purchase it.
+        Form parms can be:
+            n     (int)
+            f     (float)
+            sbp_* (string)
+     */
+    {
+        $s = $kfrP->Value('title_en')
+            ."&nbsp;&nbsp;<input name='sb_n' value='1'/>"
+            ."<input type='hidden' name='sb_product' value='".$kfrP->Value('name')."'/>";
+
+        return( $s );
+    }
+
 }
 
 class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler

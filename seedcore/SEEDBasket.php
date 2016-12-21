@@ -45,25 +45,27 @@ class SEEDBasketCore
         switch( strtolower($cmd) ) {    // don't have to strip slashes because no arbitrary commands
             case "addtobasket":
                 /* Add a product to the current basket
-                 * 'name' = name of product add to current basket
-                 * 'kP'   = key of product to add
-                 * $raParms also contains BP parameters known to Purchase0() and Purchase2()
+                 * 'sb_product' = name of product add to current basket
+                 * 'sb_kP'      = key of product to add
+                 * $raParms also contains BP parameters prefixed by sb_*
                  */
                 $raOut['bHandled'] = true;
                 $kfrP = null;
 
-                if( ($name = SEEDSafeGPC_GetStrPlain('name',$raParms,$bGPC)) ) {
+                if( ($name = SEEDSafeGPC_GetStrPlain('sb_product',$raParms,$bGPC)) ) {
                     if( !($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($name)."'" )) ) {
                         $raOut['sErr'] = "There is no product called '$name'";
                         goto done;
                     }
-                } else if( ($kP = SEEDSafeGPC_GetInt('kP',$raParms)) ) {
+                } else if( ($kP = SEEDSafeGPC_GetInt('sb_kP',$raParms)) ) {
                     if( !($kfrP = $this->oDB->GetProduct( 'P', $kP )) ) {
                         $raOut['sErr'] = "There is no product '$kP'";
                         goto done;
                     }
                 }
-                list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms, $bGPC );
+                if( $kfrP ) {
+                    list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms, $bGPC );
+                }
                 break;
 
             case "removefrombasket":
@@ -228,6 +230,12 @@ class SEEDBasketCore
     {
         $s = "";
 
+$s .= "<style>
+       .sb_basket_table { display:table }
+       .sb_basket_tr    { display:table-row }
+       .sb_basket_td    { display:table-cell; text-align:left;border-bottom:1px solid #eee;padding:3px 10px 3px 0px }
+       </style>";
+
         if( !$this->GetBasketKey() ) goto done;
 
         $kBPHighlight = intval(@$raParms['kBPHighlight']);
@@ -237,17 +245,19 @@ class SEEDBasketCore
         foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
             $s .= "<div>Seller $uidSeller (total $".$raSeller['fTotal'].")</div>";
 
+            $s .= "<div class='sb_basket_table'>";
             foreach( $raSeller['raItems'] as $raItem ) {
                 $sClass = ($kBPHighlight && $kBPHighlight == $raItem['kBP']) ? " sb_bp-change" : "";
-                $s .= "<div class='sb_bp$sClass'>"
-                     .$raItem['sItem']
-                     ."<div style='display:inline-block;float:right;padding-left:10px' onclick='RemoveFromBasket(".$raItem['kBP'].");'>"
+                $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
+                     ."<div class='sb_basket_td'>".$raItem['sItem']."</div>"
+                     ."<div class='sb_basket_td'>$".$raItem['fAmount']."</div>"
+                             ."<div class='sb_basket_td' style='' onclick='RemoveFromBasket(".$raItem['kBP'].");'>"
                          // use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
                          ."<img class='slsrcedit_cvBtns_del' height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
                          ."</div>"
-                     ."<div style='display:inline-block;float:right'>$".$raItem['fAmount']."</div>"
                      ."</div>";
             }
+            $s .= "</div>";
         }
 
         if( !$s ) goto done;
@@ -362,16 +372,16 @@ class SEEDBasketCore
         if( !$this->BasketIsOpen() )  goto done;
 
         // The input parms can be http or just ordinary arrays
-        //     n     (int):    quantity to add
-        //     f     (float):  amount to add
-        //     sbp_* (string): arbitrary parameters known to Purchase0 and Purchase2
+        //     sb_n   (int):    quantity to add
+        //     sb_f   (float):  amount to add
+        //     sb_p_* (string): arbitrary parameters known to Purchase0 and Purchase2
         $raPurchaseParms = array();
-        if( ($n = intval(@$raParmsBP['n'])) )    $raPurchaseParms['n'] = $n;
-        if( ($f = floatval(@$raParmsBP['f'])) )  $raPurchaseParms['f'] = $f;
+        if( ($n = intval(@$raParmsBP['sb_n'])) )    $raPurchaseParms['n'] = $n;
+        if( ($f = floatval(@$raParmsBP['sb_f'])) )  $raPurchaseParms['f'] = $f;
         foreach( $raParmsBP as $k => $v ) {
-            if( substr($k,0,3) != 'sbp_' || strlen($k) < 5 ) continue;
+            if( substr($k,0,5) != 'sb_p_' || strlen($k) < 6 ) continue;
 
-            $raPurchaseParms[substr($k,4)] = $bGPC ? SEEDSafeGPC_GetStrPlain($v) : $v;
+            $raPurchaseParms[substr($k,5)] = $bGPC ? SEEDSafeGPC_GetStrPlain($v) : $v;
         }
 
         if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) {

@@ -34,15 +34,49 @@
 $(document).ready(function(){
     // if you click on a form-block header, the associated body2 gets toggled
     $('.storeFormBlockHeader').click( function() {
-        e_block = $(this).closest('.storeFormBlock');
+        var e_block = $(this).closest('.storeFormBlock');
         if( typeof e_block == 'undefined' ) return;
-        body2 = e_block.find('.storeFormBlockBody2');
+        var body2 = e_block.find('.storeFormBlockBody2');
         if( typeof body2 == 'undefined' )  return;
 
         body2.toggle();
     });
-});
 
+    $('.storeFormPurchaseButton').click( function() {
+        var e_purchase = $(this).closest('.sb_purchase');
+        if( typeof e_purchase == 'undefined' ) return;
+        var inputs = e_purchase.find(":input"); // matches <input> <select> etc
+
+        var ra = { cmd:"AddToBasket" };
+        inputs.each(function() {
+            var k = $(this).prop('name');
+            if( k.substring(0,3) == 'sb_' ) {
+                var v = $(this).val();
+                ra[k] = v;
+            }
+        });
+
+//        for( r in ra ) {
+//            alert(ra[r]);
+//        }
+        jQuery.ajax({ url: "http://localhost/~bob/seeds.ca2/app/q/basketJX.php",
+            data: ra,
+            success: function ( data, textStatus, jqXHR ) 
+                     { var rQ = window.JSON.parse(data); 
+                       var bOk = rQ['bOk'];
+                       var sOut = rQ['sOut'];
+                       if( bOk ) { 
+                           $('.storeBasketContent').html(sOut);
+                           $('.storeBasketErrmsg').html("");
+                       } else {
+                           $('.storeBasketErrmsg').html(sOut);
+                       }
+                     },
+            error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
+          });
+
+    });
+});
 
 function AddToBasket_Name( name )
 {
@@ -124,6 +158,8 @@ function RemoveFromBasket( kBP )
 {% block body1 %}Donation form{% endblock %}
 {% block body2 %}More donation form{% endblock %}
 
+%% storeFormBlockPurchaseButton
+<button class='storeFormPurchaseButton' style='font-size:9px'">Add to basket</button>
 
 # ******  Membership
 
@@ -152,5 +188,11 @@ function RemoveFromBasket( kBP )
 %% storeFormBlockBooks
 {% extends 'storeFormBlock' %}
 {% block title %}Buy Some Books{% endblock %}
-{% block body1 %}Book form{% endblock %}
+{% block body1 %}
+  <button style='font-size:8px' onclick="AddToBasket_Name('ssh6-en');">Add to basket</button>&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:book-ssh6-en]]<br/>
+  <div class='sb_purchase'>
+      [[Include:storeFormBlockPurchaseButton]]&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:book-ssh6-en]]
+  </div>
+
+{% endblock %}
 
