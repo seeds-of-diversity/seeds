@@ -160,7 +160,8 @@ class SEEDBasketCore
          * then load up the current product (or create a new one) and draw the form for it.
          */
         $oFormP = new KeyFrameUIForm( $this->oDB->GetKfrel("P"), $cid,
-                                      array('DSParms'=>array('fn_DSPreStore'=>array($oHandler,'ProductDefine1'))) );
+                                      array('DSParms'=>array('fn_DSPreStore' =>array($oHandler,'ProductDefine1'),
+                                                             'fn_DSPostStore'=>array($oHandler,'ProductDefine2PostStore') )) );
         $oFormP->Update();
 
         if( $kP ) {
