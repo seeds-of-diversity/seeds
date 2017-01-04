@@ -15,7 +15,7 @@ class SEEDBasketProductHandler
 
     ProductDefine0          Draw a form to create/update a product definition
     ProductDefine1          Validate a product definition
-    ProductDefine2          Save a product definition
+    ProductDefine2PostStore Called after a successful Store
     ProductDraw( bDetail )  Show a description of a product in more or less detail
     ProductDelete( bHard )  Remove a product from the system (only does soft delete if the product is referenced by any BP)
 
@@ -95,12 +95,12 @@ class SEEDBasketProductHandler
         return( true );
     }
 
-    function ProductDefine2( KFRecord $kfrP )
-    /******************************************
-        Save a product definition
+    function ProductDefine2PostStore( KFRecord $kfrP, KeyFrameUIForm $oFormP )
+    /*************************************************************************
+        Called after a successful Update().Store
      */
     {
-        // probably never used because SEEDBasketCore is just going to use PutDBRow()
+        // e.g. a derived class might store metadata in SEEDBasket_ProdExtra
     }
 
     function ProductDraw( KFRecord $kfrP, $bDetail )
