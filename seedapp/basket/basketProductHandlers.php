@@ -71,12 +71,15 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         return( parent::ProductDefine1( $oDS ) );
     }
 
-    function ProductDraw( KFRecord $kfrP, $bDetail )
+    function ProductDraw( KFRecord $kfrP, $eDetail )
     {
-        $s = "<h4>".$kfrP->Value('title_en')."</h4>";
-
-        if( $bDetail ) {
-            $s .= $kfrP->Expand( "Name: [[name]]<br/>Price: [[item_price]]" );
+        switch( $eDetail ) {
+            case SEEDBasketProductHandler::DETAIL_TINY:
+                $s = $kfrP->Expand( "<p>[[title_en]] ([[name]])</p>" );
+                break;
+            default:
+                $s = $kfrP->Expand( "<h4>[[title_en]] ([[name]])</h4>" )
+                    .$this->ExplainPrices( $kfrP );
         }
         return( $s );
     }
@@ -86,13 +89,10 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         Add a membership to the basket. Only one membership is allowed per basket, so remove any others.
      */
     {
-//        $s = "";
-
         $raBPxP = $this->oSB->oDB->GetPurchasesList( $this->oSB->GetBasketKey() );
         foreach( $raBPxP as $ra ) {
             if( $ra['P_product_type'] == 'membership' ) {
                 $this->oSB->Cmd( 'removeFromBasket', array('kBP'=> $ra['_key']) );
-//                $s .= "<p>Removed a membership</p>";
             }
         }
 
@@ -162,13 +162,15 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function ProductDraw( KFRecord $kfrP, $bDetail )
+    function ProductDraw( KFRecord $kfrP, $eDetail )
     {
-        $s = "<h4>".$kfrP->Value('title_en')."</h4>";
-
-        if( $bDetail ) {
-            $s .= $kfrP->Expand( "Name: [[name]]<br/>" )
-                 .$this->ExplainPrices( $kfrP );
+        switch( $eDetail ) {
+            case SEEDBasketProductHandler::DETAIL_TINY:
+                $s = $kfrP->Expand( "<p>[[title_en]] ([[name]])</p>" );
+                break;
+            default:
+                $s = $kfrP->Expand( "<h4>[[title_en]] ([[name]])</h4>" )
+                    .$this->ExplainPrices( $kfrP );
         }
         return( $s );
     }
@@ -183,7 +185,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
      */
     {
         $s = $kfrP->Value('title_en')
-            ."&nbsp;&nbsp;<input name='sb_n' value='1'/>"
+            ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
             ."<input type='hidden' name='sb_product' value='".$kfrP->Value('name')."'/>";
 
         return( $s );
@@ -219,6 +221,8 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
 
 class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 {
+    private $raProdExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'quantity', 'origin', 'description' );
+
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
     function ProductDefine0( KeyFrameUIForm $oFormP )
@@ -227,10 +231,65 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         If _key==0 draw a New product form.
      */
     {
-        /* Override this with a form for the product type
-         */
+        $s = "";
 
-        $s = "<h3>Default Product Form</h3>";
+        if( ($kP = $oFormP->GetKey()) ) {
+            // this is not a new product, so fetch any ProdExtra
+            $raExtra = $this->oSB->oDB->GetProdExtraList( $kP );
+            foreach( $this->raProdExtraKeys as $k ) {
+                $oFormP->SetValue( $k, @$raExtra[$k] );
+            }
+        }
+
+        $oKForm = $oFormP;
+
+        if( !$oKForm->GetKey() ) {
+// mbr_id shouldn't be in the form, or propagated, for security when members are editing
+
+            //$oKForm->SetValue( 'mbr_id', $this->kGrowerActive );
+            //$oKForm->SetValue( "year_1st_listed", $this->currentYear );
+            //$oKForm->SetValue( "type", $this->sess->VarGet('p_seedType') );
+        }
+
+        $s = "<h3>".($oKForm->GetKey() ? ("Edit: ".$oKForm->Value('type')." - ".$oKForm->ValueEnt('variety')) : "New Seed Offer")."</h3>";
+
+        $sMbrCode = $oKForm->kfrel->kfdb->Query1("SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id=".$oKForm->oDS->Value('uid_seller') );
+
+        $nSize = 30;
+        $raTxtParms = array('size'=>$nSize);
+        $txtParms = "size:30";
+        $s .= "<table border='0'>"
+             .$oFormP->ExpandForm(
+                     "||| || <b>$sMbrCode</b> "
+                    ."||| <label>Year first listed</label> || [[text:year_1st_listed|readonly]]"
+                    ."||| <label>Category</label> || "
+// get this array from SEDCommonDraw OR fetch the value automatically from sl_species and put it in Misc if we don't know
+                            .$oKForm->Select2( "category", array( "VEGETABLES" => "VEGETABLES",
+                                                                  "FLOWERS AND WILDFLOWERS" => "FLOWERS AND WILDFLOWERS",
+                                                                  "FRUIT"=>"FRUIT",
+                                                                  "GRAIN"=>"GRAIN",
+                                                                  "HERBS AND MEDICINALS"=>"HERBS AND MEDICINALS",
+                                                                  "MISC"=>"MISC",
+                                                                  "TREES AND SHRUBS"=>"TREES AND SHRUBS" ) )
+                    ."||| <label>Species</label> || [[text:species|$txtParms]]"
+                    ."||| <label>Variety</label> || [[text:variety|$txtParms]]"
+                    ."||| <label>Botanical</label> || [[text:bot_name|$txtParms]]"
+                    ."||| <label>Days to maturity</label> || [[text:days_maturity|$txtParms]]"
+                    ."||| <label>Quantity</label> || "
+                            .$oFormP->Select2( "quantity", array( "I have enough to share with any member"=>"",
+                                                                  "Low Quantity: offering to grower members only"=>"LQ",
+                                                                  "Rare Variety: offering to members who will re-offer if possible"=>"PR"
+                            ))
+                    ."||| <label>Origin</label> || [[text:origin|$txtParms]]"
+                    ."||| <label>Description</label> || "
+                            .$oFormP->TextArea( 'description', "", 35, 8, array( 'attrs'=>"wrap='soft'") )
+
+             )
+             ."</TABLE>"
+             ."<BR><INPUT type=submit value='Save'/>"
+
+                     //             .$this->oSLE->ExpandTags( $oKForm->oDS->Key(), "<P style='text-align:center'><A HREF='{$_SERVER['PHP_SELF']}?[[LinkParmScroll]]'>Close Form</A></P> " );
+;
 
         $s .= $oFormP->HiddenKey()
              ."<table>"
@@ -261,6 +320,86 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
                      )
              ."</table> ";
+
+        return( $s );
+    }
+
+    function ProductDefine1( KeyFrameDataStore $oDS )
+    /************************************************
+        This is called as the Product's KFUIForm::Update().PreStore function.
+        Validate the product record
+     */
+    {
+        $bOk = true;
+
+        // Force some requirements
+        $oDS->SetValue( 'quant_type', 'ITEM-1' );
+
+        return( $bOk );
+    }
+
+    function ProductDefine2PostStore( KFRecord $kfrP, KeyFrameUIForm $oFormP )
+    /*************************************************************************
+        This is called after a successful Update().Store
+
+        Write the seed prodExtra data. This has to be done after the Store because on a new product we don't
+        know the fk_SEEDBasket_Products key until PostStore().
+     */
+    {
+        if( $kfrP->Key() ) {
+            // Write the prodExtra data from the ProductDefine0 form
+            foreach( $this->raProdExtraKeys as $k ) {
+                $v = $kfrP->Value($k);
+                $this->oSB->oDB->SetProdExtra( $kfrP->Key(), $k, $v );
+            }
+        }
+    }
+
+    function ProductDraw( KFRecord $kfrP, $eDetail )
+    {
+        $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
+        foreach( $this->raProdExtraKeys as $k ) {
+            $kfrP->SetValue( $k, @$raPE[$k] );
+        }
+
+        switch( $eDetail ) {
+            case SEEDBasketProductHandler::DETAIL_TINY:
+                $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
+                break;
+            default:
+                include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
+                $oSed = new SEDCommonDraw( $kfrP->kfrel->kfdb, $this->oSB->sess->GetUID(), "EN", "EDIT" );
+
+                $kfrP->SetValue( 'type',   $kfrP->Value('species') );
+                $kfrP->SetValue( 'mbr_id', $kfrP->Value('uid_seller') );
+
+                $s = "<strong>".$kfrP->Value('species')."</strong><br/>"
+                    .$oSed->DrawSeedFromKFR( $kfrP, array( 'bNoSections'=>true ) );
+        }
+        return( $s );
+    }
+
+
+    function Purchase0( KFRecord $kfrP )
+    {
+        $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_SUMMARY )."</div>"
+            ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
+            ."<input type='hidden' name='sb_product' value='".$kfrP->Key()."'/>";
+
+        return( $s );
+    }
+
+    function PurchaseDraw( KFRecord $kfrBPxP, $bDetail = false )
+    /***********************************************************
+        Draw a product in a basket, in more or less detail.
+     */
+    {
+        $kfrP = $this->oSB->oDB->GetProduct( $kfrBPxP->Value('P__key') );
+        $s = $this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_TINY );
+
+        if( $kfrBPxP->Value('quant_type') == 'ITEM_N' && ($n = $kfrBPxP->Value('n')) > 1 ) {
+            $s .= " ($n @ ".$this->oSB->dollar($this->oSB->priceFromRange($kfrBPxP->Value('item_price'), $n)).")";
+        }
 
         return( $s );
     }

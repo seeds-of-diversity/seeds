@@ -141,6 +141,7 @@ function RemoveFromBasket( kBP )
 [[Include:storeFormBlockDonation]]
 [[Include:storeFormBlockMembership]]
 [[Include:storeFormBlockBooks]]
+[[Include:storeFormBlockSeeds]]
 
 %% storeFormBlock
 <div class='storeFormBlock'>
@@ -159,7 +160,7 @@ function RemoveFromBasket( kBP )
 {% block body2 %}More donation form{% endblock %}
 
 %% storeFormBlockPurchaseButton
-<button class='storeFormPurchaseButton' style='font-size:9px'">Add to basket</button>
+<button class='storeFormPurchaseButton' style='font-size:9px;vertical-align:top'">Add to basket</button>
 
 # ******  Membership
 
@@ -189,9 +190,21 @@ function RemoveFromBasket( kBP )
 {% extends 'storeFormBlock' %}
 {% block title %}Buy Some Books{% endblock %}
 {% block body1 %}
-  <button style='font-size:8px' onclick="AddToBasket_Name('ssh6-en');">Add to basket</button>&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:book-ssh6-en]]<br/>
   <div class='sb_purchase'>
       [[Include:storeFormBlockPurchaseButton]]&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:book-ssh6-en]]
+  </div>
+
+{% endblock %}
+
+
+# ****** Seeds
+
+%% storeFormBlockSeeds
+{% extends 'storeFormBlock' %}
+{% block title %}Member Seed Directory{% endblock %}
+{% block body1 %}
+  <div class='sb_purchase'>
+      [[Include:storeFormBlockPurchaseButton]]&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:5]]
   </div>
 
 {% endblock %}
