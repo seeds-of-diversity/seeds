@@ -16,7 +16,7 @@ class SEEDBasketProductHandler
     ProductDefine0          Draw a form to create/update a product definition
     ProductDefine1          Validate a product definition
     ProductDefine2PostStore Called after a successful Store
-    ProductDraw( bDetail )  Show a description of a product in more or less detail
+    ProductDraw( eDetail )  Show a description of a product in more or less detail
     ProductDelete( bHard )  Remove a product from the system (only does soft delete if the product is referenced by any BP)
 
     Purchase0               Draw a form for the purchase details stored in a BasketXProduct
@@ -28,6 +28,10 @@ class SEEDBasketProductHandler
     FulfilDraw( bDetail )   Show a description of a BP in more or less detail, from the seller's perspective
  */
 {
+    const DETAIL_TINY    = "Tiny";
+    const DETAIL_SUMMARY = "Summary";
+    const DETAIL_ALL     = "All";
+
     protected $oSB;
 
     function __construct( SEEDBasketCore $oSB )
@@ -103,7 +107,7 @@ class SEEDBasketProductHandler
         // e.g. a derived class might store metadata in SEEDBasket_ProdExtra
     }
 
-    function ProductDraw( KFRecord $kfrP, $bDetail )
+    function ProductDraw( KFRecord $kfrP, $eDetail )
     /***********************************************
         Show a product definition in more or less detail
      */
@@ -112,10 +116,15 @@ class SEEDBasketProductHandler
 
         if( !$kfrP ) return( "Error: no product record" );
 
-        $s = $kfrP->Expand( "<h4>[[product_type]] [[title_en]]</h4>" );
-        if( $bDetail ) {
-            $s .= $kfrP->Expand( "Name: [[name]]<br/>" )
-                 .$this->ExplainPrices( $kfrP );
+        switch( $eDetail ) {
+            case SEEDBasketProductHandler::DETAIL_TINY:
+                $s = $kfrP->Expand( "<p>[[title_en]] ([[product_type]]:[[name]])</p>" );
+                break;
+            case SEEDBasketProductHandler::DETAIL_SUMMARY:
+            case SEEDBasketProductHandler::DETAIL_ALL:
+            default:
+                $s = $kfrP->Expand( "<h4>[[title_en]] ([[product_type]]:[[name]])</h4>" )
+                                   .$this->ExplainPrices( $kfrP );
         }
 
         return( $s );

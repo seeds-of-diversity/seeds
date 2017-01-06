@@ -45,27 +45,23 @@ class SEEDBasketCore
         switch( strtolower($cmd) ) {    // don't have to strip slashes because no arbitrary commands
             case "addtobasket":
                 /* Add a product to the current basket
-                 * 'sb_product' = name of product add to current basket
-                 * 'sb_kP'      = key of product to add
+                 * 'sb_product' = name of product to add to current basket (if it is_numeric this is the product _key)
                  * $raParms also contains BP parameters prefixed by sb_*
                  */
                 $raOut['bHandled'] = true;
                 $kfrP = null;
 
-                if( ($name = SEEDSafeGPC_GetStrPlain('sb_product',$raParms,$bGPC)) ) {
-                    if( !($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($name)."'" )) ) {
-                        $raOut['sErr'] = "There is no product called '$name'";
-                        goto done;
-                    }
-                } else if( ($kP = SEEDSafeGPC_GetInt('sb_kP',$raParms)) ) {
-                    if( !($kfrP = $this->oDB->GetProduct( 'P', $kP )) ) {
-                        $raOut['sErr'] = "There is no product '$kP'";
-                        goto done;
-                    }
+                $prodName = SEEDInput_Str('sb_product');
+                if( is_numeric($prodName) ) {
+                    $kfrP = $this->oDB->GetProduct( intval($prodName) );
+                } else {
+                    $kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" );
                 }
-                if( $kfrP ) {
-                    list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms, $bGPC );
+                if( !$kfrP ) {
+                    $raOut['sErr'] = "There is no product '$prodName'";
+                    goto done;
                 }
+                list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms, $bGPC );
                 break;
 
             case "removefrombasket":
@@ -96,6 +92,20 @@ class SEEDBasketCore
         $this->kBasket = $kB;
         $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
         $oSVA->VarSet( 'kBasket', $kB );
+    }
+
+    function BasketAcquire()
+    /***********************
+        Find the current basket, or create a new one.
+        We don't return the basket key, just to remind you to check BasketIsOpen() after you do this.
+     */
+    {
+        if( !$this->GetBasketKey() ) {
+            $kfrB = $this->oDB->GetKfrel("B")->CreateRecord();
+            $kfrB->SetValue( 'uid_buyer', $this->GetUID_SB() );
+            $kfrB->PutDBRow();
+            $this->SetBasketKey( $kfrB->Key() );
+        }
     }
 
     function BasketIsOpen()
@@ -196,10 +206,10 @@ class SEEDBasketCore
         return( $s );
     }
 
-    function DrawProduct( KFRecord $kfrP, $bDetail )
+    function DrawProduct( KFRecord $kfrP, $eDetail )
     {
         return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
-                ? $oHandler->ProductDraw( $kfrP, $bDetail ) : "" );
+                ? $oHandler->ProductDraw( $kfrP, $eDetail ) : "" );
     }
 
     function DrawPurchaseForm( $prodName )
@@ -209,7 +219,12 @@ class SEEDBasketCore
     {
         $s = "";
 
-        if( !($kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" )) ) {
+        if( is_numeric($prodName) ) {
+            $kfrP = $this->oDB->GetProduct( intval($prodName) );
+        } else {
+            $kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" );
+        }
+        if( !$kfrP ) {
             $s .= "<div style='display:inline-block' class='alert alert-danger'>Unknown product $prodName</div>";
             goto done;
         }
@@ -366,10 +381,12 @@ $s .= "<style>
         Command methods
      */
 
-    private function addProductToBasket( KFRecord $kfrP, $raParmsBP, $bGPC )
+    private function addProductToBasket( KFRecord $kfrP, $raParmsBP )
     {
         $kBPNew = 0;
 
+        // Create a basket if there isn't one, and make sure any existing basket is open.
+        $this->BasketAcquire();
         if( !$this->BasketIsOpen() )  goto done;
 
         // The input parms can be http or just ordinary arrays
@@ -382,16 +399,16 @@ $s .= "<style>
         foreach( $raParmsBP as $k => $v ) {
             if( substr($k,0,5) != 'sb_p_' || strlen($k) < 6 ) continue;
 
-            $raPurchaseParms[substr($k,5)] = $bGPC ? SEEDSafeGPC_GetStrPlain($v) : $v;
+            $raPurchaseParms[substr($k,5)] = $v;
         }
 
         if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) {
-            $kBP = $oHandler->Purchase2( $kfrP, $raPurchaseParms );
+            $kBPNew = $oHandler->Purchase2( $kfrP, $raPurchaseParms );
         }
 
         done:
-        return( $kBP ? array( true, $this->DrawBasketContents( array( 'kBPHighlight'=>$kBP ) ) )
-                     : array( false, "" ) );
+        return( $kBPNew ? array( true, $this->DrawBasketContents( array( 'kBPHighlight'=>$kBPNew ) ) )
+                        : array( false, "" ) );
     }
 
     private function removeProductFromBasket( $kBP )

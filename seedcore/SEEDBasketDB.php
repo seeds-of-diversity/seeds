@@ -28,6 +28,57 @@ class SEEDBasketDB extends KeyFrameNamedRelations
     function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('BPxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
     function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('BPxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
 
+    function GetProdExtraList( $kProduct )
+    /*************************************
+        Get all product-extra items associated with this product.
+     */
+    {
+        $raExtra = array();
+
+        if( ($raRows = $this->GetList( 'PE', "fk_SEEDBasket_Products='$kProduct'" ))) {
+            foreach( $raRows as $ra ) {
+                $raExtra[$ra['k']] = $ra['v'];
+            }
+        }
+
+        return( $raExtra );
+    }
+
+    function SetProdExtra( $kProduct, $k, $v )
+    /*****************************************
+        Set a product-extra item. This makes no db change if the value is unchanged.
+     */
+    {
+        // iStatus==-1 fetches any _status of the prodExtra row, so we can re-use a deleted/hidden row if any
+        if( ($kfr = $this->GetKFRCond( 'PE', "fk_SEEDBasket_Products='$kProduct' AND k='".addslashes($k)."'", array('iStatus'=>-1))) ) {
+            $kfr->StatusSet( KFRECORD_STATUS_NORMAL );  // because maybe this is an old row that has been deleted or hidden
+        } else {
+            $kfr = $this->GetKfrel( 'PE' )->CreateRecord();
+            $kfr->SetValue( 'fk_SEEDBasket_Products', $kProduct );
+        }
+        $kfr->SetValue( 'k', $k );
+        $kfr->SetValue( 'v', $v );
+        $ok = $kfr->PutDBRow();
+
+        return( $ok );
+    }
+
+    function SetProdExtraList( $kProduct, $raExtra )
+    /***********************************************
+        Set a bunch of product-extra items. This does not clear any existing items that are not mentioned in the array.
+     */
+    {
+        foreach( $raExtra as $k => $v ) {
+            $this->SetProdExtra( $kProduct, $k, $v );
+        }
+    }
+
+    function DeleteProdExtra( $kProduct, $k )
+    {
+        // Normally, you don't delete or hide prodExtra for a deleted/hidden product. You just do that for the product row.
+        // Something should purge the prodExtra rows when you hard-delete a product though.
+    }
+
     protected function initKfrel( KeyFrameDB $kfdb, $uid )
     {
         /* raKfrel['B']    base relation for SEEDBasket_Baskets
@@ -44,6 +95,11 @@ class SEEDBasketDB extends KeyFrameNamedRelations
         $kdefProducts =
             array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Products',
                                              "Alias" => "P",
+                                             "Type" => "Base",
+                                             "Fields" => "Auto" ) ) );
+        $kdefProdExtra =
+            array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             "Alias" => "PE",
                                              "Type" => "Base",
                                              "Fields" => "Auto" ) ) );
         $kdefBP =
@@ -79,6 +135,7 @@ class SEEDBasketDB extends KeyFrameNamedRelations
         $raKfrel = array();
         $raKfrel['B']    = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBaskets ),  $uid, $raParms );
         $raKfrel['P']    = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProducts ), $uid, $raParms );
+        $raKfrel['PE']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProdExtra), $uid, $raParms );
         $raKfrel['BP']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBP ),       $uid, $raParms );
         $raKfrel['BxP']  = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBxP ),      $uid, $raParms );
         $raKfrel['BPxP'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBPxP ),     $uid, $raParms );
@@ -142,9 +199,11 @@ CREATE TABLE SEEDBasket_Baskets (
     notes           TEXT NOT NULL DEFAULT '',
 
 
-    sExtra          TEXT NOT NULL DEFAULT ''            -- e.g. urlencoded metadata about the purchase
+    sExtra          TEXT NOT NULL DEFAULT '',            -- e.g. urlencoded metadata about the purchase
 -- in sExtra   mail_eBull      BOOL            DEFAULT 1,
 -- in sExtra   mail_where      VARCHAR(100),
+
+    INDEX (uid_buyer)
 );
 "
 );
@@ -206,10 +265,29 @@ CREATE TABLE SEEDBasket_Products (
     v_t3             TEXT NOT NULL DEFAULT '',
 
     sExtra          TEXT NOT NULL DEFAULT ''            -- e.g. urlencoded metadata about the product
+
 );
 "
 );
 
+define("SEEDS_DB_TABLE_SEEDBASKET_PRODEXTRA",
+"
+CREATE TABLE SEEDBasket_ProdExtra (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    fk_SEEDBasket_Products INTEGER NOT NULL,
+    k                      TEXT NOT NULL DEFAULT '',
+    v                      TEXT NOT NULL DEFAULT '',
+
+    INDEX(fk_SEEDBasket_Products)
+);
+"
+);
 
 define("SEEDS_DB_TABLE_SEEDBASKET_BP",
 "
@@ -228,7 +306,10 @@ CREATE TABLE SEEDBasket_BP (
     eStatus                ENUM('NEW','PAID','FILLED','CANCELLED') NOT NULL DEFAULT 'NEW',
     bAccountingDone        TINYINT NOT NULL DEFAULT '0',
 
-    sExtra                 TEXT NOT NULL DEFAULT ''            -- e.g. urlencoded metadata about the purchase
+    sExtra                 TEXT NOT NULL DEFAULT '',            -- e.g. urlencoded metadata about the purchase
+
+  --  INDEX(fk_SEEDBasket_Products),  does anyone use this?
+    INDEX(fk_SEEDBasket_Baskets)
 );
 "
 );

@@ -37,6 +37,37 @@ function SEEDInput_Smart( $k, $raAllowed )
     return( count($raAllowed) == 1 ? $p : SEEDCore_SmartVal( $p, $raAllowed ) );
 }
 
+
+function SEEDCore_Ent( $s )
+/**************************
+    Since the default charset used by htmlentities depends on the php version, standardize the charset by using this instead
+ */
+{
+    return( htmlentities( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
+}
+
+function SEEDCore_HSC( $s )
+/**************************
+    Since the default charset used by htmlspecialchars depends on the php version, standardize the charset by using this instead
+ */
+{
+    return( htmlspecialchars( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
+}
+
+
+/**
+ * Replace "[[foo]]" in template with $ra['foo']
+ */
+function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
+/*************************************************************
+ */
+{
+    foreach( $ra as $k => $v ) {
+        $sTemplate = str_replace( "[[$k]]", ($bEnt ? SEEDCore_HSC($v) : $v), $sTemplate );
+    }
+    return( $sTemplate );
+}
+
 /**
  *  if $raAllowed contains 1 value, then $raParms[$k] is unconstrained (except for empty or !isset) and $raAllowed[0] is the default:
  *      { Return $raParms[$k] if isset() and not empty, or isset() and empty and $bEmptyAllowed : else return $raAllowed[0] }
