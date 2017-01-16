@@ -102,7 +102,31 @@ class SEEDBasketDB extends KeyFrameNamedRelations
                                              "Alias" => "PE",
                                              "Type" => "Base",
                                              "Fields" => "Auto" ) ) );
-        $kdefBP =
+        $kdefPxPE =
+            array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Products',
+                                             "Alias" => "P",
+                                             "Type" => "Base",
+                                             "Fields" => "Auto" ),
+                                      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             "Alias" => "PE",
+                                             "Type" => "Children",
+                                             "Fields" => "Auto" ) ) );
+        // Products joined with ProdExtra twice, which is only useful if at least one ProdExtra is constrained by k
+        // i.e. what are all the products and their PE2.v that have PE1.v='foo'
+        $kdefPxPE2 =
+            array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Products',
+                                             "Alias" => "P",
+                                             "Type" => "Base",
+                                             "Fields" => "Auto" ),
+                                      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             "Alias" => "PE1",
+                                             "Type" => "Children",
+                                             "Fields" => "Auto" ),
+                                      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             "Alias" => "PE2",
+                                             "Type" => "Children",
+                                             "Fields" => "Auto" ) ) );
+                                      $kdefBP =
             array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_BP',
                                              "Alias" => "BP",
                                              "Type" => "Base",
@@ -136,6 +160,8 @@ class SEEDBasketDB extends KeyFrameNamedRelations
         $raKfrel['B']    = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBaskets ),  $uid, $raParms );
         $raKfrel['P']    = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProducts ), $uid, $raParms );
         $raKfrel['PE']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProdExtra), $uid, $raParms );
+        $raKfrel['PxPE'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefPxPE),      $uid, $raParms );
+        $raKfrel['PxPE2']= new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefPxPE2),     $uid, $raParms );
         $raKfrel['BP']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBP ),       $uid, $raParms );
         $raKfrel['BxP']  = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBxP ),      $uid, $raParms );
         $raKfrel['BPxP'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBPxP ),     $uid, $raParms );

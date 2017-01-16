@@ -68,6 +68,19 @@ function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
     return( $sTemplate );
 }
 
+function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true )
+/*********************************************************************
+    raRows is an array of arrays, each one to be expanded using the sTemplate
+ */
+{
+    $s = "";
+
+    foreach( $raRows as $ra )  $s .= SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt );
+
+    return( $s );
+}
+
+
 /**
  *  if $raAllowed contains 1 value, then $raParms[$k] is unconstrained (except for empty or !isset) and $raAllowed[0] is the default:
  *      { Return $raParms[$k] if isset() and not empty, or isset() and empty and $bEmptyAllowed : else return $raAllowed[0] }
