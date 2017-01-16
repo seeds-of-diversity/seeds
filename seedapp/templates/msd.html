@@ -1,0 +1,64 @@
+# Seeds of Diversity Member Seed Directory templates
+
+%% msdMain
+<style>
+    .msd-list-col             { }
+    .msd-list                 { position:fixed; }  /*border-right:0px solid #aaa; */
+    .msd-list-category        { border-bottom:1px solid #ddd; margin-bottom:5px; }
+    .msd-list-category-title  { font-weight:bold }
+    .msd-list-species-group   { margin-left:10px; display:none }
+</style>
+<script>
+    $(document).ready( function() {
+        $(".msd-list-category-title").click( function() {
+            var eCat = $(this).closest(".msd-list-category");
+            var eSpList = eCat.find(".msd-list-species-group");
+            eSpList.toggle();
+            
+            fixMSDListScroll();
+        });
+
+        $(".msd-list-species-group").hide();
+
+        $(".msd-list-species-title").click( function() {
+            $(".msd-drawstuff").html( "<h2>"+$(this).html()+"</h2>" );
+            $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
+            $(this).css({ color: "#373" } );
+        });
+        
+        fixMSDListScroll();
+    });
+
+
+window.onresize = function(event) {
+    fixMSDListScroll();
+}
+
+function fixMSDListScroll() {
+    var hw = $(window).height();
+    var hd = $(".msd-list-col").height();
+    var wd = $(".msd-list-col").width();
+    var yd = $(".msd-list-col").offset().top;
+
+    var maxw = wd;  // 10 just for visual padding
+    if( maxw < 0 ) maxw = 1;
+    var maxh = (hw-yd-10);  // 10 just for visual padding at the bottom
+    if( maxh < 0 ) maxh = 1;
+
+    $(".msd-list").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
+
+    if( hd > hw ) { 
+        $(".msd-list-col").css({'overflow-y': "scroll"});
+    } else {
+        $(".msd-list-col").css({'overflow-y': "auto"});
+    }
+}
+</script>
+
+<div class='container-fluid'>
+  <div class='row'>
+    <div class='col-md-2 msd-list-col'>[[Var:msdList]]</div>
+    <div class='col-md-10'><div class='msd-drawstuff'>&nbsp;</div></div>
+  </div>
+</div>
+
