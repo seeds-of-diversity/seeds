@@ -2,15 +2,46 @@
 
 %% msdMain
 <style>
+    /* msd-head is positioned at the top, full width, zorder above msd-main.
+     * msd-main is positioned at 100px from the top, full width, zorder beneath msd-main.
+     * This clips msd-main when it scrolls up.
+     * All other fixed-position elements have to be positioned the same way wrt top:, but they don't have scrolling issues.
+     */
+
+    .msd-head {
+        position:fixed;
+        background:white;
+        left:0; right:0;
+        top:0;
+        width:100%;
+        height:100px;
+        //max-height:100px  only necessary if the height were being varied according to width
+        z-index:3;
+    }
+
+    .msd-main {
+        position:relative; 
+        background:white;
+        left:0; right:0; 
+        top:100px;
+        width:100%;
+        margin: 0px 10px;
+        //padding:10px;
+        z-index:2;
+    }
+
     .msd-list-col             { }
-    .msd-list                 { position:fixed; }  /*border-right:0px solid #aaa; */
+    .msd-list                 { background-color: #eee; position:fixed; top:100px; }  /*border-right:0px solid #aaa; */
     .msd-list-category        { border-bottom:1px solid #ddd; margin-bottom:5px; }
     .msd-list-category-title  { font-weight:bold }
-    .msd-list-species-group   { margin-left:10px; display:none }
+    .msd-list-species-group   { margin-left:10px; display:none; font-size:12px; }
 
     .msd-body                 { }
     .msd-body-title           { font-size: 30px; }  // 30px is the same as bootstrap h2
     .msd-body-varieties       { margin-left: 20px; }
+
+    .msd-basket-col           { }
+    .msd-basket-col-fixed     { position:fixed; top:100px; }   /* a fixed box in the right column */
 
     /* put these in a shared template */
     .storeBox
@@ -25,62 +56,121 @@
         { color:red; text-align:center; }
 
 </style>
+
+
+<table class="msd-head" border='0'><tr>
+<td valign='middle' width='25%'>
+    <img src='http://office.seeds.ca/public/logos/img/logoA_h-en-300x.png' style='max-height:80px' class='img-responsive'/><br/>
+    </td>
+<td valign='middle'>
+    <h3>Member Seed Directory 2017</h3>
+    </td>
+<td valign='middle' width='25%'>
+    <div style='width:100%;background-color:#eee;min-height:80px;padding:20px'><b>Search</b> <input type='text'/></div>
+    </td>
+</tr></table>
+
+
+<div class='msd-main container-fluid'>
+    <div class='row'>
+        <div class='col-xs-3 col-sm-2 msd-list-col'>[[Var:msdList]]</div>
+        <div class='col-xs-6 col-sm-7 msd-body'>
+            <div class='msd-body-title'></div>
+            <div class='msd-body-varieties'></div>
+        </div>
+        <div class='col-xs-3 col-sm-3 msd-basket-col'>
+          <div class='msd-basket-col-fixed'>
+            <div class='storeBox storeBoxBasket'>
+                <div class='storeBoxHeader'>Your Basket</div>
+                <div class='storeBasketErrmsg'></div>
+                <div class='storeBasketContent'>[[Basket_Contents:]]</div>
+            </div>
+            <div class='storeBox storeBoxBuyer'>
+                <div class='storeBoxHeader'>Your Address</div>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    var qUrl = "[[Var:qUrl]]";    // address of local app/q/basketJX.php
+
     $(document).ready( function() {
+        /* When you click on a category title in the msd-list, the speciesgroup beneath it is toggled
+         */
         $(".msd-list-category-title").click( function() {
             var eCat = $(this).closest(".msd-list-category");
             var eSpList = eCat.find(".msd-list-species-group");
             eSpList.toggle();
 
-            fixMSDListScroll();
+            msdResize();
         });
-
         $(".msd-list-species-group").hide();
 
+        /* When you click on a species name in the msd-list, we highlight it and fetch the variety list.
+         */
         $(".msd-list-species-title").click( function() {
             // highlight the species title (and reset any previous highlight)
             $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
             $(this).css({ color: "#373" } );
 
-            // show the variety list
+            // put the species name in the title box
             var sp = $(this).html();
             $(".msd-body-title").html( sp );
+
+            // Fetch the variety list. 
+            // The loading img is placed right into the varieties box, and the ajax function replaces it with the text. Or not, if .get fails.
+            // The fadeIn() keeps the loading img from popping into view for a split second on fast fetches, 
+            // but shows it for long fetches.
+            $(".msd-body-varieties").html( "<img id='loading-img' style='display:none;margin-left:50px' src='http://seeds.ca/w/img/loading.gif' width='50' height='50'/>" );
+            $('#loading-img').fadeIn(1500);
             getVarietyList( sp );
         });
-        
-        fixMSDListScroll();
+
+        msdResize();
     });
 
 
 window.onresize = function(event) {
-    fixMSDListScroll();
+    msdResize();
 }
 
-function fixMSDListScroll() {
+function msdResize() {
+    /* msd-list and msd-basket are position:fixed, so they are removed from the format flow. That means they don't automatically
+     * respond to window resizes. Also, msd-list won't do the right thing re scroll bars with overflow-y:auto, because it doesn't know
+     * how big its container is. Since it's fixed on the screen, msd-list has to have a scroll bar when it is taller than the window.
+     */
+
+    // msd-list: Set max-width-height based on its container size so it doesn't spill over, especially horizontally.
+    //           If the list is longer than the available space give it a scroll bar. Nice to hide this if it is not necessary.
     var hw = $(window).height();
     var hd = $(".msd-list-col").height();
     var wd = $(".msd-list-col").width();
     var yd = $(".msd-list-col").offset().top;
 
-    var maxw = wd;  // 10 just for visual padding
+    var maxw = wd;
     if( maxw < 0 ) maxw = 1;
-    var maxh = (hw-yd-10);  // 10 just for visual padding at the bottom
+    var maxh = (hw-yd-20);  // 20 just for visual padding at the bottom
     if( maxh < 0 ) maxh = 1;
 
     $(".msd-list").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
 
-    if( hd > hw ) { 
+    if( hd > hw - yd ) { 
         $(".msd-list").css({'overflow-y': "scroll"});
     } else {
         $(".msd-list").css({'overflow-y': "auto"});
     }
+
+    // msd-basket-col: Set width the same as its container so it fits nicely.
+    $(".msd-basket-col-fixed").width($(".msd-basket-col").width());
 }
 
 function getVarietyList( sp )
 {
     /* Fetch the variety list for the given species and write it into the variety block
      */
-    $.get( "http://localhost/~bob/seeds.ca2/app/q/basketJX.php?cmd=msdVarietyListFromSpecies", { sp : sp } )
+    $.get( qUrl+"?cmd=msdVarietyListFromSpecies", { sp : sp } )
         .done(function( data ) {
             var sVarList = "";
 
@@ -92,30 +182,8 @@ function getVarietyList( sp )
                     sVarList = "No varieties are available for this type";
                 }
             }
-
             $(".msd-body-varieties").html( sVarList );
         });
 }
 </script>
-
-
-<div class='container-fluid' style='margin:0px 10px'>
-    <div class='row'>
-        <div class='col-md-2 msd-list-col'>[[Var:msdList]]</div>
-        <div class='col-md-7 msd-body'>
-            <div class='msd-body-title'></div>
-            <div class='msd-body-varieties'></div>
-        </div>
-        <div class='col-sm-3'>
-            <div class='storeBox storeBoxBasket'>
-                <div class='storeBoxHeader'>Your Basket</div>
-                <div class='storeBasketErrmsg'></div>
-                <div class='storeBasketContent'>[[Basket_Contents:]]</div>
-            </div>
-            <div class='storeBox storeBoxBuyer'>
-                <div class='storeBoxHeader'>Your Address</div>
-            </div>
-        </div>
-    </div>
-</div>
 
