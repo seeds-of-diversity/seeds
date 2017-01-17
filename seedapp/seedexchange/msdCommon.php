@@ -29,6 +29,9 @@ class MSDCommonDraw
     {
         $sMSDList = "";
 
+        // Get all distinct categories (distinct prodextra-values for prodextra-key=='category' and product-type='seeds'),
+        // and for each category get all distinct species (distinct prodextra-values for prodextra-key=='species').
+        // The second query needs a double-join on prodextra, to fetch category and species together.
         $raCat = $this->oSB->oDB->GetList( "PxPE", "product_type='seeds' AND PE.k='category'",
                                            array('sGroupCol'=>'PE_v', 'sSortCol'=>'PE_v', 'raFieldsOverride'=>array('PE_v'=>'v')) );
         foreach( $raCat as $ra ) {

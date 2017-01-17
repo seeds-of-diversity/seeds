@@ -7,6 +7,23 @@
     .msd-list-category        { border-bottom:1px solid #ddd; margin-bottom:5px; }
     .msd-list-category-title  { font-weight:bold }
     .msd-list-species-group   { margin-left:10px; display:none }
+
+    .msd-body                 { }
+    .msd-body-title           { font-size: 30px; }  // 30px is the same as bootstrap h2
+    .msd-body-varieties       { margin-left: 20px; }
+
+    /* put these in a shared template */
+    .storeBox
+        { margin-left:10px; border:1px solid #aaa; }
+    .storeBoxBuyer
+        { background-color: white; }
+    .storeBoxHeader, .storeFormBlockHeader
+        { padding:3px 10px; background-color:#999; color:white; font-size:16px; font-weight:bold; }
+    .storeBasketContent
+        { padding: 10px; text-align:center; font-size:9pt; }
+    .storeBasketErrmsg
+        { color:red; text-align:center; }
+
 </style>
 <script>
     $(document).ready( function() {
@@ -14,16 +31,21 @@
             var eCat = $(this).closest(".msd-list-category");
             var eSpList = eCat.find(".msd-list-species-group");
             eSpList.toggle();
-            
+
             fixMSDListScroll();
         });
 
         $(".msd-list-species-group").hide();
 
         $(".msd-list-species-title").click( function() {
-            $(".msd-drawstuff").html( "<h2>"+$(this).html()+"</h2>" );
+            // highlight the species title (and reset any previous highlight)
             $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
             $(this).css({ color: "#373" } );
+
+            // show the variety list
+            var sp = $(this).html();
+            $(".msd-body-title").html( sp );
+            getVarietyList( sp );
         });
         
         fixMSDListScroll();
@@ -48,17 +70,52 @@ function fixMSDListScroll() {
     $(".msd-list").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
 
     if( hd > hw ) { 
-        $(".msd-list-col").css({'overflow-y': "scroll"});
+        $(".msd-list").css({'overflow-y': "scroll"});
     } else {
-        $(".msd-list-col").css({'overflow-y': "auto"});
+        $(".msd-list").css({'overflow-y': "auto"});
     }
+}
+
+function getVarietyList( sp )
+{
+    /* Fetch the variety list for the given species and write it into the variety block
+     */
+    $.get( "http://localhost/~bob/seeds.ca2/app/q/basketJX.php?cmd=msdVarietyListFromSpecies", { sp : sp } )
+        .done(function( data ) {
+            var sVarList = "";
+
+            if( data ) {
+                var rq = ( window.JSON && window.JSON.parse && data ? window.JSON.parse(data) : eval(data) );
+                if( rq['bOk'] ) {
+                    sVarList = rq['sOut'];
+                } else {
+                    sVarList = "No varieties are available for this type";
+                }
+            }
+
+            $(".msd-body-varieties").html( sVarList );
+        });
 }
 </script>
 
-<div class='container-fluid'>
-  <div class='row'>
-    <div class='col-md-2 msd-list-col'>[[Var:msdList]]</div>
-    <div class='col-md-10'><div class='msd-drawstuff'>&nbsp;</div></div>
-  </div>
+
+<div class='container-fluid' style='margin:0px 10px'>
+    <div class='row'>
+        <div class='col-md-2 msd-list-col'>[[Var:msdList]]</div>
+        <div class='col-md-7 msd-body'>
+            <div class='msd-body-title'></div>
+            <div class='msd-body-varieties'></div>
+        </div>
+        <div class='col-sm-3'>
+            <div class='storeBox storeBoxBasket'>
+                <div class='storeBoxHeader'>Your Basket</div>
+                <div class='storeBasketErrmsg'></div>
+                <div class='storeBasketContent'>[[Basket_Contents:]]</div>
+            </div>
+            <div class='storeBox storeBoxBuyer'>
+                <div class='storeBoxHeader'>Your Address</div>
+            </div>
+        </div>
+    </div>
 </div>
 

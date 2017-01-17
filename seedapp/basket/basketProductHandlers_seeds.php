@@ -4,7 +4,6 @@
  *
  * Copyright (c) 2016-2017 Seeds of Diversity Canada
  */
-
 class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 {
     private $raProdExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'quantity', 'origin', 'description' );
@@ -48,7 +47,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
              .$oFormP->ExpandForm(
                      "||| || <b>$sMbrCode</b> "
                     ."||| <label>Year first listed</label> || [[text:year_1st_listed|readonly]]"
-                    ."||| <label>Category</label> || "
+// *Year first listed* should do the same thing
+                     ."||| <label>Category</label> || "
 // get this array from SEDCommonDraw OR fetch the value automatically from sl_species and put it in Misc if we don't know
                             .$oKForm->Select2( "category", array( "VEGETABLES" => "VEGETABLES",
                                                                   "FLOWERS AND WILDFLOWERS" => "FLOWERS AND WILDFLOWERS",
@@ -142,6 +142,11 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
     }
 
     function ProductDraw( KFRecord $kfrP, $eDetail )
+    /***********************************************
+        DETAIL_TINY     : species variety
+        DETAIL_SUMMARY  : what you see in the seed directory
+        DETAIL_ALL      : species + what you see in the seed directory
+     */
     {
         $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
         foreach( $this->raProdExtraKeys as $k ) {
@@ -154,13 +159,17 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                 break;
             default:
                 include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
-                $oSed = new SEDCommonDraw( $kfrP->kfrel->kfdb, $this->oSB->sess->GetUID(), "EN", "EDIT" );
+                $oSed = new SEDCommonDraw( $kfrP->kfrel->kfdb, $this->oSB->GetUID_SB(), "EN", "EDIT" );
 
                 $kfrP->SetValue( 'type',   $kfrP->Value('species') );
                 $kfrP->SetValue( 'mbr_id', $kfrP->Value('uid_seller') );
 
-                $s = "<strong>".$kfrP->Value('species')."</strong><br/>"
-                    .$oSed->DrawSeedFromKFR( $kfrP, array( 'bNoSections'=>true ) );
+                $s = "";
+                if( $eDetail == SEEDBasketProductHandler::DETAIL_ALL ) {
+                    $s .= "<strong>".$kfrP->Value('species')."</strong><br/>";
+                }
+                $s .= $oSed->DrawSeedFromKFR( $kfrP, array( 'bNoSections'=>true ) );
+                break;
         }
         return( $s );
     }
@@ -168,7 +177,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
     function Purchase0( KFRecord $kfrP )
     {
-        $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_SUMMARY )."</div>"
+        $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_ALL )."</div>"
             ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
             ."<input type='hidden' name='sb_product' value='".$kfrP->Key()."'/>";
 
