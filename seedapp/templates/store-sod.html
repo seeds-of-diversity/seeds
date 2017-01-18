@@ -81,7 +81,7 @@ $(document).ready(function(){
 function AddToBasket_Name( name )
 {
     jQuery.ajax({ url: "http://localhost/~bob/seeds.ca2/app/q/basketJX.php",
-                  data: { cmd: "AddToBasket", name: name },
+                  data: { cmd: "AddToBasket", sb_product: name },
                   success: function ( data, textStatus, jqXHR ) 
                            { var rQ = window.JSON.parse(data); 
                              var bOk = rQ['bOk'];
@@ -204,7 +204,7 @@ function RemoveFromBasket( kBP )
 {% block title %}Member Seed Directory{% endblock %}
 {% block body1 %}
   <div class='sb_purchase'>
-      [[Include:storeFormBlockPurchaseButton]]&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:5]]
+      [[Include:storeFormBlockPurchaseButton]]&nbsp;&nbsp;&nbsp;[[Basket_Purchase0:1000]]
   </div>
 
 {% endblock %}

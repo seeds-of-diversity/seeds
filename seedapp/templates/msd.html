@@ -43,6 +43,9 @@
     .msd-basket-col           { }
     .msd-basket-col-fixed     { position:fixed; top:100px; }   /* a fixed box in the right column */
 
+    .msd-order-info           { font-size:14pt; font-weight:bold; background-color:#eee; width: 100%; margin-bottom:20px}
+
+
     /* put these in a shared template */
     .storeBox
         { margin-left:10px; border:1px solid #aaa; }
@@ -128,6 +131,15 @@
             getVarietyList( sp );
         });
 
+        /* When you click on a variety description, it opens the associated msd-order-info.
+         * This has to be done using .on() because the elements are dynamically added to the DOM.
+         */
+        $(document).on('click', '.sed_seed', function(){
+            var id = $(this).attr("id");
+            var kP = id.substring(4);
+            $(".msd-order-info-"+kP).show();
+        });
+
         msdResize();
     });
 
@@ -185,5 +197,47 @@ function getVarietyList( sp )
             $(".msd-body-varieties").html( sVarList );
         });
 }
+
+// put this in a common place
+function AddToBasket_Name( name )
+{
+    jQuery.ajax({ url: qUrl,
+                  data: { cmd: "AddToBasket", sb_product: name },
+                  success: function ( data, textStatus, jqXHR ) 
+                           { var rQ = window.JSON.parse(data); 
+                             var bOk = rQ['bOk'];
+                             var sOut = rQ['sOut'];
+                             if( bOk ) { 
+                                 $('.storeBasketContent').html(sOut);
+                                 $('.storeBasketErrmsg').html("");
+                             } else {
+                                 $('.storeBasketErrmsg').html(sOut);
+                             }
+                           },
+                  error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
+                });
+}
+function RemoveFromBasket( kBP )
+{
+    jQuery.ajax({ url: qUrl,
+                  data: { cmd: "RemoveFromBasket", kBP: kBP },
+                  success: function ( data, textStatus, jqXHR ) 
+                           { var rQ = window.JSON.parse(data); 
+                             var bOk = rQ['bOk'];
+                             var sOut = rQ['sOut'];
+                             var sErr = rQ['sErr'];
+                             if( bOk ) { 
+                                 $('.storeBasketContent').html(sOut);
+                                 $('.storeBasketErrmsg').html("");
+                             } else {
+                                 $('.storeBasketErrmsg').html(sErr);
+                             }
+                           },
+                  error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
+                });
+}
+
+
+
 </script>
 

@@ -51,11 +51,12 @@ class SEEDBasketCore
                 $raOut['bHandled'] = true;
                 $kfrP = null;
 
-                $prodName = SEEDInput_Str('sb_product');
-                if( is_numeric($prodName) ) {
-                    $kfrP = $this->oDB->GetProduct( intval($prodName) );
-                } else {
-                    $kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" );
+                if( ($prodName = SEEDInput_Str('sb_product')) ) {
+                    if( is_numeric($prodName) ) {
+                        $kfrP = $this->oDB->GetProduct( intval($prodName) );
+                    } else {
+                        $kfrP = $this->oDB->GetKFRCond( 'P', "name='".addslashes($prodName)."'" );
+                    }
                 }
                 if( !$kfrP ) {
                     $raOut['sErr'] = "There is no product '$prodName'";
@@ -269,7 +270,7 @@ $s .= "<style>
                      ."<div class='sb_basket_td'>$".$raItem['fAmount']."</div>"
                              ."<div class='sb_basket_td' style='' onclick='RemoveFromBasket(".$raItem['kBP'].");'>"
                          // use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
-                         ."<img class='slsrcedit_cvBtns_del' height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
+                         ."<img height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
                          ."</div>"
                      ."</div>";
             }
