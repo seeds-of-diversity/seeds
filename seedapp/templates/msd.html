@@ -15,9 +15,9 @@
         top:0;
         width:100%;
         height:100px;
-        //max-height:100px  only necessary if the height were being varied according to width
         z-index:3;
         text-align:center;
+        /* max-height:100px  only necessary if the height were being varied according to width */
     }
 
     .msd-main {
@@ -27,8 +27,8 @@
         top:100px;
         width:100%;
         margin: 0px 10px;
-        //padding:10px;
         z-index:2;
+        /* padding:10px; */
     }
 
     .msd-list-col             { }
@@ -60,6 +60,7 @@
     .storeBasketErrmsg
         { color:red; text-align:center; }
 
+    .sed_seed_mc { float: right; }
 </style>
 
 
@@ -149,11 +150,11 @@
          * This has to be done using .on() because the elements are dynamically added to the DOM.
          */
         $(document).on('click', '.sed_seed', function(){
-            $(".msd-order-info").hide(); // hide others?
+            $(".msd-order-info").slideUp(500); // hide others
 
             var id = $(this).attr("id");
             var kP = id.substring(4);
-            $(".msd-order-info-"+kP).show();
+            $(".msd-order-info-"+kP).slideDown(500);
         });
 
         msdResize();
@@ -201,13 +202,54 @@ function msdSearch()
     This is very similar to getVarietyList because it just uses ajax to fetch a different variety list.
  */
 {
+    $(".msd-body-title").html( "Search Results" );
+    $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
+    $(".msd-body-varieties").html( "<img id='loading-img' style='display:none;margin-left:50px' src='http://seeds.ca/w/img/loading.gif' width='50' height='50'/>" );
+    $('#loading-img').fadeIn(1500);
+
     var sSrch = $('#msdSearchVal').val();
-    alert( "Searching for "+ sSrch );
+
+    /* Fetch the variety list for the given search and write it into the variety block
+     */
+    $.get( qUrl+"?cmd=msdSearch", { srch : sSrch } )
+        .done(function( data ) {
+            var sVarList = "";
+
+            if( data ) {
+                var rq = ( window.JSON && window.JSON.parse && data ? window.JSON.parse(data) : eval(data) );
+                if( rq['bOk'] ) {
+                    sVarList = rq['sOut'];
+                } else {
+                    sVarList = "No results were found for this search.";
+                }
+            }
+            $(".msd-body-varieties").html( sVarList );
+        });
 }
 
 function msdShowSeedsFromGrower( kG )
 {
-    alert( "Show all seeds from grower "+ kG );
+    $(".msd-body-title").html( "Seeds offered by "+kG );
+    $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
+    $(".msd-body-varieties").html( "<img id='loading-img' style='display:none;margin-left:50px' src='http://seeds.ca/w/img/loading.gif' width='50' height='50'/>" );
+    $('#loading-img').fadeIn(1500);
+
+    /* Fetch the variety list for the given search and write it into the variety block
+     */
+    $.get( qUrl+"?cmd=msdSeedsFromGrower", { kG : kG } )
+        .done(function( data ) {
+            var sVarList = "";
+
+            if( data ) {
+                var rq = ( window.JSON && window.JSON.parse && data ? window.JSON.parse(data) : eval(data) );
+                if( rq['bOk'] ) {
+                    sVarList = rq['sOut'];
+                } else {
+                    sVarList = "No results were found for this search.";
+                }
+            }
+            $(".msd-body-varieties").html( sVarList );
+        });
 }
 
 function getVarietyList( sp )

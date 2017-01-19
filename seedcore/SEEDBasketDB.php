@@ -129,7 +129,12 @@ class SEEDBasketDB extends KeyFrameNamedRelations
                                              "Alias" => "PE2",
                                              "Type" => "Children",
                                              "Fields" => "Auto" ) ) );
-                                      $kdefBP =
+        $kdefPxPE3 = $kdefPxPE2;
+        $kdefPxPE3['Tables'][] =      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             "Alias" => "PE3",
+                                             "Type" => "Children",
+                                             "Fields" => "Auto" );
+        $kdefBP =
             array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_BP',
                                              "Alias" => "BP",
                                              "Type" => "Base",
@@ -165,6 +170,7 @@ class SEEDBasketDB extends KeyFrameNamedRelations
         $raKfrel['PE']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefProdExtra), $uid, $raParms );
         $raKfrel['PxPE'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefPxPE),      $uid, $raParms );
         $raKfrel['PxPE2']= new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefPxPE2),     $uid, $raParms );
+        $raKfrel['PxPE3']= new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefPxPE3),     $uid, $raParms );
         $raKfrel['BP']   = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBP ),       $uid, $raParms );
         $raKfrel['BxP']  = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBxP ),      $uid, $raParms );
         $raKfrel['BPxP'] = new KeyFrameRelation( $kfdb, array_merge( array('ver',2), $kdefBPxP ),     $uid, $raParms );
@@ -293,8 +299,9 @@ CREATE TABLE SEEDBasket_Products (
     v_t2             TEXT NOT NULL DEFAULT '',
     v_t3             TEXT NOT NULL DEFAULT '',
 
-    sExtra          TEXT NOT NULL DEFAULT ''            -- e.g. urlencoded metadata about the product
+    sExtra          TEXT NOT NULL DEFAULT '',           -- e.g. urlencoded metadata about the product
 
+    INDEX(prod_type)
 );
 "
 );
@@ -313,7 +320,9 @@ CREATE TABLE SEEDBasket_ProdExtra (
     k                      TEXT NOT NULL DEFAULT '',
     v                      TEXT NOT NULL DEFAULT '',
 
-    INDEX(fk_SEEDBasket_Products)
+    INDEX(fk_SEEDBasket_Products),
+    INDEX(k(20)),
+    INDEX(v(20))
 );
 "
 );
