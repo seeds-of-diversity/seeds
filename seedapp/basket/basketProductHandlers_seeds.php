@@ -166,7 +166,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
                 $s = "";
                 if( $eDetail == SEEDBasketProductHandler::DETAIL_ALL ) {
-                    $s .= "<strong>".$kfrP->Value('species')."</strong><br/>";
+// msd uses class sed_seed for clicking, which is created in DrawSeedFromKFR. Therefore can't click on this heading
+                    $s .= "<strong style='font-size:14pt'>".$kfrP->Value('species')."</strong><br/>";
                 }
                 $s .= $oSed->DrawSeedFromKFR( $kfrP, array( 'bNoSections'=>true ) );
                 break;
