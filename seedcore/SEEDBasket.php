@@ -20,6 +20,7 @@ class SEEDBasketCore
 {
     public $oDB;
     public $sess;   // N.B. user might not be logged in so use $this->GetUID() instead of $this->sess->GetUID()
+                    // No, make sure this is always a SEEDSessionAccount (it's SEEDSession in the constructor!) and it will do the right thing
 
     private $raHandlerDefs;
     private $raHandlers = array();

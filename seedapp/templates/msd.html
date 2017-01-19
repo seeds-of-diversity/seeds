@@ -44,7 +44,8 @@
     .msd-basket-col           { }
     .msd-basket-col-fixed     { position:fixed; top:100px; }   /* a fixed box in the right column */
 
-    .msd-order-info           { font-size:14pt; font-weight:bold; background-color:#eee; width: 100%; margin-bottom:20px}
+    .msd-order-info           { background-color:#eee; width:100%; margin-bottom:40px; text-align:center; padding:15px;
+                                border-bottom:1px solid #888; border-left:1px solid #888; border-right:1px solid #888;}
 
 
     /* put these in a shared template */
@@ -148,6 +149,8 @@
          * This has to be done using .on() because the elements are dynamically added to the DOM.
          */
         $(document).on('click', '.sed_seed', function(){
+            $(".msd-order-info").hide(); // hide others?
+
             var id = $(this).attr("id");
             var kP = id.substring(4);
             $(".msd-order-info-"+kP).show();
@@ -200,6 +203,11 @@ function msdSearch()
 {
     var sSrch = $('#msdSearchVal').val();
     alert( "Searching for "+ sSrch );
+}
+
+function msdShowSeedsFromGrower( kG )
+{
+    alert( "Show all seeds from grower "+ kG );
 }
 
 function getVarietyList( sp )

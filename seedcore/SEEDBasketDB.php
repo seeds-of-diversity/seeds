@@ -10,8 +10,11 @@
 
 class SEEDBasketDB extends KeyFrameNamedRelations
 {
+    public $kfdb;   // just so third parties can find this in a likely place
+
     function __construct( KeyFrameDB $kfdb, $uid )
     {
+        $this->kfdb = $kfdb;
         parent::__construct( $kfdb, $uid );
     }
 

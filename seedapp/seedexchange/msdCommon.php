@@ -11,12 +11,13 @@ include_once( SEEDCORE."SEEDBasket.php" );
 include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
 include_once( SEEDAPP."basket/basketProductHandlers.php" );     // SEEDBasketProducts_SoD
 
+
 class MSDCommonDraw
 {
     public $oW;
     public $oSB;
 
-    function __construct( $oW )
+    function __construct( SEEDApp_Worker $oW )
     {
         $this->oW = $oW;
 
