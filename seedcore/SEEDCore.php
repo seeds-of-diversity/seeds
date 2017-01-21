@@ -53,6 +53,14 @@ function SEEDInput_Get( $k )
     return( $raOut );
 }
 
+function SEEDInput_GetStrDB( $k )
+/********************************
+    If you aren't running some low version of php 5.x you can just use SEEDInput_Get($k)['db'] instead of this function.
+ */
+{
+    $r = SEEDInput_Get( $k );
+    return( $r['db'] );
+}
 
 function SEEDCore_Ent( $s )
 /**************************
