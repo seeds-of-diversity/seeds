@@ -37,6 +37,22 @@ function SEEDInput_Smart( $k, $raAllowed )
     return( count($raAllowed) == 1 ? $p : SEEDCore_SmartVal( $p, $raAllowed ) );
 }
 
+function SEEDInput_Get( $k )
+/***************************
+	Get the value of a GPC parm and return variants in an array
+ */
+{
+    $raOut = array( 'plain'=>'', 'db'=>'', 'ent'=>'' );
+
+    if( $k && ($v = @$_REQUEST[$k]) ) {
+        $raOut['plain'] = $v;
+        $raOut['db'] = addslashes($v);
+        $raOut['ent'] = SEEDCore_Ent($v);
+    }
+
+    return( $raOut );
+}
+
 
 function SEEDCore_Ent( $s )
 /**************************
