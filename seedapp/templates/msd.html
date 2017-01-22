@@ -78,7 +78,7 @@
     <div class="form-group">
         <label for="inputEmail" class="control-label col-xs-3">Search</label>
         <div class="col-xs-9">
-            <input type="text" class="form-control" id="msdSearchVal" placeholder="Anything""/>
+            <input type="text" class="form-control" id="msdSearchVal" placeholder="Variety, description, keyword"/>
         </div>
     </div>
     </div>
@@ -114,6 +114,8 @@
 <script>
     var qUrl = "[[Var:qUrl]]";    // address of local app/q/basketJX.php
 
+    var sInstructions = "[[Var:sInstructions]]";
+    
     $(document).ready( function() {
         /* When you click on a category title in the msd-list, the speciesgroup beneath it is toggled
          */
@@ -157,12 +159,18 @@
             $(".msd-order-info-"+kP).slideDown(500);
         });
 
+        showInstructions();
         msdResize();
     });
 
 
 window.onresize = function(event) {
     msdResize();
+}
+
+function showInstructions()
+{
+	$(".msd-body-varieties").html( sInstructions );
 }
 
 function msdResize() {
