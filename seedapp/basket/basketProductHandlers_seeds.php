@@ -159,7 +159,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                 break;
             default:
                 include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
-                $oSed = new SEDCommonDraw( $kfrP->kfrel->kfdb, $this->oSB->GetUID_SB(), "EN", "EDIT" );
+                $oSed = new SEDCommonDraw( $kfrP->kfrel->kfdb, $this->oSB->GetUID_SB(), "EN",
+                                           $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
 
                 $kfrP->SetValue( 'type',   $kfrP->Value('species') );
                 $kfrP->SetValue( 'mbr_id', $kfrP->Value('uid_seller') );

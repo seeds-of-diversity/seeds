@@ -32,7 +32,7 @@
     }
 
     .msd-list-col             { }
-    .msd-list                 { background-color: #eee; position:fixed; top:100px; }  /*border-right:0px solid #aaa; */
+    .msd-list                 { background-color: #eee; position:fixed; top:100px; padding:3px; }  /*border-right:0px solid #aaa; */
     .msd-list-category        { border-bottom:1px solid #ddd; margin-bottom:5px; }
     .msd-list-category-title  { font-weight:bold }
     .msd-list-species-group   { margin-left:10px; display:none; font-size:12px; }
@@ -103,7 +103,7 @@
                 <div class='storeBasketContent'>[[Basket_Contents:]]</div>
             </div>
             <div class='storeBox storeBoxBuyer'>
-                <div class='storeBoxHeader'>Your Address</div>
+                [[Include:msdLogin]]
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@
     var qUrl = "[[Var:qUrl]]";    // address of local app/q/basketJX.php
 
     var sInstructions = [[Var:jsonInstructions]];
-    
+
     $(document).ready( function() {
         /* When you click on a category title in the msd-list, the speciesgroup beneath it is toggled
          */
@@ -235,9 +235,9 @@ function msdSearch()
         });
 }
 
-function msdShowSeedsFromGrower( kG )
+function msdShowSeedsFromGrower( kG, mbrCode )
 {
-    $(".msd-body-title").html( "Seeds offered by "+kG );
+    $(".msd-body-title").html( "Seeds offered by "+mbrCode );
     $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
     $(".msd-body-varieties").html( "<img id='loading-img' style='display:none;margin-left:50px' src='http://seeds.ca/w/img/loading.gif' width='50' height='50'/>" );
     $('#loading-img').fadeIn(1500);
@@ -318,8 +318,51 @@ function RemoveFromBasket( kBP )
                   error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
                 });
 }
-
-
-
 </script>
 
+
+%% msdLogin
+{% if bLogin %}
+  <div class='storeBoxHeader'>You are Logged In</div>
+    <p style='margin:10px'><strong>Welcome {{sessionRealname}}</strong></p>  
+# 
+#  {% if mbrid %}
+#    <p>You are logged in as member # {{mbrid}}.  Please update your address information if necessary.</p>
+#  {% else %}
+#    {* We don't support this login for people who have logins but aren't in the member database. *}
+#    <p>You are logged in. Please enter your address information below.</p>
+#  {% endif %}
+
+  <p style='margin-left:10px'><a href="[[Var:siteroot]]login?sessioncmd=logout">Logout</a></p>
+
+{% else %}
+  <div class='storeBoxHeader'>Member Login</div>
+
+  <div style='margin:10px'>
+    {% if lang == 'FR' %}
+      <p>Les membres qui ont d&eacute;j&agrave; un compte Web peuvent se connecter</p> 
+    {% else %}
+      <p>Members login here with your Seeds of Diversity web account.</p>
+    {% endif %}
+    {* Because microsoft is stupid, IE doesn't use accept-charset to send the form data in latin1. 
+       FF and Chrome do, regardless of the page encoding (utf-8 in drupal), but IE sends the form data using the page encoding. 
+       The onsubmit re-encodes the page before data is sent, which seems to work for all three browsers.
+       If you re-load or go back and forth between pages, it still works, because the page is always storing the form data in whichever 
+       encoding the browser thinks is right (utf-8 for IE presumably, and latin1 for the others due to accept-charset) so the displayed data 
+       is consistent. And when we draw drupal pages we compose the checkout in latin1 then iconv it for drupal. So everything works out - only 
+       needing the bit of js to make IE do the right thing - which is redundant to others.
+     *}
+    {* use 1252 in case people have accents in passwords? *}
+    <form action='{{SitePathSelf}}' method='post' accept-charset='ISO-8859-1' onsubmit='document.charset="iso-8859-1"'>
+#      [[LocalLang:Email address or member number | Adresse courriel ou num&eacute;ro de membre]]<br/>
+       {% if lang == 'FR' %} Adresse courriel ou num&eacute;ro de membre {%else%} Email address or member number {%endif%}<br/>
+       <input type='text' name='{{sessionNameUID}}' value=''/><br/>
+#      [[LocalLang:Password | Mot de passe]]<br/>
+       {% if lang == 'FR' %} Mot de passe {%else%} Password {%endif%}<br/>
+       <input type='password' name='{{sessionNamePWD}}' value=''/><br/>
+       <input type='submit' value='Login'/>
+    </form>
+    <br/>
+    <p><a href="[[Var:siteroot]]login?sessioncmd=sendPwd" target="_blank">Forget your password?</a></p>
+  </div>
+{% endif %}
