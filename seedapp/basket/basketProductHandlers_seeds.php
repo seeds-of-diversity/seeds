@@ -148,6 +148,10 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         DETAIL_ALL      : species + what you see in the seed directory
      */
     {
+        include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
+        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
+                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
+
         $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
         foreach( $this->raProdExtraKeys as $k ) {
             $kfrP->SetValue( $k, @$raPE[$k] );
@@ -158,9 +162,6 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                 $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
                 break;
             default:
-                include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
-                $oSed = new SEDCommonDraw( $kfrP->kfrel->kfdb, $this->oSB->GetUID_SB(), "EN",
-                                           $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
 
                 $kfrP->SetValue( 'type',   $kfrP->Value('species') );
                 $kfrP->SetValue( 'mbr_id', $kfrP->Value('uid_seller') );

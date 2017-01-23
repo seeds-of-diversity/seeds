@@ -66,18 +66,18 @@
 
 <table class="msd-head" border='0'><tr>
 <td valign='middle' width='25%'>
-    <img src='http://office.seeds.ca/public/logos/img/logoA_h-en-300x.png' style='max-height:80px' class='img-responsive'/><br/>
+    <img src='http://office.seeds.ca/public/logos/img/logoA_h-[[lower:$lang]]-300x.png' style='max-height:80px' class='img-responsive'/><br/>
     </td>
 <td valign='middle'>
-    <h3>Member Seed Directory 2017</h3>
+    <h3 style='margin-right:10%'>[[ifeq:$lang|FR|Catalogue de semences|Member Seed Directory]] 2017</h3>
     </td>
 <td valign='middle' width='25%'>
     
     <form onsubmit="msdSearch(); return false;">
     <div class="form-horizontal" style='margin:0px 10px 0px 15%'>
     <div class="form-group">
-        <label for="inputEmail" class="control-label col-xs-3">Search</label>
-        <div class="col-xs-9">
+        <label for="inputEmail" class="control-label col-sm-3">[[ifeq:$lang|EN|Search|Rechercher]]</label>
+        <div class="col-sm-9">
             <input type="text" class="form-control" id="msdSearchVal" placeholder="Variety, description, keyword"/>
         </div>
     </div>
@@ -98,11 +98,11 @@
         <div class='col-xs-3 col-sm-3 msd-basket-col'>
           <div class='msd-basket-col-fixed'>
             <div class='storeBox storeBoxBasket'>
-                <div class='storeBoxHeader'>Your Basket</div>
+                <div class='storeBoxHeader'>[[ifeq:$lang|EN|Your Basket|Votre panier]]</div>
                 <div class='storeBasketErrmsg'></div>
                 <div class='storeBasketContent'>[[Basket_Contents:]]</div>
-                <div style='width:100%;text-align:center'><button>Place Your Request</button></div>
-                <div style='width:100%;text-align:center;margin-top:10px'><button>Clear Your Basket</button></div>
+                <div style='width:100%;text-align:center'><button>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button></div>
+                <div style='width:100%;text-align:center;margin-top:10px;margin-bottom:10px'><button>[[ifeq:$lang|EN|Clear Your Basket|Vider votre panier]]</button></div>
             </div>
             <div class='storeBox storeBoxBuyer'>
                 [[Include:msdLogin]]
@@ -147,7 +147,7 @@
             // but shows it for long fetches.
             $(".msd-body-varieties").html( "<img id='loading-img' style='display:none;margin-left:50px' src='http://seeds.ca/w/img/loading.gif' width='50' height='50'/>" );
             $('#loading-img').fadeIn(1500);
-            getVarietyList( sp );
+            getVarietyList( $(this).attr('kSpecies') );
         });
 
         /* When you click on a variety description, it opens the associated msd-order-info.
@@ -262,11 +262,11 @@ function msdShowSeedsFromGrower( kG, mbrCode )
         });
 }
 
-function getVarietyList( sp )
+function getVarietyList( kSp )
 {
     /* Fetch the variety list for the given species and write it into the variety block
      */
-    $.get( qUrl+"?cmd=msdVarietyListFromSpecies", { sp : sp } )
+    $.get( qUrl+"?cmd=msdVarietyListFromSpecies", { kSp : kSp } )
         .done(function( data ) {
             var sVarList = "";
 
@@ -324,9 +324,9 @@ function RemoveFromBasket( kBP )
 
 
 %% msdLogin
-{% if bLogin %}
+{% if bMbrLogin %}
   <div class='storeBoxHeader'>You are Logged In</div>
-    <p style='margin:10px'><strong>Welcome {{sessionRealname}}</strong></p>  
+    <p style='margin:10px'><strong>[[ifeq:$lang|EN|Welcome|Bienvenue]] {{sessionRealname}}</strong></p>  
 # 
 #  {% if mbrid %}
 #    <p>You are logged in as member # {{mbrid}}.  Please update your address information if necessary.</p>
