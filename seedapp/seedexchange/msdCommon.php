@@ -14,16 +14,11 @@ include_once( SEEDAPP."basket/basketProductHandlers.php" );     // SEEDBasketPro
 
 class MSDCommonDraw
 {
-    public $oW;
     public $oSB;
 
-    function __construct( SEEDApp_Worker $oW )
+    function __construct( SEEDBasketCore $oSB )     // actually this is MSDBasketCore
     {
-        $this->oW = $oW;
-
-// make this take $oW
-        $this->oSB = new SEEDBasketCore( $oW->kfdb, $oW->sess, //SEEDBasketProducts_SoD::$raProductTypes );
-                                                               array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ) );
+        $this->oSB = $oSB;
     }
 
     function DrawMSDList()

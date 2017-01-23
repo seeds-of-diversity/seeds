@@ -24,14 +24,16 @@ class SEEDBasketCore
 
     private $raHandlerDefs;
     private $raHandlers = array();
+    private $raParms = array();
     private $kBasket;       // always access this via GetBasketKey
 
-    function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs )
+    function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
     {
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB() );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->kBasket = $this->GetBasketKey();
+        $this->raParms = $raParms;
     }
 
     function Cmd( $cmd, $raParms = array(), $bGPC = false )
@@ -261,7 +263,13 @@ $s .= "<style>
         $raSummary = $this->ComputeBasketSummary();
 
         foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
-            $s .= "<div>Seller $uidSeller (total $".$raSeller['fTotal'].")</div>";
+            if( isset($this->raParms['fn_sellerNameFromUid']) ) {
+                $sSeller = call_user_func( $this->raParms['fn_sellerNameFromUid'], $uidSeller );
+            } else {
+                $sSeller = "Seller $uidSeller";
+            }
+
+            $s .= "<div>$sSeller (total $".$raSeller['fTotal'].")</div>";
 
             $s .= "<div class='sb_basket_table'>";
             foreach( $raSeller['raItems'] as $raItem ) {
