@@ -145,7 +145,7 @@ class MSDCommonDraw
 
 
             'ANGELICA' => array( 'FR' => 'Ang&eacute;lique' ),
-            'ANISE HYSSOP' => array( 'FR' => 'Agastache' ),
+            'ANISE HYSSOP' => array( 'FR' => 'Agastache fenouil' ),
             'BASIL' => array( 'FR' => 'Basilic' ),
             'BLACK CUMIN' => array( 'FR' => 'Cumin' ),
             'BORAGE' => array( 'FR' => 'Bourrache' ),
@@ -212,6 +212,7 @@ class MSDCommonDraw
             'BEAN/ADZUKI' => array( 'FR' => 'F&egrave;ves - Adzuki' ),
             'BEAN/BUSH' => array( 'FR' => 'F&egrave;ves - Plants nains' ),
             'BEAN/FAVA (BROAD)' => array( 'FR' => 'F&egrave;ves - Fava (Larges)' ),
+            'BEAN/LIMA' => array( 'FR' => 'F&egrave;ves de Lima' ),
             'BEAN/OTHER' => array( 'FR' => 'F&egrave;ves et haricots - Divers' ),
             'BEAN/POLE' => array( 'FR' => 'F&egrave;ves - Plants grimpants' ),
             'BEAN/RUNNER' => array( 'FR' => "Haricots d'Espagne" ),
@@ -232,6 +233,8 @@ class MSDCommonDraw
             'CORN/POP' => array( 'FR' => 'Ma&iuml;s &agrave; souffler' ),
             'CORN/SWEET' => array( 'FR' => 'Ma&iuml;s sucr&eacute;' ),
             'COWPEA' => array( 'FR' => 'Doliques' ),
+            'CUCUMBER/ANTILLES' => array( 'FR' => 'Concombre des Antilles' ),
+            'CUCUMBER/KAYWA' => array( 'FR' => 'Concombre grimpant (Kaywa)' ),
             'CUCUMBER/MEXICAN SOUR GHERKIN' => array( 'FR' => 'Concombres &agrave; confire', 'EN'=> 'Cucumber - Mexican Sour Gherkin' ),
             'CUCUMBER/PICKLING' => array( 'FR' => 'Concombres &agrave; mariner', 'EN'=> 'Cucumber - Pickling' ),
             'CUCUMBER/SLICING' => array( 'FR' => 'Concombres frais', 'EN'=> 'Cucumber - Slicing' ),
