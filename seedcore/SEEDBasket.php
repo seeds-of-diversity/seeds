@@ -294,7 +294,7 @@ $s .= "<style>
 
         if( !$s ) goto done;
 
-        $s .= "<div style='text-alignment:right;font-size:12pt;color:green'>Your Total: \${$raSummary['fTotal']}</div>";
+        $s .= "<div style='text-alignment:right;font-size:12pt;color:green'>Your Total: ".$this->dollar($raSummary['fTotal'])."</div>";
 
         $s = "<div class='sb_basket-contents'>$s</div>";
 
