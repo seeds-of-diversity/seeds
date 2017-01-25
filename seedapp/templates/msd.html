@@ -101,8 +101,8 @@
                 <div class='storeBoxHeader'>[[ifeq:$lang|EN|Your Basket|Votre panier]]</div>
                 <div class='storeBasketErrmsg'></div>
                 <div class='storeBasketContent'>[[Basket_Contents:]]</div>
-                <div style='width:100%;text-align:center'><button>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button></div>
-                <div style='width:100%;text-align:center;margin-top:10px;margin-bottom:10px'><button>[[ifeq:$lang|EN|Clear Your Basket|Vider votre panier]]</button></div>
+                <div style='width:100%;text-align:center'><button onclick='msdPlaceRequest();'>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button></div>
+                <div style='width:100%;text-align:center;margin-top:10px;margin-bottom:10px'><button onclick='msdClearBasket();'>[[ifeq:$lang|EN|Clear Your Basket|Vider votre panier]]</button></div>
             </div>
             <div class='storeBox storeBoxBuyer'>
                 [[Include:msdLogin]]
@@ -305,6 +305,31 @@ function RemoveFromBasket( kBP )
 {
     jQuery.ajax({ url: qUrl,
                   data: { cmd: "RemoveFromBasket", kBP: kBP },
+                  success: function ( data, textStatus, jqXHR ) 
+                           { var rQ = window.JSON.parse(data); 
+                             var bOk = rQ['bOk'];
+                             var sOut = rQ['sOut'];
+                             var sErr = rQ['sErr'];
+                             if( bOk ) { 
+                                 $('.storeBasketContent').html(sOut);
+                                 $('.storeBasketErrmsg').html("");
+                             } else {
+                                 $('.storeBasketErrmsg').html(sErr);
+                             }
+                           },
+                  error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
+                });
+}
+
+function msdPlaceRequest()
+{
+    alert( "Place my request" );
+}
+
+function msdClearBasket()
+{
+    jQuery.ajax({ url: qUrl,
+                  data: { cmd: "ClearBasket" },
                   success: function ( data, textStatus, jqXHR ) 
                            { var rQ = window.JSON.parse(data); 
                              var bOk = rQ['bOk'];

@@ -76,6 +76,12 @@ class SEEDBasketCore
                     list($raOut['bOk'],$raOut['sOut']) = $this->removeProductFromBasket( $kBP );
                 }
                 break;
+
+            case "clearbasket":
+                $raOut['bHandled'] = true;
+
+                list($raOut['bOk'],$raOut['sOut']) = $this->clearBasket();
+                break;
         }
 
         done:
@@ -445,6 +451,21 @@ $s .= "<style>
         return( array($bOk,$s) );
     }
 
+    private function clearBasket()
+    /*****************************
+     */
+    {
+        $bOk = false;
+        $s = "";
+
+        if( !$this->BasketIsOpen() || !($kB = $this->GetBasketKey()) )  goto done;
+
+        $bOk = $this->oDB->kfdb->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE fk_SEEDBasket_Baskets='$kB'" );
+
+        done:
+        $s = $this->DrawBasketContents();
+        return( array($bOk,$s) );
+    }
 
     function GetCurrentBasketKFR()
     /*****************************
