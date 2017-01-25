@@ -269,7 +269,8 @@ class MSDCommonDraw
             'SALSIFY/SCORZONERA' => array( 'FR' => 'Salsifis' ),
             'SKIRRET' => array( 'FR' => 'Chervis' ),
             'SPINACH' => array( 'FR' => '&Eacute;pinards', 'FR_sort' => 'Epinards' ),  // '&' initial is not good for sorting
-            'SPINACH/MALABAR' => array( 'FR' => '&Eacute;pinard de Malabar', 'FR_sort' => 'Epinard de Malabar' ),  // '&' initial is not good for sorting
+            'SPINACH/MALABAR' => array( 'FR' => '&Eacute;pinards de Malabar', 'FR_sort' => 'Epinard de Malabar' ),  // '&' initial is not good for sorting
+            'SPINACH/NEW ZEALAND' => array( 'FR' => '&Eacute;pinards T&eacute;tragone', 'FR_sort' => 'Epinard Tetragon' ),  // '&' initial is not good for sorting
             'SPINACH/STRAWBERRY' => array( 'FR' => '&Eacute;pinard-Fraise', 'FR_sort' => 'Epinard-Fraise' ),  // '&' initial is not good for sorting
             'SQUASH/MAXIMA' => array( 'FR' => 'Courges (Cucurbita maxima)' ),
             'SQUASH/MIXTA' => array( 'FR' => 'Courges (Cucurbita mixta)' ),
@@ -277,12 +278,12 @@ class MSDCommonDraw
             'SQUASH/PEPO' => array( 'FR' => 'Courges/Citrouilles (Cucurbita pepo)' ),
             'SWISS CHARD' => array( 'FR' => 'Bette &agrave; carde' ),
             'TOMATO/MISC OR MULTI-COLOUR' => array( 'FR' => 'Tomates - Couleurs diverses' ),
-            'TOMATO/MISC SPECIES' => array( 'FR' => 'Tomates - Esp&egrave;ces diverses' ),
+            'TOMATO/MISCELLANEOUS SPECIES' => array( 'FR' => 'Tomates - Esp&egrave;ces diverses' ),
             'TOMATO/PINK TO PURPLE SKIN' => array( 'FR' => 'Tomates - Peaux roses &agrave; pourpres' ),
             'TOMATO/RED SKIN' => array( 'FR' => 'Tomates - Peaux rouges' ),
             'TOMATO/YELLOW TO ORANGE SKIN' => array( 'FR' => 'Tomates - Peaux jaunes &agrave; oranges' ),
             'TURNIP' => array( 'FR' => 'Navets' ),
-            'TURNIP/RUTABAGA' => array( 'FR' => 'Rutabagas' ),
+            'TURNIP - RUTABAGA' => array( 'FR' => 'Rutabagas' ),
     );
 
 
