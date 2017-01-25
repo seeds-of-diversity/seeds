@@ -275,14 +275,14 @@ $s .= "<style>
                 $sSeller = "Seller $uidSeller";
             }
 
-            $s .= "<div>$sSeller (total $".$raSeller['fTotal'].")</div>";
+            $s .= "<div style='margin-top:10px;font-weight:bold'>$sSeller (total ".$this->dollar($raSeller['fTotal']).")</div>";
 
             $s .= "<div class='sb_basket_table'>";
             foreach( $raSeller['raItems'] as $raItem ) {
                 $sClass = ($kBPHighlight && $kBPHighlight == $raItem['kBP']) ? " sb_bp-change" : "";
                 $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
                      ."<div class='sb_basket_td'>".$raItem['sItem']."</div>"
-                     ."<div class='sb_basket_td'>$".$raItem['fAmount']."</div>"
+                     ."<div class='sb_basket_td'>".$this->dollar($raItem['fAmount'])."</div>"
                              ."<div class='sb_basket_td' style='' onclick='RemoveFromBasket(".$raItem['kBP'].");'>"
                          // use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
                          ."<img height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
@@ -330,6 +330,17 @@ $s .= "<style>
                 $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
                 $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
 
+                // derived class adjustment
+// k is non-zero if the user is a current grower member
+if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mbr_id='".$this->GetUID_SB()."' AND NOT bSkip" )) ) {
+    if( floatval($kfrBPxP->Value('P_item_price')) == 12.00 ) {
+        $discount = -2.0;
+    } else {
+        $discount = -1.0;
+    }
+    $raOut['raSellers'][$uidSeller]['fTotal'] += $discount;
+    $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>0, 'sItem'=>"Your grower member discount", 'fAmount'=>$discount );
+}
                 // add other items for shipping / discount
 
             }
@@ -390,7 +401,7 @@ $s .= "<style>
         return( floatval($f) );
     }
 
-    function dollar( $d )  { return( "$".$d ); }
+    function dollar( $d )  { return( "$".sprintf("%0.2f", $d) ); }
 
 
     /**
