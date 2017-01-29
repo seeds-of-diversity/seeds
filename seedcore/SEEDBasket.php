@@ -171,14 +171,24 @@ class SEEDBasketCore
         True if there is a current basket and it is open for adding/updating/deleting by the purchaser
      */
     {
-        $bOk = false;
+        return( $this->BasketStatusGet() == 'Open' );
+    }
 
-        if( ($kfrB = $this->GetCurrentBasketKFR()) &&
-            ($kfrB->Value('eStatus') == 'Open') ) {
-            $bOk = true;
+    function BasketStatusGet()
+    /*************************
+     */
+    {
+        return( ($kfr = $this->GetCurrentBasketKFR()) ? $kfr->Value('eStatus') : "Open" );
+    }
+
+    function BasketStatusSet( $eStatusChange )
+    /*****************************************
+     */
+    {
+        if( $this->kfrBasketCurr ) {
+            $this->kfrBasketCurr->SetValue( 'eStatus', $eStatusChange );
+            $this->kfrBasketCurr->PutDBRow();
         }
-
-        return( $bOk );
     }
 
     function GetUID_SB()

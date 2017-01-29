@@ -101,7 +101,7 @@
                 <div class='storeBoxHeader'>[[ifeq:$lang|EN|Your Basket|Votre panier]]</div>
                 <div class='storeBasketErrmsg'></div>
                 <div class='storeBasketContent'>[[Basket_Contents:]]</div>
-                <div style='width:100%;text-align:center'><button onclick='msdPlaceRequest();'>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button></div>
+                <div style='width:100%;text-align:center'><form method='post'><input type='hidden' name='msdStateChange' value='Confirmed'/><button onclick_notnow='msdPlaceRequest();'>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button></form></div>
                 <div style='width:100%;text-align:center;margin-top:10px;margin-bottom:10px'><button onclick='msdClearBasket();'>[[ifeq:$lang|EN|Clear Your Basket|Vider votre panier]]</button></div>
             </div>
             <div class='storeBox storeBoxBuyer'>
@@ -323,7 +323,7 @@ function RemoveFromBasket( kBP )
 
 function msdPlaceRequest()
 {
-    alert( "Place my request" );
+    //window.location( "#?msdStateChange=Open" );
 }
 
 function msdClearBasket()
