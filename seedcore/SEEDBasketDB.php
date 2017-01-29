@@ -230,7 +230,7 @@ CREATE TABLE SEEDBasket_Baskets (
 
 
     -- About the fulfilment
-    eStatus         ENUM('New','Paid','Filled','Cancelled') NOT NULL DEFAULT 'New',
+    eStatus         ENUM('Open','Confirmed','Paid','Filled','Cancelled') NOT NULL DEFAULT 'Open',
     notes           TEXT NOT NULL DEFAULT '',
 
 

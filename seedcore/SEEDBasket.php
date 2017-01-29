@@ -25,14 +25,14 @@ class SEEDBasketCore
     private $raHandlerDefs;
     private $raHandlers = array();
     private $raParms = array();
-    private $kBasket;       // always access this via GetBasketKey
+    private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
 
     function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
     {
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB() );
         $this->raHandlerDefs = $raHandlerDefs;
-        $this->kBasket = $this->GetBasketKey();
+        $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
     }
 
@@ -88,20 +88,64 @@ class SEEDBasketCore
         return( $raOut );
     }
 
-    function GetBasketKey()
+    function GetCurrentBasketKFR()
+    /*****************************
+        Find the current basket, set $this->kfrBasketCurr and return that.
+        Always use this to get the current basket instead of accessing kfrBasketCurr directly
+
+        The most recently created basket where uid_buyer==sess->GetUID is generally the current basket, regardless of its eStatus.
+        In this situation, SVA.kBasket will normally be the same key as that basket.
+        However, a non-login user can create a basket, load some products, and then login. The newer SVA.kBasket should override the uid_buyer basket.
+
+        1) if you're logged in, and the most recent basket where uid_buyer==you matches SVA.kBasket, then obviously that's your current basket.
+        2) if you're logged in, and the most recent basket where uid_buyer==you doesn't match SVA.kBasket, then you must have
+           created a basket before you logged in, so SVA.kBasket wins and that becomes owned by you.
+        3) if you're logged in and only one or the other exists, then that one is your current basket.
+        4) if you're not logged in, and you have a SVA.kBasket, that's your current basket.
+        5) if you don't have either one, whether logged in or not, this function returns null.
+
+        The above simplifies to:
+        if SVA.kBasket { that is your current basket, and its uid_buyer should be set to your uid }
+          else if there is a most-recent basket where uid_buyer==you { that is your current basket }
+          else { null }
+    */
     {
-        if( !$this->kBasket ) {
+        if( !$this->kfrBasketCurr ) {
+            $kB = 0;
+
+            /* Try to find the most recent basket, either by uid or by SVA.kBasket stored in SVA.
+             */
             $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
-            $this->kBasket = $oSVA->VarGetInt( 'kBasket' );
+            $kB1 = $oSVA->VarGetInt( 'kBasket' );
+
+            $kB2 = $this->sess->GetUID()
+                        ? $this->oDB->kfdb->Query1( "SELECT _key FROM seeds.SEEDBasket_Baskets WHERE uid_buyer='".$this->sess->GetUID()."' ORDER BY _created DESC LIMIT 1" )
+                        : 0;
+
+            if( $kB1 ) {
+                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB1 );
+            } else if( $kB2 ) {
+                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB2 );
+            } else {
+                $this->kfrBasketCurr = null;
+            }
+
+            // Store the kBasket in this session so it survives if the user is not logged in
+            $oSVA->VarSet( 'kBasket', $this->kfrBasketCurr ? $this->kfrBasketCurr->Key() : 0 );
+
+            // if there is a current anonymous basket, and the user is logged in, it means that they just logged in so now they can own the basket
+            if( $this->kfrBasketCurr && $this->kfrBasketCurr->Value('uid_buyer')==0 && $this->sess->GetUID() ) {
+                $this->kfrBasketCurr->SetValue( 'uid_buyer', $this->sess->GetUID() );
+                $this->kfrBasketCurr->PutDBRow();
+            }
         }
-        return( $this->kBasket );
+
+        return( $this->kfrBasketCurr );
     }
 
-    function SetBasketKey( $kB )
+    function GetBasketKey()
     {
-        $this->kBasket = $kB;
-        $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
-        $oSVA->VarSet( 'kBasket', $kB );
+        return( ($kfr = $this->GetCurrentBasketKFR()) ? $kfr->Key() : 0 );
     }
 
     function BasketAcquire()
@@ -112,9 +156,13 @@ class SEEDBasketCore
     {
         if( !$this->GetBasketKey() ) {
             $kfrB = $this->oDB->GetKfrel("B")->CreateRecord();
-            $kfrB->SetValue( 'uid_buyer', $this->GetUID_SB() );
+            $kfrB->SetValue( 'uid_buyer', $this->sess->GetUID() );  // this is zero if !IsLogin
             $kfrB->PutDBRow();
-            $this->SetBasketKey( $kfrB->Key() );
+
+            // Set basket key in the session so GetCurrentBasketKey will find it
+            $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
+            $oSVA->VarSet( 'kBasket', $kfrB->Key() );
+            $this->GetCurrentBasketKFR();
         }
     }
 
@@ -125,9 +173,8 @@ class SEEDBasketCore
     {
         $bOk = false;
 
-        if( ($kB = $this->GetBasketKey()) &&
-            ($kfrB = $this->oDB->GetBasket($kB)) &&
-            ($kfrB->Value('eStatus') == 'New') ) {
+        if( ($kfrB = $this->GetCurrentBasketKFR()) &&
+            ($kfrB->Value('eStatus') == 'Open') ) {
             $bOk = true;
         }
 
@@ -262,7 +309,7 @@ $s .= "<style>
        .sb_basket_td    { display:table-cell; text-align:left;border-bottom:1px solid #eee;padding:3px 10px 3px 0px }
        </style>";
 
-        if( !$this->GetBasketKey() ) goto done;
+        if( !$this->GetCurrentBasketKFR() ) goto done;
 
         $kBPHighlight = intval(@$raParms['kBPHighlight']);
 
@@ -283,9 +330,10 @@ $s .= "<style>
                 $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
                      ."<div class='sb_basket_td'>".$raItem['sItem']."</div>"
                      ."<div class='sb_basket_td'>".$this->dollar($raItem['fAmount'])."</div>"
-                             ."<div class='sb_basket_td' style='' onclick='RemoveFromBasket(".$raItem['kBP'].");'>"
-                         // use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
-                         ."<img height='14' src='http://seeds.ca/w/img/ctrl/delete01.png'/>"
+                     ."<div class='sb_basket_td'>"
+                         // Use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
+                         // Only draw the Remove icon for items with kBP because discounts, etc, are coded with kBP==0 and those shouldn't be removable on their own
+                         .($raItem['kBP'] ? ("<img height='14' onclick='RemoveFromBasket(".$raItem['kBP'].");' src='http://seeds.ca/w/img/ctrl/delete01.png'/>") : "")
                          ."</div>"
                      ."</div>";
             }
@@ -315,7 +363,9 @@ $s .= "<style>
     {
         $raOut = array( 'fTotal'=>0.0, 'raSellers'=>array() );
 
-        if( ($kfrBPxP = $this->oDB->GetPurchasesKFRC( $this->GetBasketKey() )) ) {
+        if( !($kBasket = $this->GetBasketKey()) ) goto done;
+
+        if( ($kfrBPxP = $this->oDB->GetPurchasesKFRC( $kBasket )) ) {
             while( $kfrBPxP->CursorFetch() ) {
                 $uidSeller = $kfrBPxP->Value('P_uid_seller');
 // handle volume pricing, shipping, discount
@@ -338,6 +388,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
     } else {
         $discount = -1.0;
     }
+    $raOut['fTotal'] += $discount;
     $raOut['raSellers'][$uidSeller]['fTotal'] += $discount;
     $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>0, 'sItem'=>"Your grower member discount", 'fAmount'=>$discount );
 }
@@ -345,6 +396,8 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
 
             }
         }
+
+        done:
         return( $raOut );
     }
 
@@ -477,25 +530,6 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         $s = $this->DrawBasketContents();
         return( array($bOk,$s) );
     }
-
-    function GetCurrentBasketKFR()
-    /*****************************
-        Return a kfr of the current basket.
-        If there isn't one, create one and start using it.
-     */
-    {
-        if( ($kB = $this->GetBasketKey()) ) {
-            $kfrB = $this->oDB->GetBasket( $kB );
-        } else {
-            // create a new basket and save it
-            $kfrB = $this->oDB->GetKfrel('B')->CreateRecord();
-            $kfrB->PutDBRow();
-            $this->SetBasketKey( $kfrB->Key() );    // sets $this->kBasket and stores in session var
-        }
-
-        return( $kfrB );
-    }
-
 
     private function getHandler( $prodType )
     {
