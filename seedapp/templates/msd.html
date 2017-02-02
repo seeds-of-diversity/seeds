@@ -201,8 +201,23 @@ function msdResize() {
         $(".msd-list").css({'overflow-y': "auto"});
     }
 
+    // msd-basket: Give it a scrollbar if it is taller than the window
+    hd = $(".msd-basket-col").height();
+    wd = $(".msd-basket-col").width();
+    yd = $(".msd-basket-col").offset().top;
+
+    maxw = wd;
+    if( maxw < 0 ) maxw = 1;
+    maxh = (hw-yd-20);  // 20 just for visual padding at the bottom
+    if( maxh < 0 ) maxh = 1;
+
+    $(".msd-basket-col-fixed").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
+
     // msd-basket-col: Set width the same as its container so it fits nicely.
-    $(".msd-basket-col-fixed").width($(".msd-basket-col").width());
+    $(".msd-basket-col-fixed").width($(".msd-basket-col").width()-20);
+
+    var sScroll = (hd > hw - yd) ? "scroll" : "auto";
+    $(".msd-basket-col-fixed").css({'overflow-y': sScroll});
 }
 
 
