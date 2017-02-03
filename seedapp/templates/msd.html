@@ -375,6 +375,7 @@ function msdClearBasket()
 #    <p>You are logged in. Please enter your address information below.</p>
 #  {% endif %}
 
+  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm2017.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
   <p style='margin-left:10px'><a href="[[Var:siteroot]]login?sessioncmd=logout">Logout</a></p>
 
 {% else %}
@@ -422,6 +423,9 @@ function msdClearBasket()
     <p>Also, some growers might specify non-standard prices. Please check the grower's notes and the variety description for pricing, and adjust your Seed Request Form accordingly.</p>
     <div style='text-align:center;width='100%'><form method='post'><input type='hidden' name='msdStateChange' value='Open'/><button>Back to Your Basket</button></form></div>
 </div>
+
+%% msdConfirmedFooter
+  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm2017.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
 
 
 %% msdSeedRequestForm
