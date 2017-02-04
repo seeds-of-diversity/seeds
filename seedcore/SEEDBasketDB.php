@@ -301,6 +301,7 @@ CREATE TABLE SEEDBasket_Products (
 
     sExtra          TEXT NOT NULL DEFAULT '',           -- e.g. urlencoded metadata about the product
 
+    INDEX(uid_seller),
     INDEX(product_type)
 );
 "
