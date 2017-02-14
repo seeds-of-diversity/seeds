@@ -153,4 +153,30 @@ function SEEDCore_SmartVal( $v, $raAllowed )
     return( in_array( $v, $raAllowed, true ) ? $v : $raAllowed[0] );
 }
 
+
+function SEEDCore_EmailAddress( $s1, $s2, $label = "", $raMailtoParms = array(), $sAnchorAttrs = "" )
+/****************************************************************************************************
+    Write a spam-proof email address on a web page in the form:
+
+    <a href='mailto:$s1@$s2'>$label</a>  or
+    <a href='mailto:$s1@$s2'>$s1@$s2</a> if label is blank
+
+    $sAnchorAttrs can contain additional attributes for the <a> tag - e.g. style='text-decoration:foo;color=bar'
+ */
+{
+    $mparms = "";
+    foreach( $raMailtoParms as $k => $v ) {
+        $mparms .= ($mparms ? "?" : "&").$k."=".$v;  // I thought I should urlencode this, but Thunderbird doesn't decode it
+    }
+
+    $s = "<script language='javascript'>var a=\"$s1\";var b=\"$s2\";";
+    if( empty($label) ) {
+        $s .= "var l=a+\"@\"+b;";
+    } else {
+        $s .= "var l=\"$label\";";
+    }
+    $s .= "document.write(\"<a $sAnchorAttrs href='mailto:\"+a+\"@\"+b+\"$mparms'>\"+l+\"</a>\");</script>";
+    return( $s );
+}
+
 ?>
