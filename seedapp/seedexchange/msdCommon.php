@@ -115,10 +115,12 @@ class MSDCommonDraw
             'HOLLYHOCK'  => array( 'FR' => 'Tr&eacute;mi&egrave;re' ),
             'LATHYRUS (SWEET PEA)' => array( 'FR' => 'Pois de senteur' ),
             'LAVATERA' => array( 'FR' => 'Lavat&egrave;re' ),
+            'LINUM (FLAX)' => array( 'FR' => "Lin" ),
             'MARIGOLD' => array( 'FR' => "Oeillets d'Inde" ),
             'MORNING GLORY' => array( 'FR' => 'Belle-de-jour' ),
             'NASTURTIUM' => array( 'FR' => 'Capucine' ),
             'OENOTHERA' => array( 'FR' => 'Onagre' ),
+            'POPPY (PAPAVER)' => array( 'FR' => "Pavot" ),
             'SUNFLOWER' => array( 'FR' => 'Tournesol' ),
 
 
@@ -167,6 +169,7 @@ class MSDCommonDraw
             'FENNEL' => array( 'FR' => 'Fenouil' ),
             'FENUGREEK' => array( 'FR' => 'Fenugrec' ),
             'FEVERFEW' => array( 'FR' => 'Grande camomille' ),
+            'GARLIC CHIVES' => array( 'FR' => 'Ciboulette ail' ),
             'HOPS' => array( 'FR' => 'Houblon' ),
             'HOREHOUND' => array( 'FR' => 'Marrube' ),
             'HORSERADISH (ROOTS)' => array( 'FR' => 'Raifort' ),
