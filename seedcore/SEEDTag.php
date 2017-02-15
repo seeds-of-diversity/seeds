@@ -128,16 +128,24 @@ class SEEDTagParser
         $target = @$raTag['target'];
         $p0 = $target;   // same as raParms[0]
         $p1 = @$raTag['raParms'][1];
+        $p2 = @$raTag['raParms'][2];
+        $p3 = @$raTag['raParms'][3];
 
-        /* if    p0     then echo p1 else echo p2      -- if:    test | good | bad
-         * ifdef p0     then echo p0 else echo p1      -- ifdef: var | default
-         * ifeq  p0==p1 then echo p2 else echo p3      -- ifeq:  v1 | v2 | they match | they're different
+        /* if      p0     then echo p1 else echo p2      -- if:    test | good | bad
+         * ifdef   p0     then echo p0 else echo p1      -- ifdef: var | default
+         * ifeq    p0==p1 then echo p2 else echo p3      -- ifeq:  v1 | v2 | they match | they're different
+         * ifnotMT p0     then find the token p2
+         *                     (default "[]") in p1 and
+         *                     subst it with p0
+         *                -- ifnotMT: v1 | the value is []
+         *                -- ifnotMT: v1 | the value is {here} | {here}
          */
         switch( strtolower($raTag['tag']) ) {
             case 'concat':    $s = ""; foreach( $raTag['raParms'] as $s1 ) $s .= $s1; return( $s );
-            case 'if':        return( $target ? $p1 : @$raTag['raParms'][2] );
+            case 'if':        return( $target ? $p1 : $p2 );
             case 'ifdef':     return( $target ? $target : $p1 );
-            case 'ifeq':      return( $p0 == $p1 ? @$raTag['raParms'][2] : @$raTag['raParms'][3] );
+            case 'ifeq':      return( $p0 == $p1 ? $p2 : $p3 );
+            case 'ifnotMT':   return( $target ? str_replace( ($p2 ? $p2 : '[]'), $this->oDSVars->Value($target), $p1 ) : "" );
             case 'nbsp':      return( ($n = intval($target)) ? SEEDStd_StrNBSP('',$n) : "" );
             case 'trim':      return( trim($target) );
             case 'lower':     return( strtolower($target) );
