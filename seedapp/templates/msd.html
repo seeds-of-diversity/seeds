@@ -443,18 +443,19 @@ function msdClearBasket()
 
 </style>
 
-<table style='max-width:800px'><tr><td><img src='http://office.seeds.ca/public/logos/img/logoA_h-[[lower:$lang]]-300x.png' style='max-height:80px' class='img-responsive'/></td>
+<div style='width:800px'>
+<table style='width:100%'><tr><td><img src='http://office.seeds.ca/public/logos/img/logoA_h-[[lower:$lang]]-300x.png' style='max-height:80px' class='img-responsive'/></td>
 <td style='text-align:center'>
 <h3 style='margin-left:10%;'><nobr>[[ifeq:$lang|FR|Catalogue de semences|Member Seed Directory]] 2017</nobr></h3>
 <h3 style='margin-left:10%;'>[[ifeq:$lang|FR|Catalogue de semences|Seed Request Form]]</h3>
 </td></tr></table>
-<div style='max-width:800px; margin:20px;'>
+<div style='width:100%; margin:20px;'>
     <p>Please print this form and send it directly to the member offering seeds, with appropriate payment.</p>
     <p>Each grower member accepts different methods of payment, so please check their notes carefully. Orders with inadequate or incomplete payment will be discarded.</p>
     <p>Some growers might specify non-standard prices. Please check the grower's notes and the variety description for pricing, and adjust the prices listed here accordingly.</p>
 </div>
 
-<div style='max-width:800px'>
+<div style='width:100%'>
     <div class='storeBox storeBoxBasket'>
         <div class='storeBoxHeader'>Send This Form To</div>
         <div class='storeBasketContent' style='text-align:left;font-weight:bold;'>[[Var:grower-address]]</div>
@@ -472,11 +473,11 @@ function msdClearBasket()
         <div class='storeBoxHeader'>Member Requesting Seeds</div>
         <div class='storeBasketContent' style='text-align:left'>
             <p>The grower may use this as a mailing label</p>
-            <div style='display:inline-block;border:1px solid #777;padding:20px;text-align:left;font-weight:bold;font-size:11pt;max-width:4.5in'>[[Var:request-address-label]]</div>
+            <div style='display:inline-block;border:1px solid #777;padding:20px;text-align:left;font-weight:bold;font-size:11pt;min-width:3.5in;max-width:4.5in'>[[Var:request-address-label]]</div>
             <div style='display:inline-block;margin-left:20px;'>[[Var:request-address-extra]]</div>
     </div>
 </div>
-
+</div>
 
 
 
