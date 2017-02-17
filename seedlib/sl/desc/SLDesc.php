@@ -19,12 +19,18 @@ class SLDescReadOnly
         $this->lang = $lang;
     }
 
-    function DrawQuestion( $sCode )
+    function DrawQuestion( $sTag )
     {
         $s = "";
 
-        $ra = $this->kfdb->QueryRA( "SELECT * FROM seeds.sl_desc_cfg_tags WHERE tag='".addslashes($sCode)."'" );
-        $s = @$ra['q_en'];
+        $ra = $this->kfdb->QueryRA( "SELECT * FROM seeds.sl_desc_cfg_tags WHERE tag='".addslashes($sTag)."'" );
+        if( !@$ra['tag'] ) {
+            $s = "<span style='color:red'>CD tag '$sTag' not found</span>";
+        } else if( !$ra['q_en'] ) {
+            $s = "<span style='color:red'>CD tag '$sTag' has blank q_en</span>";
+        } else {
+            $s = @$ra['q_en'];
+        }
 
         return( $s );
     }
