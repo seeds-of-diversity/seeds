@@ -420,7 +420,7 @@ class SEEDTagBasicResolver
         // parse p1 to get left/right/imgAttrs etc
         //    does this work? sscanf( $raTag['parms'][1], "%s {%s}", $align, $attrs );
         $raMatches = array();
-        preg_match( "/([^\{]*)\{?([^\}]*)\}?/", @$raTag['parms'][1], $raMatches );
+        preg_match( "/([^\{]*)\{?([^\}]*)\}?/", @$raTag['raParms'][1], $raMatches );
         $align = (strpos( @$raMatches[1], "left" ) !== false ? "left" :
                  (strpos( @$raMatches[1], "right" ) !== false ? "right" : ""));
         $bFrame = (strpos( @$raMatches[1], "frame" ) !== false);
