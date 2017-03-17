@@ -2,7 +2,7 @@
 
 /* SEEDCore
  *
- * Copyright (c) 2016 Seeds of Diversity Canada
+ * Copyright (c) 2016-2017 Seeds of Diversity Canada
  *
  * Basic functions useful in most applications
  */
