@@ -46,6 +46,9 @@ class SEEDTagParser
         $this->oDSVars->SetValuesRA( $raVars );
     }
 
+    function GetVar( $k )      { return( $this->oDSVars->Value($k) ); }
+    function SetVar( $k, $v )  { $this->oDSVars->SetValue($k,$v); }
+
     function ProcessTags( $sTemplate )
     /*********************************
         Given a sTemplate like "alpha [[tag1: foo | [[inner: bar | bar [[expand-me]] ]] | blart ]] beta [[code]] gamma"
@@ -91,6 +94,7 @@ class SEEDTagParser
             raTag['target'] = p0  (for convenience)
 
         Return the expansion of the tag. Note that the parser calls ProcessTags() for each pN to expand nested tags.
+        This means each raTag['raParms'] has been expanded, so they are either plain text or $variable
 
         Override with your own favourite tag language processor.
 
@@ -113,7 +117,7 @@ class SEEDTagParser
             // call a given sequence of ResolveTags functions to try to handle the tag
             foreach( $this->raParms['raResolvers'] as $ra ) {
                 // list($bHandled,$s,$bRetagged,$raReTag) = call_user_func()
-                $raRet = call_user_func( $ra['fn'], $raTag, @$ra['raParms'] ? $ra['raParms'] : array() );
+                $raRet = call_user_func( $ra['fn'], $raTag, $this, @$ra['raParms'] ? $ra['raParms'] : array() );
                 $bHandled  = $raRet[0];
                 $s         = $raRet[1];
                 $bRetagged = @$raRet[2];
@@ -151,7 +155,9 @@ class SEEDTagParser
             case 'lower':     return( strtolower($target) );
             case 'upper':     return( strtoupper($target) );
             case 'var':       return( $this->oDSVars->Value($target) );
-            case 'setvar':    if( $target ) { $this->oDSVars->SetValue($target, $p1); }  return( "" );
+            case 'setvar':    return( $this->doSetVar( $raTag ) );
+            case 'setvarifempty': return( $this->doSetVar( $raTag, true ) );
+
 
             case 'urlencode': return( urlencode($target) );
 
@@ -170,6 +176,27 @@ class SEEDTagParser
 
             default:          return( "" );
         }
+    }
+
+    private function doSetVar( $raTag, $bOnlyIfEmpty = false )
+    /********************************************************
+        [[SetVar: var | p1 | p2 | ... ]]
+
+        Set variable var to the concatenation of p1+p2+... where pN are strings or $variables
+
+        bOnlyIfEmpty only sets the value if the variable is empty, which is useful for setting default values in shared templates
+     */
+    {
+        if( !($varname = @$raTag['target']) )  goto done;
+
+        if( $bOnlyIfEmpty && $this->oDSVars->Value($varname) != "" )  goto done;
+
+        $sVal = implode( '', array_slice( $raTag['raParms'], 1 ) );   // concatenate p1...pN
+        $this->oDSVars->SetValue( $varname, $sVal );
+
+        done:
+        return( "" );
+
     }
 
     private function findNextTag( $sTemplate, $iCurr )
@@ -287,8 +314,9 @@ class SEEDTagParser
                 default:
                     // End of tag. Eat any remaining text.
                     // Note that an erroneous open tag will be written as plain text.
-                    $p = $this->ProcessTags( substr( $sTag, $iLastPartition ) );
-                    $raTag['raParms'][] = $this->pNormalize($p);
+                    if( ($p = $this->ProcessTags( substr( $sTag, $iLastPartition ) )) ) {
+                        $raTag['raParms'][] = $this->pNormalize($p);
+                    }
                     $bDone = true;
                     break;
             }
@@ -360,8 +388,8 @@ class SEEDTagBasicResolver
         if( @$raParms['bForceTargetBlank'] ) $this->bForceTargetBlank = true;
     }
 
-    function ResolveTag( $raTag )
-    /****************************
+    function ResolveTag( $raTag, SEEDTagParser $oTagDummy, $raParmsDummy_should_provide_url_bases_for_links_and_images )
+    /********************************************************************
         Given a SEEDTagParser-parsed $raTag, expand it for certain basic tags
         The really fundamental tags are handled in the SEEDTagParser base class, which should be called too,
         but a SEEDTagParser derivation can call this first to try to resolve some basic but not fundamental tags.
