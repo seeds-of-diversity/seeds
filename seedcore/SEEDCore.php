@@ -105,42 +105,27 @@ function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true )
 }
 
 
-/**
- *  if $raAllowed contains 1 value, then $raParms[$k] is unconstrained (except for empty or !isset) and $raAllowed[0] is the default:
- *      { Return $raParms[$k] if isset() and not empty, or isset() and empty and $bEmptyAllowed : else return $raAllowed[0] }
- *
- *  if $raAllowed contains >1 values, then $raParms[$k] is constrained to that set and $raAllowed[0] is the default ($bEmptyAllowed is not used):
- *      { Return $raParms[$k] if it is in $raAllowed; return $raAllowed[0] if $raParms[$k] is not in that list or not set }
- */
-function SEEDCore_ArraySmartVal( $raParms, $k, $raAllowed, $bEmptyAllowed = true )
-/*********************************************************************************
-    raParms is a set of values provided from some input e.g. function argument parms, http parms, user input, etc
-    raAllowed is the set of all allowed values (or a single default value)
-
-    if $raAllowed contains 1 value:
-        if $bEmptyAllowed
-            $raParms[$k] is allowed to be any value, including empty
-            if $raParms[$k] is not set, return $raAllowed[0]
-        else
-            $raParms[$k] is allowed to be any value, except empty
-            if $raParms[$k] is empty or not set, return $raAllowed[0]
-
-
-    if $raAllowed contains >1 values:
-        $raParms[$k] is constrained to that set of values
-        if $raParms[$k] is not set, return $raAllowed[0]
-        if $raParms[$k] is allowed, return it
-        if $raParms[$k] is not allowed, return $raAllowed[0]
+function SEEDCore_ArraySmartVal( $raParms, $k, $raAllowed )
+/**********************************************************
+    $raParms[$k] must be one of the values in $raAllowed.
+    If not, return $raAllowed[0]
  */
 {
-    if( !isset($raParms[$k]) )  return( $raAllowed[0] );
-
-    if( count($raAllowed) == 1 ) {
-        return( (empty($raParms[$k]) && !$bEmptyAllowed ) ? $raAllowed[0] : $raParms[$k] );
-    } else {
-        return( SEEDCore_SmartVal( $raParms[$k], $raAllowed ) );
-    }
+    return( isset($raParms[$k]) ? SEEDCore_SmartVal( $raParms[$k], $raAllowed )
+                                : $raAllowed[0] );
 }
+
+function SEEDCore_ArraySmartVal1( $raParms, $k, $pDefault, $bEmptyAllowed = false )
+/**********************************************************************************
+    $raParms[$k] can have any value (except empty if !bEmptyAllowed).
+    If it is not set, or it fails the bEmptyAllowed test, return $pDefault
+ */
+{
+    if( !isset($raParms[$k]) )  return( $pDefault );
+
+    return( (empty($raParms[$k]) && !$bEmptyAllowed ) ? $pDefault : $raParms[$k] );
+}
+
 
 /**
  * $v is constrained to the set of $raAllowed. Return $v if it is in the array or $raAllowed[0] if not
