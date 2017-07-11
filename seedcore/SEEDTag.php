@@ -27,6 +27,7 @@ class SEEDTagParser
 {
     protected $raParms = array();
     private $oDSVars = array();
+    private $bDebug = false;    // true: write error messages to the output
 
     function __construct( $raParms = array(), SEEDDataStore $oDSVars = null ) {
         $this->raParms = $raParms;
@@ -145,7 +146,7 @@ class SEEDTagParser
          *                -- ifnotMT: v1 | the value is {here} | {here}
          */
         switch( strtolower($raTag['tag']) ) {
-            case 'concat':    $s = ""; foreach( $raTag['raParms'] as $s1 ) $s .= $s1; return( $s );
+            case 'concat':    return( implode( '', $raTag['raParms'] ) );
             case 'if':        return( $target ? $p1 : $p2 );
             case 'ifdef':     return( $target ? $target : $p1 );
             case 'ifeq':      return( $p0 == $p1 ? $p2 : $p3 );
@@ -154,10 +155,14 @@ class SEEDTagParser
             case 'trim':      return( trim($target) );
             case 'lower':     return( strtolower($target) );
             case 'upper':     return( strtoupper($target) );
+case 'var2': // use this temporarily until DocRepWiki doesn't eat var:
             case 'var':       return( $this->oDSVars->Value($target) );
+case 'setvar2': // use this temporarily until DocRepWiki doesn't eat var - it sets var in SEEDTag, but not DocRepWiki (so [[Var:]] doesn't change), and not H2O of current tmpl
             case 'setvar':    return( $this->doSetVar( $raTag ) );
+case 'setvarifempty2': // use this temporarily until DocRepWiki doesn't eat var - it sets var in SEEDTag, but not DocRepWiki (so [[Var:]] doesn't change), and not H2O of current tmpl
             case 'setvarifempty': return( $this->doSetVar( $raTag, true ) );
-
+case 'setvarmap2': // use this temporarily until DocRepWiki doesn't eat var - it sets var in SEEDTag, but not DocRepWiki (so [[Var:]] doesn't change), and not H2O of current tmpl
+            case 'setvarmap':      return( $this->doSetVarMap( $raTag ) );
 
             case 'urlencode': return( urlencode($target) );
 
@@ -187,17 +192,54 @@ class SEEDTagParser
         bOnlyIfEmpty only sets the value if the variable is empty, which is useful for setting default values in shared templates
      */
     {
-        if( !($varname = @$raTag['target']) )  goto done;
+        $sErr = "";
 
-        if( $bOnlyIfEmpty && $this->oDSVars->Value($varname) != "" )  goto done;
+        if( !($k = @$raTag['target']) ) { $sErr = "SetVar has no target";     goto done; }
+
+        if( $bOnlyIfEmpty && $this->oDSVars->Value($k) != "" )  goto done;      // this is a SetVarIfNotEmpty function, not an error case
 
         $sVal = implode( '', array_slice( $raTag['raParms'], 1 ) );   // concatenate p1...pN
-        $this->oDSVars->SetValue( $varname, $sVal );
+        $this->oDSVars->SetValue( $k, $sVal );
 
         done:
-        return( "" );
-
+        return( $this->bDebug ? $sErr : "" );
     }
+
+    function doSetVarMap( $raTag )
+    /****************************
+        Set targetVar to one of several targetVals, based on matching $test and several testVals
+
+        [[SetVarMap: targetVar | $test | $testVal1 | $targetVal1 | $testVal2 | $targetVal2 ... ]]
+
+        switch( $test ) {
+            case testval1 : targetVar = targetval1;
+            case testval2 : targetVar = targetval2;
+            default         targetVar = "";
+     */
+    {
+        $sErr = "";
+
+        if( !($k = @$raTag['target']) )      { $sErr = "SetVar has no target";                    goto done; }
+        if( count(@$raLink['raParms']) < 4 ) { $sErr = "SetVarMap:$k has less than 4 parameters"; goto done; }
+
+        $test = $raTag['raParms'][1];
+
+        $v = "";
+        for( $i = 2; $i < count($raTag['raParms']); $i += 2 ) {
+            $testVal   = @$raTag['raParms'][$i];
+            $targetVal = @$raTag['raParms'][$i+1];
+            if( $test == $testVal ) {
+                $v = $targetVal;
+                break;
+            }
+        }
+
+        $this->oDSVars->SetValue( $k, $v );
+
+        done:
+        return( $this->bDebug ? $sErr : "" );
+    }
+
 
     private function findNextTag( $sTemplate, $iCurr )
     /*************************************************
@@ -407,6 +449,7 @@ class SEEDTagBasicResolver
         $bHandled = true;
 
         switch( strtolower($raTag['tag']) ) {
+case 'image2': // until not using DocRepWiki
             case 'image':   $s = $this->doImage( $raTag );   break;
 
             case 'ftp':
