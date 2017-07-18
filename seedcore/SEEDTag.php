@@ -220,7 +220,7 @@ case 'setvarmap2': // use this temporarily until DocRepWiki doesn't eat var - it
         $sErr = "";
 
         if( !($k = @$raTag['target']) )      { $sErr = "SetVar has no target";                    goto done; }
-        if( count(@$raLink['raParms']) < 4 ) { $sErr = "SetVarMap:$k has less than 4 parameters"; goto done; }
+        if( count(@$raTag['raParms']) < 4 )  { $sErr = "SetVarMap:$k has less than 4 parameters"; goto done; }
 
         $test = $raTag['raParms'][1];
 
