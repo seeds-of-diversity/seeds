@@ -92,14 +92,28 @@ function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
     return( $sTemplate );
 }
 
-function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true )
-/*********************************************************************
+function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms = array() )
+/*****************************************************************************************
     raRows is an array of arrays, each one to be expanded using the sTemplate
+
+    raParms:
+        sTemplateFirst : use this template on the first element
+        sTemplateLast  : use this template on the last element
  */
 {
     $s = "";
 
-    foreach( $raRows as $ra )  $s .= SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt );
+    $i = 0;
+    $iLast = count($raRows) - 1;
+    foreach( $raRows as $ra ) {
+        if( $i == 0 && isset($raParms['sTemplateFirst']) ) {
+            $s .= SEEDCore_ArrayExpand( $ra, $raParms['sTemplateFirst'], $bEnt );
+        } else if( $i == $iLast && isset($raParms['sTemplateLast']) ) {
+            $s .= SEEDCore_ArrayExpand( $ra, $raParms['sTemplateLast'], $bEnt );
+        } else {
+            $s .= SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt );
+        }
+    }
 
     return( $s );
 }
