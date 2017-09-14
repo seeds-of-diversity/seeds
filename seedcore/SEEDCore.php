@@ -30,7 +30,12 @@ function SEEDInput_Smart( $k, $raAllowed )
     if count($raAllowed) > 1:     values are constrained to those in the array, empty input defaults to the first value
  */
 {
-    $p = SEEDInput_Str($k);
+    // SEEDCore_SmartVal uses strict in_array so the type of its key has to match the type in the array
+    if( is_integer($raAllowed[0]) ) {
+        $p = SEEDInput_Int($k);
+    } else {
+        $p = SEEDInput_Str($k);
+    }
 
     if( !$p )  return( $raAllowed[0] );
 
