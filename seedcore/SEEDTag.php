@@ -150,7 +150,8 @@ class SEEDTagParser
             case 'if':        return( $target ? $p1 : $p2 );
             case 'ifdef':     return( $target ? $target : $p1 );
             case 'ifeq':      return( $p0 == $p1 ? $p2 : $p3 );
-            case 'ifnotMT':   return( $target ? str_replace( ($p2 ? $p2 : '[]'), $this->oDSVars->Value($target), $p1 ) : "" );
+            case 'ifnotMT':   // implemented the same, but different tags in case they are implemented differently someday
+            case 'ifnot0':    return( $target ? str_replace( ($p2 ? $p2 : '[]'), $this->oDSVars->Value($target), $p1 ) : "" );
             case 'nbsp':      return( ($n = intval($target)) ? SEEDStd_StrNBSP('',$n) : "" );
             case 'trim':      return( trim($target) );
             case 'lower':     return( strtolower($target) );
