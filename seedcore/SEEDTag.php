@@ -180,6 +180,8 @@ case 'setvarmap2': // use this temporarily until DocRepWiki doesn't eat var - it
             case 'siteroot':         return( SITEROOT );
             case 'siteroot_url':     return( SITEROOT_URL );
 
+            case 'debug_var_dump':   $ra = $this->oDSVars->GetValuesRA(); var_dump($ra); break;
+
             default:          return( "" );
         }
     }
