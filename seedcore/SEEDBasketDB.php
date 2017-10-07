@@ -205,14 +205,14 @@ CREATE TABLE SEEDBasket_Baskets (
     buyer_phone     VARCHAR(100) NOT NULL DEFAULT '',
     buyer_email     VARCHAR(100) NOT NULL DEFAULT '',
     buyer_lang      ENUM('E','F') NOT NULL DEFAULT 'E',
-    buyer_notes     TEXT NOT NULL DEFAULT '',
+    buyer_notes     TEXT,
 
-    buyer_extra     TEXT NOT NULL DEFAULT '',
+    buyer_extra     TEXT,
 
 
     -- About the products
 
-    prod_extra      TEXT NOT NULL DEFAULT '',
+    prod_extra      TEXT,
 
 
     -- About the payment
@@ -220,7 +220,7 @@ CREATE TABLE SEEDBasket_Baskets (
     pay_total       DECIMAL(8,2)            NOT NULL DEFAULT 0,
     pay_currency    ENUM('CDN','USD')       NOT NULL DEFAULT 'CDN',
 
-    pay_extra       TEXT NOT NULL DEFAULT '',
+    pay_extra       TEXT,
 
     pp_name         VARCHAR(200),   -- Set by PPIPN
     pp_txn_id       VARCHAR(200),
@@ -231,10 +231,10 @@ CREATE TABLE SEEDBasket_Baskets (
 
     -- About the fulfilment
     eStatus         ENUM('Open','Confirmed','Paid','Filled','Cancelled') NOT NULL DEFAULT 'Open',
-    notes           TEXT NOT NULL DEFAULT '',
+    notes           TEXT,
 
 
-    sExtra          TEXT NOT NULL DEFAULT '',            -- e.g. urlencoded metadata about the purchase
+    sExtra          TEXT,                 -- e.g. urlencoded metadata about the purchase
 -- in sExtra   mail_eBull      BOOL            DEFAULT 1,
 -- in sExtra   mail_where      VARCHAR(100),
 
@@ -260,7 +260,7 @@ CREATE TABLE SEEDBasket_Products (
     title_en        VARCHAR(200) NOT NULL DEFAULT '',
     title_fr        VARCHAR(200) NOT NULL DEFAULT '',
     name            VARCHAR(100) NOT NULL DEFAULT '',
-    img             TEXT NOT NULL DEFAULT '',          -- multiple images can be separated by \t
+    img             TEXT,                              -- multiple images can be separated by \t
 
     quant_type      ENUM('ITEM-N',                     -- you can order one or more at a time
                          'ITEM-1',                     -- it only makes sense to order one of this product at a time
@@ -295,11 +295,11 @@ CREATE TABLE SEEDBasket_Products (
     v_i2             INTEGER NOT NULL DEFAULT 0,
     v_i3             INTEGER NOT NULL DEFAULT 0,
 
-    v_t1             TEXT NOT NULL DEFAULT '',
-    v_t2             TEXT NOT NULL DEFAULT '',
-    v_t3             TEXT NOT NULL DEFAULT '',
+    v_t1             TEXT,
+    v_t2             TEXT,
+    v_t3             TEXT,
 
-    sExtra          TEXT NOT NULL DEFAULT '',           -- e.g. urlencoded metadata about the product
+    sExtra          TEXT,           -- e.g. urlencoded metadata about the product
 
     INDEX(uid_seller),
     INDEX(product_type)
@@ -318,8 +318,8 @@ CREATE TABLE SEEDBasket_ProdExtra (
         _status     INTEGER DEFAULT 0,
 
     fk_SEEDBasket_Products INTEGER NOT NULL,
-    k                      TEXT NOT NULL DEFAULT '',
-    v                      TEXT NOT NULL DEFAULT '',
+    k                      TEXT,
+    v                      TEXT,
 
     INDEX(fk_SEEDBasket_Products),
     INDEX(k(20)),
@@ -345,7 +345,7 @@ CREATE TABLE SEEDBasket_BP (
     eStatus                ENUM('NEW','PAID','FILLED','CANCELLED') NOT NULL DEFAULT 'NEW',
     bAccountingDone        TINYINT NOT NULL DEFAULT '0',
 
-    sExtra                 TEXT NOT NULL DEFAULT '',            -- e.g. urlencoded metadata about the purchase
+    sExtra                 TEXT,                -- e.g. urlencoded metadata about the purchase
 
   --  INDEX(fk_SEEDBasket_Products),  does anyone use this?
     INDEX(fk_SEEDBasket_Baskets)
@@ -356,7 +356,7 @@ CREATE TABLE SEEDBasket_BP (
 
 /* Test data
 
-INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus ) VALUES ( 'Bob', 'Wildfong', 'PAID' );
+INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
