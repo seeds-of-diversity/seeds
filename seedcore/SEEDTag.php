@@ -423,14 +423,16 @@ class SEEDTagBasicResolver
     private $cssPrefix = "SEEDTag";
     private $LinkBase = "";
     private $ImgBase = "";
-    private $bForceTargetBlank = false;
+    private $bLinkForceTargetBlank = false;
+    private $bLinkPlainDefaultCaption = false;
 
     function __construct( $raParms = array() )
     {
         if( ($p = @$raParms['cssPrefix']) )  $this->cssPrefix = $p;
         if( ($p = @$raParms['LinkBase']) )   $this->LinkBase = $p;
         if( ($p = @$raParms['ImgBase']) )    $this->ImgBase = $p;
-        if( @$raParms['bForceTargetBlank'] ) $this->bForceTargetBlank = true;
+        if( @$raParms['bLinkForceTargetBlank'] ) $this->bLinkForceTargetBlank = true;
+        if( @$raParms['bLinkPlainDefaultCaption'] ) $this->bLinkPlainDefaultCaption = true;
     }
 
     function ResolveTag( $raTag, SEEDTagParser $oTagDummy, $raParmsDummy_should_provide_url_bases_for_links_and_images )
@@ -563,10 +565,10 @@ case 'image2': // until not using DocRepWiki
 
         // caption is always the last parm. if count==1 it naturally means caption==link, but set this after the link is processed
         $iCap = count($raTag['raParms']) - 1;
-        $caption = $raTag['raParms'][$iCap];
+        if( $iCap > 0 ) $caption = $raTag['raParms'][$iCap];
 
         // window is always parm 1, unless parm 1 is the caption
-        if( $this->bForceTargetBlank ) {
+        if( $this->bLinkForceTargetBlank ) {
             $window = "_blank";
         } else if( $iCap > 1 ) {
             $window = $raTag['raParms'][1];
@@ -596,6 +598,11 @@ case 'image2': // until not using DocRepWiki
             } else {
                 // ftp, http, https : reassemble the link with its prefix
                 $link = $raTag['tag'].":".(substr($link,0,2)!='//'?"//":"").$link;
+                if( $this->bLinkPlainDefaultCaption && $iCap == 0 ) {
+                    // When no caption is defined the default caption is $link (see below).
+                    // With this option the caption is just the hostname.path e.g. seeds.ca instead of http://seeds.ca
+                    $caption = ($p = strpos($raTag['target'],'//'))===false ? $raTag['target'] : substr($raTag['target'],$p+2);
+                }
             }
             if( !empty($window) )  $window = " target='$window'";
             if( empty($caption) )  $caption = $link;
