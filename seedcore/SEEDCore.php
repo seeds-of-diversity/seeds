@@ -84,6 +84,14 @@ function SEEDCore_HSC( $s )
 }
 
 
+/******
+ * SEEDCore_ArrayExpand(*)
+ *
+ * ArrayExpand          takes one row of named values, expands into a template of "A [[foo]] B [[bar]] C" once.
+ * ArrayExpandRows      takes an array of rows of named values, expands into a template as above. First and last rows can have their own templates.
+ * ArrayExpandSeries    takes an array of scalars, expands into a template "A [[]] B" repeated once for each element. First and last can have their own templates.
+ */
+
 /**
  * Replace "[[foo]]" in template with $ra['foo']
  */
@@ -97,13 +105,36 @@ function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
     return( $sTemplate );
 }
 
+/**
+ * Replace "[[]]" with $ra[0], repeat for $ra[1], etc.
+ */
+function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = array() )
+/***************************************************************************************
+    raParms: sTemplateFirst : use this template on the first element
+             sTemplateLast  : use this template on the last element
+ */
+{
+    $s = "";
+
+    $i = 0;
+    $iLast = count($ra) - 1;
+    foreach( $ra as $v ) {
+        $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
+                (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
+                                                                    : $sTemplate );
+        $s .= str_replace( "[[]]", ($bEnt ? SEEDStd_HSC($v) : $v), $tmpl );
+    }
+
+    return( $s );
+}
+
+/**
+ * Replace "[[foo]]" in template with $ra[0]['foo'], repeat for $ra[1], etc
+ */
 function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms = array() )
 /*****************************************************************************************
-    raRows is an array of arrays, each one to be expanded using the sTemplate
-
-    raParms:
-        sTemplateFirst : use this template on the first element
-        sTemplateLast  : use this template on the last element
+    raParms: sTemplateFirst : use this template on the first element
+             sTemplateLast  : use this template on the last element
  */
 {
     $s = "";
@@ -111,6 +142,12 @@ function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms =
     $i = 0;
     $iLast = count($raRows) - 1;
     foreach( $raRows as $ra ) {
+// use this like above
+// $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
+//         (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
+//                                                             : $sTemplate );
+// $s .= SEEDCore_ArrayExpand( $ra, $tmpl, $bEnt );
+
         if( $i == 0 && isset($raParms['sTemplateFirst']) ) {
             $s .= SEEDCore_ArrayExpand( $ra, $raParms['sTemplateFirst'], $bEnt );
         } else if( $i == $iLast && isset($raParms['sTemplateLast']) ) {
