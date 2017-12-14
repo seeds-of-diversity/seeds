@@ -122,7 +122,7 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
         $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
-        $s .= str_replace( "[[]]", ($bEnt ? SEEDStd_HSC($v) : $v), $tmpl );
+        $s .= str_replace( "[[]]", ($bEnt ? SEEDCore_HSC($v) : $v), $tmpl );
     }
 
     return( $s );
@@ -217,6 +217,161 @@ function SEEDCore_EmailAddress( $s1, $s2, $label = "", $raMailtoParms = array(),
         $s .= "var l=\"$label\";";
     }
     $s .= "document.write(\"<a $sAnchorAttrs href='mailto:\"+a+\"@\"+b+\"$mparms'>\"+l+\"</a>\");</script>";
+    return( $s );
+}
+
+function SEEDCore_Dollar( $fAmount, $lang = "EN" )      // also see SEEDLocal::Dollar()
+{
+    if( $lang == "EN" ) {
+        $s = "$".sprintf("%.2f",$fAmount);
+    } else {
+        $d1 = intval($fAmount);
+        $d2 = intval(($fAmount - $d1)*100);
+        $s = "$d1,".sprintf("%02d",$d2)." $";
+    }
+    return( $s );
+}
+
+
+function SEEDCore_ParseRangeStr( $sRange )
+/*****************************************
+    Parse a string containing a potentially complicated range of numbers
+    e.g. 5-6,8,9,12,3,1-5,13-15,9-9
+    The only constraint is ranges with hyphens cannot be decreasing (note that 9-9 is allowed; it is just 9)
+
+    Return a normalized string for that range e.g. 1-6,8-9,12-15 which is guaranteed to be reparsable by this function,
+    and an array containing all the numbers
+ */
+{
+    $raRange = array();
+    $sRangeNormal = "";
+
+    /* First explode the range into the array of numbers
+     */
+    $ra = explode( ',', $sRange );
+    foreach( $ra as $sN ) {
+        $sN = trim($sN);
+        if( !$sN )  continue;    // otherwise a blank term becomes a 0
+        if( strpos($sN,'-') === false ) {
+            // just one value
+            $n = intval($sN);
+            if( !in_array( $n, $raRange ) )  $raRange[] = $n;
+        } else {
+            // a range separated by '-'
+            list($n1,$n2) = explode('-',$sN);
+            $n1 = intval($n1);
+            $n2 = intval($n2);
+            if( $n1 && $n1 <= $n2 ) {
+                for( $n = $n1; $n <= $n2; ++$n ) {
+                    if( !in_array( $n, $raRange ) )  $raRange[] = $n;
+                }
+            }
+        }
+    }
+    sort($raRange);
+
+    /* Now process the array of numbers into a normalized range string
+     */
+    $sRangeNormal = SEEDCore_MakeRangeStr( $raRange, true );
+
+    return( array( $raRange, $sRangeNormal ) );
+}
+
+function SEEDCore_MakeRangeStr( $raNumbers, $bSorted = false )
+/*************************************************************
+    Make a range string e.g. 1-3,5,7-9 from the given set of numbers, which is guaranteed
+    to be parseable by SEEDCore_ParseRangeStr to get the same set of numbers.
+
+    $bSorted tells us if the array is already sorted, so we don't have to sort it again
+ */
+{
+    if( !count($raNumbers) ) return( "" );    // otherwise the code below will write out "0"
+
+    $s = "";
+
+    $raNCopy = $raNumbers;     // necessary?  does php sort the original array or a copy?
+    if( !$bSorted ) {
+        sort($raNCopy);
+    }
+
+
+    $n1 = 0;
+    $n2 = 0;
+    foreach( $raNCopy as $n ) {
+        if( !$n1 ) {
+            $n1 = $n2 = $n;
+        } else if( $n == $n2 + 1 ) {
+            $n2 = $n;
+        } else {
+            // found an n outside of the currently-stored range, so write out the stored term
+            $s .= $s ? ',' : '';
+            $s .= $n1 == $n2 ? $n1 : "$n1-$n2";
+
+            $n1 = $n2 = $n;
+        }
+    }
+    // write out the last stored term
+    $s .= $s ? ',' : '';
+    $s .= $n1 == $n2 ? $n1 : "$n1-$n2";
+
+    return( $s );
+}
+
+function SEEDCore_MakeRangeStrDB( $raNumbers, $fld, $bSorted = false )
+/*********************************************************************
+    Same as SEEDCore_MakeRangeStr but the output is for sql queries
+        e.g. Input: 1-3,5,7-9,11
+             Output: (fld in (5,11) or fld between 1 and 3 or fld between 7 and 9)
+ */
+{
+    if( !count($raNumbers) ) return( "" );    // otherwise the code below will write out "0"
+
+    $s = "";
+
+    /* Turn the numbers into a normalized range string, then translate that into sql
+     */
+    $sRange = SEEDCore_MakeRangeStr( $raNumbers, $bSorted );
+
+    return( SEEDCore_RangeStrToDB( $sRange, $fld ) );
+}
+
+function SEEDCore_RangeStrToDB( $sRange, $fld )
+/**********************************************
+    Turn a normal range string into an sql condition
+
+    See SEEDCore_MakeRangeStrDB for output format.
+ */
+{
+    if( !$sRange ) return( "" );
+
+    $s = "";
+
+    $raSingles = array();    // record the numbers for in()
+    $raRanges = array();     // record the 'between' terms
+
+    $ra = explode( ',', $sRange );
+    foreach( $ra as $sN ) {
+        if( strpos($sN,'-') === false ) {
+            // just one value
+            $n = intval($sN);
+            $raSingles[] = intval($sN);
+        } else {
+            // a range separated by '-'
+            list($n1,$n2) = explode('-',$sN);
+            $raRanges[] = "$fld between $n1 and $n2";
+        }
+    }
+
+    if( count($raSingles) ) {
+        $s .= "$fld in(".implode(',',$raSingles).")";
+    }
+    if( count($raRanges) ) {
+        if( count($raSingles) ) $s .= " or ";
+        $s .= implode(" or ", $raRanges );
+    }
+
+    if( $s ) $s = "($s)";
+
     return( $s );
 }
 
