@@ -33,7 +33,7 @@ class MSDCommonDraw
         foreach( $raCat as $ra ) {
             $raSp = $this->oSB->oDB->GetList( "PxPE2", "product_type='seeds' AND PE1.k='category' "
                                              ."AND PE1.v='".addslashes($ra['PE_v'])."' AND PE2.k='species'",
-                                              array('sGroupCol'=>'PE2_v', 'sSortCol'=>'PE2_v', 'raFieldsOverride'=>array('PE2_v'=>'v')) );
+                                              array('sGroupCol'=>'PE2_v', 'sSortCol'=>'PE2_v', 'raFieldsOverride'=>array('PE2_v'=>'PE2.v')) );
 
             $sCat = $this->translateCategory( $ra['PE_v'] );
             $raSp = $this->translateTypes( $raSp );
