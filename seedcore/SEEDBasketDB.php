@@ -132,9 +132,9 @@ class SEEDBasketDB extends KeyFrameNamedRelations
                                              //"Type" => "Children",
                                                       "Fields" => "Auto" ) ) );
         $kdefPxPE3 = $kdefPxPE2;
-        $kdefPxPE3['Tables'][] =      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
-                                             "Alias" => "PE3",
-                                             "Type" => "Children",
+        $kdefPxPE3['Tables']['PE3'] = array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             //"Alias" => "PE3",
+                                             //"Type" => "Children",
                                              "Fields" => "Auto" );
         $kdefBP =
             array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_BP',
