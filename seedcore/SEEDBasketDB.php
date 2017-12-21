@@ -106,29 +106,31 @@ class SEEDBasketDB extends KeyFrameNamedRelations
                                              "Type" => "Base",
                                              "Fields" => "Auto" ) ) );
         $kdefPxPE =
-            array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Products',
-                                             "Alias" => "P",
-                                             "Type" => "Base",
-                                             "Fields" => "Auto" ),
-                                      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
-                                             "Alias" => "PE",
-                                             "Type" => "Children",
-                                             "Fields" => "Auto" ) ) );
+            array( "ver"=>2,
+                   "Tables" => array( "P"=> array( "Table" => 'seeds.SEEDBasket_Products',
+                                      //             "Alias" => "P",
+                                      //             "Type" => "Base",
+                                                   "Fields" => "Auto" ),
+                                      "PE"=> array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                      //             "Alias" => "PE",
+                                      //             "Type" => "Children",
+                                                    "Fields" => "Auto" ) ) );
         // Products joined with ProdExtra twice, which is only useful if at least one ProdExtra is constrained by k
         // i.e. what are all the products and their PE2.v that have PE1.v='foo'
         $kdefPxPE2 =
-            array( "Tables" => array( array( "Table" => 'seeds.SEEDBasket_Products',
-                                             "Alias" => "P",
-                                             "Type" => "Base",
-                                             "Fields" => "Auto" ),
-                                      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
-                                             "Alias" => "PE1",
-                                             "Type" => "Children",
-                                             "Fields" => "Auto" ),
-                                      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
-                                             "Alias" => "PE2",
-                                             "Type" => "Children",
-                                             "Fields" => "Auto" ) ) );
+            array( "ver"=>2,
+                   "Tables" => array( "P" => array( "Table" => 'seeds.SEEDBasket_Products',
+                                             //"Alias" => "P",
+                                             //"Type" => "Base",
+                                                    "Fields" => "Auto" ),
+                                      "PE1" => array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             //"Alias" => "PE1",
+                                             //"Type" => "Children",
+                                                      "Fields" => "Auto" ),
+                                      "PE2" => array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                             //"Alias" => "PE2",
+                                             //"Type" => "Children",
+                                                      "Fields" => "Auto" ) ) );
         $kdefPxPE3 = $kdefPxPE2;
         $kdefPxPE3['Tables'][] =      array( "Table" => 'seeds.SEEDBasket_ProdExtra',
                                              "Alias" => "PE3",
