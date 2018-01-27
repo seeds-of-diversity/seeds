@@ -179,8 +179,8 @@ class SEEDBasketProductHandler
             $kfrBP->SetValue( 'fk_SEEDBasket_Products', $kfrP->Key() );
             $kfrBP->SetValue( 'fk_SEEDBasket_Baskets', $kfrB->Key() );
 
-            $kfrBP->SetValue( 'n', @$raPurchaseParms['n'] );
-            $kfrBP->SetValue( 'f', @$raPurchaseParms['f'] );
+            $kfrBP->SetValue( 'n', @$raPurchaseParms['n'] ?: 0 );
+            $kfrBP->SetValue( 'f', @$raPurchaseParms['f'] ?: 0.0 );
             unset( $raPurchaseParms['n'] );
             unset( $raPurchaseParms['f'] );
 
