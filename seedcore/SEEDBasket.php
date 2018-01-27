@@ -116,17 +116,16 @@ class SEEDBasketCore
             /* Try to find the most recent basket, either by uid or by SVA.kBasket stored in SVA.
              */
             $oSVA = new SEEDSessionVarAccessor( $this->sess, "SEEDBasket" );
-            $kB1 = $oSVA->VarGetInt( 'kBasket' );
-
-            $kB2 = $this->sess->GetUID()
-                        ? $this->oDB->kfdb->Query1( "SELECT _key FROM seeds.SEEDBasket_Baskets WHERE uid_buyer='".$this->sess->GetUID()."' ORDER BY _created DESC LIMIT 1" )
-                        : 0;
-
-            if( $kB1 ) {
-                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB1 );
-            } else if( $kB2 ) {
-                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB2 );
-            } else {
+            if( ($kB = $oSVA->VarGetInt( 'kBasket' )) ) {
+                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
+            } else if( ($uid = $this->sess->GetUID()) &&
+                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM seeds.SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
+            {
+                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
+            }
+            /* But if the most recent basket is no longer opened or confirmed, open a new basket
+             */
+            if( $this->kfrBasketCurr && !in_array( $this->kfrBasketCurr->Value('eStatus'), array("Open","Confirmed") ) ) {
                 $this->kfrBasketCurr = null;
             }
 
