@@ -335,7 +335,7 @@ class KeyFrame_Relation
      */
     {
         if( !$key ) return( null );
-        return( $this->GetRecordFromDB( "{$this->baseTableAlias}._key='key'", array("iStatus"=>-1) ) );
+        return( $this->GetRecordFromDB( "{$this->baseTableAlias}._key='$key'", array("iStatus"=>-1) ) );
     }
 
     function GetRecordSet( $cond, $parms = array() )
