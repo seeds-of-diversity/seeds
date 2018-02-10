@@ -95,8 +95,11 @@ class KeyFrame_Relation
     private $logFile = null;
 
     function SetLogFile( $filename )    { $this->logFile = $filename; }
-    function GetKFDB()                  { return( $this->kfdb ); }      // just nice to be able to get this for random stuff sometimes
-    function GetUID()                   { return( $this->uid ); }       // just nice to be able to get this for random stuff sometimes
+    function KFDB()                     { return( $this->kfdb ); }      // just nice to be able to get this for random stuff sometimes
+    function UID()                      { return( $this->uid ); }       // just nice to be able to get this for random stuff sometimes
+    function BaseTableName()            { return( $this->baseTable['Table'] ); }
+    function BaseTableFields()          { return( $this->baseTable['Fields'] ); }
+    function TablesDef()                { return( $this->kfrdef['Tables'] ); }
 
     function __construct( KeyframeDatabase $kfdb, $kfrdef, $uid, $raKfrelParms = array() )
     /*************************************************************************************
@@ -175,13 +178,6 @@ class KeyFrame_Relation
         /* Calculate the non-varying portion of the SELECT statement for this Relation.
          */
         $this->qSelect = $this->makeQSelect();
-    }
-
-    function GetBaseTableName()
-    /**************************
-     */
-    {
-        return( $this->baseTable['Table'] );
     }
 
     function IsBaseField( $q )
@@ -287,20 +283,14 @@ class KeyFrame_Relation
      * Create KeyframeRecords
      */
 
-    function CreateRecord( $raFK = NULL )
-    /************************************
-        Return an empty KeyframeRecord with default values.
-        Only the base table values are populated.
-
-        $raFK allows prepopulation of foreign keys and fk values.  It has the form (tablename=>key, tablename=>key)
+    function CreateRecord()
+    /**********************
+        Return an empty KeyframeRecord
      */
     {
-
 //TODO: add kfrel parm "fnPrePopulateNewRecord" = "{fn}" - this is invoked in CreateRecord, after fkDefaults.
-
-        $kfr = $this->factory_KeyframeRecord();
-//        if( is_array($raFK) )  $kfr->prot_setFKDefaults( $raFK );
-        return( $kfr );
+        // with no sSelect this just creates an empty record and should not be able to fail
+        return( $this->factory_KeyframeRecord() );
     }
 
     function CreateRecordCursor( $cond = "", $parms = array() )
@@ -317,12 +307,9 @@ class KeyFrame_Relation
                raFieldsOverride => array of colalias=>fld to override the fields clause
      */
     {
-        $kfrc = $this->factory_KeyframeRecordCursor();
-
-// it would make more sense for all of this to happen in KeyframeRecordCursor, to encapsulate _dbc
-        $q = $this->makeSelect( $cond, $parms );
-        $kfrc->_dbc = $this->kfdb->CursorOpen( $q );
-        return( $kfrc->_dbc ? $kfrc : NULL );
+        $sSelect = $this->makeSelect( $cond, $parms );
+        $kfrc = $this->factory_KeyframeRecordCursor( $sSelect );
+        return( $kfrc && $kfrc->IsOpen() ? $kfrc : null );
     }
 
     function GetRecordFromDB( $cond = "", $parms = array() )
@@ -332,15 +319,14 @@ class KeyFrame_Relation
     {
         $ok = false;
 
-        if( ($kfr = $this->CreateRecord()) ) {
-// it would make more sense for all of this to happen in KeyframeRecord, to encapsulate getallDBValuesFromRA (which should be LoadValuesFromRA)
-            $q = $this->makeSelect( $cond, $parms );
-            if( ($ra = $this->kfdb->QueryRA( $q )) ) {
-                $kfr->prot_getAllDBValuesFromRA( $ra );
-                $ok = true;
-            }
+        $sSelect = $this->makeSelect( $cond, $parms );
+        if( ($kfr = $this->factory_KeyframeRecord()) &&
+            ($ra = $this->kfdb->QueryRA( $sSelect )) )
+        {
+            $kfr->LoadValuesFromRA( $ra );
+            $ok = true;
         }
-        return( $ok ? $kfr : NULL );
+        return( $ok ? $kfr : null );
     }
 
     function GetRecordFromDBKey( $key )
@@ -382,8 +368,8 @@ class KeyFrame_Relation
     }
 
     // Override these to create custom KFRecord objects
-    function factory_KFRecord()       { return( new KeyframeRecord($this)); }
-    function factory_KFRecordCursor() { return( new KeyframeRecordCursor($this)); }
+    function factory_KeyframeRecord()                 { return( new KeyframeRecord($this)); }
+    function factory_KeyframeRecordCursor( $sSelect ) { return( new KeyframeRecordCursor($this,$sSelect)); }
 
     function _Log( $s, $ok )
     /***********************
@@ -641,7 +627,7 @@ class KeyframeRecord
     This is created by KeyFrameRelation, and should not normally be constructed independently by user code.
  */
 {
-    private $kfrel;            // the KeyframeRelation that governs this record
+    protected $kfrel;          // the KeyframeRelation that governs this record; protected so KeyframeRecordCursor can access it easily
 
     // The Record
     // Note that values and dbValSnap use colalias as their keys
@@ -650,6 +636,8 @@ class KeyframeRecord
     private $dbValSnap;        // a snapshot of the _values most recently retrieved from the db.  For change detection.
 
     private $keyForce = 0;
+
+    function KFRel()  { return( $this->kfrel ); }
 
     function __construct( Keyframe_Relation $kfrel )
     /***********************************************
@@ -669,7 +657,7 @@ class KeyframeRecord
         $this->dbValSnap = array();
         $this->keyForce = 0;
 
-        foreach( $this->kfrel->baseTable["Fields"] as $k ) {
+        foreach( $this->kfrel->BaseTableFields() as $k ) {
             $this->setDefault($k);
         }
     }
@@ -836,7 +824,7 @@ class KeyframeRecord
         // if forcing to current value do nothing but return success
         if( $kForce == $this->key ) return( true );
 
-        if( $kForce && !$this->kfrel->kfdb->Query1( "SELECT _key FROM {$this->kfrel->baseTable['Table']} WHERE _key='$kForce'" ) ) {
+        if( $kForce && !$this->kfrel->KFDB()->Query1( "SELECT _key FROM ".$this->kfrel->BaseTableName()." WHERE _key='$kForce'" ) ) {
             $this->keyForce = $kForce;
         }
 
@@ -871,6 +859,8 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             }
         }
 */
+        $kfBaseTableName = $this->kfrel->BaseTableName();
+        $kfUid = $this->kfrel->UID();
 
         if( $this->key ) {
             /* UPDATE all user fields, plus _status, _updated and _updated_by.
@@ -881,13 +871,13 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             $bSnap = isset($this->dbValSnap['_key']) && $this->dbValSnap['_key'] == $this->key;
             $bKeyForce = $this->keyForce && $this->keyForce != $this->key;
 
-            $s = "UPDATE {$this->kfrel->baseTable['Table']} SET _updated=NOW(),_updated_by='{$this->kfrel->uid}'";
+            $s = "UPDATE $kfBaseTableName SET _updated=NOW(),_updated_by='$kfUid'";
             $sClause = "";
             if( $bKeyForce ) {
                 $sClause .= ",_key='{$this->keyForce}'";
                 $bDo = true;
             }
-            foreach( $this->kfrel->baseTable['Fields'] as $f ) {
+            foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( !in_array( $f['col'], array("_key", "_created", "_created_by") ) ) {
                     /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
                      * anyway, this makes kfr log files much more readable.
@@ -902,11 +892,11 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             }
             if( $bDo ) {
                 $s .= $sClause." WHERE _key='{$this->key}'";
-                $ok = $this->kfrel->kfdb->Execute( $s );
+                $ok = $this->kfrel->KFDB()->Execute( $s );
 
                 // Log U table _key uid: update clause {{err}}
                 // Do this before SetKey(keyForce) so it shows the old key
-                $this->kfrel->_Log( "U {$this->kfrel->baseTable['Table']} {$this->key} {$this->kfrel->uid}: $sClause", $ok );
+                $this->kfrel->_Log( "U $kfBaseTableName {$this->key} $kfUid: $sClause", $ok );
 
                 if( $ok && $bKeyForce ) {
                     $this->SetKey( $this->keyForce );
@@ -920,7 +910,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
              */
             $sk = "";
             $sv = "";
-            foreach( $this->kfrel->baseTable['Fields'] as $f ) {
+            foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( !in_array( $f['col'], array("_key", "_created", "_created_by","_updated","_updated_by") ) ) {
                     $sk .= ",".$f['col'];
                     $sv .= ",".$this->putFmtVal( $this->values[$f['alias']], $f['type'] );
@@ -929,21 +919,21 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
 
             $sKey = $this->keyForce ? "'{$this->keyForce}'" : "NULL";
 
-            $s = "INSERT INTO {$this->kfrel->baseTable['Table']} (_key,_created,_updated,_created_by,_updated_by $sk) "
-                ."VALUES ($sKey,NOW(),NOW(),{$this->kfrel->uid},{$this->kfrel->uid} $sv)";
+            $s = "INSERT INTO $kfBaseTableName (_key,_created,_updated,_created_by,_updated_by $sk) "
+                ."VALUES ($sKey,NOW(),NOW(),$kfUid,$kfUid $sv)";
 
             /* In MySQL, this depends on _key being the first AUTOINCREMENT column.
              */
-            if( ($kNew = $this->kfrel->kfdb->InsertAutoInc( $s )) ) {
+            if( ($kNew = $this->kfrel->KFDB()->InsertAutoInc( $s )) ) {
                 $this->SetKey( $kNew );
                 $ok = true;
             }
             // Log I table _key uid: insert clauses {{err}}
-            $this->kfrel->_Log( "I {$this->kfrel->baseTable['Table']} {$sKey}->{$kNew} {$this->kfrel->uid}: ($sk) ($sv)", $ok );
+            $this->kfrel->_Log( "I $kfBaseTableName {$sKey}->{$kNew} $kfUid: ($sk) ($sv)", $ok );
         }
         if( $ok ) {
             if( $bUpdateTS ) {
-                if( ($ra = $this->kfrel->kfdb->QueryRA( "SELECT _created,_updated FROM {$this->kfrel->baseTable['Table']} WHERE _key='{$this->key}'" )) ) {
+                if( ($ra = $this->kfrel->KFDB()->QueryRA( "SELECT _created,_updated FROM $kfBaseTableName WHERE _key='{$this->key}'" )) ) {
                     $this->values['_created'] = $ra['_created'];
                     $this->values['_updated'] = $ra['_updated'];
                 }
@@ -985,12 +975,14 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
     {
         $ok = false;
 
-        if( $this->key ) {
-            $s = "DELETE FROM {$this->kfrel->baseTable['Table']} WHERE _key='{$this->key}'";
+        $kfBaseTableName = $this->kfrel->BaseTableName();
 
-            $ok = $this->kfrel->kfdb->Execute( $s );
+        if( $this->key ) {
+            $s = "DELETE FROM $kfBaseTableName WHERE _key='{$this->key}'";
+
+            $ok = $this->kfrel->KFDB()->Execute( $s );
             // Log D table _key uid: {{err}}
-            $this->kfrel->_Log( "D {$this->kfrel->baseTable['Table']} {$this->key} {$this->kfrel->uid}: ", $ok );
+            $this->kfrel->_Log( "D $kfBaseTableName {$this->key} ".$this->kfrel->UID().": ", $ok );
         }
         return( $ok );
     }
@@ -1024,7 +1016,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
                 foreach( $t['Fields'] as $f ) {
                     $raSelFields[] = "$a.{$f['col']} as {$f['alias']}";
                 }
-                $ra = $this->kfrel->kfdb->QueryRA( "SELECT ".implode(",",$raSelFields)." FROM {$t['Table']} $a"
+                $ra = $this->kfrel->KFDB()->QueryRA( "SELECT ".implode(",",$raSelFields)." FROM {$t['Table']} $a"
                                                   ." WHERE $a._key='$fkKey'" );
                 // array_merge is easier, but KFDB returns duplicate entries in $ra[0],$ra[1],...
                 foreach( $t['Fields'] as $f ) {
@@ -1033,119 +1025,69 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             }
         }
     }
-
-    function prot_getBaseValuesFromRA( $p_ra, $bForceDefaults, $modeDS )
-    [*******************************************************************
-        Load base field values found in $ra.
-        $bForceDefaults should be false when the record already contains values and $ra is a subset
-     *]
-    {
-        if( ($modeDS == KFRECORD_DATASOURCE_RA_GPC) && get_magic_quotes_gpc() ) {
-            foreach( $this->kfrel->baseTable['Fields'] as $f ) {
-                if( isset( $p_ra[$f['alias']] ) ) {
-                    $ra[$f['alias']] = stripslashes( $p_ra[$f['alias']] );
-                }
-            }
-        } else {
-            $ra = $p_ra;
-        }
-
-        if( isset($ra['_key']) ) {          // _key won't necessarily be in ra if these are values posted from a form
-            $this->_key = intval($ra['_key']);
-        } else if( $bForceDefaults ) {
-            $this->_key = 0;
-        }
-        foreach( $this->kfrel->baseTable['Fields'] as $f ) {
-            $this->_getValFromRA( $f, $ra, $bForceDefaults, $modeDS );
-        }
-    }
-
-    function prot_getAllDBValuesFromRA( $ra )
-    [****************************************
-        After reading a DB row, put all values in the record
-     *]
-    {
-        if( $this->raFieldsOverride ) {
-            // Caller has defined a set of fields to return, overriding the defaults.
-            // It is a bad idea to try to rewrite this kfr unless it contains everything needed, like a _key.
-            foreach( $this->raFieldsOverride as $alias => $fld ) {
-                $this->_values[$alias] = @$ra[$alias];
-            }
-        } else {
-            $this->prot_getBaseValuesFromRA( $ra, true, KFRECORD_DATASOURCE_DB );    // get base values, set defaults(why?), not gpc
-            $this->_getFKValuesFromArray( $ra );                    // get all fk values
-        }
-        $this->_snapValues();
-    }
-
 */
+
+    function LoadValuesFromRA( $ra )
+    /*******************************
+        Copy the values in the given array into the Record
+     */
+    {
+        $this->getBaseValuesFromRA( $ra, true );    // get base values, set defaults(why?), not gpc
+        $this->getFKValuesFromArray( $ra );        // get all fk values
+        $this->snapValues();
+    }
+
 
     /*******************************************************************************************************************
      * Private
      */
 
-
-    private function snapValues()
-    /****************************
-        After reading a DB row, set the record to a "clean" state to prevent unnecessary UPDATE in PutDBRow
+    private function getFKValuesFromArray( $ra, $bForceDefaults = true )
+    /*******************************************************************
      */
     {
-        $this->dbValSnap = $this->values;
-    }
+        foreach( $this->kfrel->TablesDef() as $a => $t ) {
+            if( $t['Type'] == 'Base' )  continue;
 
-/*
-    function _getFKValuesFromArray( $ra, $modeDS = KFRECORD_DATASOURCE_DB, $bForceDefaults = true )
-    [***********************************************************************************************
-     *]
-    {
-        if( @$this->kfrdef['ver'] == 2 ) {
-            foreach( $this->kfrel->kfrdef['Tables'] as $a => $t ) {
-                if( $t['Type'] == 'Base' )  continue;
-
-                foreach( $t['Fields'] as $f ) {
-                    $this->_getValFromRA( $f, $ra, $bForceDefaults, $modeDS );
-                }
-            }
-        } else {
-            foreach( $this->kfrel->kfrdef['Tables'] as $t ) {
-                if( $t['Type'] == 'Base' )  continue;
-
-                foreach( $t['Fields'] as $f ) {
-                    $this->_getValFromRA( $f, $ra, $bForceDefaults, $modeDS );
-                }
+            foreach( $t['Fields'] as $f ) {
+                $this->getValFromRA( $f, $ra, $bForceDefaults );
             }
         }
     }
 
+    private function getBaseValuesFromRA( $ra, $bForceDefaults )
+    /***********************************************************
+        Load base field values found in $ra.
+        $bForceDefaults should be false when the record already contains values and $ra is a subset
+     */
+    {
+        if( isset($ra['_key']) ) {          // _key won't necessarily be in ra if these are values posted from a form
+            $this->key = intval($ra['_key']);
+        } else if( $bForceDefaults ) {
+            $this->key = 0;
+        }
+        foreach( $this->kfrel->BaseTableFields() as $f ) {
+            $this->getValFromRA( $f, $ra, $bForceDefaults );
+        }
+    }
 
-    function _getValFromRA( $f, $ra, $bForceDefaults, $modeDS )
-    [**********************************************************
-     *]
+    private function getValFromRA( $f, $ra, $bForceDefaults )
+    /********************************************************
+     */
     {
         if( isset( $ra[$f['alias']] ) ) {
             switch( $f['type'] ) {
-                case 'S+':
-                    if( $modeDS == KFRECORD_DATASOURCE_DB ) {
-                        $this->_values[$f['alias']] = $ra[$f['alias']];
-                    } else {
-                        $this->_valPrepend[$f['alias']] = $ra[$f['alias']];
-                    }
-                    break;
-
-                case 'S':   $this->_values[$f['alias']] = $ra[$f['alias']];             break;
-                case 'F':   $this->_values[$f['alias']] = floatval($ra[$f['alias']]);   break;
+                case 'S':   $this->values[$f['alias']] = $ra[$f['alias']];             break;
+                case 'F':   $this->values[$f['alias']] = floatval($ra[$f['alias']]);   break;
                 case 'K':
                 case 'I':
-                default:    $this->_values[$f['alias']] = intval($ra[$f['alias']]);     break;
+                default:    $this->values[$f['alias']] = intval($ra[$f['alias']]);     break;
             }
 
-
-
         } else if( $bForceDefaults ) {
-            $this->_setDefault($f);
+            $this->setDefault($f);
         }
     }
-*/
 
     private function setDefault( $f )
     /********************************
@@ -1161,7 +1103,6 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
                 case 'K':
                 case 'I':
                 default:    $this->values[$f['alias']] = intval(0);        break;
-
             }
         }
     }
@@ -1180,6 +1121,14 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         }
         return( $s );
     }
+
+    private function snapValues()
+    /****************************
+        After reading a DB row, set the record to a "clean" state to prevent unnecessary UPDATE in PutDBRow
+     */
+    {
+        $this->dbValSnap = $this->values;
+    }
 }
 
 
@@ -1189,26 +1138,26 @@ class KeyframeRecordCursor extends KeyframeRecord
     UPDATE operations can be done between cursor fetches.
  */
 {
-    //protected:
-// KeyFrameRelation sets this on CursorOpen
-// but it shouldn't
-    var $_dbc = NULL;
+    private $dbc = null;
 
-    function __construct( Keyframe_Relation $kfrel )
-    /**********************************************
+    function __construct( Keyframe_Relation $kfrel, $sSelect )
+    /*********************************************************
      */
     {
         parent::__construct( $kfrel );
+
+        $this->dbc = $this->kfrel->KFDB()->CursorOpen( $sSelect );    // test IsOpen to see if this worked
     }
+
+    function IsOpen()  { return( $this->dbc != null ); }
 
     function CursorFetch()
     /*********************
      */
     {
         $ok = false;
-        if( $this->_dbc && ($ra = $this->kfrel->kfdb->CursorFetch( $this->_dbc )) ) {
-// should be KeyframeRecord::LoadFromRA()
-            $this->prot_getAllDBValuesFromRA( $ra );
+        if( $this->IsOpen() && ($ra = $this->kfrel->KFDB()->CursorFetch( $this->dbc )) ) {
+            $this->LoadValuesFromRA( $ra );
             $ok = true;
         }
         return( $ok );
@@ -1218,16 +1167,16 @@ class KeyframeRecordCursor extends KeyframeRecord
     /***********************
      */
     {
-        return( $this->_dbc ? $this->kfrel->kfdb->CursorGetNumRows($this->_dbc) : 0 );
+        return( $this->IsOpen() ? $this->kfrel->KFDB()->CursorGetNumRows($this->dbc) : 0 );
     }
 
     function CursorClose()
     /*********************
      */
     {
-        if( $this->_dbc ) {
-            $this->kfrel->kfdb->CursorClose($this->_dbc);
-            $this->_dbc = NULL;
+        if( $this->dbc ) {
+            $this->kfrel->KFDB()->CursorClose($this->dbc);
+            $this->dbc = null;
         }
     }
 }
