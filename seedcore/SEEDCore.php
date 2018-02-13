@@ -220,6 +220,21 @@ function SEEDCore_EmailAddress( $s1, $s2, $label = "", $raMailtoParms = array(),
     return( $s );
 }
 
+function SEEDCore_NBSP( $s, $n = 0 )
+/***********************************
+    Replace spaces in $s with "&nbsp;", then append $n x "&nbsp;"
+
+    e.g.    ("foo bar")     returns "foo&nbsp;bar"
+            ("foo bar",5)   returns "foo&nbsp;bar&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            ("",5)          returns "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+ */
+{
+    $sOut = "";
+    if( $s )  $sOut .= str_replace( " ", "&nbsp;", $s );
+    while( $n-- > 0 ) $sOut .= "&nbsp;";
+    return( $sOut );
+}
+
 function SEEDCore_Dollar( $fAmount, $lang = "EN" )      // also see SEEDLocal::Dollar()
 {
     if( $lang == "EN" ) {
