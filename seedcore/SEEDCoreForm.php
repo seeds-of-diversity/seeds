@@ -97,16 +97,16 @@ class SEEDForm extends SEEDFormElements
         if( !$this->oDS )  $this->oDS = new SEEDDataStore( $raDSParms );
     }
 
-    function sfValue( $k )
-    /*********************
+    protected function sfValue( $k )
+    /*******************************
         Methods in SEEDForm that fetch data from the data store should go through this method first.
      */
     {
         return( $this->oDS->Value( $k ) );
     }
 
-    function sfSetValue( $k, $v )
-    /****************************
+    protected function sfSetValue( $k, $v )
+    /**************************************
         Methods in this class that write data to the data store should go through this method first.
      */
     {
@@ -187,8 +187,8 @@ class SEEDForm extends SEEDFormElements
     }
 
 
-    function _updateLoadDeserialize( $raParms )
-    /******************************************
+    private function _updateLoadDeserialize( $raParms )
+    /**************************************************
         Get the deserialized http parms
      */
     {
@@ -198,8 +198,8 @@ class SEEDForm extends SEEDFormElements
         return( $this->oFormParms->Deserialize( $raSerial, $bGPC ) );
     }
 
-    function _updateLoad( $r, $raRow )
-    /*********************************
+    private function _updateLoad( $r, $raRow )
+    /*****************************************
         For a single row, fetch/create the data store row, update from parms
         The steps of this procedure are broken out to simplify the creation of alternate load procedures.
 
@@ -219,8 +219,8 @@ class SEEDForm extends SEEDFormElements
         return( array( $bLoaded, $bStorable ) );
     }
 
-    function _updateStore()
-    /**********************
+    private function _updateStore()
+    /******************************
         Do the Store phase of an Update on the current oDS
         Return the data obj of the DS on success; NULL on fail (or if PreStore returns false)
      */
@@ -234,8 +234,8 @@ class SEEDForm extends SEEDFormElements
         return( $oRet );
     }
 
-    function _updateRow_bSkipRow( $r, $raRow )
-    /*****************************************
+    private function _updateRow_bSkipRow( $r, $raRow )
+    /*************************************************
         Return true if this row should be skipped
      */
     {
@@ -256,8 +256,8 @@ class SEEDForm extends SEEDFormElements
         return( $bSkip );
     }
 
-    function _updateRow_SetFields( $raRow )
-    /**************************************
+    private function _updateRow_SetFields( $raRow )
+    /**********************************************
         Set the data from the given parms-row into the active data store.  Also perform ops.
         Return true if there are http parms that could cause some change to the datasource.
         N.B. nothing here checks whether any http values are different from the old datasource values, just that they are in the http parm stream.
@@ -564,7 +564,7 @@ class SEEDFormElements
         call methods to draw form elements
  */
 {
-    private $oFormParms = null;
+    protected $oFormParms = null;
     private $iR = 0;
 
     function __construct( $cid = null )
