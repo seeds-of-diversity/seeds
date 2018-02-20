@@ -129,6 +129,30 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
 }
 
 /**
+ * Replace "[[k]]" with key of first array element and [[v]] with value, repeat for each row
+ */
+function SEEDCore_ArrayExpandSeriesWithKey( $ra, $sTemplate, $bEnt = true, $raParms = array() )
+/**********************************************************************************************
+    raParms: sTemplateFirst : use this template on the first element
+             sTemplateLast  : use this template on the last element
+ */
+{
+    $s = "";
+
+    $i = 0;
+    $iLast = count($ra) - 1;
+    foreach( $ra as $k=> $v ) {
+        $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
+                (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
+                                                                    : $sTemplate );
+        $t0 = str_replace( "[[k]]", ($bEnt ? SEEDCore_HSC($k) : $k), $tmpl );
+        $s  .= str_replace( "[[v]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
+    }
+
+    return( $s );
+}
+
+/**
  * Replace "[[foo]]" in template with $ra[0]['foo'], repeat for $ra[1], etc
  */
 function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms = array() )
