@@ -865,9 +865,10 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $p = $this->stdParms( $fld, $raParms );
         $pName = $p['name'];
         $pValue = $p['value'];
+        $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        return( "<input name='$pName' id='$pName' type='date'/>" );
+        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='date'/>" );
     }
 
     function Email( $fld, $label = "", $parms = array() )
@@ -876,9 +877,10 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $p = $this->stdParms( $fld, $raParms );
         $pName = $p['name'];
         $pValue = $p['value'];
+        $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        return( "<input name='$pName' id='$pName' type='email'/>" );
+        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='email'/>" );
     }
 
 
