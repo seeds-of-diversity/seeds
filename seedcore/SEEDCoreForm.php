@@ -859,6 +859,28 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         return( "<OPTION value='".SEEDCore_HSC($value)."' $attrs>$label</OPTION>" );
     }
 
+    function Date( $fld, $label = "", $parms = array() )
+    {
+        $raParms = $this->parseParms( $parms );
+        $p = $this->stdParms( $fld, $raParms );
+        $pName = $p['name'];
+        $pValue = $p['value'];
+        $pAttrs = $p['attrs'];
+
+        return( "<input name='$pName' id='$pName' type='date'/>" );
+    }
+
+    function Email( $fld, $label = "", $parms = array() )
+    {
+        $raParms = $this->parseParms( $parms );
+        $p = $this->stdParms( $fld, $raParms );
+        $pName = $p['name'];
+        $pValue = $p['value'];
+        $pAttrs = $p['attrs'];
+
+        return( "<input name='$pName' id='$pName' type='email'/>" );
+    }
+
 
     /***** SEEDFormDate *****/
 /*
