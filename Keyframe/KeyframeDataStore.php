@@ -8,7 +8,7 @@
  */
 
 include_once( "KeyframeRelation.php" );
-include_once( SEEDCore."SEEDDataStore.php" );
+include_once( SEEDCORE."SEEDDataStore.php" );
 
 
 class Keyframe_DataStore extends SEEDDataStore
