@@ -565,6 +565,8 @@ class SEEDFormElements
  */
 {
     protected $oFormParms = null;
+
+    private $raStickyParms = array();   // apply these to all elements, overridden by local parms
     private $iR = 0;
 
     function __construct( $cid = null )
@@ -596,6 +598,11 @@ class SEEDFormElements
     protected function sfValueEnt( $k )  { return( SEEDCore_HSC( $this->sfValue($k) ) ); }
     protected function sfSetValue( $k, $v )  { return( NULL ); }    // Must override this in a derived class to get real parms from data storage (e.g. session vars, KFRecord)
 
+    public function SetStickyParms( $raParms )
+    {
+        $this->raStickyParms = array();                         // stdParms builds on raStickyParms so clear it first
+        $this->raStickyParms = $this->stdParms( "", $raParms);  // normalize raParms and store it
+    }
 
     function Hidden( $fld, $raParms = array() )
     /******************************************
@@ -1009,16 +1016,19 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
     private function stdParms( $fld, $raParms )
     /******************************************
         Normalize standard parameters.
+        Call this with $fld=='' and $raStickyParms=array() to normalize raStickyParms.
+        Call with per-element parms to get the combination of local+sticky parms.
 
         name              out  the http name of the given field
         value        in / out  force value (otherwise it is taken from the oDS or the alternate namespace)
         valueEnt          out  the HSC of 'value'
         sfParmType   in / out  get and encode the value in an alternate SF namespace e.g. ctrl_global, ctrl_row
         classes      in        class(es) to put in the class attr
-        styles       in        style(s) to put in the style attr
+        raStyles     in        style(s) to put in the style attr
         readonly     in / out  write as plain text and encode a HIDDEN control
         disabled     in        disabled='disabled' is added to the 'attrs'
         attrs        in / out  attribute string to be inserted into the control element
+        raAttrs      in / out
         width        in        css value that we put into the style attr
         height       in        css value that we put into the style attr
         bPassword    in / out  turn Text controls into password controls
@@ -1026,69 +1036,73 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
     {
         $p = array();        // output array
 
-        /* Start with a string of attrs to be inserted into the control element. This can be altered by parms below.
-         */
-        $p['attrs'] = @$raParms['attrs'];    // string of attrs
-
-
-        /* classes, styles : specified this way so other parms can alter them easily (you could also put them in 'attrs' but hard to alter)
-         */
-        $sClasses = @$raParms['classes']
-                   ." ".@$raParms['class'];    // deprecate because it looks like an attr in the form defs
-        $sStyles  = @$raParms['styles']
-                   ." ".@$raParms['style'];    // deprecate too
-
-
-        /* sfParmType : can be "", ctrl_global, ctrl_row (and possibly others if sfParmName does the right thing)
-         */
-        $p['sfParmType'] = @$raParms['sfParmType'];
-
-
         /* name : the http name of the given field
-         */
-        $p['name'] = $this->oFormParms->sfParmName( $fld, $this->iR, $p['sfParmType'] );
-
-
-        /* value : can be forced, or gotten from the oDS or alternate namespaces
-         */
-        if( isset($raParms['value']) ) {
-            $v = $raParms['value'];
-        } else {
-            switch( $p['sfParmType'] ) {
-                case 'ctrl_global': $v = $this->CtrlGlobal($fld);     break;
-                case 'ctrl_row':    $v = @$this->raCtrlCurrRow($fld); break;
-                default:            $v = $this->sfValue($fld);        break;
-            }
-        }
-        $p['value'] = $v;
-        $p['valueEnt'] = SEEDCore_HSC($v);
-
-
-        /* readonly, bPassword : normalized and passed back to the control
-         */
-        $p['readonly']  = (@$raParms['readonly']==true);
-        $p['bPassword'] = (@$raParms['bPassword']==true);
-
-
-        /* width, height : css values that we add to the style attr
-         */
-        if( ($w = @$raParms['width']) ) {
-            $sStyles = "width:$w;$sStyles";
-        }
-        if( ($h = @$raParms['height']) ) {
-            $sStyles = "height:$h;$sStyles";
-        }
-
-
-        /* Finish by assembling the attrs
+         * value : can be forced, or gotten from the oDS or alternate namespaces
          *
-         * Classes and Styles are added to this, if defined.
-         * Disabled elements are implemented by adding an attr.
+         * Only do these if $fld is given - it is not available when SetStickyParms calls this
          */
-        if( @$raParms['disabled'] )  $p['attrs'] .= " disabled='disabled'";
-        if( $sClasses )              $p['attrs'] .= " class='$sClasses'";
-        if( $sStyles )               $p['attrs'] .= " style='$sStyles'";
+        if( $fld ) {
+            // sfParmType : can be "", ctrl_global, ctrl_row (and possibly others if sfParmName does the right thing)
+            $p['sfParmType'] = @$raParms['sfParmType'] ?: "";
 
+            $p['name'] = $this->oFormParms->sfParmName( $fld, $this->iR, $p['sfParmType'] );
+
+            if( isset($raParms['value']) ) {
+                $v = $raParms['value'];
+            } else {
+                switch( $p['sfParmType'] ) {
+                    case 'ctrl_global': $v = $this->CtrlGlobal($fld);     break;
+                    case 'ctrl_row':    $v = @$this->raCtrlCurrRow($fld); break;
+                    default:            $v = $this->sfValue($fld);        break;
+                }
+            }
+            $p['value'] = $v;
+            $p['valueEnt'] = SEEDCore_HSC($v);
+        }
+
+
+        // string of attrs that is difficult to override but can be specified in formdef tags
+        $p['attrs'] = @$this->raStickyParms['attrs'].@$raParms['attrs'];
+
+        // array of attrs : easier to work with (local attrs override sticky)
+        $p['raAttrs'] = array_merge( @$this->raStickyParms['raAttrs'] ?: array(),
+                                     @$raParms['raAttrs'] ?: array() );
+
+        // content of the 'class' attr (local override sticky)
+        // Named plural because in formdef tags it looks like a class= attr otherwise (which it is anyway)
+        $p['classes'] = @$raParms['classes'] ?: @$this->raStickyParms['classes'];
+
+        // content of the 'style' attr (local override sticky)
+        // Not as useful as raStyles but can be specified in formdef tags
+        $p['styles'] = @$raParms['styles'] ?: @$this->raStickyParms['styles'];
+
+        // array of css styles, with many permutations of overrides (sticky raStyles, raAttrs['style'], width, ...)
+        $p['raStyles']  = array_merge( @$this->raStickyParms['raStyles'] ?: array(),
+                                       @$raParms['raStyles'] ?: array() );
+
+        // readonly, bPassword : normalized and stored
+        $p['readonly']   = isset($raParms['readonly'])  ? ($raParms['readonly']==true)  : (@$this->raStickyParms['readonly']==true);
+        $p['bPassword']  = isset($raParms['bPassword']) ? ($raParms['bPassword']==true) : (@$this->raStickyParms['bPassword']==true);
+
+        // width, height : css values that we add to the style attr
+        if( ($w = @$raParms['width']) )  { $p['raStyles']['width'] = $w; }
+        if( ($h = @$raParms['height']) ) { $p['raStyles']['height'] = $w; }
+
+        // disabled elements get the disabled='disabled' attr
+        if( @$raParms['disabled'] )  $p['raAttrs']['disabled'] = "disabled";
+
+        /* Finish by assembling the attrs, but only if this is being called by an element method
+         */
+        if( $fld ) {
+            if( isset($p['classes']) ) $p['raAttrs']['class'] = $p['classes'];
+            if( isset($p['styles']) )  $p['raAttrs']['style'] = $p['styles'];
+
+            if( isset($p['raStyles']) ) {
+                @$p['raAttrs']['style'] .= SEEDCore_ArrayExpandSeriesWithKey( $p['raStyles'], "[[k]]:[[v]];" );
+            }
+
+            $p['attrs'] .= SEEDCore_ArrayExpandSeriesWithKey( $p['raAttrs'], " [[k]]='[[v]]'" );
+        }
 
         return( $p );
     }
