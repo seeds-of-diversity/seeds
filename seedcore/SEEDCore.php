@@ -123,6 +123,7 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
         $s .= str_replace( "[[]]", ($bEnt ? SEEDCore_HSC($v) : $v), $tmpl );
+        ++$i;
     }
 
     return( $s );
@@ -147,6 +148,7 @@ function SEEDCore_ArrayExpandSeriesWithKey( $ra, $sTemplate, $bEnt = true, $raPa
                                                                     : $sTemplate );
         $t0 = str_replace( "[[k]]", ($bEnt ? SEEDCore_HSC($k) : $k), $tmpl );
         $s  .= str_replace( "[[v]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
+        ++$i;
     }
 
     return( $s );
@@ -179,11 +181,11 @@ function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms =
         } else {
             $s .= SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt );
         }
+        ++$i;
     }
 
     return( $s );
 }
-
 
 function SEEDCore_ArraySmartVal( $raParms, $k, $raAllowed )
 /**********************************************************
