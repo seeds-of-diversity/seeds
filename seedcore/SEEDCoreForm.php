@@ -14,7 +14,7 @@ include_once( "SEEDFormParms.php" );
 include_once( "SEEDDataStore.php" );
 include_once( "SEEDTag.php" );
 
-class SEEDForm extends SEEDFormElements
+class SEEDCoreForm extends SEEDFormElements
 /*************
     SEEDForm creates a direct connection between html form elements and columns in a SEEDDataStore.
     It writes form elements with names encoded using SEEDFormParms (cid and row number), and with values from the data store.
@@ -74,7 +74,7 @@ class SEEDForm extends SEEDFormElements
     private $raParms = array();
 
     //internal
-//    var $raCheckboxes = array();      // list of checkboxes in the formdef
+    private $raCheckboxes = array();      // list of checkboxes in the formdef
 //    var $raPresetOnInsert = array();  // list of fields that have forced default values (these are excluded from bSkipBlankRows test)
     private $raCtrlGlobal = array();      // store the global control parms after an Update, so the app can use them. May be kept persistent by a derived class.
 
@@ -87,7 +87,7 @@ class SEEDForm extends SEEDFormElements
 
         if( isset($this->raParms['fields']) ) {
             foreach( $this->raParms['fields'] as $fld => $ra ) {
-//                if( @$ra['control'] == 'checkbox' )   $this->raCheckboxes[] = $fld;
+                if( @$ra['control'] == 'checkbox' )   $this->raCheckboxes[] = $fld;
 //                if( @$ra['presetOnInsert'] == true )  $this->raPresetOnInsert[] = $fld;
 //                if( @$ra['urlparm'] )                 $raDSParms['urlparms'][$fld] = $ra['urlparm'];
             }
@@ -292,11 +292,11 @@ class SEEDForm extends SEEDFormElements
          * Checkboxes do not send HTTP parms if they are unchecked. If a checkbox is defined in this row,
          * and there is no parm, assume that the checkbox was unchecked to zero.
          */
-//        foreach( $this->raCheckboxes as $fld ) {
-//            if( !isset($raRow['values'][$fld]) ) {
-//                $this->sfSetValue( $fld, 0 );
-//            }
-//        }
+        foreach( $this->raCheckboxes as $fld ) {
+            if( !isset($raRow['values'][$fld]) ) {
+                $this->sfSetValue( $fld, 0 );
+            }
+        }
         /* Set row-level control fields
          */
         $this->raCtrlCurrRow = array();
