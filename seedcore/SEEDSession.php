@@ -13,8 +13,8 @@ class SEEDSessionVarAccessor
     Get/Set variables into an existing session, using a namespace to isolate groups of variables.
  */
 {
-    var $sess;
-    var $ns = "";   // namespace to simplify isolation of session vars
+    private $sess;
+    private $ns = "";   // namespace to simplify isolation of session vars
 
     function __construct( SEEDSession $sess, $ns = "" )
     {
