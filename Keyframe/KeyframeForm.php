@@ -11,7 +11,7 @@ include_once( "KeyframeDataStore.php" );
 include_once( SEEDCORE."SEEDCoreForm.php" );
 
 
-class KeyframeForm extends SEEDForm
+class KeyframeForm extends SEEDCoreForm
 /**********************************
  */
 {
