@@ -2,15 +2,52 @@
 
 /* SEEDApp
  *
- * Copyright (c) 2017 Seeds of Diversity Canada
+ * Copyright (c) 2017-2018 Seeds of Diversity Canada
  *
  * Common classes and functions useful across Seed Apps
  */
 
 include_once( SEEDCORE."SEEDCore.php" );
-// here is where you include KeyFrame
-// and seedsessionaccount
-// and console
+include_once( SEEDCORE."SEEDSession.php" );
+include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
+
+
+class SEEDAppDB
+/**************
+    Create and hold a KeyframeDB
+ */
+{
+    public $kfdb;
+
+    function __construct( $raParms )
+    /*******************************
+        raParms: kfdbHost, kfdbUserid, kfdbPassword, and kfdbDatabase are required
+     */
+    {
+        if( !($this->kfdb = new KeyframeDatabase( $raParms['kfdbHost'], $raParms['kfdbUserid'], $raParms['kfdbPassword'] )) ) {
+            die( "Cannot connect to database" );
+        }
+
+        if( !$this->kfdb->Connect( $raParms['kfdbDatabase'] ) ) {
+            die( $this->kfdb->GetErrMsg() );
+        }
+    }
+}
+
+class SEEDAppSession extends SEEDAppDB
+/*******************
+    Create and hold a KeyframeDB and a SEEDSession
+ */
+{
+//  public $kfdb is inherited
+    public $sess;
+
+    function __construct( $raParms = array() )
+    {
+        parent::__construct( $raParms );
+        $this->sess = new SEEDSession();
+    }
+}
 
 
 class SEEDApp_Worker
