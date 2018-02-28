@@ -5,10 +5,6 @@
  * Copyright (c) 2006-2018 Seeds of Diversity Canada
  *
  * Keyframe basic database access
- *
- * Define:  KEYFRAMEDB_HOST
- *          KEYFRAMEDB_USERID
- *          KEYFRAMEDB_PASSWORD
  */
 
 define( "KEYFRAMEDB_RESULT_ASSOC", "ASSOC" );
@@ -83,12 +79,8 @@ class KeyframeDatabase {
     private $lastQuery = "";
     private $bDebug = 0;           // 0=none, 1=echo errors, 2=echo queries
 
-    function __construct( $host = "", $userid = "", $password = "" ) {
-        $host     = $host     ?: KEYFRAMEDB_HOST;
-        $userid   = $userid   ?: KEYFRAMEDB_USERID;
-        $password = $password ?: KEYFRAMEDB_PASSWORD;
-
-        $this->oConn = new KeyFrameDB_Connection_MySqlI( array( 'host'=>$host, 'userid'=>$userid, 'password'=>$password) );
+    function __construct( $host, $userid, $password ) {
+        $this->oConn = new KeyFrameDB_Connection_MySqlI( array( 'host'=>$host, 'userid'=>$userid, 'password'=>$password ) );
     }
 
     function Connect( $dbname ) {
