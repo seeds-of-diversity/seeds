@@ -798,6 +798,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $p = $this->stdParms( $fld, $raParms );
         $pName = $p['name'];
         $pValue = $p['value'];
+        $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
         if( @$raParms['checked'] ||
@@ -808,7 +809,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
 
         if( !empty($label) )  $label = SEEDCore_NBSP( " ".$label );
 
-        return( "<input type='radio' name='$pName' id='$pName' value='".SEEDCore_HSC($value)."' $pAttrs />".$label );
+        return( "<input type='radio' name='$pName' id='$pName' value='$pValueEnt' $pAttrs />".$label );
     }
 
 // TODO: implement OPTGROUP
@@ -875,7 +876,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='date'/>" );
+        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='date' $pAttrs/>" );
     }
 
     function Email( $fld, $label = "", $parms = array() )
@@ -887,7 +888,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='email'/>" );
+        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='email' $pAttrs/>" );
     }
 
 
