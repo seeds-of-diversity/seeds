@@ -13,8 +13,8 @@ class SEEDPrintHTML
  */
 {
     protected $sStyle = "
-.SPaddrblock { position:absolute; width:3in; height:1in; left:0.75in; top:1.825in; border:1px dashed #aaa; } /* change #fff to something else to see where the address will go */
-.SPaddrblockpad { padding:0.125in; }
+.SPaddrblock { position:absolute; width:3.5in; height:1in; left:0.75in; top:1.825in; border:1px dashed #fff; } /* change #fff to something else to see where the address will go */
+.SPaddrblockpad { padding:0.125in; white-space: nowrap; }
 ";
     protected $sBody = "";
 
@@ -29,6 +29,7 @@ class SEEDPrintHTML
         to be visible in a window envelope, if the top of the container is the top of the printed piece in the envelope.
 
         $sAddress should have <br/> formatting or equivalent html
+        The white-space:nowrap should prevent breaking on whitespace e.g. the space in a postal code
      */
     {
         return( "<div class='SPaddrblock'><div class='SPaddrblockpad'>$sAddress</div></div>" );
