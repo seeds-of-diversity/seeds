@@ -220,6 +220,17 @@ function SEEDCore_SmartVal( $v, $raAllowed )
     return( in_array( $v, $raAllowed, true ) ? $v : $raAllowed[0] );
 }
 
+function SEEDCore_UniqueId( $iTruncateLen = 0 )
+/**********************************************
+    An unguessable string. From PHP docs for uniqid.
+
+    Optional truncation for a less unique, less unguessable, but shorter string
+ */
+{
+    $s = md5(uniqid(rand(), true));
+
+    return( $iTruncateLen ? substr( $s, 0, $iTruncateLen ) : $s );
+}
 
 function SEEDCore_EmailAddress( $s1, $s2, $label = "", $raMailtoParms = array(), $sAnchorAttrs = "" )
 /****************************************************************************************************
