@@ -14,6 +14,17 @@ include_once( SEEDCORE."SEEDSession.php" );
 include_once( SEEDCORE."SEEDSessionAccountDB.php" );
 
 
+define( "SEEDSESSION_ERR_NOERR",               "0" );
+define( "SEEDSESSION_ERR_GENERAL",             "1" );
+define( "SEEDSESSION_ERR_NOSESSION",           "2" );
+define( "SEEDSESSION_ERR_EXPIRED",             "3" );
+define( "SEEDSESSION_ERR_UID_UNKNOWN",         "4" );
+define( "SEEDSESSION_ERR_USERSTATUS_PENDING",  "5" );
+define( "SEEDSESSION_ERR_USERSTATUS_INACTIVE", "6" );
+define( "SEEDSESSION_ERR_WRONG_PASSWORD",      "7" );
+define( "SEEDSESSION_ERR_PERM_NOT_FOUND",      "8" );
+define( "SEEDSESSION_ERR_MAGIC_NOT_FOUND",     "9" );
+
 class SEEDSessionAccount extends SEEDSession
 /*******************************************
     Provides a session with persistent variable store.
