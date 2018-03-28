@@ -146,7 +146,12 @@ class SEEDDataStore
         Perform an operation on the current data store record.
      */
     {
-        return( $this->DSOp($op) );
+        if( isset($this->raParms['fn_DSPreOp']) ) {
+            $ok = call_user_func($this->raParms['fn_DSPreOp'], $this, $op );
+        } else {
+            $ok = $this->DSPreOp( $op );
+        }
+        return( $ok ? $this->DSOp($op) : false );
     }
 
     function PreStore()
@@ -269,6 +274,7 @@ class SEEDDataStore
 
     function DSValue( $k )        { return( @$this->raBaseData[$k] ); }
     function DSSetValue( $k, $v ) { $this->raBaseData[$k] = $v; }
+    function DSPreOp( $op )       { return( true ); }               // base implementation doesn't have to do anything
     function DSOp( $op )          { }                               // no operations are defined in the base implementation
     function DSPreStore()         { return( true ); }               // base implementation doesn't have to do anything
     function DSPostStore()        { return( true ); }               // base implementation doesn't have to do anything
