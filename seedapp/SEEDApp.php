@@ -8,7 +8,7 @@
  */
 
 include_once( SEEDCORE."SEEDCore.php" );
-include_once( SEEDCORE."SEEDSession.php" );
+include_once( SEEDCORE."SEEDSessionAccount.php" );
 include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
 
 
@@ -24,7 +24,7 @@ class SEEDAppDB
         raParms: kfdbHost, kfdbUserid, kfdbPassword, and kfdbDatabase are required
      */
     {
-        if( !($this->kfdb = new KeyframeDatabase( $raParms['kfdbHost'], $raParms['kfdbUserid'], $raParms['kfdbPassword'] )) ) {
+        if( !($this->kfdb = new KeyframeDatabase( $raParms['kfdbUserid'], $raParms['kfdbPassword'], @$raParms['kfdbHost'] )) ) {    // kfdbHost is optional
             die( "Cannot connect to database" );
         }
 
@@ -42,13 +42,41 @@ class SEEDAppSession extends SEEDAppDB
 //  public $kfdb is inherited
     public $sess;
 
-    function __construct( $raParms = array() )
+    function __construct( $raParms )
     {
         parent::__construct( $raParms );
         $this->sess = new SEEDSession();
     }
 }
 
+class SEEDAppSessionAccount extends SEEDAppSession
+{
+//  public $kfdb is inherited
+//  public $sess is inherited
+
+    function __construct( $raParms )
+    {
+        // This is structured as a SEEDAppSession so client code (like Console) can use it as that base class.
+        // However since $sess is itself subclassed, it is built as base SEEDSession then replaced by SEEDSessionAccount.
+        parent::__construct( $raParms );
+        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], $raParms['sessParms'] );
+    }
+}
+
+class SEEDAppConsole extends SEEDAppSessionAccount
+{
+//  public $kfdb is inherited
+//  public $sess is inherited
+    public $lang;
+    public $oC;     // ConsoleUI gets the SEEDAppSession part of this class
+
+    function __construct( $raParms )
+    {
+        parent::__construct( $raParms );
+        $this->lang = @$raParms['lang'] ?: "EN"; // site_define_lang
+        $this->oC = null;   // new Console02( SEEDAppSession $this );
+    }
+}
 
 class SEEDApp_Worker
 {

@@ -1319,13 +1319,16 @@ class Keyframe_NamedRelations
  */
 {
     private $raKfrel = array();
+    private $kfdb;              // not used here but GetKFDB() is useful to people sometimes
 
     function __construct( KeyframeDatabase $kfdb, $uid )
     {
+        $this->kfdb = $kfdb;
         $this->raKfrel = $this->initKfrel( $kfdb, $uid );  // override this protected function to create an array('A'=>kfrelA, 'B'=>kfrelB)
     }
 
     function GetKfrel( $sRel ) { return( @$this->raKfrel[$sRel] ); }
+    function GetKFDB()         { return( $this->kfdb ); }
 
     function GetKFR( $sRel, $k )
     /***************************

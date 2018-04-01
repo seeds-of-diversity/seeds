@@ -427,4 +427,64 @@ function SEEDCore_RangeStrToDB( $sRange, $fld )
     return( $s );
 }
 
+
+function SEEDCore_ParmsRA2URL( $raParms )
+/****************************************
+    Return an urlencoded string containing the parms in the given array
+ */
+{
+    $s = "";
+    foreach( $raParms as $k => $v ) {
+        if( !empty($s) )  $s .= "&";
+        $s .= $k."=".urlencode($v);
+    }
+    return( $s );
+}
+
+function SEEDCore_ParmsURL2RA( $sUrlParms )
+/******************************************
+    Return an array containing the parms in the given urlencoded string
+ */
+{
+    $raOut = array();
+    if( !empty($sUrlParms) ) {   // the code below works properly with an empty string, but with display_errors turned on it throws a notice at the second explode
+        $ra = explode( "&", $sUrlParms );
+        foreach( $ra as $m ) {
+            @list($k,$v) = explode( '=', $m, 2 );  // list() needs a @ because an empty string or a string
+                                                   // with no '=' throws a notice that the second index doesn't exist
+            if( $k )  $raOut[$k] = urldecode($v);
+        }
+    }
+    return( $raOut );
+}
+
+function SEEDCore_ParmsURLGet( $sUrlParms, $k )
+/**********************************************
+    Return the named parm from the string
+ */
+{
+    $ra = SEEDCore_ParmsURL2RA( $sUrlParms );
+    return( @$ra[$k] );
+}
+
+function SEEDCore_ParmsURLAdd( $sUrlParms, $k, $v )
+/**************************************************
+    Return an array with a parm added or changed
+ */
+{
+    $ra = SEEDCore_ParmsURL2RA( $sUrlParms );
+    $ra[$k] = $v;
+    return( SEEDCore_ParmsRA2URL( $ra ) );
+}
+
+function SEEDCore_ParmsURLRemove( $sUrlParms, $k )
+/*************************************************
+    Return an array with a parm removed
+ */
+{
+    $ra = SEEDCore_ParmsURL2RA( $sUrlParms );
+    if( isset($ra[$k]) )  unset($ra[$k]);
+    return( SEEDCore_ParmsRA2URL( $ra ) );
+}
+
 ?>

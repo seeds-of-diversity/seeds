@@ -79,7 +79,8 @@ class KeyframeDatabase {
     private $lastQuery = "";
     private $bDebug = 0;           // 0=none, 1=echo errors, 2=echo queries
 
-    function __construct( $host, $userid, $password ) {
+    // host is optional because it's almost always localhost
+    function __construct( $userid, $password, $host = 'localhost' ) {
         $this->oConn = new KeyFrameDB_Connection_MySqlI( array( 'host'=>$host, 'userid'=>$userid, 'password'=>$password ) );
     }
 
