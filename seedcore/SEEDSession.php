@@ -69,7 +69,7 @@ class SEEDSessionVarAccessor
      */
     {
         if( isset($_REQUEST[$k]) ) {
-            $p = SEEDSafeGPC_GetStrPlain($k);
+            $p = SEEDInput_Str($k);
             if( empty($p) || (count($raVal)>1 && !in_array($p,$raVal))) {
                 $p = (count($raVal) ? $raVal[0] : "");
             }
