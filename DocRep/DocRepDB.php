@@ -125,8 +125,10 @@ class DocRepDB2 extends DocRep_DB
 
 // It's worth doing this even if you just want the kDoc of a name. The minimal code would do almost as much work, and there's a
 // pretty good chance you're going to use the cached DocRepDoc after you get the kDoc.
-    function GetDocRepDoc( $sDoc )
-    /*****************************
+    function GetDocRepDoc( $sDoc ) { return( $this->GetDoc( $sDoc ) ); }
+
+    function GetDoc( $sDoc )
+    /***********************
         Get a DocRepDoc by kDoc or name
      */
     {
@@ -272,6 +274,8 @@ class DocRepDoc2_ReadOnly
     private   $raAncestors = null;
     private   $sFolderName = null;
 
+    private   $bDebug = true;
+
     function __construct( DocRepDB2 $oDocRepDB, $kDoc )
     {
         $this->oDocRepDB = $oDocRepDB;
@@ -381,8 +385,20 @@ class DocRepDoc2_ReadOnly
         kDoc is the first element, the tree root is the last element.
      */
     {
-        if( !$this->raAncestors ) {
-            $this->raAncestors = $this->oDocRepDB->GetDocAncestors( $this->kDoc );
+        if( $this->raAncestors === null ) {
+            $this->raAncestors = array();
+            $kDoc = $this->kDoc;
+
+            while( $kDoc ) {
+                $oDoc = $this->oDocRepDB->GetDoc( $kDoc );
+// is perms necessary?
+// TODO: allow invisible folder if contains visible item
+                //if( $this->_permsR_Okay( $permclass ) ) {
+                    $this->raAncestors[] = $kDoc;
+                //}
+
+                $kDoc = $oDoc->GetParent();
+            }
         }
         return( $this->raAncestors );
     }
@@ -1187,11 +1203,24 @@ function DocRep_Setup( $oSetup, $bCreate = false )
                                      "docrep_data" => DOCREP2_DB_TABLE_DOCREP_DATA,
                                      "docrep_docxdata" => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA ),
                   'inserts' => array( "docrep_docs" => array(
-                                          "INSERT INTO docrep_docs (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder) "
-                                                          ."VALUES (1, NOW(), NOW(), 'folder1','FOLDER',1,1,0,1)" ),
+                                          "INSERT INTO docrep_docs
+                                                          (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
+                                                   VALUES (1, NOW(), NOW(), 'folder1','FOLDER',1,1,0,1)",
+                                          "INSERT INTO docrep_docs
+                                                          (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
+                                                   VALUES (2, NOW(), NOW(), 'page1','DOC',2,1,1,1)",
+                                          "INSERT INTO docrep_docs
+                                                          (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
+                                                   VALUES (3, NOW(), NOW(), 'page2','DOC',3,1,1,2)",
+                                          ),
                                       "docrep_data" => array(
-                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src) "
-                                                          ."VALUES (1, NOW(), NOW(), 1,1,'TEXT')" )
+                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src)
+                                                            VALUES (1, NOW(), NOW(), 1,1,'TEXT')",
+                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src,data_text)
+                                                            VALUES (2, NOW(), NOW(), 2,1,'TEXT','This is the first page')",
+                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src,data_text)
+                                                            VALUES (3, NOW(), NOW(), 3,1,'TEXT','This is the second page')"
+                                      )
                    ) );
     $ok = $oSetup->SetupDBTables( $def, $bCreate );
 
@@ -1204,6 +1233,81 @@ function DRSetup( $kfdb )
     $o = new SEEDSetup2( $kfdb );
     DocRep_Setup( $o, true );
     return( $o->GetReport() );
+}
+
+
+class DocRepUI
+{
+    private $oDocRepDB;
+
+    function __construct( DocRepDB2 $oDocRepDB )
+    {
+        $this->oDocRepDB = $oDocRepDB;
+    }
+
+    function DrawTree( $kTree, $raParms, $iLevel = 1 )
+    /*************************************************
+        Draw the tree rooted at $kTree.
+        Don't draw $kTree. This allows the drawn part to be a forest (children of $kTree),
+            or a tree with a single root (single child of $kTree).
+
+        $iLevel is a recursion marker for internal use (don't use it).
+     */
+    {
+        $s = "";
+
+        // If a doc is currently selected in the UI, get its info. This is cached in DocRepDB.
+        $oDocSelected = ($kSelectedDoc = intval(@$raParms['kSelectedDoc'])) ? $this->oDocRepDB->GetDoc( $kSelectedDoc ) : null;
+
+        // If the UI provides a list of currently-expanded nodes, get ready to use it.
+        $raTreeExpanded = @$raParms['raTreeExpanded'] ?: array();
+
+
+// depth== 2: get the immediate children but also count the grandchildren so count($ra['children']) is set.
+// other than that count we only need depth==1; there's probably a more efficient way to get count($ra['children'])
+        $raTree = $this->oDocRepDB->GetSubTree( $kTree, 2 );
+        $s .= "<DIV class='DocRepTree_level'>"           // defines the basic attributes of structure
+             ."<DIV class='DocRepTree_level$iLevel'>";   // defines variations per-level, if defined
+        foreach( $raTree as $k => $ra ) {
+            if( !($oDoc = $this->oDocRepDB->GetDocRepDoc( $k )) )  continue;
+
+            if( @$raTreeExpanded[$k] ) {
+                $sExpandCmd = 'collapse';           // This doc is expanded so if you click it will collapse
+            } else if( count($ra['children']) ) {
+                $sExpandCmd = 'expand';             // This doc is collapsed and has children so if you click it will expand
+            } else {
+                $sExpandCmd = '';                   // This doc has no children so it cannot be expanded
+            }
+            $raTitleParms = array(
+                'bSelectedDoc' => ($k == $kSelectedDoc),
+                'sExpandCmd' => $sExpandCmd,
+            );
+            $s .= "<DIV class='DocRepTree_title'>"
+                 .$this->DrawTree_title( $oDoc, $raTitleParms );
+            if( @$raTreeExpanded[$k] || ($oDocSelected && in_array( $k, $oDocSelected->GetAncestors()) ) ) {
+                $s .= $this->DrawTree( $k, $iLevel + 1 );
+            }
+            $s .= "</DIV>";  // title
+        }
+        $s .= "</DIV>"   // level$level
+             ."</DIV>";  // level
+
+        return( $s );
+    }
+
+    function DrawTree_title( DocRepDoc2 $oDoc, $raTitleParms )
+    {
+        $kDoc = $oDoc->GetKey();
+
+        $s = "<a href='${_SERVER['PHP_SELF']}?k=$kDoc'><nobr>"
+            .( $raTitleParms['bSelectedDoc'] ? "<span class='DocRepTree_titleSelected'>" : "" )
+            .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
+            .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )
+            ."</nobr></a>";
+
+            return( $s );
+    }
+
 }
 
 ?>
