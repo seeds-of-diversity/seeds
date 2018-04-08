@@ -295,7 +295,7 @@ class DocRepDoc2_ReadOnly
     function GetType()         { return( $this->GetValue( 'type', self::FLAG_INDEPENDENT ) ); }
     function GetPermclass()    { return( $this->GetValue( 'permclass', self::FLAG_INDEPENDENT ) ); }
     function GetParent()       { return( $this->GetValue( 'parent', self::FLAG_INDEPENDENT ) ); }
-    function GetVerspec($flag) { return( $this->GetValue( 'verspec', $flag ) ); }
+    //function GetVerspec($flag) { return( $this->GetValue( 'dataspec', $flag ) ); }
 
     function GetValue( $k, $flag )   // return a doc property value; force caller to specify flag for safety
     {
@@ -309,7 +309,7 @@ class DocRepDoc2_ReadOnly
      */
     {
         $ra = $this->GetValues($flag);
-        return( @$ra['type'] == 'TEXT' ? $ra['data_text'] : "" );
+        return( $ra['type']=='DOC' && $ra['data_src'] == 'TEXT' ? $ra['data_text'] : "" );
     }
 
     function GetMetadataValue( $k, $flag )
@@ -346,32 +346,31 @@ class DocRepDoc2_ReadOnly
         if( !($kfr = $this->getKfrDoc( $this->kDoc, $flag )) )  { goto done; }
         if( !$this->_permsR_okay( $kfr->value('permclass'), $kfr->value('type'), true ) ) { goto done; }
 
-        $ra = $kfr->ValuesRA();
-        $ra['Data_metadata'] = SEEDCore_ParmsURL2RA(@$ra['Data_metadata']);
-
         // map kfr values to standardized keys (add any standardized keys you wish)
         $raV = array();
-        $raV['name']           = @$ra['name'];
-        $raV['type']           = @$ra['type'];
-        $raV['spec']           = @$ra['spec'];
-        $raV['kData_top']      = @$ra['kData_top'];
-        $raV['permclass']      = @$ra['permclass'];
-        $raV['parent']         = @$ra['kDoc_parent'];
-        $raV['desc']           = @$ra['Data_meta_desc'];
-        $raV['ver']            = @$ra['Data_ver'];
-        $raV['verspec']        = @$ra['Data_verspec'];
-        $raV['mimetype']       = @$ra['Data_mimetype'];
-        $raV['raMetadata']     = $ra['Data_metadata'];    // this has been unpacked into an array
-        $raV['title']          = @$ra['Data_metadata']['title'];
+        $raV['name']           = $kfr->Value('name');
+        $raV['type']           = $kfr->Value('type');
+        $raV['docspec']        = $kfr->Value('docspec');
+        $raV['kData_top']      = $kfr->Value('kData_top');
+        $raV['permclass']      = $kfr->Value('permclass');
+        $raV['parent']         = $kfr->Value('kDoc_parent');
+        $raV['ver']            = $kfr->Value('Data_ver');
+        $raV['dataspec']       = $kfr->Value('Data_dataspec');
+        $raV['title']          = $kfr->Value('Data_title');
+        $raV['mimetype']       = $kfr->Value('Data_mimetype');
+        $raV['raMetadata']     = SEEDCore_ParmsURL2RA( $kfr->Value('Data_metadata') );
+
+        // make this a client-defined variable in Data_metadata
+//        $raV['desc']           = @$ra['Data_meta_desc'];
 
         $raV['doc_key']        = $this->GetKey();
-        $raV['doc_created']    = @$ra['_created'];
-        $raV['doc_created_by'] = @$ra['_created_by'];
-        $raV['doc_updated']    = @$ra['_updated'];
-        $raV['doc_updated_by'] = @$ra['_updated_by'];
-        $raV['data_key']       = @$ra['Data__key'];
-        $raV['data_src']       = @$ra['Data_src'];
-        $raV['data_text']      = @$ra['Data_data_text'];
+        $raV['doc_created']    = $kfr->Value('_created');
+        $raV['doc_created_by'] = $kfr->Value('_created_by');
+        $raV['doc_updated']    = $kfr->Value('_updated');
+        $raV['doc_updated_by'] = $kfr->Value('_updated_by');
+        $raV['data_key']       = $kfr->Value('Data__key');
+        $raV['data_src']       = $kfr->Value('Data_src');
+        $raV['data_text']      = $kfr->Value('Data_data_text');
 
         $this->raValues[$flag] = $raV;
 
@@ -789,8 +788,9 @@ class DocRepDoc2_Insert extends DocRepDoc2
 
         Basic parms:
         parms['dr_name'] = the name of the doc
-        parms['dr_spec']    = user string for searching, grouping, etc - for the document (applies to all versions)
-        parms['dr_verspec'] = user string for searching, grouping, etc - for the version
+        parms['dr_title'] = the title of the doc
+        parms['dr_docspec']  = user string for searching, grouping, etc - for the document (applies to all versions)
+        parms['dr_dataspec'] = user string for searching, grouping, etc - for the version
         parms['dr_flag'] = the flag associated with the new version
         parms['dr_permclass'] = integer permclass
         parms['dr_mimetype'] = the mime type
@@ -801,12 +801,6 @@ class DocRepDoc2_Insert extends DocRepDoc2
         parms['dr_bReplaceCurrVersion']         mainly for use with TEXT for minor updates that don't preserve current version (new data overwrites current data record)
         parms['dr_posUnder'] = kDoc of parent (make this doc the first child)
         parms['dr_posAfter'] = kDoc of sibling (make this doc the next sibling)
-
-        Standard Metadata:
-        parms['dr_title']
-        parms['dr_desc']
-        parms['dr_author']
-        parms['dr_date']
 
         User Metadata:
         parms['dr_metadata'][]  // not implemented, undefined whether these override or totally replace existing metadata
@@ -931,11 +925,12 @@ class DocRepDoc2_Insert extends DocRepDoc2
                     break;
 
                 case "dr_name":     $kfrDoc->SetValue( "name", $v );          break;
-                case "dr_spec":     $kfrDoc->SetValue( "spec", $v );          break;
+                case "dr_docspec":  $kfrDoc->SetValue( "docspec", $v );       break;
                 case "dr_permclass":$kfrDoc->SetValue( "permclass", $v );     break;
+                case "dr_title":    $kfrData->SetValue( "title", $v );        break;
                 case "dr_mimetype": $kfrData->SetValue( "mimetype", $v );     break;
-                case "dr_verspec":  $kfrData->SetValue( "verspec", $v );      break;
-                case "dr_metadata": $kfrData->SetValue( "metadata", UrlParmsPack( $v ) ); break;
+                case "dr_dataspec": $kfrData->SetValue( "dataspec", $v );     break;
+                case "dr_metadata": $kfrData->SetValue( "metadata", SEEDCore_ParmsRA2URL( $v ) ); break;
             }
         }
     }
@@ -1058,7 +1053,7 @@ CREATE TABLE docrep_docs (
 
     name                    VARCHAR(200) NOT NULL DEFAULT '',
     type                    VARCHAR(200) NOT NULL DEFAULT '',  # TEXT, IMAGE, DOC, TEXTFRAGMENT, FOLDER, etc. U_* are user-defined types
-    spec                    VARCHAR(200) DEFAULT '',           # user defined for searching, grouping, ordering, etc
+    docspec                 VARCHAR(200) DEFAULT '',           # user defined for searching, grouping, ordering, etc
     permclass               INTEGER NOT NULL,
     kData_top               INTEGER NOT NULL DEFAULT 0,        # docrep_data._key for the latest version
 
@@ -1118,8 +1113,9 @@ CREATE TABLE docrep_data (
     data_file_ext       VARCHAR(20) NULL,               # src=FILE ? the file is stored as {_key}.{data_file_ext}
     data_sfile_name     VARCHAR(500) NULL,              # src=SFILE ? the filesystem name under the sfile root
     data_link_doc       INTEGER NULL,                   # src=LINK ? this doc's data is the same as link_doc's data (but metadata can be different)
+    title               VARCHAR(200) DEFAULT '',        # metadata that is so commonly used it deserves to have its own field
     mimetype            VARCHAR(100) DEFAULT '',        # standalone docs should be served with this type in the http header
-    verspec             VARCHAR(200) DEFAULT '',        # user defined for searching, grouping, ordering, etc
+    dataspec            VARCHAR(200) DEFAULT '',        # user defined for searching, grouping, ordering, etc
     metadata            TEXT,                           # url-encoded
 
     INDEX (fk_docrep_docs)
@@ -1266,8 +1262,7 @@ class DocRepUI
 // depth== 2: get the immediate children but also count the grandchildren so count($ra['children']) is set.
 // other than that count we only need depth==1; there's probably a more efficient way to get count($ra['children'])
         $raTree = $this->oDocRepDB->GetSubTree( $kTree, 2 );
-        $s .= "<DIV class='DocRepTree_level'>"           // defines the basic attributes of structure
-             ."<DIV class='DocRepTree_level$iLevel'>";   // defines variations per-level, if defined
+        $s .= "<div class='DocRepTree_level DocRepTree_level$iLevel'>";
         foreach( $raTree as $k => $ra ) {
             if( !($oDoc = $this->oDocRepDB->GetDocRepDoc( $k )) )  continue;
 
@@ -1282,15 +1277,14 @@ class DocRepUI
                 'bSelectedDoc' => ($k == $kSelectedDoc),
                 'sExpandCmd' => $sExpandCmd,
             );
-            $s .= "<DIV class='DocRepTree_title'>"
-                 .$this->DrawTree_title( $oDoc, $raTitleParms );
+            $s .= "<div class='DocRepTree_doc'>"
+                 ."<div class='DocRepTree_title'>".$this->DrawTree_title( $oDoc, $raTitleParms )."</div>";
             if( @$raTreeExpanded[$k] || ($oDocSelected && in_array( $k, $oDocSelected->GetAncestors()) ) ) {
-                $s .= $this->DrawTree( $k, $iLevel + 1 );
+                $s .= $this->DrawTree( $k, $raParms, $iLevel + 1 );
             }
-            $s .= "</DIV>";  // title
+            $s .= "</div>";  // doc
         }
-        $s .= "</DIV>"   // level$level
-             ."</DIV>";  // level
+        $s .= "</div>";  // level level$level
 
         return( $s );
     }
@@ -1305,9 +1299,23 @@ class DocRepUI
             .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )
             ."</nobr></a>";
 
-            return( $s );
+        return( $s );
     }
 
+    function View( DocRepDoc2 $oDoc, $flag = "" )
+    {
+        $s = "";
+
+        switch( $oDoc->GetType() ) {
+            case 'DOC':
+                $s = $oDoc->GetText( $flag );
+                break;
+            case 'FOLDER':
+                break;
+
+        }
+        return( $s );
+    }
 }
 
 ?>
