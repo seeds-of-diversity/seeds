@@ -85,6 +85,7 @@ class SEEDCoreForm extends SEEDFormElements
         parent::__construct( $cid );
         $this->raParms = $raParms;
 
+        $raDSParms = array();
         if( isset($this->raParms['fields']) ) {
             foreach( $this->raParms['fields'] as $fld => $ra ) {
                 if( @$ra['control'] == 'checkbox' )   $this->raCheckboxes[] = $fld;
