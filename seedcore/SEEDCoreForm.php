@@ -14,7 +14,7 @@ include_once( "SEEDFormParms.php" );
 include_once( "SEEDDataStore.php" );
 include_once( "SEEDTag.php" );
 
-class SEEDCoreForm extends SEEDFormElements
+class SEEDCoreForm extends SEEDCoreFormElements
 /*************
     SEEDForm creates a direct connection between html form elements and columns in a SEEDDataStore.
     It writes form elements with names encoded using SEEDFormParms (cid and row number), and with values from the data store.
@@ -395,7 +395,7 @@ class SEEDCoreForm extends SEEDFormElements
     }
 */
 
-class SEEDFormSearchControl extends SEEDFormElements
+class SEEDFormSearchControl extends SEEDCoreFormElements
 {
     function SearchControl( $raConfig )
     /**********************************
@@ -555,7 +555,7 @@ class SEEDFormSearchControl extends SEEDFormElements
 }
 
 
-class SEEDFormElements
+class SEEDCoreFormElements
 /*********************
     Draw basic form elements using SEEDFormParms naming conventions
 
@@ -1111,7 +1111,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
 }
 
 
-class SEEDFormExpand extends SEEDFormElements
+class SEEDFormExpand extends SEEDCoreFormElements
 {
     private $oTag = null;
 

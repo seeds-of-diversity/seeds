@@ -44,7 +44,7 @@ $raSLDescDefsCommon = array(
 
 class SLProfilesForm
 {
-    private $oDescDB;
+    private $oProfilesDB;
     private $oDescDB_Cfg;
     private $kVI = 0;
     private $lang;
@@ -54,21 +54,21 @@ class SLProfilesForm
     private $oForm;
     private $oTagParser;    // used by DrawFormExpandTags
 
-    function __construct( SL_DescDB $oDescDB, $kVI, $lang = "EN" )
+    function __construct( SLProfilesDB $oProfilesDB, $kVI, $lang = "EN" )
     {
-        $this->oDescDB_Cfg = new SLDescDB_Cfg( $oDescDB->kfdb, $oDescDB->uid );     // added this in a klugey way
+        //$this->oDescDB_Cfg = new SLDescDB_Cfg( $oDescDB->kfdb, $oDescDB->uid );     // added this in a klugey way
 
-        $this->oDescDB = $oDescDB;
+        $this->oProfilesDB = $oProfilesDB;
         $this->kVI = $kVI;
         $this->lang = $lang;
 
-        $kfrel = $this->oDescDB->GetKfrelSLDescObs();
+        $kfrel = $this->oProfilesDB->GetKfrel( "Obs" );
         // descriptor codes encoded here with this SEEDForm
-        $this->oForm = new KeyFrameUIForm( $kfrel, 'A',
-                                           array( "DSParms" => array('fn_DSPreStore'=>array(&$this,'myDSPreStore') ) ) );
+        $this->oForm = new KeyframeForm( $kfrel, 'A',
+                                         array( "DSParms" => array('fn_DSPreStore'=>array($this,'myDSPreStore') ) ) );
 
         if( $kVI ) {
-            $raD = $this->oDescDB->GetListDescObs( array('kVarinst' => $kVI) );
+            $raD = $this->oProfilesDB->GetList( "Obs", "fk_sl_varinst='$kVI'" );
             foreach( $raD as $ra ) {
                 $this->SetValue( $ra['k'], $ra['v'] );
             }
@@ -321,7 +321,7 @@ class SLProfilesForm
         All you have to do after this is draw the control using oForm.
      */
     {
-        $kfr = $this->oForm->kfrel->GetRecordFromDB( "fk_sl_varinst='".$this->kVI."' AND k='".addslashes($k)."'" );
+        $kfr = $this->oProfilesDB->GetKFRCond( "Obs", "fk_sl_varinst='".$this->kVI."' AND k='".addslashes($k)."'" );
         if( !$kfr ) $kfr = $this->oForm->kfrel->CreateRecord();
 
         $this->oForm->SetKFR( $kfr );
