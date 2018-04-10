@@ -59,7 +59,7 @@ class SEEDAppSessionAccount extends SEEDAppSession
         // This is structured as a SEEDAppSession so client code (like Console) can use it as that base class.
         // However since $sess is itself subclassed, it is built as base SEEDSession then replaced by SEEDSessionAccount.
         parent::__construct( $raParms );
-        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], $raParms['sessParms'] );
+        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], @$raParms['sessParms'] ?: array() );
     }
 }
 
