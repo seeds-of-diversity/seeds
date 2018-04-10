@@ -1356,7 +1356,7 @@ class Keyframe_NamedRelations
 
     function GetList( $sRel, $sCond, $raKFParms = array() )
     /******************************************************
-        Return an array of results
+        Return an array of array(values)
      */
     {
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordSetRA( $sCond, $raKFParms ) : array() );
