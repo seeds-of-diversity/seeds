@@ -85,7 +85,7 @@ class SLProfilesForm
 
     function myDSPreStore()
     {
-        if( !$this->oForm->oDS->Key() && !$this->oForm->oDS->Value('v') ) {
+        if( !$this->oForm->GetKey() && !$this->oForm->Value('v') ) {
             // This desccode is not stored in the db for this varinst, and its submitted value is still blank.  Don't bother storing 0 or empty.
             return( false );
         } else {
@@ -228,7 +228,7 @@ class SLProfilesForm
      */
     {
         $q = $this->q_( $k );
-        $raOptions = "";
+        $raOptions = array();
         foreach( $this->raDefs[$k]['m'] as $v => $label ) {
             if( $this->lang == 'FR' && isset($this->raValXlat[$label]) ) {
                 $label = $this->raValXlat[$label];
@@ -238,7 +238,7 @@ class SLProfilesForm
         $s = "<div class='sld_q'>"
             ."<div style='float:right'>"
                 .$this->prepForm( $k )
-                .$this->oForm->Select2( 'v', $raOptions )
+                .$this->oForm->Select( 'v', $raOptions )
             ."</div>"
             .$q    // <LABEL for='$k'></LABEL><BR/>
             ."</div>";
@@ -322,14 +322,14 @@ class SLProfilesForm
      */
     {
         $kfr = $this->oProfilesDB->GetKFRCond( "Obs", "fk_sl_varinst='".$this->kVI."' AND k='".addslashes($k)."'" );
-        if( !$kfr ) $kfr = $this->oForm->kfrel->CreateRecord();
+        if( !$kfr ) $kfr = $this->oForm->Kfrel()->CreateRecord();
 
         $this->oForm->SetKFR( $kfr );
         $this->oForm->IncRowNum();
 
         return( $this->oForm->HiddenKey()
-               .$this->oForm->Hidden( 'fk_sl_varinst', $this->kVI )
-               .$this->oForm->Hidden( 'k', $k ) );
+               .$this->oForm->Hidden( 'fk_sl_varinst', array('value'=>$this->kVI) )
+               .$this->oForm->Hidden( 'k', array('value'=>$k ) ) );
     }
 
 

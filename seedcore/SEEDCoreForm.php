@@ -114,6 +114,14 @@ class SEEDCoreForm extends SEEDCoreFormElements
         $this->oDS->SetValue( $k, $v );
     }
 
+    public function GetValuesRA()
+    /****************************
+        Just for debugging, not implemented for all datasources
+     */
+    {
+        return( $this->oDS->GetValuesRA() );
+    }
+
 
     function Update( $raParms = array() )
     /************************************
@@ -611,6 +619,15 @@ class SEEDCoreFormElements
         you want to set a hidden value for an app to use.
      */
     {
+        if( is_string($raParms) ) {
+            // a common mistake to put a string in the second argument
+            if( STD_isLocal ) {
+                die( "Hidden arg $raParms should be an array" );
+            } else {
+                // try to solve this
+                $raParms = array( 'value' => $raParms );
+            }
+        }
         $p = $this->stdParms( $fld, $raParms );
         $pName = $p['name'];
         $pValueEnt = $p['valueEnt'];

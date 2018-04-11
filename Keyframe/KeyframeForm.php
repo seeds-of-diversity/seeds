@@ -17,7 +17,7 @@ class KeyframeForm extends SEEDCoreForm
 {
     // $oDS is defined in SEEDForm - this derivation must create a KeyFrameDataStore before calling SEEDForm
 
-    private $kfrel;  // though this is also stored in the oDS, it makes more sense for clients to reference it here
+    private $kfrel;  // though this is also stored in the oDS, it makes more sense for clients to reference it here via Kfrel()
 
     function __construct( KeyFrame_Relation $kfrel, $cid = NULL, $raParms = array() )
     {
@@ -27,6 +27,8 @@ class KeyframeForm extends SEEDCoreForm
         if( !isset($raParms['bSkipBlankRows']) )  $raParms['bSkipBlankRows'] = true;
         parent::__construct( $cid, $raParms );
     }
+
+    function Kfrel()  { return( $this->kfrel ); }
 
     function SetKFR( KeyframeRecord $kfr )  { $this->oDS->SetKFR( $kfr ); }
 
