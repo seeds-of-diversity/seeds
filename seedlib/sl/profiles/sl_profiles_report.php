@@ -28,7 +28,7 @@ class SLProfilesReport
     {
         $s = "";
 
-        if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VI', $kVI )) ) goto done;
+        if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VISite', $kVI )) ) goto done;
         list($sp,$cv) = $this->oProfilesDB->ComputeVarInstName( $kfrVI->ValuesRA() );
 
         $raDO = $this->oProfilesDB->GetList( 'Obs', "fk_sl_varinst='$kVI'" );
@@ -38,10 +38,12 @@ class SLProfilesReport
 
         $s = "<table class='sldesc_VIRecord_table' border='0' cellspacing='5' cellpadding='5'>";
         if( $bBasic ) {
-            $s .= "<tr><td width='250'><b>Species:</b></td><td width='200'>".ucwords($sp)."</td></tr>"
+            $s .= "<tr><td width='250'><b>Observer:</b></td><td width='200'>".$kfrVI->Value('Site_uid')."</td></tr>"
+                 ."<tr><td width='250'><b>Species:</b></td><td width='200'>".ucwords($sp)."</td></tr>"
                  ."<tr><td><b>Variety:</b></td><td> ".ucwords($cv)."</td></tr>"
                  ."<tr><td><b>Year:</b></td><td> ".$kfrVI->Value('year')."</td></tr>"
-                 ."<tr><td><b>Location:</b></td><td> ".$kfrVI->Value('Site_province')."</td></tr>";
+                 ."<tr><td><b>Location:</b></td><td> ".$kfrVI->Value('Site_province')."</td></tr>"
+	         ."<tr><td><hr/></td><td>&nbsp;</td></tr>";
         }
         foreach( $raDO as $obs ) {
             if( !($def = @$defsRA[ $obs['k'] ]) ) continue;
