@@ -296,7 +296,7 @@ class SLProfilesForm
             $s .= "<TR>";
         }
         $s .= "<TD valign=top>"
-             .$this->oForm->Radio( 'v', "", $v )
+             .$this->oForm->Radio( 'v', $v, "" )
              .$label;
         if( !empty($ra['img'][$v]) ) {
             $s .= "<BR/><DIV align=center><IMG src='".W_ROOT."seedcommon/sl/descimg/".$ra['img'][$v]."' $imgAttrs></DIV>";
