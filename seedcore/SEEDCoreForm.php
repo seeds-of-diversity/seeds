@@ -828,7 +828,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         if( !empty($label) )  $label = SEEDCore_NBSP( " ".$label );
 
         // value is that given by the arg, not pValue which is the currently-selected radio
-        return( "<input type='radio' name='$pName' id='$pName' value='.SEEDStd_HSC($value).' $pAttrs />".$label );
+        return( "<input type='radio' name='$pName' id='$pName' value='".SEEDCore_HSC($value)."' $pAttrs />".$label );
     }
 
 // TODO: implement OPTGROUP
