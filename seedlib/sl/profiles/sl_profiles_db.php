@@ -39,7 +39,7 @@ class SLProfilesDB extends Keyframe_NamedRelations
 
         // If the accession is recorded but not the kPCV, get that for the next test
         if( ($kAcc = $raIn[$prefix.'fk_sl_accession']) && !$raIn[$prefix.'fk_sl_pcv'] ) {
-            $raIn[$prefix.'fk_sl_pcv'] = $this->GetKFDB()->Query1( "SELECT fk_sl_pcv FROM seeds.sl_accession WHERE _key='$kAcc''" );
+            $raIn[$prefix.'fk_sl_pcv'] = $this->GetKFDB()->Query1( "SELECT fk_sl_pcv FROM seeds.sl_accession WHERE _key='$kAcc'" );
         }
         // If the kPCV is known, get the sp and cv from that
         if( ($kPCV = $raIn[$prefix.'fk_sl_pcv']) &&

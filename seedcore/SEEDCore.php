@@ -253,7 +253,26 @@ function SEEDCore_EmailAddress( $s1, $s2, $label = "", $raMailtoParms = array(),
     } else {
         $s .= "var l=\"$label\";";
     }
-    $s .= "document.write(\"<a $sAnchorAttrs href='mailto:\"+a+\"@\"+b+\"$mparms'>\"+l+\"</a>\");</script>";
+
+    // </ a> is necessary because in drupal 8 something converts "</a>" to "" so the link never ends
+    $s .= "document.write(\"<a $sAnchorAttrs href='mailto:\"+a+\"@\"+b+\"$mparms'>\"+l+\"</ a>\");</script>";
+    return( $s );
+}
+
+function SEEDCore_EmailAddress2( $s1, $s2, $label = "", $raMailtoParms = array(), $sAnchorAttrs = "" )
+/*****************************************************************************************************
+    Write a spam-proof email address on a web page in the form:
+
+    <a href='mailto:$s1@$s2'>$label</a>  or
+    <a href='mailto:$s1@$s2'>$s1@$s2</a> if label is blank
+
+    $sAnchorAttrs can contain additional attributes for the <a> tag - e.g. style='text-decoration:foo;color=bar'
+ */
+{
+    $mparms = SEEDCore_ParmsRA2URL( $raMailtoParms, false );
+
+    $s = "<a class='SEEDCore_mailto' a='$s1' b='$s2' c='".SEEDCore_HSC($mparms)."' d='".SEEDCore_HSC($label)."' $sAnchorAttrs>$s1 [at] $s2</a>";  // default label if jquery doesn't do the right thing
+
     return( $s );
 }
 
@@ -428,15 +447,16 @@ function SEEDCore_RangeStrToDB( $sRange, $fld )
 }
 
 
-function SEEDCore_ParmsRA2URL( $raParms )
-/****************************************
+function SEEDCore_ParmsRA2URL( $raParms, $bEncode = true )
+/*********************************************************
     Return an urlencoded string containing the parms in the given array
  */
 {
     $s = "";
     foreach( $raParms as $k => $v ) {
         if( !empty($s) )  $s .= "&";
-        $s .= $k."=".urlencode($v);
+        if( $bEncode ) $v = urlencode($v);
+        $s .= $k."=".$v;
     }
     return( $s );
 }

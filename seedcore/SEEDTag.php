@@ -582,7 +582,7 @@ case 'image2': // until not using DocRepWiki
 
         if( $raTag['tag'] == 'mailto' ) {
             list($s1,$s2) = explode( '@', $raTag['target'], 2 );  // split the email address for Javascript spamproofer
-            $s = SEEDCore_EmailAddress( $s1, $s2, $caption, array(), "class={$this->cssPrefix}_mailto" );
+            $s = SEEDCore_EmailAddress2( $s1, $s2, $caption, array(), "class={$this->cssPrefix}_mailto" );
         } else {
 //            if( empty($raTag['tag']) && substr($raTag['target'], 0, 4) === 'www.' && strpos(trim($raTag['target']),' ') === false ) {
 //                /* The author made a [[www.domain.com]] link and forgot to use http:
