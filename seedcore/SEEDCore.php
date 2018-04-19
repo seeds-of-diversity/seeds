@@ -254,8 +254,10 @@ function SEEDCore_EmailAddress( $s1, $s2, $label = "", $raMailtoParms = array(),
         $s .= "var l=\"$label\";";
     }
 
-    // </ a> is necessary because in drupal 8 something converts "</a>" to "" so the link never ends
-    $s .= "document.write(\"<a $sAnchorAttrs href='mailto:\"+a+\"@\"+b+\"$mparms'>\"+l+\"</ a>\");</script>";
+    // </a> : drupal 8 converts this to "" right in the js string (don't know why), so the link never ends
+    // </ a> : drupal 8 doesn't rewrite, but seems to convert to <!-- a --> even on non-drupal pages, so the link also never ends
+    // <\/a> : always seems to do the right thing
+    $s .= "document.write('<a $sAnchorAttrs href=\"mailto:'+a+'@'+b+'$mparms\">'+l+'<\/a>');</script>";
     return( $s );
 }
 
@@ -271,7 +273,11 @@ function SEEDCore_EmailAddress2( $s1, $s2, $label = "", $raMailtoParms = array()
 {
     $mparms = SEEDCore_ParmsRA2URL( $raMailtoParms, false );
 
-    $s = "<a class='SEEDCore_mailto' a='$s1' b='$s2' c='".SEEDCore_HSC($mparms)."' d='".SEEDCore_HSC($label)."' $sAnchorAttrs>$s1 [at] $s2</a>";  // default label if jquery doesn't do the right thing
+    // jquery should act on .SEEDCore_mailto to create href='mailto:[a]@[b]?c'> and replace html() with [a]@[b]
+
+    $s = "<a class='SEEDCore_mailto' a='$s1' b='$s2' c='".SEEDCore_HSC($mparms)."' d='".SEEDCore_HSC($label)."' $sAnchorAttrs>"
+            ."$s1 [at] $s2"       // default label if jquery doesn't do the right thing
+        ."</a>";
 
     return( $s );
 }
