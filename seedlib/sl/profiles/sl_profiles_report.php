@@ -40,7 +40,7 @@ class SLProfilesReport
         if( $bBasic ) {
             $uid = $kfrVI->Value('Site_uid');
             $oDB = new SEEDSessionAccountDBRead( $this->oProfilesDB->GetKFDB() );
-            $raUserInfo = $oDB->GetUserInfo( $uid );
+            $raUserInfo = $oDB->GetUserInfo( $uid, false, false );
             if( @$raUserInfo['realname'] ) {
                 $uid = $raUserInfo['realname']." ($uid)";
             }
