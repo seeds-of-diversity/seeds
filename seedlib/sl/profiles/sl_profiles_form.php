@@ -157,13 +157,13 @@ class SLProfilesForm
         return( "<DIV class='sld_inst'>$sInst</DIV>" );
     }
 
-	function TopHeader($head)
-	{
-	     return ("<DIV class='sld_inst'><P>If you cannot answer any of these questions, just leave them blank or select the \"don't know\" choice.</P></DIV>".
-				 "<DIV class='sld_q'>Sample size: Approximately how many ".($head=='apple' ? "trees" : "plants")." are you observing for the purposes of this form?<SPAN style='float:right'><INPUT type='text' name='numPlants' size=10></SPAN><BR/></DIV>"
-				);
-   // "common_SoD_i__samplesize"
-	}
+    function TopHeader($head)
+    {
+        $s = "<div class='sld_inst'>If you cannot answer any of these questions, just leave them blank or select the \"don't know\" choice.</div>"
+            .$this->Q_I( "common_SoD_i__samplesize" );
+
+        return( $s );
+    }
 
 
     function Q_D( $k ) { return( $this->Q_S( $k ) ); }

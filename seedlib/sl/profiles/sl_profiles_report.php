@@ -46,25 +46,43 @@ class SLProfilesReport
 	         ."<tr><td><hr/></td><td>&nbsp;</td></tr>";
         }
         foreach( $raDO as $obs ) {
+            if( $obs['k'] == 'common_SoD_i__samplesize' ) {
+                if( ($def = @$defsRA[ $obs['k'] ]) ) {
+                    $v = @$obs['v'];
+                    $s .= $this->drawObsSummaryRow( $obs['k'], $v, $def );
+                }
+                break;
+            }
+        }
+        foreach( $raDO as $obs ) {
             if( !($def = @$defsRA[ $obs['k'] ]) ) continue;
+            if( $obs['k'] == 'common_SoD_i__samplesize' )  continue;
 
             $v = @$obs['v'];
-            $l = @$def['l_EN'];
-
-            if( ($vl = @$def['m'][$v]) ) {  // the multi-choice text value corresponding to the numerical value
-                $vl = ucwords( $vl );
-                if( ($vimg = @$def['img'][$v]) ) {
-                    $s .= "<tr><td><b>$l:</b></td><td>$vl</td><td><img src='".W_ROOT."seedcommon/sl/descimg/$vimg' height='75'/></td></tr>";
-                } else {
-                    $s .= "<tr><td><b>$l:</b></td><td>$vl</td></tr>";
-                }
-            } else {
-                $s .= "<tr><td><b>$l:</b></td><td>".$obs['v']."</td></tr>";
-            }
+            $s .= $this->drawObsSummaryRow( $obs['k'], $v, $def );
         }
         $s .= "</table>";
 
         done:
+        return( $s );
+    }
+
+    private function drawObsSummaryRow( $k, $v, $def )
+    {
+        $s = "";
+
+        $l = @$def['l_EN'];
+
+        if( ($vl = @$def['m'][$v]) ) {  // the multi-choice text value corresponding to the numerical value
+            $vl = ucwords( $vl );
+            if( ($vimg = @$def['img'][$v]) ) {
+                $s = "<tr><td><b>$l:</b></td><td>$vl</td><td><img src='".W_ROOT."seedcommon/sl/descimg/$vimg' height='75'/></td></tr>";
+            } else {
+                $s = "<tr><td><b>$l:</b></td><td>$vl</td></tr>";
+            }
+        } else {
+            $s = "<tr><td><b>$l:</b></td><td>$v</td></tr>";
+        }
         return( $s );
     }
 

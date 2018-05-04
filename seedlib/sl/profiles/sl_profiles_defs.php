@@ -49,7 +49,7 @@ class SLProfilesDefs
 //        $this->oDescDB_Cfg = new SLDescDB_Cfg( $oDescDB->kfdb, $oDescDB->uid );     // added this in a klugey way
 
         $this->raDefs['apple'] = SLDescDefsApple::$raDefsApple;
-        $this->raDefs['bean'] = SLDescDefsBean::$raDefsBean;
+        $this->raDefs['bean'] = array_merge( SLDescDefsCommon::$raDefsCommon, SLDescDefsBean::$raDefsBean );
         $this->raDefs['garlic'] = SLDescDefsGarlic::$raDefsGarlic;
         $this->raDefs['lettuce'] = SLDescDefsLettuce::$raDefsLettuce;
         $this->raDefs['onion'] = SLDescDefsOnion::$raDefsOnion;
