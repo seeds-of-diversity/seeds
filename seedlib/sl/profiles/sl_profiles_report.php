@@ -39,8 +39,8 @@ class SLProfilesReport
         $s = "<table class='sldesc_VIRecord_table' border='0' cellspacing='5' cellpadding='5'>";
         if( $bBasic ) {
             $uid = $kfrVI->Value('Site_uid');
-            $oDB = new SEEDSessionAccountDBRead( $this->oProfilesDB->GetKFDB() );
-            $raUserInfo = $oDB->GetUserInfo( $uid, false, false );
+            $oDB = new SEEDSessionAccountDBRead( $this->oProfilesDB->GetKFDB(), "seeds" );
+            list($k,$raUserInfo) = $oDB->GetUserInfo( $uid, false, false );
             if( @$raUserInfo['realname'] ) {
                 $uid = $raUserInfo['realname']." ($uid)";
             }
