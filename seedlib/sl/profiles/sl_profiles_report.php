@@ -38,7 +38,14 @@ class SLProfilesReport
 
         $s = "<table class='sldesc_VIRecord_table' border='0' cellspacing='5' cellpadding='5'>";
         if( $bBasic ) {
-            $s .= "<tr><td width='250'><b>Observer:</b></td><td width='200'>".$kfrVI->Value('Site_uid')."</td></tr>"
+            $uid = $kfrVI->Value('Site_uid');
+            $oDB = new SEEDSessionAccountDBRead( $this->oProfilesDB->GetKFDB() );
+            $raUserInfo = $oDB->GetUserInfo( $uid );
+            if( @$raUserInfo['realname'] ) {
+                $uid = $raUserInfo['realname']." ($uid)";
+            }
+
+            $s .= "<tr><td width='250'><b>Observer:</b></td><td width='200'>$uid</td></tr>"
                  ."<tr><td width='250'><b>Species:</b></td><td width='200'>".ucwords($sp)."</td></tr>"
                  ."<tr><td><b>Variety:</b></td><td> ".ucwords($cv)."</td></tr>"
                  ."<tr><td><b>Year:</b></td><td> ".$kfrVI->Value('year')."</td></tr>"
