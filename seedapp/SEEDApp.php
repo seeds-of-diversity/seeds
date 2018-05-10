@@ -10,6 +10,7 @@
 include_once( SEEDCORE."SEEDCore.php" );
 include_once( SEEDCORE."SEEDSessionAccount.php" );
 include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
+include_once( SEEDLIB."console/console02.php" );
 
 
 class SEEDAppDB
@@ -74,7 +75,7 @@ class SEEDAppConsole extends SEEDAppSessionAccount
     {
         parent::__construct( $raParms );
         $this->lang = @$raParms['lang'] ?: "EN"; // site_define_lang
-        $this->oC = null;   // new Console02( SEEDAppSession $this );
+        $this->oC = new Console02( $this ); // Console02 takes SEEDAppSession
     }
 }
 
