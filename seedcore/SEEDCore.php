@@ -309,6 +309,16 @@ function SEEDCore_Dollar( $fAmount, $lang = "EN" )      // also see SEEDLocal::D
     return( $s );
 }
 
+function SEEDCore_Bound( $i, $floor = null, $ceiling = null )
+/************************************************************
+    Constrain $i within the range of floor and ceiling
+ */
+{
+    if( $floor   !== null && $i < $floor )   $i = $floor;
+    if( $ceiling !== null && $i > $ceiling ) $i = $ceiling;
+
+    return( $i );
+}
 
 function SEEDCore_ParseRangeStr( $sRange )
 /*****************************************

@@ -12,7 +12,7 @@ include_once( SEEDCORE."SEEDCoreForm.php" );
 
 
 class KeyframeForm extends SEEDCoreForm
-/**********************************
+/*****************
  */
 {
     // $oDS is defined in SEEDForm - this derivation must create a KeyFrameDataStore before calling SEEDForm

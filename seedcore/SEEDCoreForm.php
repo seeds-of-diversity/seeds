@@ -403,10 +403,10 @@ class SEEDCoreForm extends SEEDCoreFormElements
     }
 */
 
-class SEEDFormSearchControl extends SEEDCoreFormElements
+class SEEDFormSearchControl
 {
-    function SearchControl( $raConfig )
-    /**********************************
+    function SearchControl( SEEDCoreForm $oForm, $raConfig )
+    /*******************************************************
         Draw a search control with one or more filters.  Each filter has a field list, op list, and text input.
 
         raConfig = array( 'filters' => array( array( 'label'=>'field', ...list of fields for filter 1 ),
@@ -430,8 +430,8 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
                 if( strpos( $s, "[[$fld]]" ) !== false ) {
                     // The control exists in the template  (probably we should assume this and not bother to check)
                     if( $ra[0] == 'select' ) {
-                        $currVal = $this->CtrlGlobal('srchctl_'.$fld);
-                        $c = $this->Select2( 'srchctl_'.$fld, $ra[1], "", array( 'sfParmType'=>'ctrl_global', 'selected'=>$currVal) );
+                        $currVal = $oForm->CtrlGlobal('srchctl_'.$fld);
+                        $c = $oForm->Select( 'srchctl_'.$fld, $ra[1], "", array( 'sfParmType'=>'ctrl_global', 'selected'=>$currVal) );
                         $s = str_replace( "[[$fld]]", $c, $s );
                     }
                 }
@@ -457,7 +457,7 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
 
             /* Write the [[opN]]
              */
-            $c = $this->Select2( 'srch_op'.$iFilter,
+            $c = $oForm->Select( 'srch_op'.$iFilter,
                                  array( "contains" => 'like',     "equals" => 'eq',
                                         "starts with" => 'start', "ends with" => 'end',
                                         "less than" => 'less',    "greater than" => 'greater',
@@ -468,7 +468,7 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
 
             /* Write the [[textN]]
              */
-            $c = $this->Text( 'srch_val'.$iFilter, "", array('sfParmType'=>'ctrl_global', 'size'=>20) );
+            $c = $oForm->Text( 'srch_val'.$iFilter, "", array('sfParmType'=>'ctrl_global', 'size'=>20) );
             $s = str_replace( "[[text$iFilter]]", $c, $s );
 
             ++$iFilter;
@@ -477,8 +477,8 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
         return( $s );
     }
 
-    function SearchControlDBCond( $raConfig )
-    /****************************************
+    function SearchControlDBCond( SEEDCoreForm $oForm, $raConfig )
+    /*************************************************************
      */
     {
         $raCond = array();
@@ -495,14 +495,13 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
             }
         }
 
-
         /* For each text-search row, get a condition clause
          */
         $iFilter = 1;
         foreach( $raConfig['filters'] as $raFld ) {
-            $currFld = $this->CtrlGlobal('srch_fld'.$iFilter);
-            $currOp  = $this->CtrlGlobal('srch_op'.$iFilter);
-            $currVal = trim($this->CtrlGlobal('srch_val'.$iFilter));
+            $currFld = $oForm->CtrlGlobal('srch_fld'.$iFilter);
+            $currOp  = $oForm->CtrlGlobal('srch_op'.$iFilter);
+            $currVal = trim($oForm->CtrlGlobal('srch_val'.$iFilter));
 
             if( $currOp == 'blank' ) {
                 // process this separately because the text value is irrelevant
@@ -515,13 +514,13 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
                     $raC = array();
                     foreach( $raFld as $label => $v ) {
                         if( empty($v) )  continue;  // skip 'Any'
-                        $raC[] = $this->_searchControlDBCondTerm( $v, $currOp, $currVal );
+                        $raC[] = $this->searchControlDBCondTerm( $v, $currOp, $currVal );
                     }
 
                     // glue the conditions together as disjunctions
                     $raCond[] = "(".implode(" OR ",$raC).")";
                 } else {
-                    $raCond[] = $this->_searchControlDBCondTerm( $currFld, $currOp, $currVal );
+                    $raCond[] = $this->searchControlDBCondTerm( $currFld, $currOp, $currVal );
                 }
             }
 
@@ -533,8 +532,8 @@ class SEEDFormSearchControl extends SEEDCoreFormElements
         return( $sCond );
     }
 
-    function _searchControlDBCondTerm( $col, $op, $val )
-    /***************************************************
+    private function _searchControlDBCondTerm( $col, $op, $val )
+    /***********************************************************
         eq       : $col = '$val'
         like     : $col LIKE '%$val%'
         start    : $col LIKE '$val%'
@@ -699,7 +698,7 @@ class SEEDCoreFormElements
         $pAttrs = $p['attrs'];
 
 
-        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, $pValue) );
+        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, array('value'=>$pValue)) );
 
         if( !empty($label) ) {
             $labelClass = (@$raParms['bBootstrap'] || $sBSColLabel) ? "class='control-label'" : "";
@@ -747,7 +746,7 @@ class SEEDCoreFormElements
         $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, $pValue) );
+        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, array('value'=>$pValue)) );
 
         $s = "";
 
@@ -849,7 +848,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
 
         $bEnableDisabledOptions = @$parms['bEnableDisabledOptions'];
 
-        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, $pValue) );
+        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, array('value'=>$pValue)) );
 
         if( !empty($label) ) {
             $label = "<LABEL for='$pName'>".SEEDCore_NBSP( $label )."</LABEL>";
@@ -928,7 +927,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, $pValue) );
+        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, array('value'=>$pValue)) );
 
         $s = "";
         $nSize = !empty($raParms['size']) ? $raParms['size'] : 10;
@@ -991,6 +990,9 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         return( "<td valign='top' $attrsTD1><label>$label</label></td>"
                ."<td valign='top' $attrsTD2>".$sRightHead.$sRightCol.$sRightTail."</td>" );
     }
+
+    // SEEDExpandForm needs this
+    function ParseCtrlParms( $parms, $label = "" ) { return( $this->parseParms( $parms, $label ) ); }
 
     private function parseParms( $parms, $label = "" )
     /*************************************************
@@ -1129,10 +1131,16 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
 }
 
 
-class SEEDFormExpand extends SEEDCoreFormElements
+class SEEDFormExpand
 {
-    private $oTag = null;
+    private $oForm;
+    private $oTag;
 
+    function __construct( SEEDCoreForm $oForm )
+    {
+        $this->oForm = $oForm;
+        $this->oTag = new SEEDTagParser( array( 'fnHandleTag'=>array($this,'fnExpandHandleTag')) );
+    }
 
     function ExpandForm( $sTemplate )
     /********************************
@@ -1152,48 +1160,17 @@ class SEEDFormExpand extends SEEDCoreFormElements
     {
         $s = "";
 
-        if( !$this->oTag ) {
-            $this->oTag = new SEEDTagParser( array( 'fnHandleTag'=>array($this,'fnExpandHandleTag')) );
-        }
         $sTemplate = $this->oTag->ProcessTags( $sTemplate );
 
         // if the template has structural codes e.g. table structure, expand those after the controls so we don't get the | chars mixed up
-
-        $bIsTable = (substr( $sTemplate, 0, 4 ) == "||| ");
-        if( $bIsTable ) {
-            $raRows = explode( "||| ", substr($sTemplate,4) );  // skip the first ||| to prevent an empty first element
-            foreach( $raRows as $row ) {
-                $s .= "<tr valign='top'>";
-                $raCols = explode( "|| ", $row );
-                foreach( $raCols as $col ) {
-                    $tdattrs = "";
-                    $col = trim($col);
-
-                    // {attrs}
-                    $s1 = strpos( $col, "{" );
-                    $s2 = strpos( $col, "}" );
-                    if( $s1 !== false && $s2 !== false ) {
-                        $tdattrs = " ".substr( $col, $s1 + 1, $s2 - $s1 - 1 );
-                        $col = substr( $col, $s2 +1 );
-                    }
-
-                    // *label*
-                    if( substr( $col, 0, 1 ) == '*' && substr( $col, -1, 1 ) == '*' ) {
-                        $col = "<label>".substr( $col, 1, -1 )."</label>";
-                    }
-                    $s .= "<td$tdattrs>$col</td>";
-                }
-                $s .= "</tr>";
-            }
-        } else {
-            $s = $sTemplate;
-        }
+        list($ok,$s) = SEEDTagParseTable( $sTemplate, $raTableParmsDummy = array() );
+        if( !$ok ) $s = $sTemplate;
 
         return( $s );
     }
 
     function ResolveTag( $raTag, SEEDTagParser $oTagDummy = NULL, $raParms = array() )      // NULL allows $this->fnExpandHandleTag to pass null
-    /****************************************************************
+    /*********************************************************************************
         Call here from SEEDTagParser::HandleTag to resolve tags having to do with templates
 
         bRequireFormPrefix:  [[Text:]]  [[Checkbox:]] have to be [[FormText:]] [[FormCheckbox:]]
@@ -1209,7 +1186,7 @@ class SEEDFormExpand extends SEEDCoreFormElements
         // [[ {ControlType:}fieldname | stdparms | attrs ]]
         $sControlType = strtolower($raTag['tag']);
         $sFieldname = $raTag['target'];    // the p0 element is the field name (if the tag is a form control)
-        $pStdParms = $this->parseParms(@$raTag['raParms'][1]);
+        $pStdParms = $this->oForm->ParseCtrlParms(@$raTag['raParms'][1]);
         if( @$raTag['raParms'][2] ) {
             // other attrs that will be simply inserted into the element (don't use attrs in the stdparms section)
             $pStdParms['attrs'] = $raTag['raParms'][2];
@@ -1223,24 +1200,25 @@ class SEEDFormExpand extends SEEDCoreFormElements
         switch( $sControlType ) {
             // different than Text:readonly which also writes a hidden value
             case 'formvalue':
-            case 'value':        $s = $this->ValueEnt($sFieldname);                    break;
+            case 'value':        $s = $this->oForm->ValueEnt($sFieldname);                    break;
 
             // if no tag specified, assume the target is a text field (only if !bRequireFormPrefix)
             case '':
             case 'formtext':
-            case 'text':         $s = $this->Text( $sFieldname, "", $pStdParms );      break;
+            case 'text':         $s = $this->oForm->Text( $sFieldname, "", $pStdParms );      break;
 
             case 'formtextarea':
-            case 'textarea':     $s = $this->TextArea2( $sFieldname, $pStdParms );     break;
+            case 'textarea':     $s = $this->oForm->TextArea( $sFieldname, $pStdParms );     break;
 
             case 'formcheckbox':
-            case 'checkbox':     $s = $this->Checkbox( $sFieldname, "", $pStdParms );  break;
+            case 'checkbox':     $s = $this->oForm->Checkbox( $sFieldname, "", $pStdParms );  break;
 
             case 'formdate':
-            case 'date':         $s = $this->Date( $sFieldname, "", $pStdParms );      break;
+            case 'date':         $s = $this->oForm->Date( $sFieldname, "", $pStdParms );      break;
 
+            // pStdParms can contain 'value' => v; if not defined then the value is taken from oDS
             case 'formhidden':
-            case 'hidden':       $s = $this->Hidden2( $sFieldname, $pStdParms );        break;
+            case 'hidden':       $s = $this->oForm->Hidden( $sFieldname, $pStdParms );        break;
 
             default:
                 $bHandled = false;
@@ -1255,9 +1233,84 @@ class SEEDFormExpand extends SEEDCoreFormElements
     {
         // the SEEDTagParser callback just expects a string - maybe it should be expecting the same as ResolveTag
         list($ok,$s) = $this->ResolveTag( $raTag, NULL, array() );
-        if( !$ok && $this->oTag ) $s = $this->oTag->HandleTag( $raTag );    // the base SEEDTagParser::HandleTag for fundamental tags
+        if( !$ok && $this->oTag ) $s = $this->oTag->HandleTag( $raTag );    // the base SEEDTagParser::HandleTag for elementary tags
         return( $s );
     }
+}
+
+
+function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
+{
+    $ok = false;
+    $s = "";
+    $eTable = "";
+
+    if( substr( $sTemplate, 0, 4 ) == "||| " ) {    // starting table without a header is deprecated
+        $eTable = "table-old";
+        $raAttrs = array();
+
+    } else if( substr( $sTemplate, 0, 9 ) == "|||TABLE(" ) {
+        $eTable = "table";
+        $parms = substr( $sTemplate, 20, strpos( $sTemplate, ')' ) );
+        $raAttrs = explode( ',', $parms );
+
+        $sTemplate = substr( $sTemplate, strpos( $sTemplate, "||| ") );     // point to first row
+    } else if( substr( $sTemplate, 0, 19 ) == "|||BOOTSTRAP_TABLE(" ) {
+        $eTable = "bstable";
+        $parms = strtok( substr( $sTemplate, 19 ), ')' );
+        $raAttrs = explode( ',', $parms );
+
+        $sTemplate = substr( $sTemplate, strpos( $sTemplate, "||| ") );     // point to first row
+    } else {
+        // no table here
+        goto done;
+    }
+
+    if( $eTable == 'table-old' ) {
+        $raRows = explode( "||| ", substr($sTemplate,4) );  // skip the first ||| to prevent an empty first element
+    } else {
+        $raRows = explode( "\n", $sTemplate );
+    }
+
+    foreach( $raRows as $row ) {
+        if( $eTable != 'table-old' ) {
+            /* Process rows that start with |||, otherwise just copy them to output
+             */
+            if( substr( $row, 0, 4 ) != '||| ' ) {
+                $s .= $row;
+                continue;
+            }
+            $row = substr( $row, 4 );
+        }
+
+        $s .= $eTable == 'bstable' ? "<div class='row'>" : "<tr valign='top'>";
+        $raCols = explode( "|| ", $row );
+        $iCol = 0;
+        foreach( $raCols as $col ) {
+            $tdattrs = @$raAttrs[$iCol++];
+            $col = trim($col);
+
+            // {attrs}
+            $s1 = strpos( $col, "{" );
+            $s2 = strpos( $col, "}" );
+            if( $s1 !== false && $s2 !== false ) {
+                $tdattrs .= " ".substr( $col, $s1 + 1, $s2 - $s1 - 1 );
+                $col = substr( $col, $s2 +1 );
+            }
+
+            // *label*
+            if( substr( $col, 0, 1 ) == '*' && substr( $col, -1, 1 ) == '*' ) {
+                $col = "<label>".substr( $col, 1, -1 )."</label>";
+            }
+            $s .= $eTable == 'bstable' ? "<div $tdattrs>$col</div>" : "<td $tdattrs>$col</td>";
+        }
+        $s .= $eTable == 'bstable' ? "</div>" : "</tr>";
+    }
+
+    $ok = true;
+
+    done:
+    return( array($ok,$s) );
 }
 
 ?>
