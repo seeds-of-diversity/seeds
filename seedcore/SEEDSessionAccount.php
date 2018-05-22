@@ -256,6 +256,61 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
     function CanWrite( $perm )  { return( $this->TestPerm( $perm, "W" ) ); }
     function CanAdmin( $perm )  { return( $this->TestPerm( $perm, "A" ) ); }
 
+    function IsAllowed( $p )
+    /***********************
+        $p is a screen name, command name, operation name, or other permssion-formatted string as below
+
+        Permission is defined by the format of the name
+
+        foo-bar      : if Read  permission on "foo" perm, allow bar
+        foo--bar     : if Write permission on "foo" perm, allow bar
+        foo---bar    : if Admin permission on "foo" perm, allow bar
+
+        Commands with no hyphens are available to everyone.
+
+        return:
+        bOk  = true if the current user is allowed to use the screen/command
+        suff = the suffix of screen/command name after the hyphens (if any)
+        sErr = the reason why bOk is false
+     */
+    {
+        $bOk = false;
+        $suff = "";
+        $sErr = "";
+
+        if( strpos( $p, "---" ) !== false ) {
+            list($perm,$suff) = explode( "---", $p, 2 );
+            if( !$perm || !$suff || !$this->CanAdmin( $perm ) ) {
+                $sErr = "Requires admin permission";
+                goto done;
+            }
+        } else
+        if( strpos( $p, "--" ) ) {
+            list($perm,$suff) = explode( "--", $p, 2 );
+            if( !$perm || !$suff || !$this->CanWrite( $perm ) ) {
+                $sErr = "Requires write permission";
+                goto done;
+            }
+        } else
+        if( strpos( $p, "-" ) !== false ) {
+            list($perm,$suff) = explode( "-", $p, 2 );
+            if( !$perm || !$suff || !$this->CanRead( $perm ) ) {
+                $sErr = "Requires read permission";
+                goto done;
+            }
+        } else {
+            // anyone can use this command
+            $suff = $p;
+        }
+
+        $bOk = true;
+
+        done:
+        return( array($bOk, $suff, $sErr) );
+    }
+
+
+
     function LogoutSession()
     /***********************
         This class can create sessions; it can also destroy them.
