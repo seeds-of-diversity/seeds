@@ -305,7 +305,6 @@ class SEEDUIList
 
         // Create these UI parms for the interactive list widget
         // sortup is mutex to sortdown: they are the origin-1 index of the column being sorted
-        // This is done using a number because raUIParms (currently) can only contain integers
         $this->oUI->InitUIParm( 'sortup',   array( 'name'=>'sf[[cid]]ui_sortup',   'v'=>0 ) );
         $this->oUI->InitUIParm( 'sortdown', array( 'name'=>'sf[[cid]]ui_sortdown', 'v'=>0 ) );
     }
@@ -535,6 +534,7 @@ class SEEDUIList
         $sHeader = "<tr>";
         $c = 1;
         foreach( $raParms['cols'] as $raCol ) {
+            // This just draws the headers based on the sorting criteria. You have to provide the ViewRows already sorted.
             $bSortingUp   = $iSortup==$c;
             $bSortingDown = $iSortdown==$c;
 
