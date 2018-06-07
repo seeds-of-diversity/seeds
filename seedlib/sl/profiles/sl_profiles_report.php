@@ -93,7 +93,7 @@ class SLProfilesReport
         return( $s );
     }
 
-    function DrawVIForm( $kVI )
+    function DrawVIForm( $kVI, SEEDUI $oUI )
     {
         $s = "";
 
@@ -128,23 +128,18 @@ class SLProfilesReport
         }
 */
 
-        $s .= $this->drawObservationForm( $kfrVI, 'default' );
+        $s .= $this->drawObservationForm( $kfrVI, 'default', $oUI );
 
         done:
         return( $s );
     }
 
-    function drawObservationForm( $kfrVI, $eForm )
+    private function drawObservationForm( $kfrVI, $eForm, SEEDUI $oUI )
     {
         $kVI = $kfrVI->Key();
         list($sp,$cv) = $this->oProfilesDB->ComputeVarInstName( $kfrVI->ValuesRA() );
 
-//        $oKForm = $this->_getKFUFormVI( $kfr );
-
-        $s = "<FORM method='post' action='${_SERVER['PHP_SELF']}'>"
-            ."<DIV style='border:1px solid #eee;padding:10px'>";
-//            ."<FIELDSET class='slUserForm-NO-NOT-THIS-IF-THE-DESCRIPTOR-FORMS-ARE-DRAWN-HERE'>"
-//            ."<LEGEND style='font-weight:bold'>Edit this Variety Record</LEGEND>";
+        $s = "";
 
         /* eForm is either:
                default    = make a form from all the soft-coded tags for the current species
@@ -186,15 +181,14 @@ class SLProfilesReport
         }
 
 
-        $s .= SEEDForm_Hidden( 'action', 'profileUpdate' )
-             .SEEDForm_Hidden( 'kVi', $kVI )
-             ."<input type='hidden' name='sfAui_k' value='$kVI'/>"
-// kluge because ListDrawInteractive needs iCurr, not kCurr
-             .(($iCurr = SEEDInput_Int('sfAui_i')) ? "<input type='hidden' name='sfAui_i' value='$iCurr'/>" : "")
-             //.SEEDForm_Hidden( 'kVI', $this->kVI )
-            ."<BR/><LABEL>&nbsp;</LABEL><INPUT type='submit' value='Save' class='slUserFormButton' />"
-//            ."</FIELDSET>"
-            ."</DIV></FORM>";
+// Use SEEDUI to format the form
+        $s = "<form method='post' action='${_SERVER['PHP_SELF']}'>"
+            ."<div style='border:1px solid #eee;padding:10px'>"
+            .SEEDForm_Hidden( 'action', 'profileUpdate' )
+            .$oUI->HiddenKCurr()
+            .$s
+            ."<br/><input type='submit' value='Save' class='slUserFormButton' />"
+            ."</div></form>";
 
         return( $s );
     }

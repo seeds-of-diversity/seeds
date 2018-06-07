@@ -113,7 +113,12 @@ class SEEDUI
     public function Set_nWindowSize( $i )   { $this->SetUIParm('nWindowSize', $i ); }
 
     // friend classes please only use these for your own custom uiparms - otherwise use the methods above
-    public function GetUIParm( $k )        { return( @$this->raUIParms[$k]['v'] ); }
+    public function GetUIParm( $k )
+    {
+        $p = @$this->raUIParms[$k]['v'];
+        if( in_array( substr($k,0,1), array('i','k','n') ) )  $p = intval($p);      // force these types to integers
+        return( $p );
+    }
     protected function SetUIParm( $k, $v ) { $this->raUIParms[$k]['v'] = $v; }
 
     protected function TranslateParms( $ra, $raUserParms = array() )
@@ -148,7 +153,7 @@ class SEEDUI
         // A lot of the time kCurr will be specified because that's how you make links to non-current records on the screen,
         // but if you're just making a link with a control parm (e.g. filter, sort) you'll want kCurr to be propagated.
         if( !isset($ra[$this->raUIParms['kCurr']['name']]) /* here too? */       )  $ra[$this->raUIParms['kCurr']['name']] = $this->Get_kCurr();
-        if( !isset($ra[$this->raUIParms['iCurr']['name']]) && $this->Get_iCurr() )  $ra[$this->raUIParms['iCurr']['name']] = $this->Get_iCurr();
+//        if( !isset($ra[$this->raUIParms['iCurr']['name']]) && $this->Get_iCurr() )  $ra[$this->raUIParms['iCurr']['name']] = $this->Get_iCurr();
 
         return( $ra );  // the base implementation likes the regular parm names
     }
@@ -471,12 +476,32 @@ class SEEDUIList
             tableWidth            = as ListDrawBasic
             fnRowTranslate        = as ListDrawBasic
 
-            bUse_key              = propagate the _key column as the kCurr uiParm - this is necessary for the caller to re-locate a current row after a sort
+            bUse_key              = activate the use of keys on rows: input and output kCurr uiParm, calculate iCurr/kCurr from each other
 
 //          bNewAllowed           = true if the list is allowed to set links that create new records
      */
     {
         $s = "";
+
+        $bEnableKeys = @$raParms['bUse_key'];
+        if( $bEnableKeys ) {
+            /* If kCurr is given but not iCurr, search the list for the iCurr.
+             * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
+             */
+            if( $this->oUI->Get_kCurr() && !$this->oUI->Get_iCurr() ) {
+                foreach( $raViewRows as $i => $ra ) {
+                    if( @$ra['_key'] && $ra['_key'] == $this->oUI->Get_kCurr() ) {
+                        $this->oUI->Set_iCurr( $i );
+                        break;
+                    }
+                }
+            }
+            /* If kCurr is not given, Try to get the current key from the current row. By default, that will be row 0, which is fine.
+             */
+            if( !$this->oUI->Get_kCurr() && ($k = @$raViewRows[$this->oUI->Get_iCurr()]['_key']) ) {
+                $this->oUI->Set_kCurr( $k );
+            }
+        }
 
         $oLW = new SEEDUIListWindow();
         $oLW->InitListWindow( array(
@@ -594,8 +619,12 @@ class SEEDUIList
          */
 // ListDrawBasic can be enabled to do this, given the iWindowOffset, raSortSame**, bUseKey, bMakeLink, and the app has to use sfLui_k instead of kVi
         for( $i = 0; $i < count($raViewSlice); ++$i ) {
-            $ra = array_merge( $raSortSame, array( 'iCurr' => $i+$iWindowOffset, 'iWindowOffset' => $iWindowOffset ) );
-            $ra['kCurr'] = (@$raParms['bUse_key'] && ($k = @$raViewSlice[$i]['_key'])) ? $k : 0;
+            $ra = $raSortSame;
+            $ra['iCurr'] = $i+$iWindowOffset;
+            $ra['iWindowOffset'] = $iWindowOffset;
+            if( $bEnableKeys && ($k = @$raViewSlice[$i]['_key']) ) {
+                $ra['kCurr'] = $k;
+            }
             $raViewSlice[$i]['sfuiLink'] = $this->oUI->Link( $ra );
         }
 
