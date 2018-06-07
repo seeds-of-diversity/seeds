@@ -188,6 +188,9 @@ class SLProfilesReport
 
         $s .= SEEDForm_Hidden( 'action', 'profileUpdate' )
              .SEEDForm_Hidden( 'kVi', $kVI )
+             ."<input type='hidden' name='sfAui_k' value='$kVI'/>"
+// kluge because ListDrawInteractive needs iCurr, not kCurr
+             .(($iCurr = SEEDInput_Int('sfAui_i')) ? "<input type='hidden' name='sfAui_i' value='$iCurr'/>" : "")
              //.SEEDForm_Hidden( 'kVI', $this->kVI )
             ."<BR/><LABEL>&nbsp;</LABEL><INPUT type='submit' value='Save' class='slUserFormButton' />"
 //            ."</FIELDSET>"
