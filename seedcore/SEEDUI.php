@@ -179,6 +179,15 @@ class SEEDUI
         return( $this->HiddenFormParms( array( 'kCurr' => $this->Get_kCurr() ) ) );
     }
 
+    public function HiddenFormUIParms( $ra )
+    {
+        $raUI = array();
+        foreach( $ra as $k ) {
+            $raUI[$k] = $this->GetUIParm( $k );
+        }
+        return( $this->HiddenFormParms( $raUI ) );
+    }
+
     public function HiddenFormParms( $ra = array() )
     {
         $s = "";

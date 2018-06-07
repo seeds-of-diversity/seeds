@@ -185,7 +185,7 @@ class SLProfilesReport
         $s = "<form method='post' action='${_SERVER['PHP_SELF']}'>"
             ."<div style='border:1px solid #eee;padding:10px'>"
             .SEEDForm_Hidden( 'action', 'profileUpdate' )
-            .$oUI->HiddenKCurr()
+            .$oUI->HiddenFormUIParms( array('kCurr','sortup','sortdown') )
             .$s
             ."<br/><input type='submit' value='Save' class='slUserFormButton' />"
             ."</div></form>";
