@@ -57,7 +57,7 @@ class SLProfilesDefs
         $this->raDefs['pepper'] = SLDescDefsPepper::$raDefsPepper;
         $this->raDefs['potato'] = SLDescDefsPotato::$raDefsPotato;
         $this->raDefs['squash'] = SLDescDefsSquash::$raDefsSquash;
-        $this->raDefs['tomato'] = SLDescDefsTomato::$raDefsTomato;
+        $this->raDefs['tomato'] = array_merge( SLDescDefsCommon::$raDefsCommon, SLDescDefsTomato::$raDefsTomato );
 
 //        $this->raDefs['brassica'] = $this->getDefsFromDB( 'brassica' );
 //        $this->raDefs['corn']     = $this->getDefsFromDB( 'corn' );
