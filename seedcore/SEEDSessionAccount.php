@@ -258,7 +258,7 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
 
     function IsAllowed( $p )
     /***********************
-        $p is a screen name, command name, operation name, or other permssion-formatted string as below
+        $p is a screen name, command name, operation name, or other permission-formatted string as below
 
         Permission is defined by the format of the name
 

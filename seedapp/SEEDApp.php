@@ -113,4 +113,85 @@ class SEEDApp_WorkerC extends SEEDApp_Worker
     }
 }
 
+
+
+/* Base classes to support the Q paradigm for ajax-compatible methods
+ */
+
+class SEEDQ
+{
+    public $oApp;
+    public $raParms;
+    public $bUTF8 = false;
+
+    function __construct( SEEDAppDB $oApp, $raParms = array() )     // you can use any SEEDApp* object
+    {
+        $this->oApp = $oApp;
+        $this->raParms = $raParms;
+        $this->bUTF8 = intval(@$raParms['bUTF8']);
+    }
+
+    function Cmd( $cmd, $parms )
+    {
+        $rQ = $this->GetEmptyRQ();
+
+        /* Derived classes should implement their own cmd processors.
+         */
+
+        if( $cmd == 'test' ) {
+            $rQ['bOk'] = true;
+            $rQ['sOut'] = "Test is successful";
+            $rQ['raOut'] = array( array( 'first name' => "Fred", 'last name' => "Flintstone" ),
+                                  array( 'first name' => "Barney", 'last name' => "Rubble" ) );
+            $rQ['raMeta']['title'] = "Test";
+            $rQ['raMeta']['name'] = "qtest";
+        }
+
+        return( $rQ );
+    }
+
+    function QCharset( $s )
+    /**********************
+        If the input is cp1252, the output will be the charset defined by $this->bUTF8
+     */
+    {
+        return( $this->bUTF8 ? utf8_encode( $s ) : $s );
+    }
+
+    function GetEmptyRQ()
+    /********************
+     */
+    {
+        return( array( 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>array(), 'raMeta'=>array() ) );
+    }
+}
+
+
+class SEEDQCursor
+{
+    public $kfrc;
+    private $fnGetNextRow;    // function to translate kfrc->values to the GetNextRow values
+    private $raParms;
+
+    function __construct( KeyframeRecordCursor $kfrc, $fnGetNextRow, $raParms )
+    {
+        $this->kfrc = $kfrc;
+        $this->fnGetNextRow = $fnGetNextRow;
+        $this->raParms = $raParms;
+    }
+
+    function GetNextRow()
+    {
+        $raOut = null;
+        if( $this->kfrc->CursorFetch() ) {
+            if( $this->fnGetNextRow ) {
+                $raOut = call_user_func( $this->fnGetNextRow, $this, $this->raParms );
+            } else {
+                $raOut = $this->kfrc->ValuesRA();
+            }
+        }
+        return( $raOut );
+    }
+}
+
 ?>
