@@ -85,11 +85,12 @@ class SEEDGoogleService
 
     private function initClient()
     {
-        $this->client = new Google_Client();
-        $this->client->setApplicationName( $this->raParms['application_name'] );
-        $this->client->setScopes( $this->raParms['scopes'] );
-        $this->client->setAuthConfig( $this->raParms['client_secret_file'] );   // provided by Google API to identify us for quota purposes
-        $this->client->setAccessType('offline');
+        if( ($this->client = new Google_Client()) ) {   // this will fail if you happen to be offline
+            $this->client->setApplicationName( $this->raParms['application_name'] );
+            $this->client->setScopes( $this->raParms['scopes'] );
+            $this->client->setAuthConfig( $this->raParms['client_secret_file'] );   // provided by Google API to identify us for quota purposes
+            $this->client->setAccessType('offline');
+        }
     }
 
     private function setAccess( $accessToken )
