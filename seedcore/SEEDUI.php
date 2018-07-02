@@ -5,6 +5,28 @@
  * Copyright (c) 2013-2018 Seeds of Diversity Canada
  *
  * Classes that manage control parms for forms, UI components, and SEEDForms.
+ *
+ * SEEDUI
+ *     Knows about the current state of UI variables (current row, window size, etc).
+ *     Non-base variables are defined through an initialization method, not usually a derived class.
+ *     Derived classes are for different methods of storage e.g. session vars
+ *
+ * SEEDUIComponent( SEEDUI )
+ *     Knows about a View on an abstract data relation, and uses a SEEDForm to update row(s) in the View.
+ *     Uses SEEDUI to keep track of variables such as the current row.
+ *     Derived classes provide methods for reading and writing. Derived SEEDForm classes are created by factory to facilitate updating rows.
+ *
+ * SEEDUIWidget*( SEEDUIComponent )
+ *     Draw UI controls such as lists, forms, search boxes.
+ *     Use SEEDUI to create links and buttons that affect the UI state.
+ *     Influence the SEEDUIComponent parameters when the View is computed.
+ *
+ *
+ * After all widgets are constructed:
+ *      SEEDUIComponent->Update() processes any form submission(s), row deletions, etc.
+ *      Each widget->Init() evaluates current state via SEEDUI variables and sets view conditions on SEEDUIComponent.
+ *      SEEDUIComponent->GetView() or ->GetWindow() uses those conditions to fetch required data.
+ *      Each widget->Draw() requests data from component and/or SEEDUI to draw its widget.
  */
 
 
@@ -22,7 +44,7 @@ class SEEDUI
         sf[[cid]]ui_iWO    = the window offset of component cid
         sf[[cid]]ui_nWS    = the window size of component cid
 
-    See definitions of Views and Windows in SEEDComponent.
+    See definitions of Views and Windows in SEEDUIComponent.
  */
 {
     protected $cid;
@@ -44,21 +66,26 @@ class SEEDUI
         $this->raParms = $raParms;
         $this->lang = @$raParms['lang'] == 'FR' ?: "EN";
 
-        // Initialize the uiParms. It is done one by one through a protected method so derived classes can do this too.
-        // The constructor raParms can contain initial values and alternate http names
-        // e.g. $raParms['raUIParms']['iCurr'] = array( 'name'=>'xfui[[cid]]_iHere','v'=>1234 )
-        foreach( array( 'kCurr'         => array( 'name'=>'sf[[cid]]ui_k',    'v'=>0 ),
-                        'iCurr'         => array( 'name'=>'sf[[cid]]ui_i',    'v'=>0 ),
-                        'bNew'          => array( 'name'=>'sf[[cid]]ui_bNew', 'v'=>0 ),
-                        'kDel'          => array( 'name'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
-                        'iWindowOffset' => array( 'name'=>'sf[[cid]]ui_iWO',  'v'=>0 ),
-                        'nWindowSize'   => array( 'name'=>'sf[[cid]]ui_nWS',  'v'=>0 ) )
-                 as $k => $ra )
+        /* Initialize the uiParms. It is done one by one through a public method so derived SEEDUI classes and widgets can do this too.
+         * The constructor raParms can contain initial values and alternate http names
+         * e.g. $raParms['raUIParms']['iCurr'] = array( 'name'=>'xfui[[cid]]_iHere','v'=>1234 )
+         */
+        $raUIParms = array( 'kCurr'         => array( 'name'=>'sf[[cid]]ui_k',    'v'=>0 ),
+                            'iCurr'         => array( 'name'=>'sf[[cid]]ui_i',    'v'=>0 ),
+                            'bNew'          => array( 'name'=>'sf[[cid]]ui_bNew', 'v'=>0 ),
+                            'kDel'          => array( 'name'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
+                            'iWindowOffset' => array( 'name'=>'sf[[cid]]ui_iWO',  'v'=>0 ),
+                            'nWindowSize'   => array( 'name'=>'sf[[cid]]ui_nWS',  'v'=>0 ) );
+        if( isset($raParms['raUIParms']) ) {
+            $raUIParms = array_merge( $raUIParms, $raParms['raUIParms'] );
+        }
+        foreach( $raUIParms as $k => $ra )
         {
-            $this->InitUIParm( $k, @$raParms['raUIParms'][$k] ?: $ra );
+            $this->RegisterUIParm( $k, @$raParms['raUIParms'][$k] ?: $ra );
         }
 
-        // Set default attrs for links and forms
+        /* Set default attrs for links and forms
+         */
         foreach( array( 'sListUrlPage'   => $_SERVER['PHP_SELF'],
                         'sListUrlTarget' => "_top",
                         'sFormAction'    => $_SERVER['PHP_SELF'],
@@ -70,11 +97,14 @@ class SEEDUI
         }
     }
 
-    public function InitUIParm( $k, $ra )
-    /************************************
-        Derived classes can call this to add custom uiparms.
+    public function RegisterUIParm( $k, $ra )
+    /****************************************
+        A widget is saying that it wants a ui parm to be read from $_REQUEST and propagated by all links/forms in the UI.
+        Within the SEEDUI* code the parm is known by the value $k, but as an http parm it is mapped to $ra['name'] as below.
 
-        The constructor can also take $raParms['raUIParms'][parmname]['v'] to set a custom uiparm or set a value to a base uiparm.
+        $ra = array( 'name'=>'sf[[cid]]ui_foo', 'v'=>initial-value )
+
+        SEEDUI::__construct can also take $raParms['raUIParms'][parmname]['v'] to set a custom uiparm or set a value to a base uiparm.
         (That's a good way for derived classes to set uiparm values stored e.g. in session vars)
 
         If parms are found in _REQUEST those override all other sources.
@@ -85,16 +115,15 @@ class SEEDUI
         } else {
             // Redefine the name, value, or both
             if( isset($ra['name']) )  $this->raUIParms[$k]['name'] = $ra['name'];
-            if( isset($ra['v']) )     $this->setUIParm( $k, $ra['v'] );
+            if( isset($ra['v']) )     $this->SetUIParm( $k, $ra['v'] );
         }
 
-        // Set the cid within the parm's http name
+        // Subst the cid within the parm's http name
         $this->raUIParms[$k]['name'] = str_replace( "[[cid]]", $this->cid, $this->raUIParms[$k]['name'] );
 
         // Override any uiParm value with http (after the [[cid]] replacement)
         if( isset($_REQUEST[$this->raUIParms[$k]['name']]) ) {
-            //This assumes every uiParm is integer
-            $this->SetUIParm( $k, SEEDInput_Int($this->raUIParms[$k]['name']) );
+            $this->SetUIParm( $k, $_REQUEST[$this->raUIParms[$k]['name']] );    // will be converted to integer if $k has implicit type
         }
     }
 
@@ -119,11 +148,15 @@ class SEEDUI
         if( in_array( substr($k,0,1), array('i','k','n') ) )  $p = intval($p);      // force these types to integers
         return( $p );
     }
-    protected function SetUIParm( $k, $v ) { $this->raUIParms[$k]['v'] = $v; }
+    protected function SetUIParm( $k, $v )
+    {
+        if( in_array( substr($k,0,1), array('i','k','n') ) )  $v = intval($v);      // force these types to integers
+        $this->raUIParms[$k]['v'] = $v;
+    }
 
     protected function TranslateParms( $ra, $raUserParms = array() )
     /***************************************************************
-        This maps parm names from whatever names you use in your method calls to whatever names you want in http.
+        Map the internal parm names e.g. kCurr to http parm names e.g. sfAui_k
 
         raUserParms is available for derived classes to pass special parameters - it is propagated through Link, HRef, LinkParms, etc
 
@@ -139,24 +172,22 @@ class SEEDUI
         return( $raOut );
      */
     {
-        // As a convenience, we map typical alias parm names to the http parm names.
-        if( !@$this->raParms['bDisableAliases'] ) {
-            foreach( $this->raUIParms as $k => $raDummy ) {
-                if( isset($ra[$k]) ) {
-                    $ra[$this->raUIParms[$k]['name']] = $ra[$k];
-                    unset( $ra[$k] );
-                }
+        // You almost always want kCurr so we add it to the array every time so you don't have to
+        if( !isset($ra['kCurr']) )  $ra['kCurr'] = $this->Get_kCurr();
+
+        // Map every known parm name to its http name
+        foreach( $this->raUIParms as $k => $raMap ) {
+            if( isset($ra[$k]) ) {
+                $ra[$raMap['name']] = $ra[$k];
+                unset( $ra[$k] );
             }
         }
 
-        // Base behaviour is to add the kCurr parm if it is not specified explicitly
-        // A lot of the time kCurr will be specified because that's how you make links to non-current records on the screen,
-        // but if you're just making a link with a control parm (e.g. filter, sort) you'll want kCurr to be propagated.
-        if( !isset($ra[$this->raUIParms['kCurr']['name']]) /* here too? */       )  $ra[$this->raUIParms['kCurr']['name']] = $this->Get_kCurr();
-//        if( !isset($ra[$this->raUIParms['iCurr']['name']]) && $this->Get_iCurr() )  $ra[$this->raUIParms['iCurr']['name']] = $this->Get_iCurr();
-
         return( $ra );  // the base implementation likes the regular parm names
     }
+
+
+
 
     public function HRef( $ra = array(), $raUserParms = array() )    // userParms can be used by derived classes
     {
@@ -303,6 +334,132 @@ class SEEDUI
     }
 }
 
+class SEEDUIComponent
+/********************
+    A UI Component has a View on a data relation, and a SEEDForm that can act on the row(s).
+
+    Data, and the data relation, are provided by a derived class.
+    The SEEDForm is created with a factory, because the derived component will probably want a SEEDForm that knows about its datasource.
+
+    Widgets call:
+        SetViewParms()   : impose conditions on the View
+        GetView()        : fetch all the data of the View
+        GetWindow()      : fetch the data of a defined Window on the View
+        RegisterWidget() : the component knows about all of the widgets that use it so it can notify them when the View changes
+ */
+{
+    public    $oUI;
+    protected $raCompConfig = array();
+    protected $raViewParms = array();   // normalized set of view control parms (sSortCol, bSortDown, etc) taken from SEEDForm::ControlGet() or defaults
+    protected $raWindowParms = array(); // normalized set of window control parms (iOffset, iLimit)
+
+    //private $bNewRow = false;         // set by sfAx_new control code
+    protected $oForm;
+
+    function __construct( SEEDUI $oUI, $raCompConfig = array() )
+    {
+        $this->oUI = $oUI;
+        $this->raCompConfig = $raCompConfig;
+
+        $this->oForm = $this->factory_SEEDForm( $cid,
+                                                isset($raCompConfig['raSEEDFormParms']) ? $raCompConfig['raSEEDFormParms'] : array() );
+    }
+
+    function Update()
+    /****************
+        Call this before reading any data or drawing any widgets
+     */
+    {
+        $this->oForm->Update();
+
+        /* Since the Form->Update() can insert a new row, fix up the kCurr to reflect that, and tell the derived component about it.
+         * We defensively check here that the derived oForm has a GetKey, but you should always have that if you're using a SEEDUIComponent.
+         */
+        if( method_exists($this->oForm,'GetKey') && ($k = $this->oForm->GetKey()) ) {
+            $this->oUI->Set_kCurr( $k );
+            $this->SetKey( $k );                // this was $this->kfuiCurrRow->SetKey(  );
+        }
+/*
+        if( $this->oForm->ControlGet('newrow') == 1 ) {
+            // command has been issued to create a new row
+            $this->bNewRow = true;
+            $this->kfuiCurrRow->SetKey( 0 ); // clear the curr row; this also clears the kfr in the oForm
+        }
+
+        if( $this->oForm->ControlGet('deleterow') == 1 ) {
+            // command has been issued to delete the current row
+            //
+            // This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
+            // detect that here so that the UI can be reset to reflect the missing row
+            if( $this->oForm->GetKey() && ($kfr = $this->kfuiCurrRow->GetKFR()) ) {
+                $bDelOk = isset($this->raCompConfig['fnPreDelete']) ? call_user_func( $this->raCompConfig['fnPreDelete'], $kfr ) : true;
+                //var_dump($bDelOk);
+                if( $bDelOk ) {
+                //    $kfr->StatusSet( KFRECORD_STATUS_DELETED );
+                //    $kfr->PutDBRow();
+                //    $this->kfuiCurrRow->SetKey( 0 ); // clear the curr row; this also clears the kfr in the oForm
+                }
+            }
+        }
+*/
+
+/*
+SEEDUI should pick these up
+
+        [* Create a normalized complete set of View parms from the sfu parms
+         *]
+        // var_dump($this->oForm->raCtrlGlobal);
+        $this->raViewParms['sSortCol']  = $this->oForm->ControlGet('sSortCol');
+        $this->raViewParms['sGroupCol'] = $this->oForm->ControlGet('sGroupCol');
+        $this->raViewParms['bSortDown'] = ($this->oForm->ControlGet('bSortDown') ? true : false);
+        $this->raViewParms['iStatus'] = intval($this->oForm->ControlGet('iStatus'));
+        // this is an alternate way to specify sort parms, which overrides the above
+        if( $this->oForm->ControlGet('sortup') ) {
+            $this->raViewParms['sSortCol'] = $this->oForm->ControlGet('sortup');
+            $this->raViewParms['bSortDown'] = false;
+        } else if( $this->oForm->ControlGet('sortdown') ) {
+            $this->raViewParms['sSortCol'] = $this->oForm->ControlGet('sortdown');
+            $this->raViewParms['bSortDown'] = true;
+        }
+
+        [* Create a normalized complete set of Window parms from the sfu parms
+         *]
+        $this->raWindowParms['iOffset'] = intval($this->oForm->CtrlGlobal('iOffset'));
+        if( !($this->raWindowParms['iLimit'] = intval($this->oForm->CtrlGlobal('iLimit'))) ) {
+            if( !($this->raWindowParms['iLimit'] = $this->raCompConfig['ListSize']) ) {  // ListSize==0 means no limit
+                $this->raWindowParms['iLimit'] = -1;
+            }
+        }
+*/
+    }
+
+    function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
+    {
+        return( new SEEDCoreForm( $cid, $raSFParms ) );
+    }
+
+}
+
+
+class SEEDUIWidget_ListBasic
+{
+    private $oComp;
+
+    function __construct( SEEDUIComponent $oComp )
+    {
+        $this->oComp = $oComp;
+    }
+
+    function Init()
+    {
+        // tell the component any view parms
+    }
+
+    function Draw()
+    {
+// Maybe this just takes an array, and the constructor only needs a SEEDUI
+    }
+}
 
 class SEEDUIList
 {
@@ -312,10 +469,9 @@ class SEEDUIList
     {
         $this->oUI = $oUI;
 
-        // Create these UI parms for the interactive list widget
-        // sortup is mutex to sortdown: they are the origin-1 index of the column being sorted
-        $this->oUI->InitUIParm( 'sortup',   array( 'name'=>'sf[[cid]]ui_sortup',   'v'=>0 ) );
-        $this->oUI->InitUIParm( 'sortdown', array( 'name'=>'sf[[cid]]ui_sortdown', 'v'=>0 ) );
+        // Tell SEEDUI that these parms should be read from $_REQUEST, and propagated in all links/forms in the UI
+        $this->oUI->RegisterUIParm( 'sortup',   array( 'name'=>'sf[[cid]]ui_sortup',   'v'=>0 ) );
+        $this->oUI->RegisterUIParm( 'sortdown', array( 'name'=>'sf[[cid]]ui_sortdown', 'v'=>0 ) );
     }
 
     function Style()
