@@ -264,6 +264,64 @@ class SEEDSessionAccountDBRead
         return( $raMetadata );
     }
 
+
+    function GetPermsFromUser( $kUser )
+    /**********************************
+        Get the given user's permissions from perms and group-perms.
+
+            e.g. for perms  'app1','R'
+                            'app2','W'  & group 'app2','R'
+                            'app3','RW' & group 'app3'=>'RWA'
+
+                 'perm2modes' => array( 'app1'=>'R', 'app2'=>'RW', 'app3'=>'RWA' ),
+                 'mode2perms' => array( 'R'=>array('app1','app2','app3'), 'W'=>array('app2','app3'), 'A'=>array('app3') )
+     */
+    {
+        return( $this->getPermsList(
+                // Get perms explicitly set for this uid
+                "SELECT perm,modes FROM SEEDSession_Perms WHERE _status=0 AND uid='$kUser' "
+               ."UNION "
+                // Get perms associated with the user's primary group
+               ."SELECT P.perm AS perm, P.modes as modes "
+               ."FROM SEEDSession_Perms P, SEEDSession_Users U "
+               ."WHERE P._status=0 AND U._status=0 AND "
+               ."U._key='$kUser' AND U.gid1 >=1 AND P.gid=U.gid1 "
+               ."UNION "
+                // Get perms from groups
+               ."SELECT P.perm AS perm, P.modes as modes "
+               ."FROM SEEDSession_Perms P, SEEDSession_UsersXGroups GU "
+               ."WHERE P._status=0 AND GU._status=0 AND "
+               ."GU.uid='$kUser' AND GU.gid >=1 AND GU.gid=P.gid" ) );
+    }
+
+    function GetPermsFromGroup( $kGroup )
+    /************************************
+        Get the given group's permissions in the same format as GetPermsFromUserKey
+     */
+    {
+        return( $this->getPermsList( "SELECT P.perm AS perm, P.modes as modes FROM SEEDSession_Perms P "
+                                    ."WHERE P._status=0 AND P.gid='$kGroup'" ) );
+    }
+
+    private function getPermsList( $sql )
+    {
+        $raRet = array( 'perm2modes' => array(), 'mode2perms' => array( 'R'=>array(), 'W'=>array(), 'A'=>array() ) );
+        if( ($dbc = $this->kfdb->CursorOpen( $sql )) ) {
+            while( $ra = $this->kfdb->CursorFetch( $dbc ) ) {
+                if( strchr($ra['modes'],'R') && !in_array($ra['perm'], $raRet['mode2perms']['R']) ) { $raRet['mode2perms']['R'][] = $ra['perm']; }
+                if( strchr($ra['modes'],'W') && !in_array($ra['perm'], $raRet['mode2perms']['W']) ) { $raRet['mode2perms']['W'][] = $ra['perm']; }
+                if( strchr($ra['modes'],'A') && !in_array($ra['perm'], $raRet['mode2perms']['A']) ) { $raRet['mode2perms']['A'][] = $ra['perm']; }
+            }
+            $this->kfdb->CursorClose( $dbc );
+        }
+        foreach( $raRet['mode2perms']['R'] as $p ) { $raRet['perm2modes'][$p]  = "R"; }
+        foreach( $raRet['mode2perms']['W'] as $p ) { @$raRet['perm2modes'][$p] .= "W"; } // the @ prevents warning if R is not set so index not found for concatenation
+        foreach( $raRet['mode2perms']['A'] as $p ) { @$raRet['perm2modes'][$p] .= "A"; }
+
+        return( $raRet );
+    }
+
+
     function GetSessionHashSeed()
     /****************************
         For security operations that involve a publicly transmitted hash based on some public data + some non-public data, this is the non-public data.

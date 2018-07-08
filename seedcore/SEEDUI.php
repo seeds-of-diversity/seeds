@@ -27,6 +27,19 @@
  *      Each widget->Init() evaluates current state via SEEDUI variables and sets view conditions on SEEDUIComponent.
  *      SEEDUIComponent->GetView() or ->GetWindow() uses those conditions to fetch required data.
  *      Each widget->Draw() requests data from component and/or SEEDUI to draw its widget.
+ *
+ *
+ * 1) When a Widget is constructed it Registers its uiparms with SEEDUI, which then loads them from _REQUEST.  (Also indicate which should be propagated/stored?)
+ * 2) The Widget also Registers itself with the Component.
+ * 3) When all Widgets are constructed, call Component::Start.
+ *    That calls each Widget with Init1, providing SEEDUI's lists of current uiparms and previous uiparms. The base SEEDUI has an empty array for previous uiparms,
+ *    but derived classes should store them somewhere. Each Widget looks at the current and previous uiparms to determine whether some UI state should change as a result.
+ *    It returns an array of UI state change advisories. array() means no changes.
+ * 4) The Component collects all unique UI state change advisories and calls each Widget with Init2 and the list of advisories. Each Widget responds to advisories by
+ *    telling SEEDUI to change uiparms accordingly.
+ * 5) Then the Component calls each Widget with Init3 to obtain an array of sql filters corresponding to view conditions based on UI parms.
+ * 6) The Component fetches the current row, formulates the sql query for the View, and fetches a Window.
+ * 7) When you call the Draw method of a Widget, it will give you the correct html.
  */
 
 
@@ -48,7 +61,7 @@ class SEEDUI
  */
 {
     protected $cid;
-    protected $raParms;
+    protected $raConfig;
     protected $lang;       // used for default button labels
 
     public $kCurr = 0;     // the key of the current element in some list or table
@@ -60,15 +73,15 @@ class SEEDUI
     // derived classes can add arbitrary parms and the base class can iterate to manage them
     private $raUIParms = array();
 
-    function __construct( $cid = 'A', $raParms = array() )
+    function __construct( $cid = 'A', $raConfig = array() )
     {
         $this->cid = $cid;
-        $this->raParms = $raParms;
-        $this->lang = @$raParms['lang'] == 'FR' ?: "EN";
+        $this->raConfig = $raConfig;
+        $this->lang = @$raConfig['lang'] == 'FR' ?: "EN";
 
         /* Initialize the uiParms. It is done one by one through a public method so derived SEEDUI classes and widgets can do this too.
-         * The constructor raParms can contain initial values and alternate http names
-         * e.g. $raParms['raUIParms']['iCurr'] = array( 'name'=>'xfui[[cid]]_iHere','v'=>1234 )
+         * The constructor raConfig can contain initial values and alternate http names
+         * e.g. $raConfig['raUIParms']['iCurr'] = array( 'name'=>'xfui[[cid]]_iHere','v'=>1234 )
          */
         $raUIParms = array( 'kCurr'         => array( 'name'=>'sf[[cid]]ui_k',    'v'=>0 ),
                             'iCurr'         => array( 'name'=>'sf[[cid]]ui_i',    'v'=>0 ),
@@ -76,12 +89,12 @@ class SEEDUI
                             'kDel'          => array( 'name'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
                             'iWindowOffset' => array( 'name'=>'sf[[cid]]ui_iWO',  'v'=>0 ),
                             'nWindowSize'   => array( 'name'=>'sf[[cid]]ui_nWS',  'v'=>0 ) );
-        if( isset($raParms['raUIParms']) ) {
-            $raUIParms = array_merge( $raUIParms, $raParms['raUIParms'] );
+        if( isset($raConfig['raUIParms']) ) {
+            $raUIParms = array_merge( $raUIParms, $raConfig['raUIParms'] );
         }
         foreach( $raUIParms as $k => $ra )
         {
-            $this->RegisterUIParm( $k, @$raParms['raUIParms'][$k] ?: $ra );
+            $this->RegisterUIParm( $k, @$raConfig['raUIParms'][$k] ?: $ra );
         }
 
         /* Set default attrs for links and forms
@@ -93,7 +106,7 @@ class SEEDUI
                         'sFormTarget'    => "_top" )
                  as $k => $v )
         {
-            if( empty($this->raParms[$k]) ) $this->raParms[$k] = $v;
+            if( empty($this->raConfig[$k]) ) $this->raConfig[$k] = $v;
         }
     }
 
@@ -104,14 +117,15 @@ class SEEDUI
 
         $ra = array( 'name'=>'sf[[cid]]ui_foo', 'v'=>initial-value )
 
-        SEEDUI::__construct can also take $raParms['raUIParms'][parmname]['v'] to set a custom uiparm or set a value to a base uiparm.
+        SEEDUI::__construct can also take $raConfig['raUIParms'][parmname]['v'] to set a custom uiparm or set a value to a base uiparm.
         (That's a good way for derived classes to set uiparm values stored e.g. in session vars)
 
         If parms are found in _REQUEST those override all other sources.
      */
     {
         if( !isset($this->raUIParms[$k] ) ) {
-            $this->raUIParms[$k] = $ra;
+            $this->raUIParms[$k]['name'] = $ra['name'];
+            $this->SetUIParm( $k, @$ra['v'] );          // do it this way to employ the type logic in SetUIParm
         } else {
             // Redefine the name, value, or both
             if( isset($ra['name']) )  $this->raUIParms[$k]['name'] = $ra['name'];
@@ -121,11 +135,14 @@ class SEEDUI
         // Subst the cid within the parm's http name
         $this->raUIParms[$k]['name'] = str_replace( "[[cid]]", $this->cid, $this->raUIParms[$k]['name'] );
 
-        // Override any uiParm value with http (after the [[cid]] replacement)
+        // Overwrite any uiParm value with http (after the [[cid]] replacement)
         if( isset($_REQUEST[$this->raUIParms[$k]['name']]) ) {
             $this->SetUIParm( $k, $_REQUEST[$this->raUIParms[$k]['name']] );    // will be converted to integer if $k has implicit type
         }
     }
+
+    public function Cid()               { return( $this->cid ); }
+    public function Config( $k )        { return( @$this->raConfig[$k] ); }
 
     public function Get_kCurr()         { return( $this->GetUIParm('kCurr') ); }
     public function Get_iCurr()         { return( $this->GetUIParm('iCurr') ); }
@@ -145,13 +162,34 @@ class SEEDUI
     public function GetUIParm( $k )
     {
         $p = @$this->raUIParms[$k]['v'];
-        if( in_array( substr($k,0,1), array('i','k','n') ) )  $p = intval($p);      // force these types to integers
+        // if( in_array( substr($k,0,1), array('i','k','n') ) )  $p = intval($p);      already done whenever Set
         return( $p );
     }
     protected function SetUIParm( $k, $v )
     {
         if( in_array( substr($k,0,1), array('i','k','n') ) )  $v = intval($v);      // force these types to integers
         $this->raUIParms[$k]['v'] = $v;
+    }
+
+    public function GetUIParmsList()
+    /*******************************
+        Return an array of all UI parms
+     */
+    {
+        $raOut = array();
+        foreach( $this->raUIParms as $k => $ra ){
+            $raOut[$k] = $ra['v'];
+        }
+        return( $raOut );
+    }
+
+    public function GetUIParmsListOld()
+    /**********************************
+        Override to return an array of all UI parms from the previous page.
+        A derived class might store these in the session, or wherever.
+     */
+    {
+        return( array() );
     }
 
     protected function TranslateParms( $ra, $raUserParms = array() )
@@ -191,12 +229,12 @@ class SEEDUI
 
     public function HRef( $ra = array(), $raUserParms = array() )    // userParms can be used by derived classes
     {
-        return( "href='".$this->Link($ra, $raUserParms)."' target='".$this->raParms['sListUrlTarget']."'" );
+        return( "href='".$this->Link($ra, $raUserParms)."' target='".$this->raConfig['sListUrlTarget']."'" );
     }
 
     public function Link( $ra = array(), $raUserParms = array() )    // userParms can be used by derived classes
     {
-        return( $this->raParms['sListUrlPage']."?".$this->LinkParms($ra,$raUserParms) );
+        return( $this->raConfig['sListUrlPage']."?".$this->LinkParms($ra,$raUserParms) );
     }
 
     protected function LinkParms( $ra = array(), $raUserParms = array() )    // userParms can be used by derived classes
@@ -316,14 +354,14 @@ class SEEDUI
 
     protected function FormDraw( $sControls, $raHidden = array(), $raParms = array() )
     /*********************************************************************************
-        Draw a set of controls in a <FORM> that propagates the given parms.
+        Draw a set of controls in a <form> that propagates the given parms.
      */
     {
         $sAttr = @$raParms['bInline'] ? "style='display:inline'" : "";
         $sOnSubmit = @$raParms['onSubmit'] ? " onSubmit='{$raParms['onSubmit']}'" : "";
 
-        $s = "<form $sAttr action='{$this->raParms['sFormAction']}' method='{$this->raParms['sFormMethod']}'"
-            .(empty($this->raParms['sFormTarget']) ? "" : " target='{$this->raParms['sFormTarget']}'")
+        $s = "<form $sAttr action='{$this->raConfig['sFormAction']}' method='{$this->raConfig['sFormMethod']}'"
+            .(empty($this->raConfig['sFormTarget']) ? "" : " target='{$this->raConfig['sFormTarget']}'")
             .$sOnSubmit
             .">"
             .$sControls
@@ -350,20 +388,25 @@ class SEEDUIComponent
 {
     public    $oUI;
     protected $raCompConfig = array();
-    protected $raViewParms = array();   // normalized set of view control parms (sSortCol, bSortDown, etc) taken from SEEDForm::ControlGet() or defaults
-    protected $raWindowParms = array(); // normalized set of window control parms (iOffset, iLimit)
+    public    $oForm;                   // widgets use this to draw controls
+    protected $sSqlCond = "";           // sql condition for the View, built here just to be nice to the derived class that implements db access
 
-    //private $bNewRow = false;         // set by sfAx_new control code
-    protected $oForm;
+    private   $raWidgets = array();     // every widget registers itself with the component for the initialization routine
 
     function __construct( SEEDUI $oUI, $raCompConfig = array() )
     {
         $this->oUI = $oUI;
         $this->raCompConfig = $raCompConfig;
 
-        $this->oForm = $this->factory_SEEDForm( $cid,
+        $this->oForm = $this->factory_SEEDForm( $this->oUI->Cid(),
                                                 isset($raCompConfig['raSEEDFormParms']) ? $raCompConfig['raSEEDFormParms'] : array() );
     }
+
+    protected function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
+    {
+        return( new SEEDCoreForm( $cid, $raSFParms ) );
+    }
+
 
     function Update()
     /****************
@@ -433,46 +476,411 @@ SEEDUI should pick these up
 */
     }
 
-    function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
+    function Start()
+    /***************
+        Call this after Update(), and after Widgets are constructed, to initialize the widgets and the View.
+     */
     {
-        return( new SEEDCoreForm( $cid, $raSFParms ) );
+        /* Notify every widget of the new and old ui parms. They return arrays of state change advisories.
+         */
+        $raAdvisories = array();
+        foreach( $this->raWidgets as $ra ) {
+            $raAdvisories = array_merge( $raAdvisories, $ra['oWidget']->Init1_NotifyUIParms( $this->oUI->GetUIParmsListOld(), $this->oUI->GetUIParmsList() ) );
+        }
+        $raAdvisories = array_unique($raAdvisories);
+
+        /* Provide the list of advisories (even if it's empty) to every widget so they can tell SEEDUI how to alter the uiparms wrt state changes.
+         */
+        foreach( $this->raWidgets as $ra ) {
+            $ra['oWidget']->Init2_NotifyUIStateChanges( $raAdvisories );
+        }
+
+        /* Request sql filters from every widget, now that uiparms are stable and reflect the View state.
+         */
+        $raSqlCond = array();
+        foreach( $this->raWidgets as $ra ) {
+            if( ($cond = $ra['oWidget']->Init3_RequestSQLFilter()) ) {
+                $raSqlCond[] = "($cond)";
+            }
+        }
+        $this->sSqlCond = implode( " AND ", $raSqlCond );
+
+        /* The sqlCond step is a gift to a derived class that would actually implement db access
+         */
+    }
+
+    function RegisterWidget( SEEDUIWidget_Base $o, $raUIParms )
+    /**********************************************************
+        Every widget calls this with a reference to itself, so the component can do the initialization routine with all widgets.
+        raUIParms is the list of uiparms for the given widget, that SEEDUI should propagate in links/forms of other widgets.
+     */
+    {
+        $this->raWidgets[] = array( 'oWidget'=>$o, 'uiparmsdef'=>$raUIParms );
+        foreach( $raUIParms as $k => $ra ) {
+            $this->oUI->RegisterUIParm( $k, $ra );
+        }
+    }
+
+
+    function DrawWidgetInForm( $sControls, $oWidget, $raParms = array() )
+    /********************************************************************
+        Draw the given input control string in a form using SEEDUI's form config.
+        Add hidden parms for all uiparms except for the given widget (those uiparms are assumed to be in the controls string).
+
+        You can prevent uiparms from being propagated (e.g. because they are already encoded in sControls) by naming them in raParms['omitUIParms'].
+        To make the array format similar to the HRef and Link methods, please use array( 'uiparm1'=>dummy, 'uiparm2'=>dummy ) instead of listing the uiparms as values.
+     */
+    {
+        $raOtherUIParms = $this->getUIParmsFromOtherWidgets( $oWidget, @$raParms['omitUIParms'] ?: array() );
+
+        $sAttr = @$raParms['bInline'] ? "style='display:inline'" : "";
+        $sOnSubmit = @$raParms['onSubmit'] ? " onSubmit='{$raParms['onSubmit']}'" : "";
+
+        $s = "<form $sAttr action='".$this->oUI->Config('sFormAction')."' method='".$this->oUI->Config('sFormMethod')."'"
+            .(($p = $this->oUI->Config('sFormTarget')) ? " target='$p'" : "")
+            .$sOnSubmit
+            .">"
+            .$sControls
+            .$this->oUI->HiddenFormParms( $raOtherUIParms )
+            ."</form>";
+
+         return( $s );
+    }
+
+    function HRefForWidget( SEEDUIWidget_Base $oWidget, $raUIParms )
+    /***************************************************************
+        Make a href with the given uiparms, plus the uiparms for other widgets.
+        i.e. raUIParms are assumed to be all the uiparms for the given widget, plus any base uiparms that need to change, if the link is clicked.
+     */
+    {
+        $raUIParms = array_merge( $raUIParms, $this->getUIParmsFromOtherWidgets( $oWidget, $raUIParms ) );
+        return( $this->oUI->HRef( $raUIParms ) );
+    }
+
+    function LinkForWidget( SEEDUIWidget_Base $oWidget, $raUIParms )
+    /***************************************************************
+        Make a link with the given uiparms, plus the uiparms for other widgets
+     */
+    {
+        $raUIParms = array_merge( $raUIParms, $this->getUIParmsFromOtherWidgets( $oWidget, $raUIParms ) );
+        return( $this->oUI->Link( $raUIParms ) );
+    }
+
+    private function getUIParmsFromOtherWidgets( $oWidget, $raMyUIParms )
+    {
+        $raOtherUIParms = array();
+        if( $oWidget ) {
+            foreach( $this->raWidgets as $ra ) {
+                if( $ra['oWidget'] !== $oWidget ) {     // matches the actual instance of the object, not just comparing content
+                    foreach( $ra['uiparmsdef'] as $k => $dummy ) {
+                        $raOtherUIParms[$k] = $this->oUI->GetUIParm($k);
+                    }
+                }
+            }
+        }
+
+        // Add base uiparms unless they are specifically named in the given uiparms (meaning they are given by the caller with new values)
+        foreach( array('kCurr','iCurr','iWindowOffset','nWindowSize') as $k ) {
+            if( !isset($raMyUIParms[$k]) )  $raOtherUIParms[$k] = $this->oUI->GetUIParm($k);
+        }
+
+        return( $raOtherUIParms );
     }
 
 }
 
 
-class SEEDUIWidget_ListBasic
+class SEEDUIWidget_Base
 {
-    private $oComp;
+    protected $oComp;
+    protected $raConfig;
 
-    function __construct( SEEDUIComponent $oComp )
+    function __construct( SEEDUIComponent $oComp, $raConfig )
     {
         $this->oComp = $oComp;
+        $this->raConfig = $raConfig;
+
+        $this->RegisterWithComponent();
     }
 
-    function Init()
+    protected function RegisterWithComponent()
+    /*****************************************
+     * Tell the component to add this widget to its list.
+     * Also provide the list of uiparms that SEEDUI should propagate in links/forms of other widgets.
+     */
     {
-        // tell the component any view parms
+        $raUIParms = array();  // array( 'myparm1' => array( 'name'=>'sf[[cid]]ui_myparm1', 'v'=>'my-initial-value' ),
+                               //        'myparm2' => array( 'name'=>'sf[[cid]]ui_myparm2', 'v'=>'my-initial-value' ) );
+        $this->oComp->RegisterWidget( $this, $raUIParms );
+    }
+
+    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
+    /*******************************************************
+     * Given the uiparms from the previous page and the uiparms sent currently.
+     * Look for any changes that affect this widget and return an array of state change advisories.
+     */
+    {
+        $raAdvisories = array();
+
+        // empty array means no changes of ui state wrt this widget
+
+        return( $raAdvisories );
+    }
+
+    function Init2_NotifyUIStateChanges( $raAdvisories )
+    /***************************************************
+     * Given the list of state change advisories obtained from all widgets, tell SEEDUI to change uiparms that correspond to those changes wrt this widget.
+     */
+    {
+        // e.g.
+        // foreach( $raAdvisories as $v ) {
+        //     if( $v == 'resetSomething' ) {
+        //         $this->oComp->oUI->SetUIParm( 'something', 0 );
+        //     }
+        // }
+    }
+
+    function Init3_RequestSQLFilter()
+    /********************************
+     * At this point the uiparms are read, and reset as necessary for ui state changes. Use them to generate SQL conditions for the View wrt this widget.
+     * Return a string containing an sql conditional (or empty).
+     */
+    {
+        return( "" );
+    }
+
+    function Draw()
+    /**************
+     * UIParms are all set and the Component has loaded a view/window. Use those to draw the widget.
+     */
+    {
+        return( "OVERRIDE Draw()" );
+    }
+}
+
+
+class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
+/*******************************
+    Draw a search control with one or more filters.  Each filter has a field list, op list, and text input.
+
+    raConfig = array( 'filters'  => array( 'label1'=>'fld1', 'label2'=>'fld2', ... ),
+                      'template' => " HTML template  " )
+
+    The template substitutes the tags [[fldN]], [[opN]], [[valN]], where N is the origin-1 filter index
+
+    Default template just separates one row of tags with &nbsp;
+ */
+{
+    function __construct( SEEDUIComponent $oComp, $raConfig )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+
+    function RegisterWithComponent()
+    {
+        /* Tell SEEDUI that these parms should be read from $_REQUEST, and propagated in all links/forms in the UI
+         * Use sfAx_ format because SEEDForm can make controls like that conveniently.
+         */
+        $raUIParms = array();
+        foreach( array(1,2,3) as $i ) {
+            $raUIParms["srchfld$i"] = array( 'name'=>"sf[[cid]]x_srchfld$i", 'v'=>"" );
+            $raUIParms["srchop$i"]  = array( 'name'=>"sf[[cid]]x_srchop$i",  'v'=>"" );
+            $raUIParms["srchval$i"] = array( 'name'=>"sf[[cid]]x_srchval$i", 'v'=>"" );
+        }
+        $this->oComp->RegisterWidget( $this, $raUIParms );
+    }
+
+    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
+    {
+        $raAdvisories = array();
+
+        // if any search parameters have changed, reset the view
+        foreach( array(1,2,3) as $i ) {
+            if( ((@$raOldParms["srchfld$i"] || @$raNewParms["srchfld$i"]) && @$raOldParms["srchfld$i"] != @$raNewParms["srchfld$i"]) ||
+                ((@$raOldParms["srchop$i"]  || @$raNewParms["srchop$i"])  && @$raOldParms["srchop$i"]  != @$raNewParms["srchop$i"]) ||
+                ((@$raOldParms["srchval$i"] || @$raNewParms["srchval$i"]) && @$raOldParms["srchval$i"] != @$raNewParms["srchval$i"]) )
+            {
+                $raAdvisories[] = "VIEW_RESET";
+                break;
+            }
+        }
+        return( $raAdvisories );
+    }
+
+    function Init3_RequestSQLFilter()
+    {
+        $raCond = array();
+        $sCond = "";
+
+        if( !@$this->raConfig['filters'] )  goto done;
+
+        /* For each search row, get a condition clause
+         */
+        foreach( array(1,2,3) as $i ) {
+            $fld = $this->oComp->oUI->GetUIParm( "srchfld$i" );
+            $op  = $this->oComp->oUI->GetUIParm( "srchop$i" );
+            $val = trim($this->oComp->oUI->GetUIParm( "srchval$i" ));
+
+            if( $op == 'blank' ) {
+                // process this separately because the text value is irrelevant
+                if( $fld ) {  // 'Any'=blank is not allowed
+                    $raCond[] = "($fld='' OR $fld IS NULL)";
+                }
+            } else if( $val ) {
+                if( $fld ) {
+                    $raCond[] = $this->dbCondTerm( $fld, $op, $val );
+                } else {
+                    // field "Any" is selected, so loop through all the fields to generate a condition that includes them all
+                    $raC = array();
+                    foreach( $this->raConfig['filters'] as $label => $f ) {
+                        if( empty($f) )  continue;  // skip 'Any'
+                        $raC[] = $this->dbCondTerm( $f, $op, $val );   // op and val are the current uiparm values for this search row
+                    }
+
+                    // glue the conditions together as disjunctions
+                    $raCond[] = "(".implode(" OR ",$raC).")";
+                }
+            }
+        }
+        // glue the filters together as conjunctions
+        $sCond = implode(" AND ", $raCond);
+
+        done:
+        return( $sCond );
+    }
+
+    private function dbCondTerm( $col, $op, $val )
+    /*********************************************
+        eq       : $col = '$val'
+        like     : $col LIKE '%$val%'
+        start    : $col LIKE '$val%'
+        end      : $col LIKE '%$val'
+        less     : $col < '$val'
+        greater  : $col > '$val'
+        blank    : handled by SearchControlDBCond()
+     */
+    {
+        $val = addslashes($val);
+
+        switch( $op ) {
+            case 'like':    $s = "$col LIKE '%$val%'";  break;
+            case 'start':   $s = "$col LIKE '$val%'";   break;
+            case 'end':     $s = "$col LIKE '%$val'";   break;
+
+            case 'less':    $s = "($col < '$val' AND $col <> '')";    break;    // a < '1' is true if a is blank
+            case 'greater': $s = "($col > '$val' AND $col <> '')";    break;
+
+            case 'eq':
+            default:        $s = "$col = '$val'";       break;
+        }
+
+        return( $s );
     }
 
     function Draw()
     {
-// Maybe this just takes an array, and the constructor only needs a SEEDUI
+        $s = @$raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]]";
+
+        if( !@$this->raConfig['filters'] )  goto done;
+
+        foreach( array(1,2,3) as $i ) {
+            $fld = $this->oComp->oUI->GetUIParm( "srchfld$i" );
+            $op  = $this->oComp->oUI->GetUIParm( "srchop$i" );
+            $val = trim($this->oComp->oUI->GetUIParm( "srchval$i" ));
+
+            /* Collect the fields and substitute into the appropriate [[fieldsN]]
+             */
+            $raCols = array_merge( array("Any"=>''), $this->raConfig['filters'] );
+
+            // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
+            $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", array('selected'=>$fld, 'sfParmType'=>'ctrl_global') );
+
+            $s = str_replace( "[[fld$i]]", $c, $s );
+
+            /* Write the [[opN]]
+             */
+            // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
+            $c = $this->oComp->oForm->Select(
+                    "srchop$i",
+                    array( "contains" => 'like',     "equals" => 'eq',
+                           "starts with" => 'start', "ends with" => 'end',
+                           "less than" => 'less',    "greater than" => 'greater',
+                           "is blank" => 'blank' ),
+                    "",
+                    array('selected'=>$op, 'sfParmType'=>'ctrl_global') );
+            $s = str_replace( "[[op$i]]", $c, $s );
+
+            /* Write the [[textN]]
+             */
+            // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
+            $c = $this->oComp->oForm->Text( "srchval$i", "", array('sfParmType'=>'ctrl_global', 'size'=>20) );
+            $s = str_replace( "[[text$i]]", $c, $s );
+        }
+
+        $s = str_replace( '[[submit]]', "<input type='submit' value='Search'/>", $s );
+
+        $s = $this->oComp->DrawWidgetInForm( $s, $this, array() );
+
+        done:
+        return( $s );
     }
 }
 
-class SEEDUIList
+
+class SEEDUIWidget_SearchDropdown
 {
-    private $oUI;
-
-    function __construct( SEEDUI $oUI )
+    function Init3_RequestSQLFilter()
     {
-        $this->oUI = $oUI;
+        $raCond = array();
 
-        // Tell SEEDUI that these parms should be read from $_REQUEST, and propagated in all links/forms in the UI
-        $this->oUI->RegisterUIParm( 'sortup',   array( 'name'=>'sf[[cid]]ui_sortup',   'v'=>0 ) );
-        $this->oUI->RegisterUIParm( 'sortdown', array( 'name'=>'sf[[cid]]ui_sortdown', 'v'=>0 ) );
+        /* For each defined control, get a condition clause
+         */
+        foreach( $raConfig['controls'] as $fld => $ra ) {
+            if( $ra[0] == 'select' ) {
+                if( ($currVal = $this->CtrlGlobal('srchctl_'.$fld)) ) {
+                    $raCond[] = "$fld='".addslashes($currVal)."'";
+                }
+            }
+        }
     }
+
+
+    function Draw()
+    {
+        foreach( $raConfig['controls'] as $fld => $ra ) {
+            if( strpos( $s, "[[$fld]]" ) !== false ) {
+                // The control exists in the template  (probably we should assume this and not bother to check)
+                if( $ra[0] == 'select' ) {
+                    $currVal = $oForm->CtrlGlobal('srchctl_'.$fld);
+                    $c = $oForm->Select( 'srchctl_'.$fld, $ra[1], "", array( 'sfParmType'=>'ctrl_global', 'selected'=>$currVal) );
+                    $s = str_replace( "[[$fld]]", $c, $s );
+                }
+            }
+        }
+    }
+}
+
+
+class SEEDUIWidget_List extends SEEDUIWidget_Base
+{
+    function __construct( SEEDUIComponent $oComp, $raConfig = array() )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+
+    function RegisterWithComponent()
+    {
+        // Tell SEEDUI that these parms should be read from $_REQUEST, and propagated in all links/forms in the UI
+        $raUIParms = array( 'sortup'   => array( 'name'=>'sf[[cid]]ui_sortup',   'v'=>0 ),
+                            'sortdown' => array( 'name'=>'sf[[cid]]ui_sortdown', 'v'=>0 ) );
+        $this->oComp->RegisterWidget( $this, $raUIParms );
+    }
+
+
+    function Init2_NotifyUIStateChanges( $raAdvisories )
+    {
+    }
+
 
     function Style()
     {
@@ -578,7 +986,7 @@ class SEEDUIList
             // This can be a problem for content that's meant to show html markup.
             // This is done here, instead of below, because we want to allow fnTranslate to insert html markup.
             foreach( $raList[$i] as $kCol => $vCol ) {
-                $raRow[$kCol] = SEEDStd_HSC( $vCol );
+                $raRow[$kCol] = SEEDCore_HSC( $vCol );
             }
             if( @$raParms['fnRowTranslate'] ) {
                 $raRow = call_user_func( $raParms['fnRowTranslate'], $raRow );
@@ -633,7 +1041,7 @@ class SEEDUIList
             iViewOffset           = origin-0 row of the view that corresponds to the first element of raViewRows
             nViewSize             = size of View, optional if $raViewRows contains the full view, required if raViewRows is NULL or partial
             iWindowOffset         = top View index that appears in the window, optional (default 0)
-            nWindowSize           = number of rows to draw in the window, required
+            nWindowSize           = number of rows to draw in the window (default 10)
             iCurr                 = View index of the current row, optional (default 0)
 
             cols                  = as ListDrawBasic
@@ -647,23 +1055,28 @@ class SEEDUIList
     {
         $s = "";
 
+        // uiparms overrides raParms overrides default
+        if( !$this->oComp->oUI->Get_nWindowSize() )  $this->oComp->oUI->Set_nWindowSize( @$raParms['nWindowSize'] ?: 10 );
+        $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
+
+
         $bEnableKeys = @$raParms['bUse_key'];
         if( $bEnableKeys ) {
             /* If kCurr is given but not iCurr, search the list for the iCurr.
              * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
              */
-            if( $this->oUI->Get_kCurr() && !$this->oUI->Get_iCurr() ) {
+            if( $this->oComp->oUI->Get_kCurr() && !$this->oComp->oUI->Get_iCurr() ) {
                 foreach( $raViewRows as $i => $ra ) {
-                    if( @$ra['_key'] && $ra['_key'] == $this->oUI->Get_kCurr() ) {
-                        $this->oUI->Set_iCurr( $i );
+                    if( @$ra['_key'] && $ra['_key'] == $this->oComp->oUI->Get_kCurr() ) {
+                        $this->oComp->oUI->Set_iCurr( $i );
                         break;
                     }
                 }
             }
             /* If kCurr is not given, Try to get the current key from the current row. By default, that will be row 0, which is fine.
              */
-            if( !$this->oUI->Get_kCurr() && ($k = @$raViewRows[$this->oUI->Get_iCurr()]['_key']) ) {
-                $this->oUI->Set_kCurr( $k );
+            if( !$this->oComp->oUI->Get_kCurr() && ($k = @$raViewRows[$this->oComp->oUI->Get_iCurr()]['_key']) ) {
+                $this->oComp->oUI->Set_kCurr( $k );
             }
         }
 
@@ -671,9 +1084,9 @@ class SEEDUIList
         $oLW->InitListWindow( array(
             //'iViewOffset'    => intval(@$raParms['iViewOffset']),
             'nViewSize'     => (@$raParms['nViewSize'] ? $raParms['nViewSize'] : count($raViewRows)),
-            'iWindowOffset' => $this->oUI->Get_iWindowOffset(),
-            'nWindowSize'   => @$raParms['nWindowSize'],
-            'iCurrOffset'   => $this->oUI->Get_iCurr()
+            'iWindowOffset' => $this->oComp->oUI->Get_iWindowOffset(),
+            'nWindowSize'   => $this->oComp->oUI->Get_nWindowSize(),
+            'iCurrOffset'   => $this->oComp->oUI->Get_iCurr()
         ) );
 
 
@@ -688,9 +1101,9 @@ class SEEDUIList
 
         $iSortup = $iSortdown = 0;
         $raSortSame = array();
-        if( ($iSortup = $this->oUI->GetUIParm('sortup')) ) {
+        if( ($iSortup = $this->oComp->oUI->GetUIParm('sortup')) ) {
             $raSortSame = array( 'sortup'=>$iSortup );
-        } else if( ($iSortdown = $this->oUI->GetUIParm('sortdown')) ) {
+        } else if( ($iSortdown = $this->oComp->oUI->GetUIParm('sortdown')) ) {
             $raSortSame = array( 'sortdown'=>$iSortdown );
         }
 
@@ -706,9 +1119,9 @@ class SEEDUIList
             $sCrop = ($bSortingDown ? "position:absolute; top:-14px; left:-20px; clip: rect( 19px, auto, auto, 20px );" :
                       ($bSortingUp ? "position:absolute; top:4px; left:-20px; clip: rect( 0px, auto, 6px, 20px );" :
                                      "" ) );
-            $href   = ( $bSortingDown ? $this->oUI->HRef(array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) :
-                       ($bSortingUp   ? $this->oUI->HRef(array("iCurr"=>0,"sortdown" => $c, "sortup"=>0)) :
-                                        $this->oUI->HRef(array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) ));
+            $href   = ( $bSortingDown ? $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) :
+                       ($bSortingUp   ? $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortdown" => $c, "sortup"=>0)) :
+                                        $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) ));
 
             $sColStyle = "font-size:small;";
             if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
@@ -718,7 +1131,7 @@ class SEEDUIList
                        ."<a $href>".$raCol['label']
                        .($bSortingUp || $bSortingDown
                           ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_ROOT_STD."img/triangle_blue.png' style='$sCrop' border='0'/></div>")
+                           ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>")
                           : "")
                        ."</a></th>";
             ++$c;
@@ -755,11 +1168,11 @@ class SEEDUIList
                                       :"End of List")
                   ."<span style='float:right;margin-right:3px;'>"
                   // List size buttons
-                  //.$this->_listButton( "[10]", array( 'limit'=>10 ) ).SEEDStd_StrNBSP("",5)
-                  //.$this->_listButton( "[50]", array( 'limit'=>50 ) ).SEEDStd_StrNBSP("",5)
+                  //.$this->_listButton( "[10]", array( 'limit'=>10 ) ).SEEDCore_NBSP("",5)
+                  //.$this->_listButton( "[50]", array( 'limit'=>50 ) ).SEEDCore_NBSP("",5)
                   // special case: the list can't yet compute scroll-up links when this button is chosen so offset must be cleared (see note above)
                   //.$this->_listButton( "[All]", array( 'limit'=>-1, 'offset'=>$raScrollOffsets['top'] ) );
-                  //.SEEDStd_StrNBSP("",15)
+                  //.SEEDCore_NBSP("",15)
                   ;
         if( $nWindowRowsBelow ) {
             $sBottom .= $this->listButton( "BOTTOM", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['bottom'] ) ) )
@@ -773,10 +1186,10 @@ class SEEDUIList
 
         if( $raViewRows ) {
             // get the window within the given portion of the view
-            $raViewSlice = array_slice( $raViewRows, $iWindowOffset - $iViewOffset, $raParms['nWindowSize'] );
+            $raViewSlice = array_slice( $raViewRows, $iWindowOffset - $iViewOffset, $this->oComp->oUI->Get_nWindowSize() );
         } else {
             // get the window as needed
-            $raViewSlice = $this->ListFetchViewSlice( $iWindowOffset, $raParms['nWindowSize'] );
+            $raViewSlice = $this->ListFetchViewSlice( $iWindowOffset, $this->oComp->oUI->Get_nWindowSize() );
         }
 
 
@@ -790,21 +1203,21 @@ class SEEDUIList
             if( $bEnableKeys && ($k = @$raViewSlice[$i]['_key']) ) {
                 $ra['kCurr'] = $k;
             }
-            $raViewSlice[$i]['sfuiLink'] = $this->oUI->Link( $ra );
+            $raViewSlice[$i]['sfuiLink'] = $this->oComp->LinkForWidget( $this, $ra );
         }
 
         $raBasicListParms = array(
             'cols' => $raParms['cols'],
             'tableWidth' => $raParms['tableWidth'],
-            'fnRowTranslate' => (@$raParms['fnRowTranslate'] ? $raParms['fnRowTranslate'] : null),
+            'fnRowTranslate' => (@$raParms['fnRowTranslate'] ?: null),
 
             'sHeader' => $sHeader,
             'sFooter' => $sFooter,
             'sTop' => $sTop,
             'sBottom' => $sBottom,
-            'iCurrRow' => $this->oUI->Get_iCurr() - $iWindowOffset,
+            'iCurrRow' => $this->oComp->oUI->Get_iCurr() - $iWindowOffset,
         );
-        $s .= $this->ListDrawBasic( $raViewSlice, 0, $raParms['nWindowSize'], $raBasicListParms );
+        $s .= $this->ListDrawBasic( $raViewSlice, 0, $this->oComp->oUI->Get_nWindowSize(), $raBasicListParms );
 
         return( $s );
     }
@@ -845,10 +1258,10 @@ class SEEDUIList
             default:        $sCrop = ""; break;
         }
 
-        $s = "<a ".$this->oUI->HRef($raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
+        $s = "<a ".$this->oComp->oUI->HRef($raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
             ."<b>$label</b>"
             .($img ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_ROOT_STD."img/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
+                           ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
             ."</a>";
         return( $s );
     }
@@ -931,7 +1344,7 @@ class SEEDUIListWindow
     {
         $n = 0;
         if( $this->bWindowLimited ) {
-            $n = SEEDStd_Range( $this->nViewSize - $this->iWindowOffset - $this->nWindowSize, 0 );
+            $n = SEEDCore_Bound( $this->nViewSize - $this->iWindowOffset - $this->nWindowSize, 0 );
         }
         return( $n );
     }
@@ -944,9 +1357,9 @@ class SEEDUIListWindow
     {
         if( $this->iCurrOffset == -1 ) return(0);   // no current row
 
-        $offset = SEEDStd_Range( $this->iCurrOffset - intval($this->nWindowSize/2),
-                                 0,
-                                 $this->nViewSize - $this->nWindowSize );
+        $offset = SEEDCore_Bound( $this->iCurrOffset - intval($this->nWindowSize/2),
+                                  0,
+                                  $this->nViewSize - $this->nWindowSize );
         return( $offset );
     }
 
@@ -962,11 +1375,11 @@ class SEEDUIListWindow
 //      For now, implementations should set offset=0 whenever they dynamically set iLimit=-1
 
         $ra['top']      = 0;
-        $ra['bottom']   = SEEDStd_Range( $this->nViewSize - $this->nWindowSize,     0 );
-        $ra['up']       = SEEDStd_Range( $this->iWindowOffset - 1,                  0, $ra['bottom'] );
-        $ra['down']     = SEEDStd_Range( $this->iWindowOffset + 1,                  0, $ra['bottom'] );
-        $ra['pageup']   = SEEDStd_Range( $this->iWindowOffset - $this->nWindowSize, 0, $ra['bottom'] );
-        $ra['pagedown'] = SEEDStd_Range( $this->iWindowOffset + $this->nWindowSize, 0, $ra['bottom'] );
+        $ra['bottom']   = SEEDCore_Bound( $this->nViewSize - $this->nWindowSize,     0 );
+        $ra['up']       = SEEDCore_Bound( $this->iWindowOffset - 1,                  0, $ra['bottom'] );
+        $ra['down']     = SEEDCore_Bound( $this->iWindowOffset + 1,                  0, $ra['bottom'] );
+        $ra['pageup']   = SEEDCore_Bound( $this->iWindowOffset - $this->nWindowSize, 0, $ra['bottom'] );
+        $ra['pagedown'] = SEEDCore_Bound( $this->iWindowOffset + $this->nWindowSize, 0, $ra['bottom'] );
 
         return( $ra );
     }
@@ -979,6 +1392,5 @@ class SEEDUIListWindow
                 ($this->iCurrOffset < $this->iWindowOffset || $this->iCurrOffset >= $this->iWindowOffset + $this->nWindowSize) );
     }
 }
-
 
 ?>
