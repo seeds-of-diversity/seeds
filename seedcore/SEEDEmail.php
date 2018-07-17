@@ -7,11 +7,6 @@
  * Send email
  */
 
-// If this is localhost, just draw the mail on the screen because that's easier in development.
-static $bPretendToSend = ($_SERVER["SERVER_NAME"] == "localhost");
-// Or uncomment this to send on dev machines (you have to configure your php.ini with an smtp)
-//static $bPretendToSend = false;
-
 function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParms = array() )
 /********************************************************************************************
     $from = email  OR  array( email, screen_name )   e.g. array( "webmaster@site.ca", "Webmaster at Site.ca" )
@@ -20,7 +15,11 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
     $raParms['bcc'] = array( bcc1, bcc2, ...)
  */
 {
-    global $bPretendToSend;
+    // If this is localhost, just draw the mail on the screen because that's easier in development.
+    $bPretendToSend = ($_SERVER["SERVER_NAME"] == "localhost");
+    // Or uncomment this to send on dev machines (you have to configure your php.ini with an smtp)
+    // static $bPretendToSend = false;
+
 
     if( is_string($from) ) {
         $sFromEmail = $from;
@@ -36,8 +35,8 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
         echo "<div style='margin:10px;padding:10px;background-color:#ffe;border:1px solid #888;border-radius:5px'>"
             ."From: $sFromName &lt;$sFromEmail&gt;<br/>"
             ."To: $to<br/>"
-            .(count(@$raParms['cc']) ? ("CC: ".implode( ", ", $raParms['cc'] )."<br/>") : "")
-            .(count(@$raParms['bcc']) ? ("BCC: ".implode( ", ", $raParms['bcc'] )."<br/>") : "")
+            .(@$raParms['cc'] ? ("CC: ".implode( ", ", $raParms['cc'] )."<br/>") : "")
+            .(@$raParms['bcc'] ? ("BCC: ".implode( ", ", $raParms['bcc'] )."<br/>") : "")
             ."Subject: $subject<br/>"
             ."-----<br/>"
             .nl2br($bodyHTML)
