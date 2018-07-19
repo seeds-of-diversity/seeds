@@ -10,7 +10,7 @@
 include_once( "SEEDCore.php" );
 include_once( "SEEDSessionAccount.php" );
 include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
-include_once( SEEDLIB."console/console02.php" );
+include_once( SEEDCORE."console/console02.php" );
 
 
 class SEEDAppDB
