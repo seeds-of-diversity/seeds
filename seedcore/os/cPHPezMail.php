@@ -23,7 +23,7 @@ class cPHPezMail
     var $aMimeType;
     var $sDefaultMimeType;
 
-    function cPHPezMail()
+    function __construct()
     {
         $this->aLocalFileAttach = array();
         $this->aPOSTFileAttach = array();

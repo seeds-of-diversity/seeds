@@ -18,7 +18,7 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
     // If this is localhost, just draw the mail on the screen because that's easier in development.
     $bPretendToSend = ($_SERVER["SERVER_NAME"] == "localhost");
     // Or uncomment this to send on dev machines (you have to configure your php.ini with an smtp)
-    // static $bPretendToSend = false;
+    // $bPretendToSend = false;
 
 
     if( is_string($from) ) {
@@ -53,12 +53,12 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
         $oMail->AddHeader( 'Reply-to', $sFromEmail );
         $oMail->AddTo( $to );
         $oMail->SetSubject( $subject );
-        if( count(@$raParms['cc']) ) {
+        if( @$raParms['cc'] ) {
             foreach( $raParms['cc'] as $a ) {
                 $oMail->AddCc( $a );
             }
         }
-        if( count(@$raParms['bcc']) ) {
+        if( @$raParms['bcc'] ) {
             foreach( $raParms['bcc'] as $a ) {
                 $oMail->AddBcc( $a );
             }
