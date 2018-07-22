@@ -13,11 +13,28 @@ include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
 include_once( SEEDCORE."console/console02.php" );
 
 
-class SEEDAppDB
+class SEEDAppBase
+/****************
+    Properties that an application should know about
+ */
+{
+    public $lang = 'EN';
+    public $logdir = '';    // directory where this application writes log files
+
+    function __construct( $raConfig )
+    {
+        if( isset($raConfig['lang']) )    $this->lang = $raConfig['lang'];
+        if( isset($raConfig['logdir']) )  $this->logdir = $raConfig['logdir'];
+    }
+}
+
+class SEEDAppDB extends SEEDAppBase
 /**************
     Create and hold a KeyframeDB
  */
 {
+//  public $lang is inherited
+//  public $logdir is inherited
     public $kfdb;
 
     function __construct( $raParms )
@@ -25,6 +42,8 @@ class SEEDAppDB
         raParms: kfdbHost, kfdbUserid, kfdbPassword, and kfdbDatabase are required
      */
     {
+        parent::__construct( $raParms );
+
         if( !($this->kfdb = new KeyframeDatabase( $raParms['kfdbUserid'], $raParms['kfdbPassword'], @$raParms['kfdbHost'] )) ) {    // kfdbHost is optional
             die( "Cannot connect to database" );
         }
@@ -40,6 +59,8 @@ class SEEDAppSession extends SEEDAppDB
     Create and hold a KeyframeDB and a SEEDSession
  */
 {
+//  public $lang is inherited
+//  public $logdir is inherited
 //  public $kfdb is inherited
     public $sess;
 
@@ -52,6 +73,8 @@ class SEEDAppSession extends SEEDAppDB
 
 class SEEDAppSessionAccount extends SEEDAppSession
 {
+//  public $lang is inherited
+//  public $logdir is inherited
 //  public $kfdb is inherited
 //  public $sess is inherited
 
@@ -66,15 +89,15 @@ class SEEDAppSessionAccount extends SEEDAppSession
 
 class SEEDAppConsole extends SEEDAppSessionAccount
 {
+//  public $lang is inherited
+//  public $logdir is inherited
 //  public $kfdb is inherited
 //  public $sess is inherited
-    public $lang;
     public $oC;     // ConsoleUI gets the SEEDAppSession part of this class
 
     function __construct( $raParms )
     {
         parent::__construct( $raParms );
-        $this->lang = @$raParms['lang'] ?: "EN"; // site_define_lang
         $this->oC = new Console02( $this ); // Console02 takes SEEDAppSession
     }
 }
