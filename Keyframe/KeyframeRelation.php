@@ -1321,10 +1321,11 @@ class Keyframe_NamedRelations
     private $raKfrel = array();
     private $kfdb;              // not used here but GetKFDB() is useful to people sometimes
 
-    function __construct( KeyframeDatabase $kfdb, $uid )
+    function __construct( KeyframeDatabase $kfdb, $uid, $logdir = "" )
+    // logfile can be blank if only reading, or ignored if derived method knows it
     {
         $this->kfdb = $kfdb;
-        $this->raKfrel = $this->initKfrel( $kfdb, $uid );  // override this protected function to create an array('A'=>kfrelA, 'B'=>kfrelB)
+        $this->raKfrel = $this->initKfrel( $kfdb, $uid, $logdir );  // override this protected function to create an array('A'=>kfrelA, 'B'=>kfrelB)
     }
 
     function GetKfrel( $sRel ) { return( @$this->raKfrel[$sRel] ); }
@@ -1363,7 +1364,8 @@ class Keyframe_NamedRelations
     }
 
 
-    protected function initKfrel( KeyFrameDatabase $kfdb, $uid )
+    protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
+    // logfile can be blank if only reading, or ignored if derived method knows it
     {
         die( "OVERRIDE with function to create kfrel array" );
     }
