@@ -92,7 +92,7 @@ class DocRepDB2 extends DocRep_DB
         if( !@$this->parms['bPermclass_allaccess'] )   $this->parms['bPermclass_allaccess'] = false;
         if( !@$this->parms['bPermclass0_allaccess'] )  $this->parms['bPermclass0_allaccess'] = false;
 
-        $this->oRel = new drRel( $kfdb, $uid, @$parms['sDB'] );
+        $this->oRel = new drRel( $kfdb, $uid, @$parms['sDB'], @$parms['logdir'] );
     }
 
     function GetRel()   { return( $this->oRel ); }
@@ -992,13 +992,13 @@ class drRel extends Keyframe_NamedRelations
 {
     private $sDB = "";
 
-    function __construct( KeyframeDatabase $kfdb, $uid, $sDB )
+    function __construct( KeyframeDatabase $kfdb, $uid, $sDB, $logdir )
     {
         if( $sDB ) $this->sDB = $sDB.".";
-        parent::__construct( $kfdb, $uid );
+        parent::__construct( $kfdb, $uid, $logdir );
     }
 
-    protected function initKfrel( KeyFrameDatabase $kfdb, $uid )
+    protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     {
         $kdefDoc = array( "Tables" =>
             array( "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ) ) );
@@ -1024,7 +1024,7 @@ class drRel extends Keyframe_NamedRelations
                    "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ) ) );
 
 
-        $raParms = defined('SITE_LOG_ROOT') ? array( 'logfile' => SITE_LOG_ROOT."docrep.log" ) : array();
+        $raParms = defined('SITE_LOG_ROOT') ? array( 'logfile' => $logdir."docrep.log" ) : array();
         $raKfrel = array();
         $raKfrel['Doc']              = new KeyFrame_Relation( $kfdb, $kdefDoc,      $uid, $raParms );
         $raKfrel['Data']             = new KeyFrame_Relation( $kfdb, $kdefData,     $uid, $raParms );
