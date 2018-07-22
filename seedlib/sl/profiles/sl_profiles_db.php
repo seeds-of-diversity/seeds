@@ -7,9 +7,9 @@
 
 class SLProfilesDB extends Keyframe_NamedRelations
 {
-    function __construct( KeyframeDatabase $kfdb, $uid )
+    function __construct( KeyframeDatabase $kfdb, $uid, $logdir )
     {
-        parent::__construct( $kfdb, $uid );
+        parent::__construct( $kfdb, $uid, $logdir );
     }
 
     function GetVarInst( $kVI )
@@ -66,7 +66,7 @@ class SLProfilesDB extends Keyframe_NamedRelations
     }
 
 
-    protected function initKfrel( KeyFrameDatabase $kfdb, $uid )
+    protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     {
         /* Profile records tables
          */
@@ -94,7 +94,7 @@ class SLProfilesDB extends Keyframe_NamedRelations
             array( "CfgM"    => array( "Table" => "seeds.sl_desc_cfg_m",    "Fields" => "Auto" ) ) );
 
 
-        $raParms = array( 'logfile' => SITE_LOG_ROOT."slprofiles.log" );
+        $raParms = array( 'logfile' => $logdir."slprofiles.log" );
         $raKfrel = array();
         $raKfrel['Site']             = new KeyFrame_Relation( $kfdb, $kdefSite,      $uid, $raParms );
         $raKfrel['VI']               = new KeyFrame_Relation( $kfdb, $kdefVI,        $uid, $raParms );
