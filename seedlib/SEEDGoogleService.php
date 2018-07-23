@@ -21,7 +21,7 @@ class SEEDGoogleService
         $this->raParms = $raParms;
         if( $bConstructClient ) {
             // Probably the only time you wouldn't do this is when you're generating the credentials file (because getClient will fail without it)
-            $this->client = $this->getClient( $raParms );
+            $this->client = $this->GetClient( $raParms );
         }
     }
 
