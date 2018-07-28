@@ -23,3 +23,116 @@ function SEEDCore_CleanBrowserAddress()
     var clean_uri = location.protocol + "//" + location.host + location.pathname;
     window.history.replaceState({}, document.title, clean_uri);
 }
+
+function SEEDJXAsync( jxUrl, jxData, fnSuccess, fnError )
+/********************************************************
+    Post an ajax request to the given url, set handler functions for success or error and return immediately
+ */
+{
+    $.ajax({
+        type: "POST",
+        async: true,
+        url: jxUrl,
+        data: jxData,
+        //dataType: "json",
+        success: fnSuccess,
+        error:   fnError,
+    });
+}
+
+function SEEDJXSync( jxUrl, jxData )
+/*********************************
+    Post an ajax request to the given url, wait for the server, and return the response
+ */
+{
+    var bSuccess = false;
+    var oRet = null;
+    $.ajax({
+        type: "POST",
+        async: false,
+        url: jxUrl,
+        data: jxData,
+        //dataType: "json",
+        success: function(data) {
+            // To debug the server, put die("whatever") in the server code and uncomment below
+            if( SEEDJX_bDebug ) alert("data="+data);
+
+            bSuccess = true;
+            oRet = SEEDJX_ParseJSON(data);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            if( SEEDJX_bDebug ) {
+                alert(errorThrown);
+                //alert(jqXHR);
+                //alert(textStatus);
+            }
+        }
+    });
+    return( bSuccess ? oRet : null );
+}
+
+function SEEDJX_ParseJSON( data )
+{
+    if( !data ) return( null );
+    return( window.JSON && window.JSON.parse && data ? window.JSON.parse(data) : eval(data) ); 
+}
+
+function SEEDJX_Form1( jxUrl, btnSubmit )
+/****************************************
+    Someone clicked on a button that invoked a Form1.
+    
+    jxUrl is an ajax url to call
+    btnSubmit is the jQuery object of the button that was clicked.
+    
+    Get all the <input> elements in the form containing that button, send them to jxUrl with jxCmd = the value of attr seedjx_cmd,
+    and put the return html in seedjx_out and seedjx_err
+    
+    <div class='seedjx-form1' seedjx-cmd='mycommand'>
+        <div class='seedjx-err'></div>
+        <div class='seedjx-out'>
+            <input .../>
+            <input .../>
+            <input class='seedjx-submit' id='foo'/>   <!-- doesn't have to be a type=submit button, doesn't have to be in a <form> -->
+        </div>
+    </div>
+    
+    Invoke with $('#foo').onclick( SEEDJX_Form1( myJXUrl, $(this) );
+ */
+{
+    var d = btnSubmit.closest( ".seedjx" );
+
+    inputData = d.find("select, textarea, input").serialize();
+    cmd = d.attr('seedjx-cmd');
+    inputData = "cmd="+cmd+"&"+inputData;
+    if( SEEDJX_bDebug ) alert(inputData);
+
+    SEEDJXAsync(jxUrl, 
+                inputData,
+                // Success
+                // This calls anonymous function with arg d -> div, then constructs function receiving 
+                // responseData and referencing a copy of div in the local scope. This is necessary because d will be
+                // gone by the time the success function is called.
+                function( div ) {
+                    return function( responseData ) { 
+                        // To debug the server, put die("whatever") in the server code and uncomment below
+                        if( SEEDJX_bDebug ) alert("responseData="+responseData);
+
+                        var oRet = SEEDJX_ParseJSON( responseData );
+                        // oRet is { bOk, sOut, sErr }
+                        div.find(".seedjx-out").html( oRet['sOut'] );
+                        if( !oRet['bOk'] ) {
+                            div.find(".seedjx-err").html( oRet['sErr'] );
+                            div.find(".seedjx-err").show();
+                        }
+                    };
+                }(d),
+                // Error
+                function (jqXHR, textStatus, errorThrown) {
+                    if( SEEDJX_bDebug ) {
+                        alert(errorThrown);
+                        //alert(jqXHR);
+                        //alert(textStatus);
+                    }
+                }
+    );
+}
