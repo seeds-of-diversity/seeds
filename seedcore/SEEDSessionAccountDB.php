@@ -402,7 +402,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
         $bOk = false;
 
         if( ($kfr = $this->kfrelUsers()->GetRecordFromDBKey( $kUser )) ) {
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_NORMAL );    // if the account has been deleted or hidden, undelete it
+            $kfr->StatusSet( KeyframeRecord::STATUS_NORMAL );    // if the account has been deleted or hidden, undelete it
             $kfr->SetValue( 'eStatus', 'ACTIVE' );        // if the account is INACTIVE, activate it
 
             $bOk = $kfr->PutDBRow();
@@ -436,7 +436,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
             $kfr->SetValue( 'uid', $kUser );
             $kfr->SetValue( 'k', $k );
             $kfr->SetValue( 'v', $v );
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
+            $kfr->StatusSet( KeyframeRecord::STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -458,7 +458,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
             $kfr->SetValue( 'gid', $kGroup );
             $kfr->SetValue( 'k', $k );
             $kfr->SetValue( 'v', $v );
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
+            $kfr->StatusSet( KeyframeRecord::STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -474,7 +474,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
 
         // Fetch iStatus==-1 so any hidden records are found, and replaced with the DELETED status
         if( ($kfr = $kfrelUM->GetRecordFromDB( "uid='$kUser' AND k='".addslashes($k)."'", array('iStatus'=>-1) )) ) {
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_DELETED );
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -490,7 +490,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
 
         // Fetch iStatus==-1 so any hidden records are found, and replaced with the DELETED status
         if( ($kfr = $kfrelGM->GetRecordFromDB( "gid='$kGroup' AND k='".addslashes($k)."'", array('iStatus'=>-1) )) ) {
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_DELETED );
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -1123,7 +1123,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
         $bOk = false;
 
         if( ($kfr = $this->GetKfrel('U')->GetRecordFromDBKey( $kUser )) ) {
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_NORMAL );    // if the account has been deleted or hidden, undelete it
+            $kfr->StatusSet( KeyframeRecord::STATUS_NORMAL );    // if the account has been deleted or hidden, undelete it
             $kfr->SetValue( 'eStatus', 'ACTIVE' );        // if the account is INACTIVE, activate it
 
             $bOk = $kfr->PutDBRow();
@@ -1157,7 +1157,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
             $kfr->SetValue( 'uid', $kUser );
             $kfr->SetValue( 'k', $k );
             $kfr->SetValue( 'v', $v );
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
+            $kfr->StatusSet( KeyframeRecord::STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -1179,7 +1179,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
             $kfr->SetValue( 'gid', $kGroup );
             $kfr->SetValue( 'k', $k );
             $kfr->SetValue( 'v', $v );
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
+            $kfr->StatusSet( KeyframeRecord::STATUS_NORMAL );  // because maybe there's an old value that has been deleted or hidden
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -1195,7 +1195,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
 
         // Fetch iStatus==-1 so any hidden records are found, and replaced with the DELETED status
         if( ($kfr = $kfrelUM->GetRecordFromDB( "uid='$kUser' AND k='".addslashes($k)."'", array('iStatus'=>-1) )) ) {
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_DELETED );
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
@@ -1211,7 +1211,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
 
         // Fetch iStatus==-1 so any hidden records are found, and replaced with the DELETED status
         if( ($kfr = $kfrelGM->GetRecordFromDB( "gid='$kGroup' AND k='".addslashes($k)."'", array('iStatus'=>-1) )) ) {
-            $kfr->StatusSet( KEYFRAMERECORD_STATUS_DELETED );
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
             $ok = $kfr->PutDBRow();
         }
         return( $ok );

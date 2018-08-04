@@ -66,14 +66,6 @@ $kfreldef =
 
 include_once( "KeyframeDB.php" );
 
-
-/* _status codes
- */
-define("KEYFRAMERECORD_STATUS_NORMAL",  "0");
-define("KEYFRAMERECORD_STATUS_DELETED", "1");
-define("KEYFRAMERECORD_STATUS_HIDDEN",  "2");
-
-
 class KeyFrame_Relation
 /*********************
  */
@@ -627,6 +619,10 @@ class KeyframeRecord
     This is created by KeyFrameRelation, and should not normally be constructed independently by user code.
  */
 {
+    const STATUS_NORMAL  = 0;
+    const STATUS_DELETED = 1;
+    const STATUS_HIDDEN  = 2;
+
     protected $kfrel;          // the KeyframeRelation that governs this record; protected so KeyframeRecordCursor can access it easily
 
     // The Record
@@ -946,9 +942,9 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
     function StatusSet( $status )
     /****************************
         Allowed values of $status:
-            KEYFRAMERECORD_STATUS_NORMAL
-            KEYFRAMERECORD_STATUS_DELETED
-            KEYFRAMERECORD_STATUS_HIDDEN
+            self::STATUS_NORMAL
+            self::STATUS_DELETED
+            self::STATUS_HIDDEN
             "Normal"
             "Deleted"
             "Hidden"
@@ -956,9 +952,10 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
      */
     {
         switch( $status ) {
-            case "Normal":  $status = KEYFRAMERECORD_STATUS_NORMAL;  break;
-            case "Deleted": $status = KEYFRAMERECORD_STATUS_DELETED; break;
-            case "Hidden":  $status = KEYFRAMERECORD_STATUS_HIDDEN;  break;
+            case "Normal":  $status = self::STATUS_NORMAL;  break;
+            case "Deleted": $status = self::STATUS_DELETED; break;
+            case "Hidden":  $status = self::STATUS_HIDDEN;  break;
+            // other values fall out, leaving $status unchanged
         }
         $this->SetValue( "_status", $status );
     }
@@ -970,7 +967,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
 
     function DeleteRow()
     /*******************
-        Not the same as StatusChange.  This actually deletes the current row permanently.
+        Not the same as StatusSet.  This actually deletes the current row permanently.
      */
     {
         $ok = false;
