@@ -99,10 +99,18 @@ function SEEDJX_Form1( jxUrl, btnSubmit )
     Invoke with $('#foo').onclick( SEEDJX_Form1( myJXUrl, $(this) );
  */
 {
+    // Everything for the Form1 should be contained in a .seedjx
     var d = btnSubmit.closest( ".seedjx" );
-
-    inputData = d.find("select, textarea, input").serialize();
-    cmd = d.attr('seedjx-cmd');
+    
+    // The cmd should be defined in an attr either in the clicked object, or in the container element
+    var cmd = btnSubmit.attr('seedjx-cmd');
+    if( typeof cmd == 'undefined' ) {
+        cmd = d.attr('seedjx-cmd');
+    }
+    
+    // Get parameters from all form elements within the container
+    var inputData = d.find("select, textarea, input").serialize();
+    
     inputData = "cmd="+cmd+"&"+inputData;
     if( SEEDJX_bDebug ) alert(inputData);
 
