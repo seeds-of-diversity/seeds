@@ -655,8 +655,7 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $raParms = $this->parseParms( $parms );
         $p = $this->stdParms( $fld, $raParms );
         $pName = $p['name'];
-        $pValue = $p['value'];
-        $pValueEnt = $p['valueEnt'];
+        $pValue = $p['value'];  // the value of the checked button, not necessarily the value of this one
         $pAttrs = $p['attrs'];
 
         if( @$raParms['checked'] ||
@@ -667,8 +666,10 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
 
         if( !empty($label) )  $label = SEEDCore_NBSP( " ".$label );
 
-        // value is that given by the arg, not pValue which is the currently-selected radio
-        return( "<input type='radio' name='$pName' id='$pName' value='".SEEDCore_HSC($value)."' $pAttrs />".$label );
+        $value = SEEDCore_HSC($value);
+
+        // the id is the name+value because every element should have a different id
+        return( "<input type='radio' name='$pName' id='$pName.$value' value='$value' $pAttrs />".$label );
     }
 
 // TODO: implement OPTGROUP

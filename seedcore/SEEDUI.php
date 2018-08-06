@@ -392,10 +392,10 @@ groupcol
                 $raSqlCond[] = "($cond)";
             }
         }
-        $this->sSqlCond = implode( " AND ", $raSqlCond );
 
-        /* The sqlCond step is a gift to a derived class that would actually implement db access
+        /* sqlCond is a gift to a derived class that would actually implement db access
          */
+        $this->sSqlCond = implode( " AND ", $raSqlCond );
     }
 
     function RegisterWidget( SEEDUIWidget_Base $o, $raUIParms )
@@ -838,8 +838,13 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 }
 
 
-class SEEDUIWidget_SearchDropdown
+class SEEDUIWidget_SearchDropdown extends SEEDUIWidget_Base
 {
+    function __construct( SEEDUIComponent $oComp, $raConfig )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+
     function Init3_RequestSQLFilter()
     {
         $raCond = array();
@@ -1401,6 +1406,20 @@ class SEEDUIListWindow
 
         return( $this->bWindowLimited &&
                 ($this->iCurrOffset < $this->iWindowOffset || $this->iCurrOffset >= $this->iWindowOffset + $this->nWindowSize) );
+    }
+}
+
+
+class SEEDUIWidget_Form extends SEEDUIWidget_Base
+{
+    function __construct( SEEDUIComponent $oComp, $raConfig )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+
+    function Draw()
+    {
+        return( "OVERRIDE" );
     }
 }
 
