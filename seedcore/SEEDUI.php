@@ -798,7 +798,10 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 
             /* Collect the fields and substitute into the appropriate [[fieldsN]]
              */
-            $raCols = array_merge( array("Any"=>''), $this->raConfig['filters'] );
+            $raCols['Any'] = "";
+            foreach( $this->raConfig['filters'] as $ra ) {
+                $raCols[$ra['label']] = $ra['col'];
+            }
 
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
             $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", array('selected'=>$fld, 'sfParmType'=>'ctrl_global') );
@@ -1073,7 +1076,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             /* If kCurr is given but not iCurr, search the list for the iCurr.
              * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
              */
-            if( $this->oComp->Get_kCurr() && !$this->oComp->Get_iCurr() ) {
+            if( $this->oComp->Get_kCurr() ) {  //&& !$this->oComp->Get_iCurr() ) {
                 foreach( $raViewRows as $i => $ra ) {
                     if( @$ra['_key'] && $ra['_key'] == $this->oComp->Get_kCurr() ) {
                         $this->oComp->Set_iCurr( $i );
