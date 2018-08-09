@@ -783,7 +783,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
             $src is an optional uploaded file name - if blank create a doc pointing to dr_name and assume somebody put it there
             dr_name is the path rooted at sfile/
             dr_bReplaceCurrVersion is forced to true (for replace)
-            dr_posUnder/posAfter are ignored, docrep_docs_parent is always DOCREP_PARENT_SFILE
+            dr_posUnder/posAfter are ignored, kDoc_parent is always DOCREP_PARENT_SFILE
 
 
         Basic parms:
@@ -837,7 +837,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
          */
         if( $eSrcType == 'SFILE' ) {
             // all docs in the sfile set have this parent, to isolate them from the regular doc forest (rooted at DOCREP_PARENT_DOCS)
-            $kfrDoc->SetValue( 'docrep_docs_parent', DocRepDB2::DOCREP_PARENT_SFILE );
+            $kfrDoc->SetValue( 'kDoc_parent', DocRepDB2::DOCREP_PARENT_SFILE );
             $kfrDoc->SetValue( 'siborder', 0 );
         } else {
             $this->insert_ParentSiborder( $kfrDoc, intval(@$parms['dr_posUnder']), intval(@$parms['dr_posAfter']) );
