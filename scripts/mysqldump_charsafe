@@ -1,0 +1,15 @@
+if [ ! -n "$4" ]
+then
+    echo "$0 user db \"tables\" out-file"
+    exit
+fi
+
+
+
+USER=$1
+DB=$2
+TABLES=$3
+OUT_FILE=$4
+
+mysqldump -u $USER -p --default-character-set=latin1 -N --result-file=$OUT_FILE $DB $TABLES
+

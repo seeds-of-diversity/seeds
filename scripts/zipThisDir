@@ -1,0 +1,39 @@
+# Put a directory in a tar-zip
+#  $1 is the name of the dir, which is a child of the current directory. It is also the name of the tar file.
+#  $2=="md5" : optional to generate a checksum file
+#  $2=="md5list" : optional to append a checksum to the file md5list
+#  $3 : optional password for the zip
+
+if [ ! -n "$1" ]
+then
+    echo "$0 dir(child of current dir)  [md5 | md5list]  [password]"
+    exit
+fi
+
+if [ -n "$3" ]
+then
+    ZIP_PASS="-P $3"
+else
+    ZIP_PASS=
+fi
+
+f=$1
+
+DIRBACK=~/_back
+
+echo "Doing (tar -cf \"$DIRBACK/$f.tar\" \"$f\"); (zip $ZIP_PASS \"$DIRBACK/$f.zip\" \"$DIRBACK/$f.tar\") "
+
+tar -cf "$DIRBACK/$f.tar" "$f"
+zip $ZIP_PASS "$DIRBACK/$f.zip" "$DIRBACK/$f.tar"
+rm "$DIRBACK/$f.tar"
+
+
+if [ "$2" = "md5" ]
+then 
+    md5sum "$DIRBACK/$f.zip" > "$DIRBACK/$f.md5"
+elif [ "$2" = "md5list" ]
+then 
+    md5sum "$DIRBACK/$f.zip" >> "$DIRBACK/md5list.md5"
+fi
+
+

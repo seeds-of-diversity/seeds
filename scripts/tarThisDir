@@ -1,0 +1,30 @@
+# Put a directory in a tarfile
+#  $1 is the name of the dir, which is a child of the current directory. It is also the name of the tar file.
+#  $2=="md5" : optional to generate a checksum file
+#  $2=="md5list" : optional to append a checksum to the file md5list
+
+if [ ! -n "$1" ]
+then
+    echo "$0 dir(child of current dir)  [md5 | md5list]"
+    exit
+fi
+
+f=$1
+
+DIRBACK=~/_back
+
+echo "Doing (tar -cf \"$DIRBACK/$f.tar\" \"$f\") "
+
+tar -cf "$DIRBACK/$f.tar" "$f"
+
+if [ "$2" == "md5" ]
+then 
+    md5sum "$DIRBACK/$f.tar" > "$DIRBACK/$f.md5"
+fi
+
+if [ "$2" == "md5list" ]
+then 
+    md5sum "$DIRBACK/$f.tar" >> "$DIRBACK/md5list.md5"
+fi
+
+

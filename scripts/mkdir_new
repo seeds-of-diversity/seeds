@@ -1,0 +1,5 @@
+# for every directory D in the current directory, make D/new and put all D/*.jpg in D/new
+# note that if something goes wrong with mkdir but it returns success, you might get all your jpg files irreversibly concatenated?
+
+#for D in *; do [ -d "${D}" ] && mkdir "$D/new" && mv "$D/*.jpg" "$D/new/"; done
+for D in *; do [ -d "${D}" ] && [ -d "$D/new" ] && { cd "$D"; mv *.jpg new; cd ..; } done

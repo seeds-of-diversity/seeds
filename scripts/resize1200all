@@ -1,0 +1,3 @@
+php -f ~/scripts/resizeBox.php 1200 recurse $1
+
+

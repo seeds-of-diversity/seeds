@@ -1,0 +1,16 @@
+if [ ! -n "$3" ]
+then
+    echo "$0 infile outfile maxwidth"
+    exit
+fi
+
+
+INFILE=$1
+OUTFILE=$2
+MAXWIDTH=$3
+CRF=28
+
+#ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -c:a copy "$OUTFILE"
+ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -codec:a aac  "$OUTFILE"
+
+

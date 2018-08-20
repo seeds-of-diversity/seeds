@@ -1,0 +1,2 @@
+convert "$1" -resize 200x200\>  -quality 85 "$1"
+

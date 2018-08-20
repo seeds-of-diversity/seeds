@@ -1,0 +1,13 @@
+# Put each child directory in a tarfile
+#  $1=="md5" or $1=="md5list" : optional to generate checksum files
+#  $2 : optional password for the zip
+
+DIRSCRIPT=~/public_html/scripts
+
+ls  | while read i
+do
+    if [ -d "$i" ] 
+    then
+        . $DIRSCRIPT/zipThisDir "$i" $1 $2
+    fi
+done

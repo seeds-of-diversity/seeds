@@ -1,0 +1,18 @@
+USER=seeds3
+DB=seeds3
+TABLE_PREFIX=drupal2en\\_
+# mysql uses underscore as a one-char metacharacter so it has to be escaped - so here it must be double-escaped
+SQL=out.sql
+
+
+# This shows your table set
+#mysql -u $USER -p -D $DB --skip-column-names -e "show tables like '$TABLE_PREFIX%';"
+
+
+# This shows your mysqldump command
+#mysql -u $USER -p -D $DB --skip-column-names -e "show tables like '$TABLE_PREFIX%';" | xargs echo "mysqldump $DB -u $USER -p" 
+
+
+# This gives you your sqldump (you'll have to type the password twice)
+mysql -u $USER -p -D $DB --skip-column-names -e "show tables like '$TABLE_PREFIX%';" | xargs mysqldump $DB -u $USER -p > $SQL
+

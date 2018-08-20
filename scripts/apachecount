@@ -1,0 +1,23 @@
+# read an apache log and count the number of accesses + number of unique ip
+
+if [ ! -n "$1" ]
+then
+    echo "$0 access-log [urlsearch]"
+    exit
+fi
+
+LOG=$1
+SRCH=$2
+
+if [ "$2" == "" ]; then 
+    cat $LOG | wc -l
+    echo " accesses by "
+    cat $LOG |awk '{print $1}' |sort | uniq | wc -l
+    echo " unique users"	
+else 
+    cat $LOG | grep "$2" | wc -l
+    echo " accesses by "
+    cat $LOG | grep "$2" |awk '{print $1}' |sort | uniq | wc -l
+    echo " unique users"	
+fi
+

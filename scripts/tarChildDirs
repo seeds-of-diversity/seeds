@@ -1,0 +1,14 @@
+# Put each child directory in a tarfile
+#  $1=="md5" or $1=="md5list" : optional to generate checksum files
+
+DIRSCRIPT=~/public_html/scripts
+
+echo "Doing (tar -cf \"$DIRBACK/$f.tar\" \"$f\" "
+
+ls  | while read i
+do
+    if [ -d "$i" ] 
+    then
+        . $DIRSCRIPT/tarThisDir "$i" $1
+    fi
+done

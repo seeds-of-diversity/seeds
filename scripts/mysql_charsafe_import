@@ -1,0 +1,14 @@
+if [ ! -n "$3" ]
+then
+    echo "$0 user db in-file"
+    exit
+fi
+
+
+
+USER=$1
+DB=$2
+INFILE=$3
+
+
+mysql -u $USER -p -D $DB --default-character-set=latin1 < $INFILE

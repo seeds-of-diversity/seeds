@@ -1,0 +1,2 @@
+# find . -not -name *svn*  -exec grep $1 '{}' \; -exec echo '{}' \;
+find . -not -name *svn*  -exec grep -H $1 '{}' \;

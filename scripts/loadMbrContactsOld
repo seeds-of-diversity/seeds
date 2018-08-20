@@ -1,0 +1,14 @@
+# Load a given mbr_contacts backup file into seeds2.mbr_contacts_old 
+#
+# Run from the scripts directory like "$0 ~/_back1/mbrYYMMDD.sql"
+
+sqlfile=$1
+
+cp $sqlfile ~/tmp/tmp1.sql
+sed "s/\`mbr_contacts\`/\`mbr_contacts_old\`/" ~/tmp/tmp1.sql > ~/tmp/tmp2.sql
+rm ~/tmp/tmp1.sql
+head -25 ~/tmp/tmp2.sql 
+
+echo "If it looks like the tmp2.sql file is using mbr_contacts_old, enter the seeds2 password now to load it"
+. mysql_charsafe_import seeds2 seeds2 ~/tmp/tmp2.sql
+ 
