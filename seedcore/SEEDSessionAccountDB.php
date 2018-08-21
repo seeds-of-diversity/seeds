@@ -1061,7 +1061,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                 ) ) ) );
 
         $raKfrel = array();
-        $parms = $logdir ? array('logfile'=>$logdir."seedsessionauth.log") : array();
+        $parms = $logdir ? array('logfile'=>$logdir."seedsessionaccount.log") : array();
         // This relation returns a single row because the left join only matches one row, populated or not
         $raKfrel['U']   = new Keyframe_Relation( $kfdb, $kfreldef_U,   $uid, $parms );
         $raKfrel['G']   = new Keyframe_Relation( $kfdb, $kfreldef_G,   $uid, $parms );
