@@ -593,7 +593,7 @@ class KeyFrame_Relation
         if( $cond ) $q .= " AND ($cond)";
 
         foreach( $this->kfrdef['Tables'] as $a => $t ) {
-            if( $iStatus != -1 )  $q .= " AND ($a._status='$iStatus')";
+            if( $iStatus != -1 )  $q .= " AND ($a._status='$iStatus' OR $a._status IS NULL)";   // can only be null if a left-join did not match, in which case never disallow the result
         }
 
         if( $sGroupCol )  $q .= " GROUP BY $sGroupCol";
