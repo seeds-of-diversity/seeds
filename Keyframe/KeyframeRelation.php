@@ -1328,6 +1328,9 @@ class Keyframe_NamedRelations
     function GetKfrel( $sRel ) { return( @$this->raKfrel[$sRel] ); }
     function GetKFDB()         { return( $this->kfdb ); }
 
+    function KFRel( $sRel )    { return( $this->GetKfrel($sRel) ); }    // not sure which I like better but KeyframeRecord has this
+    function KFDB()            { return( $this->GetKFDB() ); }
+
     function GetKFR( $sRel, $k )
     /***************************
         Return a kfr with one result pre-loaded
