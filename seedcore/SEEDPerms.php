@@ -38,29 +38,137 @@
  */
 
 
-class SEEDPerms extends Keyframe_NamedRelations
+class SEEDPermsRead extends Keyframe_NamedRelations
+{
+    protected $sDB = "";
+
+    function __construct( SEEDAppDB $oApp, $raConfig = array() )
+    /***********************************************************
+        raConfig:   dbname      optional database name
+                    raUserid    array( uid1, uid2, ... )    the user(s) for the SEEDPerms lookup
+                    raUserGroup array( gid1, gid2, ... )    the group(s) for the SEEDPerms lookup
+                    uidOwner    credited with _created_by and/or _updated_by
+                                (can be zero or omitted if only reading -- enforced by constructor of SEEDPerms when writing)
+     */
+    {
+        if( ($sDB = @$raConfig['dbname']) ) {    // allows UGP management of other databases, can be empty for current db
+            // Prepended to every database table reference
+            $this->sDB = $sDB.".";
+        }
+        // set $this->sDB before constructing the named relations because it's used in initKfrel()
+        parent::__construct( $oApp->kfdb, intval(@$raConfig['uidOwner']), $oApp->logdir );
+    }
+
+    function GetRAClassesOpts( $app = "", $bDetail = false )
+    /*******************************************************
+        Return an array of Class names and keys formatted for Select(), using optional app namespace
+     */
+    {
+        $raPermOpts = array();
+
+        $sCondApp = $app ? ("application='".addslashes($app)."' AND") : "";
+
+        $q = $this->KFDB()->QueryRowsRA( "SELECT * FROM SEEDPerms_Classes WHERE $sCondApp _status='0' ORDER BY _key" );
+        foreach( $q as $ra ) {
+            if( $bDetail ) {
+                $raPermOpts["{$ra['_key']} : {$ra['application']} : {$ra['name']}"] = $ra['_key'];
+            } else {
+                $raPermOpts[$ra['name']] = $ra['_key'];
+            }
+        }
+        return( $raPermOpts );
+    }
+
+    function GetUsersFromPermClass( $permclass, $mode )
+    /**************************************************
+        Get all the userids/usergroups that have the given mode of access to the given permclass
+     */
+    {
+        $raUid = array();
+        $raUG = array();
+
+        if( ($kfr = $this->KFRel('P')->CreateRecordCursor( "fk_SEEDPerms_Classes='$permclass' AND modes LIKE '%$mode%'" )) ) {
+            while( $kfr->CursorFetch() ) {
+                if( $kfr->Value('user_id') )     $raUid[] = $kfr->Value('user_id');
+                if( $kfr->Value('user_group') )  $raUG[]  = $kfr->Value('user_group');
+            }
+        }
+
+        return( array($raUid, $raUG) );
+    }
+
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        $fld_C = array( array("col"=>"application",          "type"=>"S"),
+                        array("col"=>"name",                 "type"=>"S") );
+
+        $fld_P = array( array("col"=>"fk_SEEDPerms_Classes", "type"=>"K"),
+                        array("col"=>"user_id",              "type"=>"I"),
+                        array("col"=>"user_group",           "type"=>"I"),
+                        array("col"=>"modes",                "type"=>"S") );
+
+        $def_C = array( "Tables" => array(
+                "C" => array( "Table" => "{$this->sDB}SEEDPerms_Classes",
+                              "Type"  => 'Base',
+                              "Fields" => $fld_C ) ) );
+
+        $def_P = array( "Tables" => array(
+                "P" => array( "Table" => "{$this->sDB}SEEDPerms",
+                              "Type"  => 'Base',
+                              "Fields" => $fld_P ) ) );
+
+        $def_PxC = array( "Tables" => array(
+                "P" => array( "Table" => "{$this->sDB}SEEDPerms",
+                              "Type"  => 'Base',
+                              "Fields" => $fld_P ),
+                "C" => array( "Table" => "{$this->sDB}SEEDPerms_Classes",
+                              "Type"  => 'Parent',
+                              "Fields" => $fld_C ) ) );
+
+        // Normally you always want to use PxC, but this left-join is very useful in admin UI because if
+        // a P.fk_SEEDPerms_Classes is set to an invalid value, the PxC will not return that P row, and then
+        // you have a possibly operational permission that you don't know about.
+        $def_P_C = array( "Tables" => array(
+                "P" => array( "Table" => "{$this->sDB}SEEDPerms",
+                              "Type"  => 'Base',
+                              "Fields" => $fld_P ),
+                "C" => array( "Table" => "{$this->sDB}SEEDPerms_Classes",
+                              "Type"  => "LeftJoin",
+                              "JoinOn" => "P.fk_SEEDPerms_Classes=C._key",
+                              "Fields" => $fld_C ) ) );
+
+        $raKfrel = array();
+        $parms = $logdir ? array('logfile'=>$logdir."seedperms.log") : array();
+        $raKfrel['C']   = new Keyframe_Relation( $kfdb, $def_C,   $uid, $parms );
+        $raKfrel['P']   = new Keyframe_Relation( $kfdb, $def_P,   $uid, $parms );
+        $raKfrel['PxC'] = new Keyframe_Relation( $kfdb, $def_PxC, $uid, $parms );
+        $raKfrel['P_C'] = new Keyframe_Relation( $kfdb, $def_P_C, $uid, $parms );
+
+        return( $raKfrel );
+
+    }
+}
+
+class SEEDPermsTest extends SEEDPermsRead
 {
     private $appname = "";
-
     private $raClassesInfo  = array(); // array( permclass1 => array('modes'=>M, 'classname'=>C), permclass2 => ...)
     private $raModesClasses = array(); // array( modeChar1 => array( permclass1, permclass2, ... ), modeChar2 => ... )
 
-    function __construct( SEEDAppDB $oApp, $appname, $raUserid, $raUserGroup )
-    /*************************************************************************
+    /* Given an appname and a list of users and groups, look up the permclasses and modes that are allowed.
      */
+    function __construct( SEEDAppDB $oApp, $appname, $raUserid, $raUserGroup, $raConfig = array() )
     {
-        parent::
-        $this->kfdb = $kfdb;
-        $this->app = $app;
+        $this->appname = $appname;
+        parent::__construct( $oApp, $raConfig );
 
-        /* Load the perms for the given app and users
+        /* Load the seedperms for the given app and users
          */
-        $sCond = self::GetUserDBCond( $raUserid, $raUserGroup );
+        $sCond = $this->getUserDBCond( $raUserid, $raUserGroup );
         if( $sCond )  $sCond .= " AND ";
-        $sCond .= "C.application='$app'";
+        $sCond .= "C.application='$appname'";
 
-        $kfrel = self::KfrelSEEDPerms_PxC( $this->kfdb, 0 );
-        if( ($kfr = $kfrel->CreateRecordCursor( $sCond, array( 'sSortCol'=>'C.name' ) )) ) {
+        if( ($kfr = $this->KFRel('PxC')->CreateRecordCursor( $sCond, array( 'sSortCol'=>'C.name' ) )) ) {
             while( $kfr->CursorFetch() ) {
                 $permclass = $kfr->value('C__key');
                 $modes = $kfr->value('modes');
@@ -81,12 +189,36 @@ class SEEDPerms extends Keyframe_NamedRelations
         }
     }
 
+    private function getUserDBCond( $raUserid, $raUserGroup )
+    /*******************************************************
+       Return the sql condition that constrains permclasses to the applicable user(s)
+     */
+    {
+        $sCond = "";
+
+        // Ensure that no one is trying to use user_id=0 or user_group=0. (e.g. for anonymous user permissions)
+        // Those are placeholders in the SEEDPerms table so their use is wrong and dangerous.
+        if( array_search(0, $raUserid) !== false )     die( "Cannot use uid=0 in SEEDPerms" );
+        if( array_search(0, $raUserGroup) !== false )  die( "Cannot use gid=0 in SEEDPerms" );
+
+        $bU = (count($raUserid) > 0);
+        $bG = (count($raUserGroup) > 0);
+        if( $bU || $bG ) {
+            if( $bU )  $sCond .= "P.user_id IN (".implode(",",$raUserid).")";
+            if( $bU && $bG )  $sCond .= " OR ";
+            if( $bG )  $sCond .= "P.user_group IN (".implode(",",$raUserGroup).")";
+            $sCond = "(".$sCond.")";
+        }
+
+        return( $sCond );
+    }
+
     function GetPermClassInfo( $permclass )
     /**************************************
        For the given permclass return array('modes'=>M, 'classname'=>C, 'app'=>A)
      */
     {
-        return( array_merge( @$this->raClassInfo[$permclass], array( 'app' => $this->app ) ) );
+        return( array_merge( @$this->raClassInfo[$permclass], array( 'app' => $this->appname ) ) );
     }
 
     function GetClassesAllowedRA()
@@ -198,14 +330,16 @@ class SEEDPerms extends Keyframe_NamedRelations
         return( in_array( $permclass, $this->raModesClasses[$mode] ) );
     }
 
-    static function EnumAppNames( $kfdb, $raUserid, $raUserGroup )
-    /*************************************************************
+    function EnumAppNames( $raUserid, $raUserGroup )
+    /***********************************************
         Retrieve all application names accessible by the given current user
     */
     {
         $raRet = array();
 
-        $sCond = self::GetUserDBCond( $raUserid, $raUserGroup );
+        $sCond = $this->getUserDBCond( $raUserid, $raUserGroup );
+
+        $kfdb = $this->KFDB();
 
 //TODO: if kfrel::CreateRecordCursor could take a raSelFields parm (use in makeSelect) then this would be self::KfrelSEEDPerms_PxC
 
@@ -222,120 +356,44 @@ class SEEDPerms extends Keyframe_NamedRelations
         }
         return( $raRet );
     }
+}
 
-//    static function EnumClassNames( KeyFrameDB $kfdb, $raUserid, $raUserGroup, $app = "" )
-//    {
-//
-//    }
 
-    static function GetRAClassesOpts( KeyFrameDB $kfdb, $app = "", $bDetail = false )
-    /********************************************************************************
-        Return an array of Class names and keys formatted for Select(), using optional app namespace
+class SEEDPermsWrite extends SEEDPermsRead
+{
+//Maybe this should use SEEDAppSessionAccount so it can GetUID for the namedrelation instead of passing uidOwner?
+//This change has to be deferred until the client code of this class is able to make SEEDAppSessionAccount - right now it often
+//creates SEEDAppDB in the middle of some old code where it wouldn't know the login permission requirements
+    function __construct( SEEDAppDB $oApp, $uidOwner, $raConfig = array() )
+    /**********************************************************************
+        raConfig:   dbname      optional database name
+
+        $uidOwner is the uid to be credited with _created_by and/or _updated_by
      */
     {
-        $raPermOpts = array();
-
-        $sCondApp = $app ? ("application='".addslashes($app)."' AND") : "";
-
-        $q = $kfdb->QueryRowsRA( "SELECT * FROM SEEDPerms_Classes WHERE $sCondApp _status='0' ORDER BY _key" );
-        foreach( $q as $ra ) {
-            if( $bDetail ) {
-                $raPermOpts["{$ra['_key']} : {$ra['application']} : {$ra['name']}"] = $ra['_key'];
-            } else {
-                $raPermOpts[$ra['name']] = $ra['_key'];
-            }
-        }
-        return( $raPermOpts );
+        parent::__construct( $oApp, array_merge( $raConfig, array('uidOwner' => $uidOwner) ) );
     }
 
-//     static function GetPermClassInfo( $kfdb, $permclass )
-//     /****************************************************
-//      For the given permclass return array('modes'=>M, 'classname'=>C, 'app'=>A)
-//     */
-//     {
-//         $raRet = array();
-
-//         $kfrel = self::KfrelSEEDPerms_PxC( $kfdb, 0 );
-
-//         if( ($kfr = $kfrel->CreateRecordCursor( "C._key='$permclass'" )) ) {
-//             while( $kfr->CursorFetch() ) {
-//                 $raRet['app'] = $kfr->value( 'C_application' );
-//                 $raRet['classname'] = $kfr->value( 'C_name' );
-//                 $modes = $kfr->value('modes');
-//                 for( $i = 0; $i < strlen($modes); ++$i ) {
-//                     if( strpos( @$raRet['modes'], $modes[$i] ) === false ) {
-//                         @$raRet['modes'] .= $modes[$i];
-//                     }
-//                 }
-//             }
-//         }
-//         return( $raRet );
-//     }
-
-    static function GetUserDBCond( $raUserid, $raUserGroup )
-    /*******************************************************
-       Return the sql condition that constrains permclasses to the applicable user(s)
-     */
-    {
-        $sCond = "";
-
-        // Ensure that no one is trying to use user_id=0 or user_group=0. (e.g. for anonymous user permissions)
-        // Those are placeholders in the SEEDPerms table so their use is wrong and dangerous.
-        if( array_search(0, $raUserid) !== false )     die( "Cannot use uid=0 in SEEDPerms" );
-        if( array_search(0, $raUserGroup) !== false )  die( "Cannot use gid=0 in SEEDPerms" );
-
-        $bU = (count($raUserid) > 0);
-        $bG = (count($raUserGroup) > 0);
-        if( $bU || $bG ) {
-            if( $bU )  $sCond .= "P.user_id IN (".implode(",",$raUserid).")";
-            if( $bU && $bG )  $sCond .= " OR ";
-            if( $bG )  $sCond .= "P.user_group IN (".implode(",",$raUserGroup).")";
-            $sCond = "(".$sCond.")";
-        }
-
-        return( $sCond );
-    }
-
-    static function GetUsersFromPermClass( $kfdb, $permclass, $mode )
-    /****************************************************************
-        Get all the userids/usergroups that have the given mode of access to the given permclass
-     */
-    {
-        $raUid = array();
-        $raUG = array();
-
-        $kfrel = self::KfrelSEEDPerms( $kfdb, 0 );
-        if( ($kfr = $kfrel->CreateRecordCursor( "fk_SEEDPerms_Classes='$permclass' AND modes LIKE '%$mode%'" )) ) {
-            while( $kfr->CursorFetch() ) {
-                if( $kfr->Value('user_id') )     $raUid[] = $kfr->Value('user_id');
-                if( $kfr->Value('user_group') )  $raUG[]  = $kfr->Value('user_group');
-            }
-        }
-
-        return( array($raUid, $raUG) );
-    }
-
-    static function CreatePermClass( KeyFrameDB $kfdb, $app, $name )
+    function CreatePermClass( $appname, $name )
     {
         $ok = false;
 
-        $kfrel = self::KfrelSEEDPermClasses( $kfdb, 0 );
-        if( ($kfr = $kfrel->CreateRecord()) ) {
-            $kfr->SetValue( 'application', $app );
+        if( ($kfr = $this->KFRel('C')->CreateRecord()) ) {
+            $kfr->SetValue( 'application', $appname );
             $kfr->SetValue( 'name', $name );
             $ok = $kfr->PutDBRow();
         }
         return( $ok ? $kfr->Key() : 0 );
     }
 
-    static function AddPermForUser( KeyFrameDB $kfdb, $user_id, $permclass, $mode )
-    /******************************************************************************
+    function AddPermForUser( $user_id, $permclass, $mode )
+    /*****************************************************
         Check if the user has the given perm. If not, add it.
 
         This simplistically adds a new record - it could be fancier by adding another mode to an existing record.
      */
     {
-        $kfrel = self::KfrelSEEDPerms( $kfdb, 0 );
+        $kfrel = $this->KFRel('P');
         if( !($kfr = $kfrel->GetRecordFromDB( "user_id='$user_id' AND fk_SEEDPerms_Classes='$permclass' AND modes LIKE '%$mode%'")) ) {
             $kfr = $kfrel->CreateRecord();
             $kfr->SetValue( 'fk_SEEDPerms_Classes', $permclass );
@@ -346,14 +404,14 @@ class SEEDPerms extends Keyframe_NamedRelations
         }
     }
 
-    static function RemovePermForUser( KeyFrameDB $kfdb, $user_id, $permclass, $mode )
-    /*********************************************************************************
+    function RemovePermForUser( $user_id, $permclass, $mode )
+    /********************************************************
         Remove the given perm for the given user.
 
         There is no way to do this if the perm is provided in a group. Too bad for you.
      */
     {
-        $kfrel = self::KfrelSEEDPerms( $kfdb, 0 );
+        $kfrel = $this->KFRel('P');
         if( ($kfr = $kfrel->CreateRecordCursor( "user_id='$user_id' AND fk_SEEDPerms_Classes='$permclass' AND modes LIKE '%$mode%'")) ) {
             while( $kfr->CursorFetch() ) {
                 if( $kfr->Value( 'modes' ) == $mode ) {
@@ -364,75 +422,6 @@ class SEEDPerms extends Keyframe_NamedRelations
                 $kfr->PutDBRow();
             }
         }
-    }
-
-
-
-    static private $_fld_P = array( array("col"=>"fk_SEEDPerms_Classes", "type"=>"K"),
-                                    array("col"=>"user_id",              "type"=>"I"),
-                                    array("col"=>"user_group",           "type"=>"I"),
-                                    array("col"=>"modes",                "type"=>"S") );
-
-    static private $_fld_C = array( array("col"=>"application", "type"=>"S"),
-                                    array("col"=>"name",        "type"=>"S") );
-
-
-    static function KfrelSEEDPerms( &$kfdb, $uid )
-    {
-        $def = array( "Tables" => array( array( "Table" => 'SEEDPerms',
-                                                "Type"  => 'Base',
-                                                "Fields" => self::$_fld_P ) ) );
-        return( new KeyFrameRelation( $kfdb, $def, $uid ) );
-    }
-
-    static function KfrelSEEDPermClasses( &$kfdb, $uid )
-    {
-        $def = array( "Tables" => array( array( "Table" => 'SEEDPerms_Classes',
-                                                "Type"  => 'Base',
-                                                "Fields" => self::$_fld_C ) ) );
-        return( new KeyFrameRelation( $kfdb, $def, $uid ) );
-    }
-
-    static function KfrelSEEDPerms_PxC( &$kfdb, $uid )
-    {
-        $def = array( "Tables" => array( array( "Table" => 'SEEDPerms',
-                                                "Type"  => 'Base',
-                                                "Alias" => 'P',
-                                                "Fields" => self::$_fld_P ),
-                                         array( "Table" => 'SEEDPerms_Classes',
-                                                "Type"  => 'Parent',
-                                                "Alias" => 'C',
-                                                "Fields" => self::$_fld_C ) ) );
-        return( new KeyFrameRelation( $kfdb, $def, $uid ) );
-    }
-
-    static function KfrelSEEDPerms_P_C( &$kfdb, $uid )
-    /*************************************************
-        Normally you always want to use PxC, but in admin UI this is very useful because if a P.fk_SEEDPerms_Classes is set to an invalid
-        value, the PxC will not return that P row, and then you have a possibly operational permission that you don't know about
-     */
-    {
-        $def = array( "Tables" => array( array( "Table" => 'SEEDPerms',
-                                                "Type"  => 'Base',
-                                                "Alias" => 'P',
-                                                "Fields" => self::$_fld_P ),
-                                         array( "Table" => 'SEEDPerms_Classes',
-                                                "Alias" => 'C',
-                                                "Type"  => "LEFT JOIN",
-                                                "LeftJoinOn" => "P.fk_SEEDPerms_Classes=C._key",
-                                                "Fields" => self::$_fld_C ) ) );
-        return( new KeyFrameRelation( $kfdb, $def, $uid ) );
-    }
-}
-
-class SEEDPermsStatic
-{
-    static function GetClassName( KeyFrameDB $kfdb, $permclass, $bDetail = false )
-    {
-        if( !$permclass )  return( "0" );
-
-        $ra = $kfdb->QueryRA( "SELECT * FROM SEEDPerms_Classes WHERE _key='$permclass'" );
-        return( $bDetail ? "{$ra['_key']} : {$ra['application']} : {$ra['name']}" : $ra['name'] );
     }
 }
 
