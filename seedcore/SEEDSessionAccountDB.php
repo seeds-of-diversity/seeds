@@ -753,7 +753,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
 
     function GetUsersFromGroup( $kGroup, $raParms = array() )
     /********************************************************
-        Return the list of users that belong to kGroup: gid1 + UsersXGroups
+        Return the list of users that belong to kGroup: gid1 + UsersXGroups ; also users that belong to descendant groups of kGroup
 
         raParms:
             _status = kf status (-1 means all)
@@ -761,23 +761,22 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                       default: eStatus IN ('ACTIVE')
             bDetail = return array of uid=>array( user data ) -- default for historical reasons
            !bDetail = return array of uids
+
+            bDoNotIncludeDescendantGroups = (default false) skip the group inheritance and just use gid1 + UsersXGroups to find users
      */
     {
+        // Get all descendants of the given group, unless we're told not to
+        $raGroups = array( $kGroup );
+        if( !@$raParms['bDoNotIncludeDescendantGroups'] ) {
+            $raGroups = $this->getGroupDescendants( $raGroups );
+        }
 
-/* TODO: This should also get users who are members of inherited groups.
-
-         Get the list of groups inherited by kGroup.
-         SELECT also the users where gid1 is an inherited group.
-         SELECT also the users mapped by UxG to an inherited group.
-
-         There should be a raParm to disable this behaviour. You wouldn't want it for a group-mapping UGP UI. Would you want it
-         when determining which users would have access to a permclass based on SEEDPerms.uid?
-*/
-
-        $sql = "SELECT [[cols]] FROM {$this->sDB}SEEDSession_Users U WHERE gid1='$kGroup' AND [[statusCond]] "
-                ."UNION "
+        // For each of those groups, get the users associated with gid1 and UsersXGroups
+        $sql = "SELECT [[cols]] FROM {$this->sDB}SEEDSession_Users U "
+                ."WHERE ".SEEDCore_MakeRangeStrDB( $raGroups, "U.gid1" )." AND [[statusCond]] "
+              ."UNION "
               ."SELECT [[cols]] FROM {$this->sDB}SEEDSession_UsersXGroups UG,{$this->sDB}SEEDSession_Users U "
-                ."WHERE UG.gid='$kGroup' AND UG.uid=U._key AND [[statusCond]]";
+                ."WHERE ".SEEDCore_MakeRangeStrDB( $raGroups, "UG.gid" )." AND UG.uid=U._key AND [[statusCond]]";
 
         return( $this->getUsers( $sql, $raParms ) );
     }
@@ -854,7 +853,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         // And the groups mapped to the user
                ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' $sCondStatus" );
         // And their inherited groups
-        $raGroups = $this->getGroupInheritance( $raGroups );
+        $raGroups = $this->getGroupAncestors( $raGroups );
 
         if( $bNames ) {
             foreach( $raGroups as $gid ) {
@@ -890,23 +889,26 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( $raMetadata );
     }
 
-    function GetGroupMetadata( $kGroup )
-    /***********************************
+    function GetGroupMetadata( $kGroup, $raParms = array() )
+    /*******************************************************
+        raParms:
+            bDoNotIncludeAncestorGroups = (default false) skip the group inheritance
      */
     {
-
-
-/* TODO: Get all inherited groups, get metadata for them too.
-
-         There should be a raParm to prevent this behaviour when you want to see the metadata specifically for this group
- */
+        // Get all ancestors of the given group, unless we're told not to
+        $raGroups = array( $kGroup );
+        if( !@$raParms['bDoNotIncludeAncestorGroups'] ) {
+            $raGroups = $this->getGroupAncestors( $raGroups );
+        }
 
         $raMetadata = array();
 
 // todo: use named relation
-        $ra = $this->GetKFDB()->QueryRowsRA( "SELECT k,v FROM {$this->sDB}SEEDSession_GroupsMetadata WHERE _status='0' AND gid='$kGroup'" );
-        // ra is array( array( k=>keyname1, v=>value1 ), array( k=>keyname2, v=>value2 ) )
+        $ra = $this->GetKFDB()->QueryRowsRA(
+                "SELECT k,v FROM {$this->sDB}SEEDSession_GroupsMetadata "
+               ."WHERE _status='0' AND ".SEEDCore_MakeRangeStrDB( $raGroups, "gid" ) );
 
+        // ra is array( array( k=>keyname1, v=>value1 ), array( k=>keyname2, v=>value2 ) )
         foreach( $ra as $ra2 ) {
             $raMetadata[$ra2['k']] = $ra2['v'];
         }
@@ -918,11 +920,6 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
      */
     {
         $raGroups = $this->GetGroupsFromUser( $kUser );
-
-
-/* TODO: Get all groups of the user, then get all inherited groups of those groups, get metadata for them too.
- */
-
 
         $raMetadata = array();
         $ra = $this->GetKFDB()->QueryRowsRA(
@@ -973,7 +970,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
      */
     {
         // list all groups inherited by kGroup, including kGroup, and find the perm/modes of those groups.
-        $raGroups = $this->getGroupInheritance( array($kGroup) );
+        $raGroups = $this->getGroupAncestors( array($kGroup) );
         $sqlGroupRange = SEEDCore_MakeRangeStrDB( $raGroups, "P.gid" );
         return( $this->getPermsList( "SELECT P.perm AS perm, P.modes as modes FROM SEEDSession_Perms P "
                                     ."WHERE P._status='0' AND $sqlGroupRange" ) );
@@ -999,13 +996,19 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( $raRet );
     }
 
-    private function getGroupInheritance( $raGroups )
-    /************************************************
-        Given an array( gid1, gid2, ... ) return a similar array including those values plus all groups inherited by them
+    private function getGroupAncestors( $raGroups )
+    /**********************************************
+        Return the set of groups inherited by the given groups. Include the given groups in the result.
+
+        Array( gid1, gid2, ... ) is input and output.
      */
     {
         $raOut = array();
 
+        // Check each group for a gid_inherited. If set, add it to the list and check it for an ancestor too.
+        // Use array_shift instead of foreach so we can add to the raGroups list (foreach acts on its own copy of the array).
+        // Prevent circular lookups by testing whether raOut already contains the group being processed.
+        // Use isset with keys to make this test efficient.
         while( ($gid = array_shift($raGroups)) ) {
             if( isset($raOut[$gid]) )  continue;
             $raOut[$gid] = 1;
@@ -1014,6 +1017,30 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                 if( $kfr->Value('gid_inherited') ) {
                     $raGroups[] = $kfr->Value('gid_inherited');
                 }
+            }
+        }
+
+        return( array_keys( $raOut ) );
+    }
+
+    private function getGroupDescendants( $raGroups )
+    /************************************************
+        Return the set of groups that inherit the given groups. Include the given groups in the result.
+
+        Array( gid1, gid2, ... ) is input and output.
+     */
+    {
+        $raOut = array();
+
+        // For each group, fetch any groups that have that group as their gid_inherited. Repeat for those groups.
+        // See getGroupAncestors() for comments on this implementation
+        while( ($gid = array_shift($raGroups)) ) {
+            if( isset($raOut[$gid]) )  continue;
+            $raOut[$gid] = 1;
+
+            $raDesc = $this->GetList( "G", "gid_inherited='$gid'" );
+            foreach( $raDesc as $desc ) {
+                $raGroups[] = $desc['_key'];
             }
         }
 
