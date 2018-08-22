@@ -763,6 +763,17 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
            !bDetail = return array of uids
      */
     {
+
+/* TODO: This should also get users who are members of inherited groups.
+
+         Get the list of groups inherited by kGroup.
+         SELECT also the users where gid1 is an inherited group.
+         SELECT also the users mapped by UxG to an inherited group.
+
+         There should be a raParm to disable this behaviour. You wouldn't want it for a group-mapping UGP UI. Would you want it
+         when determining which users would have access to a permclass based on SEEDPerms.uid?
+*/
+
         $sql = "SELECT [[cols]] FROM {$this->sDB}SEEDSession_Users U WHERE gid1='$kGroup' AND [[statusCond]] "
                 ."UNION "
               ."SELECT [[cols]] FROM {$this->sDB}SEEDSession_UsersXGroups UG,{$this->sDB}SEEDSession_Users U "
@@ -821,7 +832,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
 
     function GetGroupsFromUser( $kUser, $raParms = array() )
     /*******************************************************
-        Return the list of groups in which kUser is a member: gid1 + UsersXGroups
+        Return the list of groups in which kUser is a member: gid1 + UsersXGroups + their inherited groups
 
         raParms:
             _status = kf status (-1 means all)
@@ -831,25 +842,26 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
     {
         $raRet = array();
 
-        $st  = SEEDCore_ArraySmartVal1( $raParms, '_status', 0 );           // empty is not a valid value
+        $st = SEEDCore_ArraySmartVal1( $raParms, '_status', 0 );           // empty is not a valid value
         $sCondStatus = ($st == -1 ? "" : " AND _status='$st'");
 
         $bNames = intval(@$raParms['bNames']);
 
-        if( ($dbc = $this->GetKFDB()->CursorOpen(
-                "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' $sCondStatus "
+        $raGroups = $this->KFDB()->QueryRowsRA1(
+        // Get the user's primary group
+               "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' $sCondStatus "
                ."UNION "
-               ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' $sCondStatus" )) ) {
-            while( $ra = $this->GetKFDB()->CursorFetch( $dbc ) ) {
-                if( $ra[0] ) {
-                    if( $bNames ) {
-                        $raRet[$ra[0]] = $this->kfdb->Query1("SELECT groupname FROM {$this->sDB}SEEDSession_Groups WHERE _key='{$ra[0]}'");
-                    } else {
-                        $raRet[] = $ra[0];
-                    }
-                }
+        // And the groups mapped to the user
+               ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' $sCondStatus" );
+        // And their inherited groups
+        $raGroups = $this->getGroupInheritance( $raGroups );
+
+        if( $bNames ) {
+            foreach( $raGroups as $gid ) {
+                $raRet[$gid] = $this->KFDB()->Query1( "SELECT groupname FROM {$this->sDB}SEEDSession_Groups WHERE _key='$gid'" );
             }
-            $this->GetKFDB()->CursorClose($dbc);
+        } else {
+            $raRet = $raGroups;
         }
         asort( $raRet );  // sort by array value, maintaining key association if bNames
 
@@ -882,6 +894,13 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
     /***********************************
      */
     {
+
+
+/* TODO: Get all inherited groups, get metadata for them too.
+
+         There should be a raParm to prevent this behaviour when you want to see the metadata specifically for this group
+ */
+
         $raMetadata = array();
 
 // todo: use named relation
@@ -898,6 +917,13 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
     /****************************************
      */
     {
+        $raGroups = $this->GetGroupsFromUser( $kUser );
+
+
+/* TODO: Get all groups of the user, then get all inherited groups of those groups, get metadata for them too.
+ */
+
+
         $raMetadata = array();
         $ra = $this->GetKFDB()->QueryRowsRA(
             "SELECT G.k as k,G.v as v FROM {$this->sDB}SEEDSession_GroupsMetadata G,{$this->sDB}SEEDSession_UsersXGroups X "
@@ -927,21 +953,18 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                  'mode2perms' => array( 'R'=>array('app1','app2','app3'), 'W'=>array('app2','app3'), 'A'=>array('app3') )
      */
     {
-        return( $this->getPermsList(
-                // Get perms explicitly set for this uid
-                "SELECT perm,modes FROM SEEDSession_Perms WHERE _status=0 AND uid='$kUser' "
-               ."UNION "
-                // Get perms associated with the user's primary group
-               ."SELECT P.perm AS perm, P.modes as modes "
-               ."FROM SEEDSession_Perms P, SEEDSession_Users U "
-               ."WHERE P._status=0 AND U._status=0 AND "
-               ."U._key='$kUser' AND U.gid1 >=1 AND P.gid=U.gid1 "
-               ."UNION "
-                // Get perms from groups
-               ."SELECT P.perm AS perm, P.modes as modes "
-               ."FROM SEEDSession_Perms P, SEEDSession_UsersXGroups GU "
-               ."WHERE P._status=0 AND GU._status=0 AND "
-               ."GU.uid='$kUser' AND GU.gid >=1 AND GU.gid=P.gid" ) );
+        $raGroups = $this->GetGroupsFromUser( $kUser );
+
+        // Get perms explicitly for this uid
+        $sql = "SELECT perm,modes FROM SEEDSession_Perms WHERE _status='0' AND uid='$kUser'";
+        if( count($raGroups) ) {
+            // And perms for its groups and inherited groups
+            $sql .= " UNION "
+                   ."SELECT P.perm AS perm, P.modes as modes "
+                   ."FROM SEEDSession_Perms P WHERE P._status='0' AND ".SEEDCore_MakeRangeStrDB( $raGroups, "P.gid" );
+        }
+
+        return( $this->getPermsList( $sql ) );
     }
 
     function GetPermsFromGroup( $kGroup )
@@ -949,13 +972,18 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         Get the given group's permissions in the same format as GetPermsFromUserKey
      */
     {
+        // list all groups inherited by kGroup, including kGroup, and find the perm/modes of those groups.
+        $raGroups = $this->getGroupInheritance( array($kGroup) );
+        $sqlGroupRange = SEEDCore_MakeRangeStrDB( $raGroups, "P.gid" );
         return( $this->getPermsList( "SELECT P.perm AS perm, P.modes as modes FROM SEEDSession_Perms P "
-                                    ."WHERE P._status=0 AND P.gid='$kGroup'" ) );
+                                    ."WHERE P._status='0' AND $sqlGroupRange" ) );
     }
 
     private function getPermsList( $sql )
     {
-        $raRet = array( 'perm2modes' => array(), 'mode2perms' => array( 'R'=>array(), 'W'=>array(), 'A'=>array() ) );
+        $raRet = array( 'perm2modes' => array(),
+                        'mode2perms' => array( 'R'=>array(), 'W'=>array(), 'A'=>array() ) );
+
         if( ($dbc = $this->GetKFDB()->CursorOpen( $sql )) ) {
             while( $ra = $this->GetKFDB()->CursorFetch( $dbc ) ) {
                 if( strchr($ra['modes'],'R') && !in_array($ra['perm'], $raRet['mode2perms']['R']) ) { $raRet['mode2perms']['R'][] = $ra['perm']; }
@@ -965,12 +993,32 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
             $this->GetKFDB()->CursorClose( $dbc );
         }
         foreach( $raRet['mode2perms']['R'] as $p ) { $raRet['perm2modes'][$p]  = "R"; }
-        foreach( $raRet['mode2perms']['W'] as $p ) { @$raRet['perm2modes'][$p] .= "W"; } // the @ prevents warning if R is not set so index not found for concatenation
+        foreach( $raRet['mode2perms']['W'] as $p ) { @$raRet['perm2modes'][$p] .= "W"; } // the @ prevents concatenation warning if R is not set
         foreach( $raRet['mode2perms']['A'] as $p ) { @$raRet['perm2modes'][$p] .= "A"; }
 
         return( $raRet );
     }
 
+    private function getGroupInheritance( $raGroups )
+    /************************************************
+        Given an array( gid1, gid2, ... ) return a similar array including those values plus all groups inherited by them
+     */
+    {
+        $raOut = array();
+
+        while( ($gid = array_shift($raGroups)) ) {
+            if( isset($raOut[$gid]) )  continue;
+            $raOut[$gid] = 1;
+
+            if( ($kfr = $this->GetKFR( "G", $gid )) ) {
+                if( $kfr->Value('gid_inherited') ) {
+                    $raGroups[] = $kfr->Value('gid_inherited');
+                }
+            }
+        }
+
+        return( array_keys( $raOut ) );
+    }
 
     function GetSessionHashSeed()
     /****************************
@@ -994,6 +1042,10 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         Override Keyframe_NamedRelation's method for generating the kfrels for this class
      */
     {
+        $fld_G = array( array("col"=>"groupname",     "type"=>"S"),
+                        array("col"=>"gid_inherited", "type"=>"I")
+        );
+
         $kfreldef_U = array( "Tables" => array(
                 "U" => array( "Table" => "{$this->sDB}SEEDSession_Users",
                               "Type"  => 'Base',
@@ -1008,14 +1060,14 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                 "G" => array( "Table" => "{$this->sDB}SEEDSession_Groups",
                               "Type"  => "LeftJoin",
                               "JoinOn" => "U.gid1=G._key",
-                              "Fields" => array( array("col"=>"groupname",   "type"=>"S"),
-                ) ) ) );
+                              "Fields" => $fld_G
+                ) ) );
 
         $kfreldef_G = array( "Tables" => array(
                 "G" => array( "Table" => "{$this->sDB}SEEDSession_Groups",
                               "Type"  => 'Base',
-                              "Fields" => array( array("col"=>"groupname",   "type"=>"S" )
-                ) ) ) );
+                              "Fields" => $fld_G
+                ) ) );
 
         $kfreldef_UxG = array( "Tables" => array(
                 "UxG" => array( "Table" => "{$this->sDB}SEEDSession_UsersXGroups",
@@ -1041,8 +1093,8 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                 "G" => array( "Table" => "{$this->sDB}SEEDSession_Groups",
                               "Type"  => "LeftJoin",
                               "JoinOn" => "P.gid=G._key",
-                              "Fields" => array( array("col"=>"groupname",   "type"=>"S"),
-                ) ) ) );
+                              "Fields" => $fld_G
+                ) ) );
 
         $kfreldef_UM = array( "Tables" => array(
                 "UM" => array( "Table" => "{$this->sDB}SEEDSession_UsersMetadata",
@@ -1336,7 +1388,8 @@ CREATE TABLE IF NOT EXISTS SEEDSession_Groups (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    groupname   VARCHAR(200)
+    groupname     VARCHAR(200),
+    gid_inherited INTEGER NOT NULL DEFAULT '0'      # users in the group are also considered members of this group
 );
 "
 );

@@ -53,8 +53,8 @@ class KeyframeDB_Connection_MySQLI extends KeyFrameDB_Connection
     function _cursorFetch( $dbc, $result_type )
     {
         switch( $result_type ) {
-            case KEYFRAMEDB_RESULT_ASSOC: $result_type = MYSQLI_ASSOC;
-            case KEYFRAMEDB_RESULT_NUM:   $result_type = MYSQLI_NUM;
+            case KEYFRAMEDB_RESULT_ASSOC: $result_type = MYSQLI_ASSOC; break;
+            case KEYFRAMEDB_RESULT_NUM:   $result_type = MYSQLI_NUM;   break;
             case KEYFRAMEDB_RESULT_BOTH:
             default:                      $result_type = MYSQLI_BOTH;
         }

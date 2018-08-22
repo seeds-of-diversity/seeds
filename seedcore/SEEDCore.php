@@ -376,15 +376,15 @@ function SEEDCore_MakeRangeStr( $raNumbers, $bSorted = false )
 
     $s = "";
 
-    $raNCopy = $raNumbers;     // necessary?  does php sort the original array or a copy?
+    // Does this affect the caller's array?
+    // No. PHP makes a late copy of arrays passed to functions. Passed by reference for efficiency, but a value-by-value copy is made if the array is changed.
     if( !$bSorted ) {
-        sort($raNCopy);
+        sort($raNumbers);
     }
-
 
     $n1 = 0;
     $n2 = 0;
-    foreach( $raNCopy as $n ) {
+    foreach( $raNumbers as $n ) {
         if( !$n1 ) {
             $n1 = $n2 = $n;
         } else if( $n == $n2 + 1 ) {
