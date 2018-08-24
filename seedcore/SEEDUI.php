@@ -669,11 +669,13 @@ class SEEDUIWidget_Base
 
 class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 /*******************************
-    Draw a search control with one or more filters.  Each filter has a field list, op list, and text input.
+    Draw a search control with one or more terms.  Each term has a field list, op list, and text input.
 
-    raConfig = array( 'filters'  => array( 'label1'=>'fld1', 'label2'=>'fld2', ... ),
-                      'template' => " HTML template  " )
+    raConfig = array( 'filters'  => array( array('label=>label1, 'col'=>'fld1'),
+                                           array('label=>label2, 'col'=>'fld2') ),
+                      'template' => " HTML template containing [[fldN]] [[opN]] [[valN]] " )
 
+    The filters use the same format as the List cols, for convenience in your config.
     The template substitutes the tags [[fldN]], [[opN]], [[valN]], where N is the origin-1 filter index
 
     Default template just separates one row of tags with &nbsp;
@@ -740,7 +742,9 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
                 } else {
                     // field "Any" is selected, so loop through all the fields to generate a condition that includes them all
                     $raC = array();
-                    foreach( $this->raConfig['filters'] as $label => $f ) {
+                    foreach( $this->raConfig['filters'] as $raF ) {
+                        $label = $raF['label'];
+                        $f = $raF['col'];
                         if( empty($f) )  continue;  // skip 'Any'
                         $raC[] = $this->dbCondTerm( $f, $op, $val );   // op and val are the current uiparm values for this search row
                     }
@@ -824,7 +828,7 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             /* Write the [[textN]]
              */
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Text( "srchval$i", "", array('sfParmType'=>'ctrl_global', 'size'=>20) );
+            $c = $this->oComp->oForm->Text( "srchval$i", "", array('value'=>$val, 'sfParmType'=>'ctrl_global', 'size'=>20) );
             $s = str_replace( "[[text$i]]", $c, $s );
         }
 
