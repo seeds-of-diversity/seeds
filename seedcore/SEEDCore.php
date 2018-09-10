@@ -330,11 +330,24 @@ function SEEDCore_ParseRangeStr( $sRange )
     and an array containing all the numbers
  */
 {
-    $raRange = array();
     $sRangeNormal = "";
 
-    /* First explode the range into the array of numbers
-     */
+    // First explode the range into the array of numbers
+    $raRange = SEEDCore_ParseRangeStrToRA( $sRange );
+
+    // Now process the array of numbers into a normalized range string
+    $sRangeNormal = SEEDCore_MakeRangeStr( $raRange, true );
+
+    return( array( $raRange, $sRangeNormal ) );
+}
+
+function SEEDCore_ParseRangeStrToRA( $sRange )
+/*********************************************
+    Parse a string containing a potentially complicated range of numbers.
+ */
+{
+    $raRange = array();
+
     $ra = explode( ',', $sRange );
     foreach( $ra as $sN ) {
         $sN = trim($sN);
@@ -357,11 +370,7 @@ function SEEDCore_ParseRangeStr( $sRange )
     }
     sort($raRange);
 
-    /* Now process the array of numbers into a normalized range string
-     */
-    $sRangeNormal = SEEDCore_MakeRangeStr( $raRange, true );
-
-    return( array( $raRange, $sRangeNormal ) );
+    return( $raRange );
 }
 
 function SEEDCore_MakeRangeStr( $raNumbers, $bSorted = false )
@@ -424,7 +433,8 @@ function SEEDCore_MakeRangeStrDB( $raNumbers, $fld, $bSorted = false )
 
 function SEEDCore_RangeStrToDB( $sRange, $fld )
 /**********************************************
-    Turn a normal range string into an sql condition
+    Turn a normal range string into an sql condition.
+    N.B. It has to be a normalized range string - use SEEDCore_ParseRangeStr() to make that if it isn't.
 
     See SEEDCore_MakeRangeStrDB for output format.
  */
