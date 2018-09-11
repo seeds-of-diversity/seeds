@@ -23,15 +23,18 @@ class SLSourceCV_Build
 
         $cAll = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0'" );
 
-        /* Sources (usually this will not be rebuilt but you can clear the keys if you like and this will reconnect them)
+        /* Company name is only stored in sl_tmp_cv_sources to save space in the large tables like sl_cv_sources_archive.
+         * That means you can't clear fk_sl_sources in the permanent tables and expect it to be rebuilt.
          */
-        $cSet = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_sources" );
-        if( $cSet == $cAll ) {
-            $s .= "<p>Sources index does not need to be rebuilt.</p>";
-        } else {
-            self::BuildSourcesIndex( $kfdb, $dbtable );
-            $cSet2 = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_sources" );
-            $s .= "<p>Rebuilt ".($cSet2-$cSet)." source keys. Now $cSet2 / $cAll.</p>";
+        if( $dbtable == 'seeds.sl_tmp_cv_sources' ) {
+            $c = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_sources" );
+            if( $c == $cAll ) {
+                $s .= "<p>Sources index does not need to be rebuilt.</p>";
+            } else {
+                self::BuildSourcesIndex( $kfdb, $dbtable );
+                $c2 = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_sources" );
+                $s .= "<p>Rebuilt ".($c2-$c)." source keys. Now $c2 / $cAll.</p>";
+            }
         }
 
         /* Delete the sp and cv keys from sl_cv_sources
@@ -43,14 +46,14 @@ class SLSourceCV_Build
         /* Species: fill in all the fk_sl_species keys that we can find in RosettaSEED
          */
         self::BuildSpeciesIndex( $kfdb, $dbtable, "" );
-        $cSet = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_species" );
-        $s .= "<p>Species index rebuilt ($cSet / $cAll)</p>";
+        $c = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_species" );
+        $s .= "<p>Species index rebuilt ($c / $cAll)</p>";
 
         /* Cultivars: fill in all the cv keys that we can find in RosettaSEED (for SrcCV records that have species keys now)
          */
         self::BuildCultivarIndex( $kfdb, $dbtable, "" );
-        $cSet = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_pcv" );
-        $s .= "<p>Cultivar index rebuilt ($cSet / $cAll)</p>";
+        $c = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_pcv" );
+        $s .= "<p>Cultivar index rebuilt ($c / $cAll)</p>";
 
         /* Compute soundex and metaphone for unmatched names
          */
@@ -61,6 +64,10 @@ class SLSourceCV_Build
     }
 
     static function ClearIndex( KeyframeDatabase $kfdb, $dbtable )
+    /*************************************************************
+        Since we don't store company names in the permanent tables, we don't clear fk_sl_sources.
+        If you want to clear and rebuild the sources index in sl_tmp_cv_sources, do it manually and use BuildSourcesIndex
+     */
     {
         self::checkTable( $dbtable );
 
@@ -69,28 +76,33 @@ class SLSourceCV_Build
     }
 
     static function ClearSoundIndex( KeyframeDatabase $kfdb, $dbtable )
+    /******************************************************************
+        Only the sl_cv_sources table uses sound indices to try to work out synonyms.
+        This could be extended to sl_cv_sources_archive if computing power allows.
+     */
     {
-        if( $dbtable != "seeds.sl_cv_sources_archive" ) {
-            self::checkTable( $dbtable );
-
+        if( $dbtable == 'seeds.sl_cv_sources' ) {
             $kfdb->Execute( "UPDATE $dbtable SET sound_soundex='',sound_metaphone=''" );
         }
     }
 
     static function BuildSourcesIndex( KeyframeDatabase $kfdb, $dbtable, $sCond = "" )
     /*********************************************************************************
-        Fill in the fk_sl_sources keys for matching company names
+        Fill in the fk_sl_sources keys for matching company names.
+
+        Only used with sl_tmp_cv_sources because we don't store company names in the permanent tables.
      */
     {
-        self::checkTable( $dbtable );
+        //self::checkTable( $dbtable );
+        ($dbtable == "seeds.sl_tmp_cv_sources") or die( "Can't build sources for table $dbtable - only allowed for seeds.sl_tmp_cv_sources" );
 
         $ok =
         $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_sources Src "
                        ."SET SrcCV.fk_sl_sources=Src._key "
                        ."WHERE SrcCV._status='0' AND Src._status='0' "
                        ."AND SrcCV.fk_sl_sources='0' "
-                       ."AND SrcCV.company_name<>'' "   // shouldn't happen
-                       ."AND (SrcCV.company_name=Src.name_en OR SrcCV.company_name=Src.name_fr)"
+                       ."AND SrcCV.company<>'' "   // shouldn't happen
+                       ."AND (SrcCV.company=Src.name_en OR SrcCV.company=Src.name_fr)"
                        .($sCond ? " AND ($sCond)" : "" ) );
         return( $ok );
     }
@@ -163,17 +175,56 @@ class SLSourceCV_Build
     }
 
     static function BuildSoundIndex( KeyframeDatabase $kfdb, $dbtable )
+    /******************************************************************
+        Only the sl_cv_sources table uses sound indices to try to work out synonyms.
+        This could be extended to sl_cv_sources_archive if computing power allows.
+     */
     {
+        if( $dbtable == 'seeds.sl_cv_sources' ) {
 //        $kfdb->Execute( "UPDATE seeds.sl_cv_sources SET sound_soundex=soundex(ocv) WHERE sound_soundex=''" );
 //        $kfdb->Execute( "UPDATE seeds.sl_cv_sources SET sound_metaphone=metaphone(ocv) WHERE sound_metaphone=''" );
 
 //        $this->oW->kfdb->Execute( "UPDATE seeds.sl_pcv SET sound_soundex=soundex(name) WHERE sound_soundex=''" );
 //        $this->oW->kfdb->Execute( "UPDATE seeds.sl_pcv SET sound_metaphone=metaphone(name) WHERE sound_metaphone=''" );
+        }
     }
 
     static private function checkTable( $dbtable )
     {
         in_array( $dbtable, array("seeds.sl_cv_sources", "seeds.sl_cv_sources_archive", "seeds.sl_tmp_cv_sources") )  or  die( "$dbtable not allowed" );
+    }
+
+    static function ReportTmpTable( KeyframeDatabase $kfdb, $kUpload )
+    /*****************************************************************
+        Report on the current build status of seeds.sl_tmp_cv_sources
+     */
+    {
+        $dbtable = "seeds.sl_tmp_cv_sources";   // the following code won't work on any other table anyway
+
+        $raReport = array(
+            'nRows'              => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload'" ),
+            'nRowsUncomputed'    => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op=''" ),
+            'nRowsSame'          => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='-'" ),
+            'nRowsN'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='N'" ),
+            'nRowsU'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='U'" ),
+            'nRowsV'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='V'" ),
+            'nRowsY'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='Y'" ),
+            'nRowsD1'            => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='D'" ),
+            'nRowsD2'            => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE kUpload='$kUpload' AND op='X'" ),
+            'nDistinctCompanies' => $kfdb->Query1( "SELECT count(distinct fk_sl_sources) FROM {$dbtable} WHERE kUpload='$kUpload' AND fk_sl_sources<>'0'" ),
+
+            // rows with unmatched companies, ignoring those where species is blank or company is blank (those are rows to be deleted)
+            'raUnknownCompanies' => $kfdb->QueryRowsRA( "SELECT company FROM {$dbtable} WHERE kUpload='$kUpload' "
+                                                       ."AND fk_sl_sources='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
+            // rows with unmatched species, ignoring those where species is blank or company is blank (those are rows to be deleted)
+            'raUnknownSpecies'   => $kfdb->QueryRowsRA( "SELECT osp FROM {$dbtable} WHERE kUpload='$kUpload' "
+                                                       ."AND fk_sl_species='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
+            // rows with unmatched cultivars, not counting those where species was unmatched (reported above and prerequisite)
+            'raUnknownCultivars' => $kfdb->QueryRowsRA( "SELECT osp,ocv FROM {$dbtable} WHERE kUpload='$kUpload' "
+                                                       ."AND fk_sl_pcv='0' AND fk_sl_species<>'0' GROUP BY 1,2 ORDER BY 1,2" ),
+        );
+
+        return( $raReport );
     }
 }
 
