@@ -1,8 +1,15 @@
 {
+     "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/wheelhouse-therapy/PHPWord.git"
+        }
+    ],
+
     "require": {
         "google/apiclient": "^2.0",
         "fpdf/fpdf": "^1.8",
-        "phpoffice/phpword": "^0.15.0",
+        "phpoffice/phpword": "dev-develop",
         "phpoffice/phpspreadsheet": "^1.4"
     }
 }
