@@ -37,24 +37,24 @@ class SLSourceCV_Build
         /* Delete the sp and cv keys from sl_cv_sources
          */
         $c = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND (fk_sl_species OR fk_sl_pcv)" );
-        SLSourceCV_Build::ClearIndex( $kfdb, $dbtable );
+        self::ClearIndex( $kfdb, $dbtable );
         $s .= "<p>Species/cultivar index deleted ($c entries)</p>";
 
         /* Species: fill in all the fk_sl_species keys that we can find in RosettaSEED
          */
-        SLSourceCV_Build::BuildSpeciesIndex( $kfdb, $dbtable, "" );
+        self::BuildSpeciesIndex( $kfdb, $dbtable, "" );
         $cSet = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_species" );
         $s .= "<p>Species index rebuilt ($cSet / $cAll)</p>";
 
         /* Cultivars: fill in all the cv keys that we can find in RosettaSEED (for SrcCV records that have species keys now)
          */
-        SLSourceCV_Build::BuildCultivarIndex( $kfdb, $dbtable, "" );
+        self::BuildCultivarIndex( $kfdb, $dbtable, "" );
         $cSet = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_pcv" );
         $s .= "<p>Cultivar index rebuilt ($cSet / $cAll)</p>";
 
         /* Compute soundex and metaphone for unmatched names
          */
-        SLSourceCV_Build::BuildSoundIndex( $kfdb, $dbtable );
+        self::BuildSoundIndex( $kfdb, $dbtable );
 
 
         return( $s );
