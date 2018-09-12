@@ -9,11 +9,15 @@ class SLSourceCV_Build
 {
     function __construct() {}
 
-    static function BuildAll( KeyframeDatabase $kfdb, $dbtable )
-    /***********************************************************
+    static function BuildAll( KeyframeDatabase $kfdb, $dbtable, $raParms = array() )
+    /*******************************************************************************
         Build fk_sl_sources keys as needed (do not clear).
         Clear and rebuild fk_sl_species keys.
         Clear and rebuild fk_sl_pcv keys.
+
+        raParms:
+            bIncludeOldSources : when indexing companies (only for sl_tmp_cv_sources) ignore sl_sources._status to include companies out of business
+
      */
     {
         self::checkTable( $dbtable );
@@ -31,7 +35,8 @@ class SLSourceCV_Build
             if( $c == $cAll ) {
                 $s .= "<p>Sources index does not need to be rebuilt.</p>";
             } else {
-                self::BuildSourcesIndex( $kfdb, $dbtable );
+                self::BuildSourcesIndex( $kfdb, $dbtable,
+                                         @$raParms['bIncludeOldSources'] ? array( 'iStatusSrc'=>-1 ) : array() );
                 $c2 = $kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status='0' AND fk_sl_sources" );
                 $s .= "<p>Rebuilt ".($c2-$c)." source keys. Now $c2 / $cAll.</p>";
             }
@@ -86,20 +91,28 @@ class SLSourceCV_Build
         }
     }
 
-    static function BuildSourcesIndex( KeyframeDatabase $kfdb, $dbtable, $sCond = "" )
-    /*********************************************************************************
+    static function BuildSourcesIndex( KeyframeDatabase $kfdb, $dbtable, $raParms = array() )
+    /****************************************************************************************
         Fill in the fk_sl_sources keys for matching company names.
 
         Only used with sl_tmp_cv_sources because we don't store company names in the permanent tables.
+
+        raParms:
+            sCond      = sql condition
+            iStatusSrc = filter on sl_sources._status : -1 means don't care
+                         This is useful when building an index for old SrcCV data that includes companies that are out of business
      */
     {
+        $sCond = @$raParms['sCond'];
+        $iStatusSrc = intval(@$raParms['iStatusSrc']);
+
         //self::checkTable( $dbtable );
         ($dbtable == "seeds.sl_tmp_cv_sources") or die( "Can't build sources for table $dbtable - only allowed for seeds.sl_tmp_cv_sources" );
 
         $ok =
         $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_sources Src "
                        ."SET SrcCV.fk_sl_sources=Src._key "
-                       ."WHERE SrcCV._status='0' AND Src._status='0' "
+                       ."WHERE SrcCV._status='0' ".($iStatusSrc == -1 ? "" : "AND Src._status='$iStatusSrc' ")
                        ."AND SrcCV.fk_sl_sources='0' "
                        ."AND SrcCV.company<>'' "   // shouldn't happen
                        ."AND (SrcCV.company=Src.name_en OR SrcCV.company=Src.name_fr)"
