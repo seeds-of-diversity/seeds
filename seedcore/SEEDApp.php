@@ -83,7 +83,13 @@ class SEEDAppSessionAccount extends SEEDAppSession
         // This is structured as a SEEDAppSession so client code (like Console) can use it as that base class.
         // However since $sess is itself subclassed, it is built as base SEEDSession then replaced by SEEDSessionAccount.
         parent::__construct( $raParms );
-        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], @$raParms['sessParms'] ?: array() );
+
+        // SEEDSessionAccount parms are in a sub-array of raParms. Feed it the logdir if that's defined at the top level of the array.
+        $raSessParms = @$raParms['sessParms'] ?: array();
+        if( !isset($raSessParms['logfile']) && !isset($raSessParms['logdir']) && isset($raParms['logdir']) ) {
+            $raSessParms['logdir'] = $raParms['logdir'];
+        }
+        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], $raSessParms );
     }
 }
 
