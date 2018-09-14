@@ -412,9 +412,11 @@ class KeyFrame_Relation
                               If JoinOn is defined, [joincond] is JoinOn.
                               Else if an fk_ relationship exists, [joincond] uses fk_
                               Else the join has no ON clause.
-                          This means the fk_ feature is only enabled if neither JoinOn nor LeftJoinOn are defined.
-                          That's because the fk_ feature is normally useful for inner joins, and the JoinOn parameter
-                          exists to specify non-fk_ relationships.
+
+                          Note that mysql does not allow forward table references in ON clauses.
+                          e.g. A JOIN B ON (B.x=C.y) JOIN C ON (C.x=A.y) is an error because of the reference to C in the first ON clause.
+                          Automatic fk_ joins must therefore put their conditions in the rightmost table's ON clause.
+                          e.g. A JOIN B JOIN C ON (B.x=C.y AND C.x=A.y)  -- verify that this is correct?
 
          [condClause]     contains all conditions defined by the kfreldef
 
@@ -429,69 +431,67 @@ class KeyFrame_Relation
         $sTablesClause = "";
         $raCondClause = array();
 
-
         $raTables = array();
 
-        /* Pre-process each table by recording the alias, type, and whether there is a fk_ field that matches
-         * another table name (modulo db prefix)
-         */
+        $raFKJoins = array();   // ON() conditions for fk_ autojoins  array( tableAlias => array( cond, cond, ... ), tableAlias => ... )
+
+        // preprocess the kfrdef
         foreach( $this->kfrdef['Tables'] as $a => &$t ) {
             if( !@$t['JoinOn'] ) $t['JoinOn'] = "";
-            $t['fk'] = array();
         }
         unset($t);  // always do this after foreach with reference, especially if you use $t again
 
+
         /* Find any fk_ fields that match another table in the kfrdef
          *
-         * The join is constructed left to right in the order of tables specified. That means it's awkward for the first table
-         * to have a fk_ to a later table, because the ON clause has to come after the second table. Much easier if the first table has no fk_
+         * The join is constructed left to right in the order of tables specified.
+         * Forward table references are not allowed in ON clauses, so:
+         *     1) if the fk refers to a table A to the left of the referencing table B, put B.fk=A._key in B's ON clause.
+         *     2) if the fk refers to a table C to the right of the referencing table B, put B.fk=C._key in C's ON clause.
          *
-         *      A JOIN B ON (A.fk_B=B._key)                             not too hard to implement if you store the dependency from A
-         *      A JOIN B ON (A.fk_B=B._key) JOIN C ON (C.fk_B=B._key)   a lot harder to implement because B and C have to do different things
-         *      A JOIN B ON (B.fk_A=A._key) JOIN C ON (C.fk_A=A._key)   easier to implement because each fk_ is in an ON clause with its own table
-         *      A JOIN B ON (B.fk_A=A._key) JOIN C ON (C.fk_A=B._key)   this is also not a problem
+         *     A JOIN B ON (B.fk_A=A._key)                             the simplest case B.fk_A can be written as B is processed
+         *     A JOIN B ON (A.fk_B=B._key)                             A has forward reference A.fk_B so the ON clause has to be deferred until B is processed
+         *     A JOIN B ON (B.fk_A=A._key) JOIN C ON (C.fk_B=B._key)   simplest 3-table case where each table refers to previous
+         *     A JOIN B ON (B.fk_A=A._key) JOIN C ON (C.fk_A=A._key)   equally simple 3-table case with only backward references
+         *     A JOIN B ON (A.fk_B=B._key) JOIN C ON (B.fk_C=C._key)   each table refers to the table following it, so forward references needed
+         *     A JOIN B ON (A.fk_B=B._key) JOIN C ON (A.fk_C=C._key)   A and B both refer to C, so forward references needed
          */
         foreach( $this->kfrdef['Tables'] as $a => $t ) {
             foreach( $t['Fields'] as $f ) {
+                // for each field in this table look for one that starts with fk_ and whose remainder is the same as another table in this kfrdef
                 if( substr($f['col'],0,3) != "fk_" || !($foreignTable = substr($f['col'],3)) )  continue;
 
-                /* This is a foreign key to another table. See if that table is in the kfrdef.
-                 * Table names can have the db name appended e.g. db1.table, so do the compare after any '.'
-                 */
+                $bForwardReference = false;
                 foreach( $this->raTableN2A as $t2 => $a2 ) {
-                    if( ($i = strpos( $t2, '.' )) !== false ) {
-                        $t2 = substr( $t2, $i + 1 );
+                    if( $a2 == $a ) {
+                        // from now on, the foreign table is to the right of the referencing table
+                        $bForwardReference = true;
+                        continue;   // no fk references to self so short-circuit the tests below
                     }
+                    // compare foreigntable with each table name in the kfrdef modulo any prepended db name (i.e. if t2 is 'db1.table1' just look at 'table1')
+                    if( ($i = strpos( $t2, '.' )) !== false ) { $t2 = substr( $t2, $i + 1 ); }
                     if( $t2 == $foreignTable ) {
-                        // $a.$f is a fk_ to $a2._key
-                        $this->kfrdef['Tables'][$a]['fk'][] = array( $f['col'], $a2 );
+                        /* Found an fk that points to another table in the kfrdef.
+                         * The join condition has to go in the ON clause of the rightmost of the two tables, to prevent forward reference.
+                         *
+                         * Put it in $a's JoinOn if the foreign table is to the left ($a is the current table containing the fk).
+                         * Put it in $a2's JoinOn if the foreign table is to the right ($a2 is the foreign table).
+                         *
+                         * The join condition is ($a.fk_$t2=$a2._key) which is also ($a.$f=$a2._key)
+                         */
+                        $raFKJoins[ $bForwardReference ? $a2 : $a ][] = "$a.{$f['col']}=$a2._key";
+                        break;
                     }
                 }
             }
         }
 
-        // To make the JoinOn for an fk_, the dependent table cannot be the first in the list -- in "A JOIN B" we can't put ON immediately after A
-        // If this happens, put a condition in the ConditionClause instead.
-
-        // Also, you can't do A JOIN B ON (B.fk_C=C._key) JOIN C  -- forward reference to C
-        // You have to do     A JOIN C JOIN B ON (B.fk_C=C._key)  -- the order of table definition matters
-        $bFirst = true;
+        /* Now that fk joins are computed, transform them into JoinOn clauses. There might be more than one condition in a JoinOn so AND them.
+         */
         foreach( $this->kfrdef['Tables'] as $a => &$t ) {
-            if( count($t['fk']) && !$t['JoinOn'] ) {
-                $joinOn = "";
-                foreach( $t['fk'] as $ra ) {
-                    $fkFld = $ra[0];
-                    $aTarget = $ra[1];
-                    if( $joinOn ) $joinOn .= " AND ";
-                    $joinOn .= "$a.$fkFld=$aTarget._key";
-                }
-                if( !$bFirst ) {
-                    $t['JoinOn'] = $joinOn;
-                } else {
-                    $raCondClause[] = $joinOn;
-                }
+            if( isset($raFKJoins[$a]) && count($raFKJoins[$a]) && !$t['JoinOn'] ) {
+                $t['JoinOn'] = implode( ' AND ', $raFKJoins[$a] );
             }
-            $bFirst = false;
         }
         unset($t);
 

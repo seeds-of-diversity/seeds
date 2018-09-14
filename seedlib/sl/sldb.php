@@ -279,13 +279,9 @@ class SLDBRosetta extends SLDBBase
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
         $sLogfile = $logdir ? "$logdir/slrosetta.log" : "";
-        $raKfrel['PxS'] = $this->newKfrel( $kfdb, $uid, array( "P"=>$this->tDef['P'], "S"=>$this->tDef['S'] ), $sLogfile );
-
-        // kluge put S before P to resolve forward fk dependency
-        // $this->raKfrel['PYxPxS'] = $this->newKfrel2( array( "PY"=>$this->tDef['PY'], "P"=>$this->tDef['P'], "S"=>$this->tDef['S'] ), "slrosetta.log" );
-// don't know if this is still an issue in the new Keyframe
-        $raKfrel['PYxPxS'] = $this->newKfrel( $kfdb, $uid, array( "PY"=>$this->tDef['PY'], "S"=>$this->tDef['S'],"P"=>$this->tDef['P'] ), $sLogfile );
-        $raKfrel['SYxS']   = $this->newKfrel( $kfdb, $uid, array( "SY"=>$this->tDef['SY'], "S"=>$this->tDef['S'] ), $sLogfile );
+        $raKfrel['PxS']    = $this->newKfrel2( $kfdb, $uid, array('P','S'), $sLogfile );
+        $raKfrel['PYxPxS'] = $this->newKfrel2( $kfdb, $uid, array('PY','P','S'), $sLogfile );
+        $raKfrel['SYxS']   = $this->newKfrel2( $kfdb, $uid, array('SY','S'), $sLogfile );
 
         return( $raKfrel );
     }
@@ -310,9 +306,9 @@ class SLDBCollection extends SLDBRosetta
 
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['IxA']       = $this->newKfrel2( $kfdb, $uid, array('I','A'), $sLogfile );
-        $raKfrel['AxPxS']     = $this->newKfrel2( $kfdb, $uid, array('A','S','P'), $sLogfile );
-        $raKfrel['IxAxPxS']   = $this->newKfrel2( $kfdb, $uid, array('I','S','P','A'), $sLogfile );
-        $raKfrel['IxGxAxPxS'] = $this->newKfrel2( $kfdb, $uid, array('I','G','S','P','A'), $sLogfile );
+        $raKfrel['AxPxS']     = $this->newKfrel2( $kfdb, $uid, array('A','P','S'), $sLogfile );
+        $raKfrel['IxAxPxS']   = $this->newKfrel2( $kfdb, $uid, array('I','A','P','S'), $sLogfile );
+        $raKfrel['IxGxAxPxS'] = $this->newKfrel2( $kfdb, $uid, array('I','G','A','P','S'), $sLogfile );
 
         $raKfrel['A_P'] = $this->newKfrel( $kfdb, $uid,
                 array( 'A' => $this->tDef['A'],
@@ -360,29 +356,23 @@ class SLDBSources extends SLDBRosetta
         $sLogfile = $logdir ? "$logdir/slsources.log" : "";
 
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
-        $raKfrel['SRC']       = $this->newKfrel( $kfdb, $uid, array('SRC'=>$this->tDef['SRC'] ), $sLogfile );
-        $raKfrel['SRCCV']     = $this->newKfrel( $kfdb, $uid, array('SRCCV'=>$this->tDef['SRCCV'] ), $sLogfile );
-        $raKfrel['SRCCVxSRC'] = $this->newKfrel( $kfdb, $uid, array('SRCCV'=>$this->tDef['SRCCV'], 'SRC'=>$this->tDef['SRC'] ), $sLogfile );
-        $raKfrel['SRCCVxPxS'] = $this->newKfrel( $kfdb, $uid, array('SRCCV'=>$this->tDef['SRCCV'], 'S'=>$this->tDef['S'], 'P'=>$this->tDef['P'] ), $sLogfile );
-
-        // Forward dependencies are not allowed in ON() clauses and this causes two of them: SRCCV.fk_sl_pcv and P.fk_sl_species
-        // The first gets solved by kfrelation because it has to put the condition in a WHERE clause, because SRCCV is the first table.
-        // The second is solved here by putting S before P
-        $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel( $kfdb, $uid, array('SRCCV'=>$this->tDef['SRCCV'], 'SRC'=>$this->tDef['SRC'],
-                                                                        'S'=>$this->tDef['S'], 'P'=>$this->tDef['P'] ),
-                                                     $sLogfile );
+        $raKfrel['SRC']           = $this->newKfrel2( $kfdb, $uid, array('SRC'), $sLogfile );
+        $raKfrel['SRCCV']         = $this->newKfrel2( $kfdb, $uid, array('SRCCV'), $sLogfile );
+        $raKfrel['SRCCVxSRC']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC'), $sLogfile );
+        $raKfrel['SRCCVxPxS']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','P','S'), $sLogfile );
+        $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC','P','S'), $sLogfile );
 
         // every SrcCV must have a Src, but it might not have a PCV
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
                 array( 'SRCCV' => array( "Table" => "seeds.sl_cv_sources",
                                          "Fields" => _sldb_defs::fldSLSourcesCV() ),
+                       'SRC' =>   array( "Table" => "seeds.sl_sources",
+                                         "Fields" => _sldb_defs::fldSLSources() ),
                        'P' =>     array( "Table" => "seeds.sl_pcv",
                                          "Type"  => "LeftJoin",
-                                         "JoinOn" => "A.fk_sl_pcv=P._key",
-                                         "Fields" => _sldb_defs::fldSLPCV() ),
-                       'SRC' =>   array( "Table" => "seeds.sl_sources",
-                                         "Fields" => _sldb_defs::fldSLSources() ) ),
-                $sLogfile );
+                                         "JoinOn" => "SRCCV.fk_sl_pcv=P._key",
+                                         "Fields" => _sldb_defs::fldSLPCV() ) ),
+            $sLogfile );
 
         return( $raKfrel );
     }
