@@ -360,6 +360,8 @@ class SLDBSources extends SLDBRosetta
         $raKfrel['SRCCV']         = $this->newKfrel2( $kfdb, $uid, array('SRCCV'), $sLogfile );
         $raKfrel['SRCCVxSRC']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC'), $sLogfile );
         $raKfrel['SRCCVxPxS']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','P','S'), $sLogfile );
+//kluge while fk_sl_pcv is often 0
+$raKfrel['SRCCVxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','S'), $sLogfile );
         $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC','P','S'), $sLogfile );
 
         // every SrcCV must have a Src, but it might not have a PCV
