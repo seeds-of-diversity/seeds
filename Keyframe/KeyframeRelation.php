@@ -540,7 +540,9 @@ class KeyFrame_Relation
     /**********************************************************
      */
     {
-        $sGroupCol = @$parms['sGroupCol'];
+        $sGroupCols = @$parms['sGroupCol'];      // deprecate in favour of sGroupCols
+        if( !$sGroupCols )
+        $sGroupCols = @$parms['sGroupCols'];    // unpack colalias1,colalias2,... and use those for GROUP BY as well as SELECT cols
         $sSortCol  = @$parms['sSortCol'];
         $bSortDown = intval(@$parms['bSortDown']);
         $iOffset   = intval(@$parms['iOffset']);
@@ -570,18 +572,17 @@ class KeyFrame_Relation
                 $sFieldsClause .= ($sFieldsClause ? "," : "")
                                  ."$fld as $alias";
             }
-        } else if( isset($parms['raGroup']) ) {
-            foreach( $parms['raGroup'] as $alias=>$fld ) {
+        } else if( $sGroupCols ) {
+            // colalias1,colalias2,... are the group cols and all of the select cols.
+            foreach( ($ra = explode( ',', $sGroupCols )) as $a ) {
+                $col = $this->GetRealColName( trim($a) );
                 $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                 ."$fld as $alias";
-                $sGroupCol     .= ($sGroupCol ? "," : "").$fld;
+                                 ."$col as $a";
             }
-// MariaDB doesn't have ANY_VALUE()
-            if( isset($parms['raGroupAnyValue']) ) {
-                foreach( $parms['raGroupAnyValue'] as $alias=>$fld ) {
-                    $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                     ."ANY_VALUE($fld) as $alias";
-                }
+            // set the group clause to 1,2,3,... since the appropriate cols are now set as the select fields clause
+            $sGroupCols = "";
+            for( $i = 0; $i < count($ra); ++$i ) {
+                $sGroupCols .= ($sGroupCols ? ',' : "").($i+1);
             }
         } else {
             $sFieldsClause = $this->qSelectFieldsClause;
@@ -596,7 +597,7 @@ class KeyFrame_Relation
             if( $iStatus != -1 )  $q .= " AND ($a._status='$iStatus' OR $a._status IS NULL)";   // can only be null if a left-join did not match, in which case never disallow the result
         }
 
-        if( $sGroupCol )  $q .= " GROUP BY $sGroupCol";
+        if( $sGroupCols ) $q .= " GROUP BY $sGroupCols";
         if( $sSortCol )   $q .= " ORDER BY $sSortCol". ($bSortDown ? " DESC" : " ASC");
 
         if( $iLimit > 0 || $iOffset > 0 ) {
@@ -1209,11 +1210,11 @@ class KeyframeRelationView
             iStatus
      */
     {
-        $this->p_sCond                  = $sCond;
-        $this->raViewParms['sSortCol']  = (!empty($raParms['sSortCol']) ? $raParms['sSortCol']  : "_key");
-        $this->raViewParms['bSortDown'] = (isset($raParms['bSortDown']) ? $raParms['bSortDown'] : true );
-        $this->raViewParms['sGroupCol'] = @$raParms['sGroupCol'];
-        $this->raViewParms['iStatus']   = intval(@$raParms['iStatus']);
+        $this->p_sCond                   = $sCond;
+        $this->raViewParms['sSortCol']   = (!empty($raParms['sSortCol']) ? $raParms['sSortCol']  : "_key");
+        $this->raViewParms['bSortDown']  = (isset($raParms['bSortDown']) ? $raParms['bSortDown'] : true );
+        $this->raViewParms['sGroupCols'] = @$raParms['sGroupCols'];
+        $this->raViewParms['iStatus']    = intval(@$raParms['iStatus']);
     }
 
     function GetDataWindow( $iOffset = 0, $nLimit = -1 )

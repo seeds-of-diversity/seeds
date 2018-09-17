@@ -360,9 +360,20 @@ class SLDBSources extends SLDBRosetta
         $raKfrel['SRCCV']         = $this->newKfrel2( $kfdb, $uid, array('SRCCV'), $sLogfile );
         $raKfrel['SRCCVxSRC']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC'), $sLogfile );
         $raKfrel['SRCCVxPxS']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','P','S'), $sLogfile );
-//kluge while fk_sl_pcv is often 0
-$raKfrel['SRCCVxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','S'), $sLogfile );
         $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC','P','S'), $sLogfile );
+
+//kluge: Since fk_sl_pcv is often 0, SRCCVxPxS cannot be used to get a list of species from SRCCV.
+//       SRCCV.fk_sl_species is non-canonical so replace this with SRCCVxPxS when fk_sl_pcv is done right.
+$raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
+    array( 'SRCCV' => array( "Table" => "seeds.sl_cv_sources",
+                             "Fields" => _sldb_defs::fldSLSourcesCV() ),
+           'S' =>     array( "Table" => "seeds.sl_species",
+                             "Type"  => "Join",
+                             "JoinOn" => "SRCCV.fk_sl_species=S._key",
+                             "Fields" => _sldb_defs::fldSLSpecies() ) ),
+    $sLogfile );
+
+
 
         // every SrcCV must have a Src, but it might not have a PCV
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
@@ -372,7 +383,7 @@ $raKfrel['SRCCVxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','S'), $sLogfi
                                          "Fields" => _sldb_defs::fldSLSources() ),
                        'P' =>     array( "Table" => "seeds.sl_pcv",
                                          "Type"  => "LeftJoin",
-                                         "JoinOn" => "SRCCV.fk_sl_pcv=P._key",
+                                         "LeftJoinOn" => "SRCCV.fk_sl_pcv=P._key",
                                          "Fields" => _sldb_defs::fldSLPCV() ) ),
             $sLogfile );
 

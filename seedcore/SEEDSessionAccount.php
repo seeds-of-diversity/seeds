@@ -86,6 +86,12 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
     public $bDebug = false; public $sDebug = "";
 
     function __construct( KeyframeDatabase $kfdb, $raPerms, $raParms = array() )
+    /***************************************************************************
+        raParms: logfile    = record UGP changes here
+                 logdir     = record UGP changes in logdir/seedsessionaccount.log
+                 uid        = different name for uid http parm
+                 pwd        = different name for pwd http parm
+     */
     {
         parent::__construct();
 
@@ -94,7 +100,11 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
         $this->oDB = new SEEDSessionAccountDBRead( $kfdb );
         $this->oAuth = $this->oDB;
 
-        $this->logfile = @$raParms['logfile'];
+        if( ($logfile = @$raParms['logfile']) ) {
+            $this->logfile = $logfile;
+        } else if( ($logdir = @$raParms['logdir']) ) {
+            $this->logfile = $logdir."seedsessionaccount.log";
+        }
 
         /* Get seedsession parms from http arrays. Then remove them so other code that copies and reissues $_REQUEST won't tell the password.
          * Using POST because it is stored in a cookie, which overrides the POST parm in _REQUEST.
