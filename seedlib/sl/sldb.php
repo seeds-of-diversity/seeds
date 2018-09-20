@@ -188,6 +188,7 @@ class _sldb_defs
     static function fldSLSourcesCV()
     {
         return( array( array("col"=>"fk_sl_sources", "type"=>"K"),
+                       array("col"=>"fk_sl_species", "type"=>"K"),  // not canonical but useful for now
                        array("col"=>"fk_sl_pcv",     "type"=>"K"),
                        array("col"=>"osp",           "type"=>"S"),
                        array("col"=>"ocv",           "type"=>"S"),
@@ -195,6 +196,22 @@ class _sldb_defs
                        array("col"=>"notes",         "type"=>"S"),
             )
             // fk_sl_species and sound* are not here because they're only used during rebuild-index and its associated manual steps
+        );
+    }
+
+    static function fldSLSourcesCVArchive()
+    {
+        return( array( array("col"=>"sl_cv_sources_key", "type"=>"K"),
+                       array("col"=>"fk_sl_sources",     "type"=>"K"),
+                       array("col"=>"fk_sl_species",     "type"=>"K"),  // not canonical but useful for now
+                       array("col"=>"fk_sl_pcv",         "type"=>"K"),
+                       array("col"=>"osp",               "type"=>"S"),
+                       array("col"=>"ocv",               "type"=>"S"),
+                       array("col"=>"bOrganic",          "type"=>"I"),
+                       array("col"=>"year",              "type"=>"S"),
+                       array("col"=>"notes",             "type"=>"S"),
+                       array("col"=>"op",                "type"=>"S"),
+            )
         );
     }
 }
@@ -349,8 +366,9 @@ class SLDBSources extends SLDBRosetta
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
         // add these table definitions to the tDef list
-        $this->tDef['SRC']   = array( "Table" => "seeds.sl_sources",    "Fields" => _sldb_defs::fldSLSources() );
-        $this->tDef['SRCCV'] = array( "Table" => "seeds.sl_cv_sources", "Fields" => _sldb_defs::fldSLSourcesCV() );
+        $this->tDef['SRC']    = array( "Table" => "seeds.sl_sources",            "Fields" => _sldb_defs::fldSLSources() );
+        $this->tDef['SRCCV']  = array( "Table" => "seeds.sl_cv_sources",         "Fields" => _sldb_defs::fldSLSourcesCV() );
+        $this->tDef['SRCCVA'] = array( "Table" => "seeds.sl_cv_sources_archive", "Fields" => _sldb_defs::fldSLSourcesCVArchive() );
 
 
         $sLogfile = $logdir ? "$logdir/slsources.log" : "";
@@ -358,22 +376,10 @@ class SLDBSources extends SLDBRosetta
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['SRC']           = $this->newKfrel2( $kfdb, $uid, array('SRC'), $sLogfile );
         $raKfrel['SRCCV']         = $this->newKfrel2( $kfdb, $uid, array('SRCCV'), $sLogfile );
+        $raKfrel['SRCCVA']        = $this->newKfrel2( $kfdb, $uid, array('SRCCVA'), $sLogfile );
         $raKfrel['SRCCVxSRC']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC'), $sLogfile );
         $raKfrel['SRCCVxPxS']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','P','S'), $sLogfile );
         $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC','P','S'), $sLogfile );
-
-//kluge: Since fk_sl_pcv is often 0, SRCCVxPxS cannot be used to get a list of species from SRCCV.
-//       SRCCV.fk_sl_species is non-canonical so replace this with SRCCVxPxS when fk_sl_pcv is done right.
-$raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
-    array( 'SRCCV' => array( "Table" => "seeds.sl_cv_sources",
-                             "Fields" => _sldb_defs::fldSLSourcesCV() ),
-           'S' =>     array( "Table" => "seeds.sl_species",
-                             "Type"  => "Join",
-                             "JoinOn" => "SRCCV.fk_sl_species=S._key",
-                             "Fields" => _sldb_defs::fldSLSpecies() ) ),
-    $sLogfile );
-
-
 
         // every SrcCV must have a Src, but it might not have a PCV
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
@@ -386,6 +392,31 @@ $raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
                                          "LeftJoinOn" => "SRCCV.fk_sl_pcv=P._key",
                                          "Fields" => _sldb_defs::fldSLPCV() ) ),
             $sLogfile );
+
+//kluge: Since fk_sl_pcv is often 0, SRCCVxPxS cannot be used to get a list of species from SRCCV.
+//       SRCCV.fk_sl_species is non-canonical so replace this with SRCCVxPxS when fk_sl_pcv is done right.
+$raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
+    array( 'SRCCV' => array( "Table" => "seeds.sl_cv_sources",
+                             "Fields" => _sldb_defs::fldSLSourcesCV() ),
+           'S' =>     array( "Table" => "seeds.sl_species",
+                             "Type"  => "Join",
+                             "JoinOn" => "SRCCV.fk_sl_species=S._key",
+                             "Fields" => _sldb_defs::fldSLSpecies() ) ),
+    $sLogfile );
+
+//kluge: This should be obtained by SRCCVAxSRCxPxS because SRCCVA would not normally have fk_sl_species, but for now this is how we do it
+//       Also make sure you use SRC._status=-1 (ignore _status) because some archived srccv records will have "deleted" companies
+$raKfrel['SRCCVAxSRC_S'] = $this->newKfrel( $kfdb, $uid,
+    array( 'SRCCVA' => array( "Table" => "seeds.sl_cv_sources_archive",
+                              "Fields" => _sldb_defs::fldSLSourcesCVArchive() ),
+           'SRC' =>    array( "Table" => "seeds.sl_sources",
+                              "Type"  => "Join",
+                              "Fields" => _sldb_defs::fldSLSources() ),
+           'S' =>      array( "Table" => "seeds.sl_species",
+                             "Type"  => "LeftJoin",
+                             "LeftJoinOn" => "SRCCVA.fk_sl_species=S._key",
+                             "Fields" => _sldb_defs::fldSLSpecies() ) ),
+    $sLogfile );
 
         return( $raKfrel );
     }
@@ -455,7 +486,7 @@ CREATE TABLE sl_cv_sources_archive (
 
     fk_sl_sources   INTEGER NOT NULL DEFAULT 0,
     fk_sl_pcv       INTEGER NOT NULL DEFAULT 0,
-    fk_sl_species   INTEGER NOT NULL DEFAULT 0,     -- don't have to keep this when all names are in sl_pcv but maybe useful until then
+    fk_sl_species   INTEGER NOT NULL DEFAULT 0,      -- don't have to keep this when all names are in sl_pcv but useful until then
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
