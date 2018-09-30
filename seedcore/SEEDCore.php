@@ -533,4 +533,37 @@ function SEEDCore_ParmsURLRemove( $sUrlParms, $k )
     return( SEEDCore_ParmsRA2URL( $ra ) );
 }
 
+
+function SEEDPRG()
+/*****************
+   Implement the Post, Redirect, Get paradigm for submitting forms.
+   The purpose of this is to prevent the possibility of a user re-posting a form by reloading a page after a submit.
+
+   Usage: Call this near the top of your script.
+          If it returns true, process the contents of $_POST.
+          Or you can ignore the return value and just check whether $_POST isn't empty.
+ */
+{
+    $doPost = false;
+
+    if( @$_SERVER['REQUEST_METHOD'] == 'POST' ) {
+        // A form was submitted. Defer processing until the page is reloaded via 303, which causes the browser to do a GET on the given location.
+        $uniqid = uniqid();
+        $_SESSION['seedprg'][$uniqid] = $_POST;
+
+        header( "Location: {$_SERVER['PHP_SELF']}?seedprgid=$uniqid", true, 303 );
+        exit;
+    } else
+    if( ($uniqid = @$_REQUEST['seedprgid']) && isset($_SESSION['seedprg'][$uniqid]) ) {
+        // A 303 was issued (by the code above) so the browser did a GET on the page.
+        // Restore the deferred form parms and return true to tell the calling code to process $_POST now.
+        $_POST = $_SESSION['seedprg'][$uniqid];
+        unset( $_SESSION['seedprg'] );  // might as well get rid of the whole array because there shouldn't be multiple elements
+
+        $doPost = true;
+    }
+
+    return( $doPost );
+}
+
 ?>

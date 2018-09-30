@@ -226,7 +226,8 @@ class SLDBBase extends Keyframe_NamedRelations
 
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
-        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), @$raConfig['logdir'] );
+        $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
+        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
     }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
