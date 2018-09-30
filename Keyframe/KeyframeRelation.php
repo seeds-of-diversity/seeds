@@ -875,7 +875,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
                 $bDo = true;
             }
             foreach( $this->kfrel->BaseTableFields() as $f ) {
-                if( !in_array( $f['col'], array("_key", "_created", "_created_by") ) ) {
+                if( !in_array( $f['col'], array("_key", "_created", "_created_by", "_updated", "_updated_by") ) ) {
                     /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
                      * anyway, this makes kfr log files much more readable.
                      */
