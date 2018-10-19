@@ -1,0 +1,6 @@
+echo Checking owner=bob
+find * ! -user bob
+echo Checking group=bob
+find * ! -group bob
+echo Checking no world access
+find * -perm +004

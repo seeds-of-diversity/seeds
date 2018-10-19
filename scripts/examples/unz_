@@ -1,0 +1,7 @@
+# unzip each encrypted file in subdir 00
+cd 00
+for i in ../*.zip ; do unzip -P mypassword $i ; done
+
+# create a directory for each decrypted zip and extract it there
+for i in *.zip ; do mkdir $i.2 ; cd $i.2 ; unzip ../$i ; cd .. ; done
+

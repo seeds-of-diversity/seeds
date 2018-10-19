@@ -1,0 +1,9 @@
+
+find ~/secret -perm +o=r
+find ~/public_html -not -perm -o=r
+
+find ~/ ! -user me
+find ~/ ! -group me
+
+find ~/public_html ! -user me
+find ~/public_html ! -group me

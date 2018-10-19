@@ -1,0 +1,8 @@
+find ~/secret -perm +o=r -exec chmod 700 '{}' \;
+find ~/public_html -not -perm -o=r -exec chmod 704 '{}' \;
+
+find ~/ ! -user me -exec chown me:me '{}' \;
+find ~/ ! -group me -exec chown me:me '{}' \;
+
+find ~/public_html ! -user me -exec chown me:me '{}' \;
+find ~/public_html ! -group me -exec chown me:me '{}' \;
