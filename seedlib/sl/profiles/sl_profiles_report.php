@@ -93,7 +93,7 @@ class SLProfilesReport
         return( $s );
     }
 
-    function DrawVIForm( $kVI, SEEDUI $oUI )
+    function DrawVIForm( $kVI, SEEDUIComponent $oUIComp )
     {
         $s = "";
 
@@ -128,13 +128,13 @@ class SLProfilesReport
         }
 */
 
-        $s .= $this->drawObservationForm( $kfrVI, 'default', $oUI );
+        $s .= $this->drawObservationForm( $kfrVI, 'default', $oUIComp );
 
         done:
         return( $s );
     }
 
-    private function drawObservationForm( $kfrVI, $eForm, SEEDUI $oUI )
+    private function drawObservationForm( $kfrVI, $eForm, SEEDUIComponent $oUIComp )
     {
         $kVI = $kfrVI->Key();
         list($sp,$cv) = $this->oProfilesDB->ComputeVarInstName( $kfrVI->ValuesRA() );
@@ -185,7 +185,7 @@ class SLProfilesReport
         $s = "<form method='post' action='${_SERVER['PHP_SELF']}'>"
             ."<div style='border:1px solid #eee;padding:10px'>"
             .SEEDForm_Hidden( 'action', 'profileUpdate' )
-            .$oUI->HiddenFormUIParms( array('kCurr','sortup','sortdown') )
+            .$oUIComp->HiddenFormUIParms( array('kCurr','sortup','sortdown') )
             .$s
             ."<br/><input type='submit' value='Save' class='slUserFormButton' />"
             ."</div></form>";
