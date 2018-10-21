@@ -44,6 +44,21 @@ class SEEDImgMan
     function AddImage( $newImg )        { die( "Override Add" ); }
     function GetAllImg( $dir )          { die( "Override GetAllImg" ); }  // get all img that are "LIKE '$dir/%'"
 
+    function ImgInfoByFilename( $filename )
+    {
+        $ra = array( 'w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0 );
+
+        if( file_exists($filename) ) {
+            $sz = getimagesize($filename);
+            $ra['w'] = $sz[0];
+            $ra['h'] = $sz[1];
+            $ra['mime'] = $sz['mime'];
+            $ra['filesize'] = filesize($filename);
+            $ra['filesize_human'] = SEEDCore_HumanFilesize( $ra['filesize'] );
+        }
+        return( $ra );
+    }
+
 
     function Update()
     /****************
