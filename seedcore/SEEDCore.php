@@ -566,4 +566,16 @@ function SEEDPRG()
     return( $doPost );
 }
 
+
+function SEEDCore_HumanFilesize( $filesize, $decimals = 1 )
+/**********************************************************
+    Convert an integer number to a human measure in K, M, G, etc.
+    From the comments in php.net manual for filesize()
+ */
+{
+    $sz = 'BKMGTP';
+    $factor = floor((strlen(strval($filesize)) - 1) / 3);
+    return( sprintf("%.{$decimals}f", floatval($filesize) / pow(1024, $factor)) . @$sz[$factor] );
+}
+
 ?>
