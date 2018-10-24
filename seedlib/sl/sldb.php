@@ -407,6 +407,12 @@ $raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
 
 //kluge: This should be obtained by SRCCVAxSRCxPxS because SRCCVA would not normally have fk_sl_species, but for now this is how we do it
 //       Also make sure you use SRC._status=-1 (ignore _status) because some archived srccv records will have "deleted" companies
+$raKfrel['SRCCVAxS'] = $this->newKfrel( $kfdb, $uid,
+    array( 'SRCCVA' => array( "Table" => "seeds.sl_cv_sources_archive",
+                              "Fields" => _sldb_defs::fldSLSourcesCVArchive() ),
+           'S' =>      array( "Table" => "seeds.sl_species",
+                             "Fields" => _sldb_defs::fldSLSpecies() ) ),
+    $sLogfile );
 $raKfrel['SRCCVAxSRC_S'] = $this->newKfrel( $kfdb, $uid,
     array( 'SRCCVA' => array( "Table" => "seeds.sl_cv_sources_archive",
                               "Fields" => _sldb_defs::fldSLSourcesCVArchive() ),
