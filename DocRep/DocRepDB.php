@@ -1007,6 +1007,7 @@ class drRel extends Keyframe_NamedRelations
         $kdefDxd = array( "Tables" =>
             array( "Dxd" =>  array( "Table" => "{$this->sDB}docrep2_docxdata",  "Fields" => "Auto" ) ) );
 
+// TODO: are these only used for the cases where doc.kData_top==data._key? If so, add that JoinOn here instead of making it a condition elsewhere.
         $kdefDocData = array( "Tables" =>
             array( "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ),
                    "Data" => array( "Table" => "{$this->sDB}docrep2_data",      "Fields" => "Auto" ) ) );
@@ -1171,93 +1172,6 @@ function DRSetup( $kfdb )
     $o = new SEEDSetup2( $kfdb );
     DocRep_Setup( $o, true );
     return( $o->GetReport() );
-}
-
-
-class DocRepUI
-{
-    private $oDocRepDB;
-
-    function __construct( DocRepDB2 $oDocRepDB )
-    {
-        $this->oDocRepDB = $oDocRepDB;
-    }
-
-    function DrawTree( $kTree, $raParms, $iLevel = 1 )
-    /*************************************************
-        Draw the tree rooted at $kTree.
-        Don't draw $kTree. This allows the drawn part to be a forest (children of $kTree),
-            or a tree with a single root (single child of $kTree).
-
-        $iLevel is a recursion marker for internal use (don't use it).
-     */
-    {
-        $s = "";
-
-        // If a doc is currently selected in the UI, get its info. This is cached in DocRepDB.
-        $oDocSelected = ($kSelectedDoc = intval(@$raParms['kSelectedDoc'])) ? $this->oDocRepDB->GetDoc( $kSelectedDoc ) : null;
-
-        // If the UI provides a list of currently-expanded nodes, get ready to use it.
-        $raTreeExpanded = @$raParms['raTreeExpanded'] ?: array();
-
-
-// depth== 2: get the immediate children but also count the grandchildren so count($ra['children']) is set.
-// other than that count we only need depth==1; there's probably a more efficient way to get count($ra['children'])
-        $raTree = $this->oDocRepDB->GetSubTree( $kTree, 2 );
-        $s .= "<div class='DocRepTree_level DocRepTree_level$iLevel'>";
-        foreach( $raTree as $k => $ra ) {
-            if( !($oDoc = $this->oDocRepDB->GetDocRepDoc( $k )) )  continue;
-
-            if( @$raTreeExpanded[$k] ) {
-                $sExpandCmd = 'collapse';           // This doc is expanded so if you click it will collapse
-            } else if( count($ra['children']) ) {
-                $sExpandCmd = 'expand';             // This doc is collapsed and has children so if you click it will expand
-            } else {
-                $sExpandCmd = '';                   // This doc has no children so it cannot be expanded
-            }
-            $raTitleParms = array(
-                'bSelectedDoc' => ($k == $kSelectedDoc),
-                'sExpandCmd' => $sExpandCmd,
-            );
-            $s .= "<div class='DocRepTree_doc'>"
-                 ."<div class='DocRepTree_title'>".$this->DrawTree_title( $oDoc, $raTitleParms )."</div>";
-            if( @$raTreeExpanded[$k] || ($oDocSelected && in_array( $k, $oDocSelected->GetAncestors()) ) ) {
-                $s .= $this->DrawTree( $k, $raParms, $iLevel + 1 );
-            }
-            $s .= "</div>";  // doc
-        }
-        $s .= "</div>";  // level level$level
-
-        return( $s );
-    }
-
-    function DrawTree_title( DocRepDoc2 $oDoc, $raTitleParms )
-    {
-        $kDoc = $oDoc->GetKey();
-
-        $s = "<a href='${_SERVER['PHP_SELF']}?k=$kDoc'><nobr>"
-            .( $raTitleParms['bSelectedDoc'] ? "<span class='DocRepTree_titleSelected'>" : "" )
-            .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
-            .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )
-            ."</nobr></a>";
-
-        return( $s );
-    }
-
-    function View( DocRepDoc2 $oDoc, $flag = "" )
-    {
-        $s = "";
-
-        switch( $oDoc->GetType() ) {
-            case 'DOC':
-                $s = $oDoc->GetText( $flag );
-                break;
-            case 'FOLDER':
-                break;
-
-        }
-        return( $s );
-    }
 }
 
 ?>
