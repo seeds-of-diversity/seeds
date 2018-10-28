@@ -5,40 +5,51 @@
  * UI support for Console
  */
 
-var consolePageObj = {};
-
-function ConsolePageStart( config )
+class ConsolePage
 {
-    consolePageObj['nMaxPage'] = config.nMaxPage;
-    consolePageObj['iPage'] = 0;
-    consolePageObj['vars'] = config.vars;
-    consolePageObj['fns'] = config.fns;
+    constructor( config )
+    {
+        this.cpConfig = config;
+        this.cpVars = {};
+        this.cpPage = 0;
 
-    // Run PrePage() for first page
-    consolePageObj['fns'][consolePageObj['iPage']]['pre']();
+        // Run fnPre for initial page
+        this.cpConfig.pages[0]['fnPre']();
 
-    consolePageShow( consolePageObj['iPage'] );
-}
+        // Show the initial page
+        this.ShowPage( 0 );
+    }
+    
+    GetVar( k )  	{ return( this.cpVars[k] ); }
+    SetVar( k, v )  { this.cpVars[k] = v; }
 
-function consolePageSubmit()
-{
-    // Run PostPage for the submitted page
-    consolePageObj['iPage'] = consolePageObj['fns'][consolePageObj['iPage']]['post']();
-
-    // Run PrePage for the new or current page
-    consolePageObj['fns'][consolePageObj['iPage']]['pre']();
-
-    // Show the current page
-    consolePageShow( consolePageObj['iPage'] );
-}
-
-function consolePageShow( p )
-{
-    for( var i = 0; i <= consolePageObj['nMaxPage']; i++ ) {
-        if( i == p ) {
-            $('#consolePage'+i).show();
-        } else {
-            $('#consolePage'+i).hide();
+    ShowPage( p )
+    /************
+        Show page p and hide all the others
+     */
+    {
+        for( let i in this.cpConfig.pages ) {
+            if( i == p ) {
+                $('#consolePage'+i).show();
+            } else {
+                $('#consolePage'+i).hide();
+            }
         }
     }
+
+    PageSubmit()
+    /***********
+        When a submit button is clicked on a page, capture form data, validate it, and decide which page should become current.
+     */
+    {
+        // Run fnPost for the submitted page. The return value is the page that should become current.
+        this.cpPage = this.cpConfig.pages[this.cpPage]['fnPost']();
+
+        // Run fnPre for the new current page
+        this.cpConfig.pages[this.cpPage]['fnPre']();
+
+        // Show the current page
+        this.ShowPage( this.cpPage );
+    }
 }
+
