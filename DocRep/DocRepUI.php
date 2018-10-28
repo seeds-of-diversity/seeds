@@ -130,6 +130,9 @@ class DocRepApp1
         $s .= <<<DocRepApp1_Script
             <script>
             $(document).ready( function() {
+
+                /* Click on a treetab to show the corresponding form
+                 */
                 $(".docrepapp_treetabs li").click( function() {
                     var f = $(this).attr('data-form');
 
@@ -143,6 +146,14 @@ class DocRepApp1
                     $(".docrepapp_treeform").hide();
                     $(".docrepapp_treeform_"+f).show();
                 });
+
+                /* Handle form submission: Rename
+                 */
+                $("#docrepapp_treeform_rename_form").on('submit', function(e) {
+                    e.preventDefault();
+                    alert( "Rename" );
+                });
+
 
                 /* Initialize to show View tab
                  */
@@ -158,10 +169,12 @@ DocRepApp1_Script;
 
     function TreeTabs()
     {
+        $bFolder = $this->oDoc->GetType() == 'FOLDER';
+
         $s = "<div class='docrepapp_treetabs'><ul>"
-                ."<li data-form='view'>View</li>"
+                .(!$bFolder ? "<li data-form='view'>View</li>" : "")
                 ."<li data-form='new'>New</li>"
-                ."<li data-form='edit'>Edit</li>"
+                .(!$bFolder ? "<li data-form='edit'>Edit</li>" : "")
                 ."<li data-form='rename'>Rename</li>"
                 ."<li data-form='delete'>Delete</li>"
                 .(@$raConfig['bTabAdvanced']? "<li data-form='advanced'>Advanced</li>" : "")
@@ -182,7 +195,12 @@ DocRepApp1_Script;
                 EDIT FORM
             </div>
             <div class='docrepapp_treeform docrepapp_treeform_rename' style='display:none'>
-                RENAME FORM
+                <form id='docrepapp_treeform_rename_form'>
+                    <!-- oForm->Hidden( 'k', array( 'value' => k ) ) -->
+                    <!-- oForm->Hidden( 'action', array( 'value' => 'rename2' ) ) -->
+                    <input type='text' name='doc_name' id='doc_name' value=''/>
+                    <input type='submit' value='Rename'/>
+                </form>
             </div>
             <div class='docrepapp_treeform docrepapp_treeform_delete' style='display:none'>
                 DELETE FORM
