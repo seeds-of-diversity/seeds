@@ -9,8 +9,10 @@ INFILE=$1
 OUTFILE=$2
 MAXWIDTH=$3
 CRF=28
+OTHERARGS=$4
+#otherargs should be quoted when you type the command line but they're inserted into the ffmeg command non-quoted
 
 #ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -c:a copy "$OUTFILE"
-ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -codec:a aac  "$OUTFILE"
+ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -codec:a aac $OTHERARGS "$OUTFILE"
 
 
