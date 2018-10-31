@@ -10,8 +10,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
-    function ProductDefine0( KeyFrameUIForm $oFormP )
-    /************************************************
+    function ProductDefine0( KeyFrameForm $oFormP )
+    /**********************************************
         Draw a form to edit the given product.
         If _key==0 draw a New product form.
      */
@@ -83,7 +83,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                      "||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status       || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status       || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
                     ."||| Title EN  || [[text:title_en]]"
                     ."||| Title FR  || [[text:title_fr]]"
@@ -110,8 +110,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function ProductDefine1( KeyFrameDataStore $oDS )
-    /************************************************
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    /*************************************************
         This is called as the Product's KFUIForm::Update().PreStore function.
         Validate the product record
      */
@@ -124,8 +124,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $bOk );
     }
 
-    function ProductDefine2PostStore( KFRecord $kfrP, KeyFrameUIForm $oFormP )
-    /*************************************************************************
+    function ProductDefine2PostStore( KeyframeRecord $kfrP, KeyFrameForm $oFormP )
+    /*****************************************************************************
         This is called after a successful Update().Store
 
         Write the seed prodExtra data. This has to be done after the Store because on a new product we don't
@@ -141,8 +141,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         }
     }
 
-    function ProductDraw( KFRecord $kfrP, $eDetail )
-    /***********************************************
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
+    /*****************************************************
         DETAIL_TINY     : species variety
         DETAIL_SUMMARY  : what you see in the seed directory
         DETAIL_ALL      : species + what you see in the seed directory
@@ -178,7 +178,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
     }
 
 
-    function Purchase0( KFRecord $kfrP )
+    function Purchase0( KeyframeRecord $kfrP )
     {
         $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_ALL )."</div>"
             ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
@@ -187,8 +187,8 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function PurchaseDraw( KFRecord $kfrBPxP, $bDetail = false )
-    /***********************************************************
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false )
+    /*****************************************************************
         Draw a product in a basket, in more or less detail.
      */
     {

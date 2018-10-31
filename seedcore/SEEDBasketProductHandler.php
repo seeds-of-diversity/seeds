@@ -39,8 +39,8 @@ class SEEDBasketProductHandler
         $this->oSB = $oSB;
     }
 
-    function ProductDefine0( KeyFrameUIForm $oFormP )
-    /************************************************
+    function ProductDefine0( KeyFrameForm $oFormP )
+    /**********************************************
         Draw a form to edit the given product.
         If _key==0 draw a New product form.
      */
@@ -55,14 +55,14 @@ class SEEDBasketProductHandler
              .$oFormP->ExpandForm(
                      "||| Seller       || [[text:uid_seller|readonly]]"
                     ."||| Product type || [[text:product_type]]"
-                    ."||| Status       || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status       || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
                     ."||| Title EN  || [[text:title_en]]"
                     ."||| Title FR  || [[text:title_fr]]"
                     ."||| Name     || [[text:name]]"
                     ."||| Images    || [[text:img]]"
                     ."<br/><br/>"
-                    ."||| Quantity type  || ".$oFormP->Select2( 'quant_type', array('ITEM-N'=>'ITEM-N','ITEM-1'=>'ITEM-1','MONEY'=>'MONEY') )
+                    ."||| Quantity type  || ".$oFormP->Select( 'quant_type', array('ITEM-N'=>'ITEM-N','ITEM-1'=>'ITEM-1','MONEY'=>'MONEY') )
                     ."||| Min in basket  || [[text:bask_quant_min]]"
                     ."||| Max in basket  || [[text:bask_quant_max]]"
                     ."<br/><br/>"
@@ -79,8 +79,8 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
-    function ProductDefine1( KeyFrameDataStore $oDS )
-    /************************************************
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    /*************************************************
         Validate a new/updated product definition.
         Return true if the product definition makes sense, otherwise false and an error message.
      */
@@ -99,16 +99,16 @@ class SEEDBasketProductHandler
         return( true );
     }
 
-    function ProductDefine2PostStore( KFRecord $kfrP, KeyFrameUIForm $oFormP )
-    /*************************************************************************
+    function ProductDefine2PostStore( KeyframeRecord $kfrP, KeyframeForm $oFormP )
+    /*****************************************************************************
         Called after a successful Update().Store
      */
     {
         // e.g. a derived class might store metadata in SEEDBasket_ProdExtra
     }
 
-    function ProductDraw( KFRecord $kfrP, $eDetail )
-    /***********************************************
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
+    /*****************************************************
         Show a product definition in more or less detail
      */
     {
@@ -149,8 +149,8 @@ class SEEDBasketProductHandler
         }
     }
 
-    function Purchase0( KFRecord $kfrP )
-    /***********************************
+    function Purchase0( KeyframeRecord $kfrP )
+    /*****************************************
         Given a product, draw the form that a store would show to purchase it.
         Form parms can be:
             n     (int)
@@ -161,8 +161,8 @@ class SEEDBasketProductHandler
         return( $kfrP->Value('title_en') );
     }
 
-    function Purchase2( KFRecord $kfrP, $raPurchaseParms )
-    /*****************************************************
+    function Purchase2( KeyframeRecord $kfrP, $raPurchaseParms )
+    /***********************************************************
         Given a product, add it to the current basket and return the new kBP
 
         raPurchaseParms:
@@ -185,7 +185,7 @@ class SEEDBasketProductHandler
             unset( $raPurchaseParms['f'] );
 
             if( count($raPurchaseParms) ) {
-                $kfrBP->SetValue( 'sExtra', SEEDStd_ParmsRA2URL($raPurchaseParms) );
+                $kfrBP->SetValue( 'sExtra', SEEDCore_ParmsRA2URL($raPurchaseParms) );
             }
 
             $kfrBP->PutDBRow();
@@ -195,8 +195,8 @@ class SEEDBasketProductHandler
         return( $kfrBP ? $kfrBP->Key() : 0 );
     }
 
-    function PurchaseDraw( KFRecord $kfrBPxP, $bDetail = false )
-    /***********************************************************
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false )
+    /*****************************************************************
         Draw a product in a basket, in more or less detail.
      */
     {
@@ -209,8 +209,8 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
-    function PurchaseDelete( KFRecord $kfrBP )  // this can also receive a kfrBPxP or kfrBPxPxB
-    /*****************************************
+    function PurchaseDelete( KeyframeRecord $kfrBP )  // this can also receive a kfrBPxP or kfrBPxPxB
+    /***********************************************
         Delete the given BP from the current basket.
 
         No need to do a KF soft delete.
@@ -232,7 +232,7 @@ class SEEDBasketProductHandler
         Support methods
      */
 
-    function ExplainPrices( $kfrP )
+    function ExplainPrices( KeyframeRecord $kfrP )
     {
         $s = "";
 

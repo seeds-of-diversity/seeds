@@ -10,7 +10,7 @@
 include_once( "SEEDBasketDB.php" );
 include_once( "SEEDBasketProductHandler.php" );
 include_once( "SEEDBasketUpdater.php" );
-include_once( STDINC."KeyFrame/KFUIForm.php" );
+include_once( SEEDROOT."Keyframe/KeyframeForm.php" );
 
 
 class SEEDBasketCore
@@ -27,10 +27,10 @@ class SEEDBasketCore
     private $raParms = array();
     private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
 
-    function __construct( KeyFrameDB $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
+    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
     {
         $this->sess = $sess;
-        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB() );
+        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), @$raParms['logfile'] );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
@@ -235,9 +235,9 @@ class SEEDBasketCore
         /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
          * then load up the current product (or create a new one) and draw the form for it.
          */
-        $oFormP = new KeyFrameUIForm( $this->oDB->GetKfrel("P"), $cid,
-                                      array('DSParms'=>array('fn_DSPreStore' =>array($oHandler,'ProductDefine1'),
-                                                             'fn_DSPostStore'=>array($oHandler,'ProductDefine2PostStore') )) );
+        $oFormP = new KeyframeForm( $this->oDB->GetKfrel("P"), $cid,
+                                    array('DSParms'=>array('fn_DSPreStore' =>array($oHandler,'ProductDefine1'),
+                                                           'fn_DSPostStore'=>array($oHandler,'ProductDefine2PostStore') )) );
         $oFormP->Update();
 
         if( $kP ) {
@@ -272,7 +272,7 @@ class SEEDBasketCore
         return( $s );
     }
 
-    function DrawProduct( KFRecord $kfrP, $eDetail )
+    function DrawProduct( KeyframeRecord $kfrP, $eDetail )
     {
         return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
                 ? $oHandler->ProductDraw( $kfrP, $eDetail ) : "" );
@@ -410,7 +410,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         return( $raOut );
     }
 
-    private function getAmount( KFRecord $kfrBPxP )
+    private function getAmount( KeyframeRecord $kfrBPxP )
     {
         $amount = 0.0;
 
@@ -470,7 +470,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         Command methods
      */
 
-    private function addProductToBasket( KFRecord $kfrP, $raParmsBP )
+    private function addProductToBasket( KeyframeRecord $kfrP, $raParmsBP )
     {
         $kBPNew = 0;
 
