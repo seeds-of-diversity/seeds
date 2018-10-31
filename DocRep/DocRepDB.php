@@ -264,7 +264,7 @@ class DocRepDoc2_ReadOnly
     Methods that let you get documents from the Document Repository
  */
 {
-    const     FLAG_INDEPENDENT = '';   // use this as a flag for GetValues which are flag-independent (values stored in docrep_docs)
+    const     FLAG_INDEPENDENT = '';   // use this as a flag for GetValues which are flag-independent (values stored in docrep2_docs)
 
     public    $oDocRepDB;
     protected $kDoc;
@@ -670,8 +670,8 @@ class DocRepDoc2_ReadOnly
             /* Get Doc and Data for the maxVer
              */
             $kfrel = $this->oDocRepDB->GetRel()->GetKfrel('Doc X Data');   // doc x data
-            $colnameKey     = $kfrel->GetDBColName( "docrep_docs", "_key" );
-            $colnameTopData = $kfrel->GetDBColName( "docrep_docs", "kData_top" );
+            $colnameKey     = $kfrel->GetDBColName( "docrep2_docs", "_key" );
+            $colnameTopData = $kfrel->GetDBColName( "docrep2_docs", "kData_top" );
             $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND $colnameTopData=Data._key" );
         } else if( is_numeric($flagOrVer) ) {
             /* Get Doc and Data for the given numbered version
@@ -683,7 +683,7 @@ class DocRepDoc2_ReadOnly
             /* Get Doc and Data for the flagged DXD
              */
             $kfrel = $this->oDocRepDB->GetRel()->GetKFrel('Doc X Dxd X Data');  // doc x dxd x data
-            $colnameKey = $kfrel->GetDBColName( "docrep_docs", "_key" );
+            $colnameKey = $kfrel->GetDBColName( "docrep2_docs", "_key" );
             $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND DXD.flag='$flagOrVer'" );
         }
 
@@ -823,15 +823,15 @@ class DocRepDoc2_Insert extends DocRepDoc2
         }
 
         $kfrDoc->SetValue( "type", $docType );
-        $kfrDoc->PutDBRow() or die( "Cannot create doc record" );    // get the doc key for docdata.fk_docrep_docs
+        $kfrDoc->PutDBRow() or die( "Cannot create doc record" );    // get the doc key for docdata.fk_docrep2_docs
         if( !($this->kDoc = $kfrDoc->Key()) )  return( null );
 
         $kfrData->SetValue( "src", $eSrcType );
         $kfrData->SetValue( "ver", 1 );
-        $kfrData->SetValue( "fk_docrep_docs", $kfrDoc->Key() );
+        $kfrData->SetValue( "fk_docrep2_docs", $kfrDoc->Key() );
         $kfrData->PutDBRow() or die( "Cannot create docdata record" );  // store the linked record now for integrity, in case of failures below
 
-        $kfrDoc->SetValue( "kData_top", $kfrData->Key() );  // now we have the docrep_data key
+        $kfrDoc->SetValue( "kData_top", $kfrData->Key() );  // now we have the docrep2_data key
 
         /* Set the parent/sib
          */
@@ -881,9 +881,9 @@ class DocRepDoc2_Insert extends DocRepDoc2
         if( $posUnderParent ) {
             /* Insert the new document as the first sibling of the given parent
              */
-            $i = intval( $this->oDocRepDB->kfdb->Query1( "SELECT MIN(siborder) FROM docrep_docs WHERE kDoc_parent='$posUnderParent'" ) );
+            $i = intval( $this->oDocRepDB->kfdb->Query1( "SELECT MIN(siborder) FROM docrep2_docs WHERE kDoc_parent='$posUnderParent'" ) );
             if( $i == 1 ) {
-                $this->oDocRepDB->kfdb->Execute( "UPDATE docrep_docs SET siborder=siborder+1 WHERE kDoc_parent='$posUnderParent'" );
+                $this->oDocRepDB->kfdb->Execute( "UPDATE docrep2_docs SET siborder=siborder+1 WHERE kDoc_parent='$posUnderParent'" );
             }
             $kfrDoc->SetValue( "kDoc_parent", $posUnderParent );
             $kfrDoc->SetValue( "siborder", 1 );
@@ -891,11 +891,11 @@ class DocRepDoc2_Insert extends DocRepDoc2
         } else if( $posAfterSibling ) {
             /* Insert the new document as the next sibling after the given sibling
              */
-            $ra = $this->oDocRepDB->kfdb->QueryRA( "SELECT kDoc_parent as parent,siborder FROM docrep_docs WHERE _key='$posAfterSibling'" );
+            $ra = $this->oDocRepDB->kfdb->QueryRA( "SELECT kDoc_parent as parent,siborder FROM docrep2_docs WHERE _key='$posAfterSibling'" );
             $parent = $ra['parent'];
             $siborder = $ra['siborder'];
             if( $parent || $siborder ) {
-                $this->oDocRepDB->kfdb->Execute( "UPDATE docrep_docs SET siborder=siborder+1 WHERE kDoc_parent='$parent' and siborder > '$siborder'" );
+                $this->oDocRepDB->kfdb->Execute( "UPDATE docrep2_docs SET siborder=siborder+1 WHERE kDoc_parent='$parent' and siborder > '$siborder'" );
                 $kfrDoc->SetValue( "kDoc_parent", $parent );
                 $kfrDoc->SetValue( "siborder", $siborder + 1 );
             } else {
@@ -1001,30 +1001,31 @@ class drRel extends Keyframe_NamedRelations
     protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     {
         $kdefDoc = array( "Tables" =>
-            array( "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ) ) );
+            array( "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ) ) );
         $kdefData = array( "Tables" =>
-            array( "Data" => array( "Table" => "{$this->sDB}docrep_data",       "Fields" => "Auto" ) ) );
+            array( "Data" => array( "Table" => "{$this->sDB}docrep2_data",      "Fields" => "Auto" ) ) );
         $kdefDxd = array( "Tables" =>
-            array( "Dxd" =>  array( "Table" => "{$this->sDB}docrep_docxdata",   "Fields" => "Auto" ) ) );
+            array( "Dxd" =>  array( "Table" => "{$this->sDB}docrep2_docxdata",  "Fields" => "Auto" ) ) );
 
+// TODO: are these only used for the cases where doc.kData_top==data._key? If so, add that JoinOn here instead of making it a condition elsewhere.
         $kdefDocData = array( "Tables" =>
-            array( "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ),
-                   "Data" => array( "Table" => "{$this->sDB}docrep_data",       "Fields" => "Auto" ) ) );
+            array( "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ),
+                   "Data" => array( "Table" => "{$this->sDB}docrep2_data",      "Fields" => "Auto" ) ) );
         $kdefDataDoc = array( "Tables" =>
-            array( "Data" => array( "Table" => "{$this->sDB}docrep_data",       "Fields" => "Auto" ),
-                   "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ) ) );
+            array( "Data" => array( "Table" => "{$this->sDB}docrep2_data",      "Fields" => "Auto" ),
+                   "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ) ) );
 
         $kdefDocXData = array( "Tables" =>
-            array( "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ),
-                   "Dxd" =>  array( "Table" => "{$this->sDB}docrep_docxdata",   "Fields" => "Auto" ),
-                   "Data" => array( "Table" => "{$this->sDB}docrep_data",       "Fields" => "Auto" ) ) );
+            array( "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ),
+                   "Dxd" =>  array( "Table" => "{$this->sDB}docrep2_docxdata",  "Fields" => "Auto" ),
+                   "Data" => array( "Table" => "{$this->sDB}docrep2_data",      "Fields" => "Auto" ) ) );
         $kdefDataXDoc = array( "Tables" =>
-            array( "Data" => array( "Table" => "{$this->sDB}docrep_data",       "Fields" => "Auto" ),
-                   "Dxd" =>  array( "Table" => "{$this->sDB}docrep_docxdata",   "Fields" => "Auto" ),
-                   "Doc" =>  array( "Table" => "{$this->sDB}docrep_docs",       "Fields" => "Auto" ) ) );
+            array( "Data" => array( "Table" => "{$this->sDB}docrep2_data",      "Fields" => "Auto" ),
+                   "Dxd" =>  array( "Table" => "{$this->sDB}docrep2_docxdata",  "Fields" => "Auto" ),
+                   "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ) ) );
 
 
-        $raParms = defined('SITE_LOG_ROOT') ? array( 'logfile' => $logdir."docrep.log" ) : array();
+        $raParms = defined('SITE_LOG_ROOT') ? array( 'logfile' => $logdir."docrep2.log" ) : array();
         $raKfrel = array();
         $raKfrel['Doc']              = new KeyFrame_Relation( $kfdb, $kdefDoc,      $uid, $raParms );
         $raKfrel['Data']             = new KeyFrame_Relation( $kfdb, $kdefData,     $uid, $raParms );
@@ -1041,7 +1042,7 @@ class drRel extends Keyframe_NamedRelations
 
 define("DOCREP2_DB_TABLE_DOCREP_DOCS",
 "
-CREATE TABLE docrep_docs (
+CREATE TABLE docrep2_docs (
     # Each row is a logical representation of a doc in the system. Contains non-versioned metadata and a reference to the current version.
 
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -1055,10 +1056,10 @@ CREATE TABLE docrep_docs (
     type                    VARCHAR(200) NOT NULL DEFAULT '',  # TEXT, IMAGE, DOC, TEXTFRAGMENT, FOLDER, etc. U_* are user-defined types
     docspec                 VARCHAR(200) DEFAULT '',           # user defined for searching, grouping, ordering, etc
     permclass               INTEGER NOT NULL,
-    kData_top               INTEGER NOT NULL DEFAULT 0,        # docrep_data._key for the latest version
+    kData_top               INTEGER NOT NULL DEFAULT 0,        # docrep2_data._key for the latest version
 
 -- (parent,siborder)==(0,0) is a set of uncontained docs
-    kDoc_parent             INTEGER NOT NULL DEFAULT 0,        # docrep_docs._key of this doc's parent (0 means this is at the top)
+    kDoc_parent             INTEGER NOT NULL DEFAULT 0,        # docrep2_docs._key of this doc's parent (0 means this is at the top)
     siborder                INTEGER NOT NULL DEFAULT 0,
 
     INDEX (name(20)),
@@ -1070,11 +1071,11 @@ CREATE TABLE docrep_docs (
 
 define("DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA",
 "
-CREATE TABLE docrep_docxdata (
+CREATE TABLE docrep2_docxdata (
     # Join docs and docdata through a screen of flags. This allows particular versions of a doc to be flagged for workflow, or other purposes.
     # Extensible: any number of flags can be attached to any version, and moved between versions atomically.
     # Efficient indexing of flagged versions: since the number of flags is probably much less than the number of versions,
-    # this allows highly efficient lookup of docrep_data for desired versions.
+    # this allows highly efficient lookup of docrep2_data for desired versions.
 
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
@@ -1083,12 +1084,12 @@ CREATE TABLE docrep_docxdata (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    fk_docrep_docs      INTEGER NOT NULL,
-    fk_docrep_data      INTEGER NOT NULL,
+    fk_docrep2_docs     INTEGER NOT NULL,
+    fk_docrep2_data     INTEGER NOT NULL,
     flag                VARCHAR(200) NOT NULL,
 
-    INDEX (fk_docrep_docs),
-    INDEX (fk_docrep_data)
+    INDEX (fk_docrep2_docs),
+    INDEX (fk_docrep2_data)
 );
 "
 );
@@ -1096,7 +1097,7 @@ CREATE TABLE docrep_docxdata (
 
 define("DOCREP2_DB_TABLE_DOCREP_DATA",
 "
-CREATE TABLE docrep_data (
+CREATE TABLE docrep2_data (
     # Each row is a version of a document's data and metadata.
 
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -1106,7 +1107,7 @@ CREATE TABLE docrep_data (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    fk_docrep_docs      INTEGER NOT NULL,               # the document of which this is a version
+    fk_docrep2_docs     INTEGER NOT NULL,               # the document of which this is a version
     ver                 INTEGER NOT NULL DEFAULT 1,     # strictly order the versions chronologically
     src                 ENUM('TEXT','FILE','SFILE','LINK') NOT NULL,
     data_text           TEXT NULL,                      # src=TEXT ? the text is stored here
@@ -1118,69 +1119,10 @@ CREATE TABLE docrep_data (
     dataspec            VARCHAR(200) DEFAULT '',        # user defined for searching, grouping, ordering, etc
     metadata            TEXT,                           # url-encoded
 
-    INDEX (fk_docrep_docs)
+    INDEX (fk_docrep2_docs)
 );
 "
 );
-
-
-class SEEDSetup2
-{
-    private $kfdb;  // the database where tables will be created
-    private $sReport = "";
-
-    function __construct( KeyframeDatabase $kfdb )
-    {
-        $this->kfdb = $kfdb;
-    }
-
-    function GetReport() { return( $this->sReport ); }
-
-    function SetupTable( $table, $sqlCreateTable, $bCreate )
-    /*******************************************************
-        $bCreate == false : test for existence of table
-        $bCreate == true  : if not exist, execute sqlCreateTable to create a database table
-
-        Return bool success
-     */
-    {
-        if( !($bRet = $this->kfdb->TableExists( $table )) ) {
-            if( $bCreate ) {
-                $bRet = $this->kfdb->Execute( $sqlCreateTable );
-                $this->sReport .= ($bRet ? "Created table $table\n" : ("Failed to create $table. ".$this->kfdb->GetErrMsg()."\n"));
-            } else {
-                $this->sReport .= "Table $table does not exist\n";
-            }
-        }
-        return( $bRet );
-    }
-
-    function SetupDBTables( $raDef, $bCreate )
-    /*****************************************
-        $raDef['tables'] = array( tablename => sqlCreateTable, ... )
-        $raDef['inserts'] = array( tablename => array(sqlInsert, ...), ... )
-     */
-    {
-        $bOk = true;
-        foreach( $raDef['tables'] as $tablename => $sqlCreateTable ) {
-            $bOk = $this->SetupTable( $tablename, $sqlCreateTable, $bCreate ) && $bOk;
-        }
-        if( !$bOk ) goto done;
-
-        foreach( $raDef['inserts'] as $tablename => $raInserts ) {
-            if( !$this->kfdb->Query1( "SELECT count(*) FROM $tablename" ) ) {
-                // table is empty so do the inserts
-                foreach( $raInserts as $sql ) {
-                    $this->sReport .= $this->kfdb->Execute( $sql )
-                                            ? "Inserted row to $tablename\n" : "Failed to insert row to $tablename\n";
-                }
-            }
-        }
-
-        done:
-        return( $bOk );
-    }
-}
 
 
 
@@ -1195,26 +1137,26 @@ function DocRep_Setup( $oSetup, $bCreate = false )
          Instead, the code that calls this function knows about SEEDSetup.
  */
 {
-    $def = array( 'tables' => array( "docrep_docs"    => DOCREP2_DB_TABLE_DOCREP_DOCS,
-                                     "docrep_data" => DOCREP2_DB_TABLE_DOCREP_DATA,
-                                     "docrep_docxdata" => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA ),
-                  'inserts' => array( "docrep_docs" => array(
-                                          "INSERT INTO docrep_docs
+    $def = array( 'tables' => array( "docrep2_docs"     => DOCREP2_DB_TABLE_DOCREP_DOCS,
+                                     "docrep2_data"     => DOCREP2_DB_TABLE_DOCREP_DATA,
+                                     "docrep2_docxdata" => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA ),
+                  'inserts' => array( "docrep2_docs" => array(
+                                          "INSERT INTO docrep2_docs
                                                           (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
                                                    VALUES (1, NOW(), NOW(), 'folder1','FOLDER',1,1,0,1)",
-                                          "INSERT INTO docrep_docs
+                                          "INSERT INTO docrep2_docs
                                                           (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
                                                    VALUES (2, NOW(), NOW(), 'page1','DOC',2,1,1,1)",
-                                          "INSERT INTO docrep_docs
+                                          "INSERT INTO docrep2_docs
                                                           (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
                                                    VALUES (3, NOW(), NOW(), 'page2','DOC',3,1,1,2)",
                                           ),
-                                      "docrep_data" => array(
-                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src)
+                                      "docrep2_data" => array(
+                                          "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src)
                                                             VALUES (1, NOW(), NOW(), 1,1,'TEXT')",
-                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src,data_text)
+                                          "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
                                                             VALUES (2, NOW(), NOW(), 2,1,'TEXT','This is the first page')",
-                                          "INSERT INTO docrep_data (_key,_created,_updated,fk_docrep_docs,ver,src,data_text)
+                                          "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
                                                             VALUES (3, NOW(), NOW(), 3,1,'TEXT','This is the second page')"
                                       )
                    ) );
@@ -1226,96 +1168,10 @@ function DocRep_Setup( $oSetup, $bCreate = false )
 
 function DRSetup( $kfdb )
 {
+    include_once( SEEDCORE."SEEDSetup.php" );
     $o = new SEEDSetup2( $kfdb );
     DocRep_Setup( $o, true );
     return( $o->GetReport() );
-}
-
-
-class DocRepUI
-{
-    private $oDocRepDB;
-
-    function __construct( DocRepDB2 $oDocRepDB )
-    {
-        $this->oDocRepDB = $oDocRepDB;
-    }
-
-    function DrawTree( $kTree, $raParms, $iLevel = 1 )
-    /*************************************************
-        Draw the tree rooted at $kTree.
-        Don't draw $kTree. This allows the drawn part to be a forest (children of $kTree),
-            or a tree with a single root (single child of $kTree).
-
-        $iLevel is a recursion marker for internal use (don't use it).
-     */
-    {
-        $s = "";
-
-        // If a doc is currently selected in the UI, get its info. This is cached in DocRepDB.
-        $oDocSelected = ($kSelectedDoc = intval(@$raParms['kSelectedDoc'])) ? $this->oDocRepDB->GetDoc( $kSelectedDoc ) : null;
-
-        // If the UI provides a list of currently-expanded nodes, get ready to use it.
-        $raTreeExpanded = @$raParms['raTreeExpanded'] ?: array();
-
-
-// depth== 2: get the immediate children but also count the grandchildren so count($ra['children']) is set.
-// other than that count we only need depth==1; there's probably a more efficient way to get count($ra['children'])
-        $raTree = $this->oDocRepDB->GetSubTree( $kTree, 2 );
-        $s .= "<div class='DocRepTree_level DocRepTree_level$iLevel'>";
-        foreach( $raTree as $k => $ra ) {
-            if( !($oDoc = $this->oDocRepDB->GetDocRepDoc( $k )) )  continue;
-
-            if( @$raTreeExpanded[$k] ) {
-                $sExpandCmd = 'collapse';           // This doc is expanded so if you click it will collapse
-            } else if( count($ra['children']) ) {
-                $sExpandCmd = 'expand';             // This doc is collapsed and has children so if you click it will expand
-            } else {
-                $sExpandCmd = '';                   // This doc has no children so it cannot be expanded
-            }
-            $raTitleParms = array(
-                'bSelectedDoc' => ($k == $kSelectedDoc),
-                'sExpandCmd' => $sExpandCmd,
-            );
-            $s .= "<div class='DocRepTree_doc'>"
-                 ."<div class='DocRepTree_title'>".$this->DrawTree_title( $oDoc, $raTitleParms )."</div>";
-            if( @$raTreeExpanded[$k] || ($oDocSelected && in_array( $k, $oDocSelected->GetAncestors()) ) ) {
-                $s .= $this->DrawTree( $k, $raParms, $iLevel + 1 );
-            }
-            $s .= "</div>";  // doc
-        }
-        $s .= "</div>";  // level level$level
-
-        return( $s );
-    }
-
-    function DrawTree_title( DocRepDoc2 $oDoc, $raTitleParms )
-    {
-        $kDoc = $oDoc->GetKey();
-
-        $s = "<a href='${_SERVER['PHP_SELF']}?k=$kDoc'><nobr>"
-            .( $raTitleParms['bSelectedDoc'] ? "<span class='DocRepTree_titleSelected'>" : "" )
-            .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
-            .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )
-            ."</nobr></a>";
-
-        return( $s );
-    }
-
-    function View( DocRepDoc2 $oDoc, $flag = "" )
-    {
-        $s = "";
-
-        switch( $oDoc->GetType() ) {
-            case 'DOC':
-                $s = $oDoc->GetText( $flag );
-                break;
-            case 'FOLDER':
-                break;
-
-        }
-        return( $s );
-    }
 }
 
 ?>

@@ -38,6 +38,9 @@ function doDir( $dir )
 {
     global $bResize, $bRecurse, $sBound, $nBoundX, $nBoundY;
 
+// uncomment this if convert is throwing an error and not telling you which dir it is in
+//echo $dir."\n";
+
     if( !($od = opendir($dir)) ) {
         die( "Cannot open directory ". $dir );
     }
