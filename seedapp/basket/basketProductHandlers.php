@@ -42,36 +42,37 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
-    function ProductDefine0( KeyFrameUIForm $oFormP )
+    function ProductDefine0( KeyframeForm $oFormP )
     {
+        $oFormX = new SEEDFormExpand( $oFormP );
+
         $s = "<h3>Membership Definition Form</h3>";
 
         $s .= $oFormP->HiddenKey()
-             ."<table>"
-             .$oFormP->ExpandForm(
-                     "||| Seller        || [[text:uid_seller|readonly]]"
-                    ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
-                    ."<br/><br/>"
-                    ."||| Title EN      || [[text:title_en | size:40]]"
-                    ."||| Title FR      || [[text:title_fr | size:40]]"
+             .$oFormX->ExpandForm(
+                     "|||BOOTSTRAP_TABLE(class='col-sm-4',class='col-sm-8')\n"
+                    ."||| Seller        || [[text:uid_seller|readonly]]\n"
+                    ."||| Product type  || [[text:product_type|readonly]]\n"
+                    ."||| Quantity type || [[text:quant_type|readonly]]\n"
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."<br/><br/>\n"
+                    ."||| Title EN      || [[text:title_en | ]]\n"
+                    ."||| Title FR      || [[text:title_fr | ]]\n"
                     ."||| Name          || [[text:name]]"
-                    ."<br/><br/>"
-                    ."||| Price         || [[text:item_price]]"
-                    ."||| Price U.S.    || [[text:item_price_US]]"
-                     )
-             ."</table> ";
+                    ."<br/><br/>\n"
+                    ."||| Price         || [[text:item_price]]\n"
+                    ."||| Price U.S.    || [[text:item_price_US]]\n"
+                     );
 
         return( $s );
     }
 
-    function ProductDefine1( KeyFrameDataStore $oDS )
+    function ProductDefine1( Keyframe_DataStore $oDS )
     {
         return( parent::ProductDefine1( $oDS ) );
     }
 
-    function ProductDraw( KFRecord $kfrP, $eDetail )
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
     {
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
@@ -84,8 +85,8 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function Purchase2( KFRecord $kfrP, $raPurchaseParms )
-    /*****************************************************
+    function Purchase2( KeyframeRecord $kfrP, $raPurchaseParms )
+    /***********************************************************
         Add a membership to the basket. Only one membership is allowed per basket, so remove any others.
      */
     {
@@ -104,17 +105,19 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
-    function ProductDefine0( KeyFrameUIForm $oFormP )
+    function ProductDefine0( KeyFrameForm $oFormP )
     {
+        $oFormX = new SEEDFormExpand( $oFormP );
+
         $s = "<h3>Donation Definition Form</h3>";
 
         $s .= $oFormP->HiddenKey()
              ."<table>"
-             .$oFormP->ExpandForm(
+             .$oFormX->ExpandForm(
                      "||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
                     ."||| Title FR      || [[text:title_fr]]"
@@ -130,17 +133,19 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
-    function ProductDefine0( KeyFrameUIForm $oFormP )
+    function ProductDefine0( KeyFrameForm $oFormP )
     {
+        $oFormX = new SEEDFormExpand( $oFormP );
+
         $s = "<h3>Publications Product Form</h3>";
 
         $s .= $oFormP->HiddenKey()
              ."<table>"
-             .$oFormP->ExpandForm(
+             .$oFormX->ExpandForm(
                      "||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
                     ."||| Title FR      || [[text:title_fr]]"
@@ -162,7 +167,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function ProductDraw( KFRecord $kfrP, $eDetail )
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
     {
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
@@ -175,8 +180,8 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function Purchase0( KFRecord $kfrP )
-    /***********************************
+    function Purchase0( KeyframeRecord $kfrP )
+    /*****************************************
         Given a product, draw the form that a store would show to purchase it.
         Form parms can be:
             n     (int)
@@ -197,17 +202,20 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
-    function ProductDefine0( KeyFrameUIForm $oFormP )
+    function ProductDefine0( KeyframeForm $oFormP )
     {
+        $oFormX = new SEEDFormExpand( $oFormP );
+
         $s = "<h3>Misc Payment Definition Form</h3>";
 
         $s .= $oFormP->HiddenKey()
              ."<table>"
-             .$oFormP->ExpandForm(
-                     "||| Seller        || [[text:uid_seller|readonly]]"
+             .$oFormX->ExpandForm(
+                     "|||BOOTSTRAP_TABLE(4,8)"
+                    ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select2( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
                     ."||| Title FR      || [[text:title_fr]]"
