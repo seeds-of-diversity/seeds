@@ -114,7 +114,7 @@ class SEEDApp_Worker
     public $sess;
     public $lang;
 
-    function __construct( KeyFrameDB $kfdb, SEEDSessionAccount $sess, $lang )
+    function __construct( KeyframeDatabase $kfdb, SEEDSessionAccount $sess, $lang )
     {
         $this->kfdb = $kfdb;
         $this->sess = $sess;
@@ -135,7 +135,7 @@ class SEEDApp_WorkerC extends SEEDApp_Worker
 {
     public $oC;
 
-    function __construct( Console01 $oC, KeyFrameDB $kfdb, SEEDSessionAccount $sess, $lang )
+    function __construct( /*Console01*/ $oC, KeyframeDatabase $kfdb, SEEDSessionAccount $sess, $lang )
     {
         parent::__construct( $kfdb, $sess, $lang );
         $this->oC = $oC;
