@@ -2,7 +2,7 @@
 
 /* msdCommon
  *
- * Copyright (c) 2017 Seeds of Diversity Canada
+ * Copyright (c) 2011-2018 Seeds of Diversity Canada
  *
  * Member Seed Directory methods common to multiple applications
  */
@@ -92,6 +92,141 @@ class MSDCommonDraw
         ksort( $raOut );
         return( $raOut );
     }
+
+private $eReportMode = 'VIEW-PUB';
+private $bHideDetail = false;
+private $kfrelG;
+private $_lastCategory = "";
+private $_lastType = "";
+    function DrawVarietyFromKFR( KeyframeRecord $kfrS, $raParms = array() )
+    {
+        $sOut = "";
+
+        $this->kfrelG = new Keyframe_Relation( $this->oSB->oDB->KFDB(), array('Tables'=>array('G'=>array("Table" => 'seeds.sed_curr_growers',"Fields" => "Auto"))), array() );
+
+        $bNoSections = (@$raParms['bNoSections'] == true);  // true: you have to write the category/type headers yourself
+
+        // mbrCode of the grower who offers this seed should only be displayed in interactive and layout modes, not public view mode
+// it would make more sense for this to be available via a join
+        $mbrCode = ($this->eReportMode != 'VIEW-PUB' &&
+                    ($kfrG = $this->kfrelG->GetRecordFromDB( "mbr_id='".$kfrS->value('mbr_id')."'" )) )
+                   ? $kfrG->value('mbr_code')
+                   : "";
+
+        if( !$bNoSections && $this->_lastCategory != $kfrS->value('category') ) {
+            /* Start a new category
+             */
+            $sCat = $kfrS->value('category');
+            if( $this->lang == 'FR' ) {
+// should be a better accessor
+                foreach( $this->raCategories as $ra ) {
+                    if( $ra['db'] == $kfrS->value('category') ) {
+                        $sCat = $ra['FR'];
+                        break;
+                    }
+                }
+            }
+            $sOut .= "<DIV class='sed_category'><H2>$sCat</H2></DIV>";
+            $this->_lastCategory = $kfrS->value('category');
+            // when Searching on a duplicated Type, it is possible to view more than one category with the same type, so this causes the second category to show the Type
+            $this->_lastType = "";
+        }
+        if( !$bNoSections && $this->_lastType != $kfrS->value('type') ) {
+            /* Start a new type
+             */
+            $sType = $kfrS->value('type');
+            if( $this->eReportMode == 'LAYOUT' ) {
+                if( ($sFR = @$this->raTypesCanon[$sType]['FR']) ) {
+                    $sType .= " @T@ $sFR";
+                }
+            } else {
+                if( $this->lang == 'FR' && isset($this->raTypesCanon[$sType]['FR']) ) {
+                    $sType = $this->raTypesCanon[$sType]['FR'];
+                }
+            }
+            $sOut .= "<DIV class='sed_type'><H3>$sType</H3></DIV>";
+            $this->_lastType = $kfrS->value('type');
+        }
+
+        /* FloatRight contains everything that goes in the top-right corner
+         */
+        $sFloatRight = "";
+        if( $this->eReportMode == 'EDIT' && !$kfrS->value('bSkip') && !$kfrS->value('bDelete') ) {
+            switch( $kfrS->Value('eOffer') ) {
+                default:
+                case 'member':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
+                case 'grower-member': $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_growermember'>Offered to Members who offer seeds in the Directory</div>";  break;
+                case 'public':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_public'>Offered to the General Public</div>"; break;
+            }
+        }
+        if( $this->eReportMode != 'LAYOUT' )  $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
+
+        /* Buttons1 is the standard set of buttons : Edit, Skip, Delete
+         * Buttons2 is Un-Skip and Un-Delete
+         */
+        $sButtons1 = "";//$this->getButtonsSeed1( $kfrS );
+        $sButtons2 = "";//$this->getButtonsSeed2( $kfrS );
+
+        /* Draw the seed listing
+         */
+        $s = "<b>".$kfrS->value('variety')."</b>"
+            .( $this->eReportMode == 'LAYOUT'
+               ? (" @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" ))
+               : ($kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" )))
+            ;
+        if( $this->eReportMode == "VIEW-MBR" ) {
+            // Make the variety and mbr_code blue and clickable
+            $s = "<span style='color:blue;cursor:pointer;' onclick='console01FormSubmit(\"ClickSeed\",".$kfrS->Key().");'>$s</span>";
+        }
+
+        $s .= $sButtons1;
+
+        $s .= "<br/>";
+
+        if( $this->eReportMode != "EDIT" || !$this->bHideDetail ) {
+            $s .= $kfrS->ExpandIfNotEmpty( 'days_maturity', "[[]] dtm. " )
+               // this doesn't have much value and it's readily mistaken for the year of harvest
+               //  .($this->bReport ? "@Y@: " : "Y: ").$kfrS->value('year_1st_listed').". "
+                 .$kfrS->value('description')." "
+                 .$kfrS->ExpandIfNotEmpty( 'origin', (($this->eReportMode == "LAYOUT" ? "@O@" : "Origin").": [[]]. ") )
+                 .$kfrS->ExpandIfNotEmpty( 'quantity', "<b><i>[[]]</i></b>" );
+
+             if( ($price = $kfrS->Value('price')) != 0.00 ) {
+                 $s .= " ".($this->lang=='FR' ? "Prix" : "Price")." $".$price;
+             }
+        }
+
+        if( in_array($this->eReportMode, array("EDIT","REVIEW")) ) {
+            // Show colour-coded backgrounds for Deletes, Skips, and Changes
+            if( $kfrS->value('bDelete') ) {
+                $s = "<div class='sed_seed_delete'><b><i>".($this->lang=='FR' ? "Supprim&eacute;" : "Deleted")."</i></b>"
+                    .SEEDCore_NBSP("   ")
+                    .$sButtons2
+                    ."<br/>$s</div>";
+            } else if( $kfrS->value('bSkip') ) {
+                $sStyle = ($this->eReportMode == 'REVIEW') ? "style='background-color:#aaa'" : "";    // because this is used without <style>
+                $s = "<div class='sed_seed_skip' $sStyle><b><i>".($this->lang=='FR' ? "Pass&eacute;" : "Skipped")."</i></b>"
+                    .SEEDCore_NBSP("   ")
+                    .$sButtons2
+                    ."<br/>$s</div>";
+            } else if( $kfrS->value('bChanged') ) {
+                $s = "<div class='sed_seed_change'>$s</div>";
+            }
+        }
+
+        // Put the FloatRight at the very top of the output block
+        $s = "<div style='float:right'>$sFloatRight</div>".$s;
+
+        if( in_array( $this->eReportMode, array('VIEW-MBR', 'VIEW-PUB', 'EDIT')) ) {
+            // Wrap the seed listing with an id
+            $sOut .= "<div class='sed_seed' id='Seed".$kfrS->Key()."'>$s</div>";
+        } else {
+            $sOut .= $s;
+        }
+
+        return( $sOut );
+    }
+
 
     private $raCategories = array(
             'flowers'    => array( 'db' => "FLOWERS AND WILDFLOWERS", 'EN' => "Flowers and Wildflowers", 'FR' => "Fleurs et gramin&eacute;es sauvages et ornementales" ),

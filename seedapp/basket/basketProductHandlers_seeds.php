@@ -4,6 +4,9 @@
  *
  * Copyright (c) 2016-2017 Seeds of Diversity Canada
  */
+
+include_once( SEEDAPP."seedexchange/msdCommon.php" );
+
 class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 {
     private $raProdExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'quantity', 'origin', 'description' );
@@ -27,6 +30,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         }
 
         $oKForm = $oFormP;
+        $oFormPExpand = new SEEDFormExpand( $oFormP );
 
         if( !$oKForm->GetKey() ) {
 // mbr_id shouldn't be in the form, or propagated, for security when members are editing
@@ -38,33 +42,33 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
         $s = "<h3>".($oKForm->GetKey() ? ("Edit: ".$oKForm->Value('type')." - ".$oKForm->ValueEnt('variety')) : "New Seed Offer")."</h3>";
 
-        $sMbrCode = $oKForm->kfrel->kfdb->Query1("SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id=".$oKForm->oDS->Value('uid_seller') );
+        $sMbrCode = $oKForm->KFRel()->KFDB()->Query1("SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id=".$oKForm->Value('uid_seller') );
 
         $nSize = 30;
         $raTxtParms = array('size'=>$nSize);
         $txtParms = "size:30";
         $s .= "<table border='0'>"
-             .$oFormP->ExpandForm(
+             .$oFormPExpand->ExpandForm(
                      "||| || <b>$sMbrCode</b> "
                     ."||| <label>Year first listed</label> || [[text:year_1st_listed|readonly]]"
 // *Year first listed* should do the same thing
                      ."||| <label>Category</label> || "
 // get this array from SEDCommonDraw OR fetch the value automatically from sl_species and put it in Misc if we don't know
-                            .$oKForm->Select2( "category", array( "VEGETABLES" => "VEGETABLES",
-                                                                  "FLOWERS AND WILDFLOWERS" => "FLOWERS AND WILDFLOWERS",
-                                                                  "FRUIT"=>"FRUIT",
-                                                                  "GRAIN"=>"GRAIN",
-                                                                  "HERBS AND MEDICINALS"=>"HERBS AND MEDICINALS",
-                                                                  "MISC"=>"MISC",
-                                                                  "TREES AND SHRUBS"=>"TREES AND SHRUBS" ) )
+                            .$oKForm->Select( "category", array( "VEGETABLES" => "VEGETABLES",
+                                                                 "FLOWERS AND WILDFLOWERS" => "FLOWERS AND WILDFLOWERS",
+                                                                 "FRUIT"=>"FRUIT",
+                                                                 "GRAIN"=>"GRAIN",
+                                                                 "HERBS AND MEDICINALS"=>"HERBS AND MEDICINALS",
+                                                                 "MISC"=>"MISC",
+                                                                 "TREES AND SHRUBS"=>"TREES AND SHRUBS" ) )
                     ."||| <label>Species</label> || [[text:species|$txtParms]]"
                     ."||| <label>Variety</label> || [[text:variety|$txtParms]]"
                     ."||| <label>Botanical</label> || [[text:bot_name|$txtParms]]"
                     ."||| <label>Days to maturity</label> || [[text:days_maturity|$txtParms]]"
                     ."||| <label>Quantity</label> || "
-                            .$oFormP->Select2( "quantity", array( "I have enough to share with any member"=>"",
-                                                                  "Low Quantity: offering to grower members only"=>"LQ",
-                                                                  "Rare Variety: offering to members who will re-offer if possible"=>"PR"
+                            .$oFormP->Select( "quantity", array( "I have enough to share with any member"=>"",
+                                                                 "Low Quantity: offering to grower members only"=>"LQ",
+                                                                 "Rare Variety: offering to members who will re-offer if possible"=>"PR"
                             ))
                     ."||| <label>Origin</label> || [[text:origin|$txtParms]]"
                     ."||| <label>Description</label> || "
@@ -79,7 +83,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
         $s .= $oFormP->HiddenKey()
              ."<table>"
-             .$oFormP->ExpandForm(
+             .$oFormPExpand->ExpandForm(
                      "||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
@@ -149,8 +153,10 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
      */
     {
         include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
-        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
-                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
+//        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
+//                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
+
+        $oDraw = new MSDCommonDraw( $this->oSB );
 
         $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
         foreach( $this->raProdExtraKeys as $k ) {
@@ -171,7 +177,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 // msd uses class sed_seed for clicking, which is created in DrawSeedFromKFR. Therefore can't click on this heading
                     $s .= "<strong style='font-size:14pt'>".$kfrP->Value('species')."</strong><br/>";
                 }
-                $s .= $oSed->DrawSeedFromKFR( $kfrP, array( 'bNoSections'=>true ) );
+                $s .= $oDraw->DrawVarietyFromKFR( $kfrP, array( 'bNoSections'=>true ) );
                 break;
         }
         return( $s );

@@ -30,17 +30,14 @@ class SEEDBasketCore
     function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
     {
         $this->sess = $sess;
-        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), @$raParms['logfile'] );
+        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), @$raParms['logdir'] );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
     }
 
-    function Cmd( $cmd, $raParms = array(), $bGPC = false )
-    /******************************************************
-        If raParms is _REQUEST, set bGPC=true
-        If raParms is an ordinary array, set bGPC=false
-        Then SEEDSafeGPC will do the right thing
+    function Cmd( $cmd, $raParms = array() )
+    /***************************************
      */
     {
         $raOut = array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"" );
@@ -65,7 +62,7 @@ class SEEDBasketCore
                     $raOut['sErr'] = "There is no product '$prodName'";
                     goto done;
                 }
-                list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms, $bGPC );
+                list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms );
                 break;
 
             case "removefrombasket":

@@ -2,7 +2,7 @@
 
 /* SEEDBasketDB.php
  *
- * Copyright (c) 2016 Seeds of Diversity Canada
+ * Copyright (c) 2016-2018 Seeds of Diversity Canada
  *
  * DB layer for shopping baskets
  */
