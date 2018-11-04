@@ -15,6 +15,7 @@ class SEEDAppImgManager
     {
         $this->oApp = $oApp;
         $this->rootdir = $raConfig['rootdir'];
+        $this->showDelLinks = intval(@$_REQUEST['showDelLinks']);
         $this->oIML = new SEEDImgManLib( $oApp );
     }
 
@@ -65,14 +66,12 @@ class SEEDAppImgManager
         $raFiles = $this->oIML->GetAllImgInDir( $this->rootdir );
         $raOverlap = $this->oIML->FindOverlap( $raFiles );
 
-        $s .= $this->DrawFiles( $raFiles );
 
-
-        if( count($raOverlap) ) {
-            $s .= "<h3>You have overlapping image versions</h3>";
-            $s .= $this->DrawOverlaps( $raOverlap );
-            goto done;
-        }
+//        if( count($raOverlap) ) {
+//            $s .= "<h3>You have overlapping image versions</h3>";
+//            $s .= $this->DrawOverlaps( $raOverlap );
+//            goto done;
+//        }
 
 
         $nJPG = 0;
@@ -84,14 +83,16 @@ class SEEDAppImgManager
             }
         }
 
+        $s .= "<div style='float:right'><form><input type='hidden' name='showDelLinks' value='1'/><input type='submit' value='Show Delete Links'/></form></div>";
 
         if( $nJPG ) {
-            $s .= "<h3>You have unconverted JPG images</h3>";
-            $s .= "<p><a href='?cmd=convert'>Click here to convert $nJPG jpg files to jpeg</a></p>";
-            goto done;
+            $s .= "<h3>You have unconverted JPG images</h3>"
+                ."<p><a href='?cmd=convert'>Click here to convert $nJPG jpg files to jpeg</a></p>";
         } else {
-            $s .= "<h3>Everything looks good</h3>";
+            $s .= "<h3>Files under {$this->rootdir}</h3>";
         }
+        $s .= $this->DrawFiles( $raFiles );
+
 
         done:
         return( $s );
@@ -110,7 +111,7 @@ class SEEDAppImgManager
                 $s .= "<tr><td width='30px'>&nbsp;</td>"
                      ."<td style='max-width:150px'>$filename</td>";
                 $infoJpeg = array(); $infoOther = array();
-                $sizeJpeg = $sizeOther = $scaleJpeg = $scaleOther = 0;
+                $sizeJpeg = $sizeOther = $scaleJpeg = $scaleOther = $sizePercent = $scalePercent = 0;
                 $sMsg = "";
                 $colour = "";
                 foreach( $raExts as $ext ) {
@@ -120,66 +121,103 @@ class SEEDAppImgManager
                     if( $ext == "jpeg" ) {
                         $infoJpeg = $info;
                         $sizeJpeg = $info['filesize'];
-                        $scaleJpeg = max($info['w'], $info['h']);
+                        $scaleJpeg = $info['w'];
                     } else {
                         $infoOther = $info;
                         $sizeOther = $info['filesize'];
-                        $scaleOther = max($info['w'], $info['h']);
+                        $scaleOther = $info['w'];
                     }
                     $s .= "<td>"
                              ."<a href='?n=$relfname' target='_blank'>$ext</a>&nbsp;&nbsp;"
-                             ."<a href='?del=$relfname' style='color:red'>Del</a>"
+                             .($this->showDelLinks ? "<a href='?del=$relfname' style='color:red'>Del</a>" : "")
                          ."</td>";
                 }
-                if( $scaleJpeg && $scaleOther ) {
-                    $bSized = (floatval($infoJpeg['filesize'])/floatval($infoOther['filesize']) < 0.8);
-                    $bScaled = ($infoJpeg['w'] < $infoOther['w']);
-                    $linkDelJpg = "<b><a href='?del=$relfile.jpg' style='color:red'>Del</a></b>";
-                    if( $bSized && $bScaled ) {
-                        $sMsg = "Jpeg is scaled and smaller file - delete JPG $linkDelJpg";
-                        $colour = "#e66";
-                    } else if( $bSized ) {
-                        $sMsg = "Jpeg is smaller file - delete JPG $linkDelJpg";
-                        $colour = "#ea6";
-                    } else if( $bScaled ) {
-                        $sMsg = "Jpeg is scaled - delete JPG $linkDelJpg";
-                        $colour = "#ee6";
-                    } else {
-                        $sMsg = "JPG is good - rename to overwrite Jpeg <b><a href='?move=$relfile.jpg' style='color:green'>Move</a></b>";
-                        $colour = "green";
-                    }
+                if( count($raExts) == 1 ) {
+                    // extra column needed
+                    $s .= "<td>&nbsp;</td>";
+                }
 
-                    // Third column shows scale
-                    if( $bScaled ) {
+                // Third column shows scale
+                if( $scaleJpeg && $scaleOther ) {
+                    $scalePercent = intval( (floatval($scaleJpeg) / floatval($scaleOther)) * 100);
+
+                    if( $scaleJpeg < $scaleOther ) {
                         $sScale = "<span style='color:green'>${infoJpeg['w']} x ${infoJpeg['h']}</span> < "
                                  ." <span>${infoOther['w']} x ${infoOther['h']}</span>";
-                    } else if( $infoJpeg['w'] == $infoOther['w'] ) {
-                        $sScale = "${infoJpeg['w']} x ${infoJpeg['h']} both";
+                    } else if( $scaleJpeg > $scaleOther ) {
+                        $sScale = "<span style='color:red'>${infoJpeg['w']} x ${infoJpeg['h']}</span> > "
+                                 ." <span>${infoOther['w']} x ${infoOther['h']}</span>";
                     } else {
-                        $sScale = "${infoJpeg['w']} x ${infoJpeg['h']} > "
-                                 ."${infoOther['w']} x ${infoOther['h']}";
+                        $sScale = "${infoJpeg['w']} x ${infoJpeg['h']}";
                     }
-                    $s .= "<td style='font-size:8pt'>$sScale</td>";
                 } else {
-                    $s .= "<td>&nbsp;</td>";
+                    if( $scaleJpeg ) {
+                        $sScale = "${infoJpeg['w']} x ${infoJpeg['h']}";
+                    } else if( $scaleOther ) {
+                        $sScale = "${infoOther['w']} x ${infoOther['h']}";
+                    } else {
+                        $sScale = "&nbsp;";
+                    }
                 }
+                $s .= "<td style='font-size:8pt'>$sScale</td>";
 
                 // Fourth column shows filesize
-                if( isset($infoJpeg['filesize']) && isset($infoOther['filesize']) ) {
-                    if( $bSized ) {
+                if( $sizeJpeg && $sizeOther ) {
+                    $sizePercent = intval( (floatval($sizeJpeg) / floatval($sizeOther)) * 100);
+
+                    if( $sizeJpeg < $sizeOther ) {
                         $sSize = "<span style='color:green'>${infoJpeg['filesize_human']}</span> < "
-                                 ." <span>${infoOther['filesize_human']}</span>";
-                    } else if( $infoJpeg['filesize'] == $infoOther['filesize'] ) {
-                        $sSize = "${infoJpeg['filesize_human']} both";
+                                 ." <span>${infoOther['filesize_human']}</span> ($sizePercent)%";
+                    } else if( $sizeJpeg > $sizeOther ) {
+                        $sSize = "<span style='color:red'>${infoJpeg['filesize_human']}</span> > "
+                                 ." <span>${infoOther['filesize_human']}</span> ($sizePercent)%";
                     } else {
-                        $sSize = "${infoJpeg['filesize_human']} > ${infoOther['filesize_human']}";
+                        $sSize = $infoJpeg['filesize_human'];
                     }
-                    $s .= "<td style='font-size:8pt'>$sSize</td>";
                 } else {
-                    $s .= "<td>&nbsp;</td>";
+                    if( $sizeJpeg ) {
+                        $sSize = $infoJpeg['filesize_human'];
+                    } else if( $scaleOther ) {
+                        $sSize = $infoOther['filesize_human'];
+                    } else {
+                        $sSize = "&nbsp;";
+                    }
                 }
+                $s .= "<td style='font-size:8pt'>$sSize</td>";
 
                 // Fifth column shows action
+                $bSizedALot = $sizePercent && ($sizePercent <= 90);
+
+                //$bSized = ($infoJpeg['filesize'] < $infoOther['filesize']);
+                //    $bScaled = ($infoJpeg['w'] < $infoOther['w']);
+$bSized = $bScaled = false;
+                $linkDelJpg = "<b><a href='?del=$relfile.jpg' style='color:red'>Delete</a></b>";
+                $linkKeepJpg = "<b><a href='?move=$relfile.jpg' style='color:green'>Keep</a></b>";
+
+                if( !$scaleJpeg || !$scaleOther || !$sizeJpeg || !$sizeOther ) {
+                    $sMsg = "";
+                } else
+                if( $bSizedALot ) {
+                    if( $scalePercent > 90 ) {
+                        $sMsg = "Filesize reduced a lot with ".($scalePercent == 100 ? "no" : "<b>minor</b>")." loss of scale - delete original JPG $linkDelJpg";
+                        $colour = "orange";
+                    } else {
+                        $sMsg = "Filesize reduced a lot with significant loss of scale - delete original JPG $linkDelJpg";
+                        $colour = "red";
+                    }
+                } else
+                if( $sizeJpeg < $sizeOther ) {
+                    $sMsg = "Minor filesize reduction -- keep original JPG $linkKeepJpg";
+                    $colour = "green";
+                } else
+                if( $sizeJpeg > $sizeOther ) {
+                    $sMsg = "File got bigger -- keep original JPG $linkKeepJpg";
+                    $colour = "green";
+                } else {
+                    $sMsg = "Filesize not changed -- keep original JPG $linkKeepJpg";
+                    $colour = "green";
+                }
+
                 $s .= "<td style='color:$colour'>$sMsg</td>";
                 $s .= "</tr>";
             }
