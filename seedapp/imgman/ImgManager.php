@@ -14,9 +14,11 @@ class SEEDAppImgManager
     function __construct( SEEDAppConsole $oApp, $raConfig )
     {
         $this->oApp = $oApp;
-        $this->rootdir = $raConfig['rootdir'];
-        $this->showDelLinks = intval(@$_REQUEST['showDelLinks']);
         $this->oIML = new SEEDImgManLib( $oApp );
+
+        $this->rootdir = $raConfig['rootdir'];
+        $this->currSubdir = $oApp->oC->oSVA->SmartGPC( 'imgman_currSubdir', array() );
+        $this->showDelLinks = intval(@$_REQUEST['showDelLinks']);
     }
 
     function Main()
@@ -45,9 +47,12 @@ class SEEDAppImgManager
             rename( $oldfilename, $newfilename );
         }
 
+        $currDir = $this->rootdir.$this->currSubdir;
+        if( substr($currDir,-1,1) != '/' ) $currDir .= '/';
+
         if( SEEDInput_Str('cmd') == 'convert' ) {
             $nConverted = 0;
-            $raFiles = $this->oIML->GetAllImgInDir( $this->rootdir );
+            $raFiles = $this->oIML->GetAllImgInDir( $currDir );
             foreach( $raFiles as $dir => $raF ) {
                 foreach( $raF as $file => $raExt ) {
                     if( (in_array('jpg', $raExt) || in_array('JPG', $raExt)) && !in_array('jpeg', $raExt) ) {
@@ -63,10 +68,9 @@ class SEEDAppImgManager
         }
 
         // if converted above, re-run this
-        $raFiles = $this->oIML->GetAllImgInDir( $this->rootdir );
-        $raOverlap = $this->oIML->FindOverlap( $raFiles );
+        $raFiles = $this->oIML->GetAllImgInDir( $currDir );
 
-
+//        $raOverlap = $this->oIML->FindOverlap( $raFiles );
 //        if( count($raOverlap) ) {
 //            $s .= "<h3>You have overlapping image versions</h3>";
 //            $s .= $this->DrawOverlaps( $raOverlap );
@@ -83,16 +87,18 @@ class SEEDAppImgManager
             }
         }
 
-        $s .= "<div style='float:right'><form><input type='hidden' name='showDelLinks' value='1'/><input type='submit' value='Show Delete Links'/></form></div>";
+        $s .= "<div style='float:right'><form method='post'><input type='hidden' name='showDelLinks' value='1'/><input type='submit' value='Show Delete Links'/></form></div>";
+        $s .= "<div style='float:right'><form method='post'><input type='text' name='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."'/><input type='submit' value='Set Current Subdir'/></form></div>";
 
         if( $nJPG ) {
             $s .= "<h3>You have unconverted JPG images</h3>"
                 ."<p><a href='?cmd=convert'>Click here to convert $nJPG jpg files to jpeg</a></p>";
         } else {
-            $s .= "<h3>Files under {$this->rootdir}</h3>";
+            $s .= "<h3>Files under $currDir</h3>";
         }
         $s .= $this->DrawFiles( $raFiles );
 
+        $s .= "<script>SEEDCore_CleanBrowserAddress();</script>";
 
         done:
         return( $s );
@@ -104,9 +110,10 @@ class SEEDAppImgManager
             ."<table id='drawfilestable' style='border:none'>";
 
         foreach( $raFiles as $dir => $raF ) {
-            $s .= "<tr><td colspan='5'>$dir</td></tr>";
+            $reldir = substr($dir,strlen($this->rootdir));
+
+            $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=$reldir'>$dir</a></td></tr>";
             foreach( $raF as $filename => $raExts ) {
-                $reldir = substr($dir,strlen($this->rootdir));
                 $relfile = $reldir.$filename;
                 $s .= "<tr><td width='30px'>&nbsp;</td>"
                      ."<td style='max-width:150px'>$filename</td>";
@@ -186,18 +193,16 @@ class SEEDAppImgManager
                 $s .= "<td style='font-size:8pt'>$sSize</td>";
 
                 // Fifth column shows action
-                $bSizedALot = $sizePercent && ($sizePercent <= 90);
-
-                //$bSized = ($infoJpeg['filesize'] < $infoOther['filesize']);
-                //    $bScaled = ($infoJpeg['w'] < $infoOther['w']);
-$bSized = $bScaled = false;
                 $linkDelJpg = "<b><a href='?del=$relfile.jpg' style='color:red'>Delete</a></b>";
                 $linkKeepJpg = "<b><a href='?move=$relfile.jpg' style='color:green'>Keep</a></b>";
+
+$nSizePercentThreshold = 90;
 
                 if( !$scaleJpeg || !$scaleOther || !$sizeJpeg || !$sizeOther ) {
                     $sMsg = "";
                 } else
-                if( $bSizedALot ) {
+                if( $sizePercent <= $nSizePercentThreshold ) {
+                    // arbitrary scalePercentThreshold not related to nSizePercentThreshold
                     if( $scalePercent > 90 ) {
                         $sMsg = "Filesize reduced a lot with ".($scalePercent == 100 ? "no" : "<b>minor</b>")." loss of scale - delete original JPG $linkDelJpg";
                         $colour = "orange";
@@ -312,7 +317,8 @@ function ImgManagerApp( SEEDAppConsole $oApp, $rootdir )
 {
     $oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir ) );
 
-    echo Console02Static::HTMLPage( utf8_encode($oImgApp->Main()), "", 'EN', array() );   // sCharset defaults to utf8
+    $raParms = array( "raScriptFiles" => array( W_CORE."js/SEEDCore.js" ) );
+    echo Console02Static::HTMLPage( utf8_encode($oImgApp->Main()), "", 'EN', $raParms );   // sCharset defaults to utf8
 }
 
 ?>
