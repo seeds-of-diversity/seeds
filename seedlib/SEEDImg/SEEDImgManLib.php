@@ -50,7 +50,7 @@ class SEEDImgManLib
                 $ext = substr( $filename, $i+1 );
                 $filename = substr( $filename, 0, $i );
             }
-            $raFiles[$dir][$filename][] = $ext;
+            $raFiles[$dir][$filename][$ext] = $this->ImgInfo( $dir.$filename.'.'.$ext );
         }
 
         return( $raFiles );

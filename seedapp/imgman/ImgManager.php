@@ -9,6 +9,11 @@ class SEEDAppImgManager
     private $rootdir;
     private $oIML;
 
+    // controls
+    private $currSubdir;
+    private $bShowDelLinks;
+    private $bShowOnlyOverlap;
+
     private $bDebug = false;    // make this true to show what we're doing
 
     function __construct( SEEDAppConsole $oApp, $raConfig )
@@ -18,7 +23,15 @@ class SEEDAppImgManager
 
         $this->rootdir = $raConfig['rootdir'];
         $this->currSubdir = $oApp->oC->oSVA->SmartGPC( 'imgman_currSubdir', array() );
-        $this->showDelLinks = intval(@$_REQUEST['showDelLinks']);
+
+        // how do you turn off a checkbox with SmartGPC (unchecked comes back as unset which means use the previous value)
+        //$this->bShowDelLinks = $oApp->oC->oSVA->SmartGPC( 'imgman_bShowDelLinks', array(0,1) );
+        if( isset($_REQUEST['bControlsSubmitted']) ) {  // this just says that the control form was submitted
+            $oApp->oC->oSVA->VarSet( 'imgman_bShowDelLinks', intval(@$_REQUEST['imgman_bShowDelLinks']) );
+            $oApp->oC->oSVA->VarSet( 'imgman_bShowOnlyOverlap', intval(@$_REQUEST['imgman_bShowOnlyOverlap']) );
+        }
+        $this->bShowDelLinks = $oApp->oC->oSVA->VarGet( 'imgman_bShowDelLinks' );
+        $this->bShowOnlyOverlap = $oApp->oC->oSVA->VarGet( 'imgman_bShowOnlyOverlap' );
     }
 
     function Main()
@@ -53,9 +66,11 @@ class SEEDAppImgManager
         if( SEEDInput_Str('cmd') == 'convert' ) {
             $nConverted = 0;
             $raFiles = $this->oIML->GetAllImgInDir( $currDir );
+            /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
+             */
             foreach( $raFiles as $dir => $raF ) {
                 foreach( $raF as $file => $raExt ) {
-                    if( (in_array('jpg', $raExt) || in_array('JPG', $raExt)) && !in_array('jpeg', $raExt) ) {
+                    if( (isset($raExt['jpg']) || isset($raExt['JPG'])) && !isset($raExt['jpeg']) ) {
                         $nConverted++;
                         $exec = "convert \"${dir}${file}.jpg\" -quality 85 -resize 1200x1200\> \"${dir}${file}.jpeg\"";
                         if( $this->bDebug ) echo $exec."<br/>";
@@ -79,16 +94,22 @@ class SEEDAppImgManager
 
 
         $nJPG = 0;
+        /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
+         */
         foreach( $raFiles as $dir => $raF ) {
             foreach( $raF as $file => $raExt ) {
-                if( (in_array('jpg', $raExt) || in_array('JPG', $raExt)) && !in_array('jpeg', $raExt) ) {
+                if( (isset($raExt['jpg']) || isset($raExt['JPG'])) && !isset($raExt['jpeg']) ) {
                     $nJPG++;
                 }
             }
         }
 
-        $s .= "<div style='float:right'><form method='post'><input type='hidden' name='showDelLinks' value='1'/><input type='submit' value='Show Delete Links'/></form></div>";
-        $s .= "<div style='float:right'><form method='post'><input type='text' name='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."'/><input type='submit' value='Set Current Subdir'/></form></div>";
+        $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
+                 ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
+                 ."<div><input type='checkbox' name='imgman_bShowOnlyOverlap' value='1' ".($this->bShowOnlyOverlap ? 'checked' : "")."/> Show Only Incomplete Files</div>"
+                 ."<div><input type='text' name='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/> Current Subdirectory</div>"
+                 ."<div><input type='submit' value='Set Controls'/></div>"
+             ."</form></div>";
 
         if( $nJPG ) {
             $s .= "<h3>You have unconverted JPG images</h3>"
@@ -109,11 +130,18 @@ class SEEDAppImgManager
         $s = "<style>#drawfilestable td { padding-right:20px }</style>"
             ."<table id='drawfilestable' style='border:none'>";
 
+        /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
+         */
         foreach( $raFiles as $dir => $raF ) {
             $reldir = substr($dir,strlen($this->rootdir));
 
             $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=$reldir'>$dir</a></td></tr>";
             foreach( $raF as $filename => $raExts ) {
+                if( $this->bShowOnlyOverlap && count($raExts)==1 && isset($raExts['jpeg']) ) {
+                    // don't show files that have been completed
+                    continue;
+                }
+
                 $relfile = $reldir.$filename;
                 $s .= "<tr><td width='30px'>&nbsp;</td>"
                      ."<td style='max-width:150px'>$filename</td>";
@@ -121,22 +149,20 @@ class SEEDAppImgManager
                 $sizeJpeg = $sizeOther = $scaleJpeg = $scaleOther = $sizePercent = $scalePercent = 0;
                 $sMsg = "";
                 $colour = "";
-                foreach( $raExts as $ext ) {
-                    $fullname = $dir.$filename.".".$ext;
+                foreach( $raExts as $ext => $raFileinfo ) {
                     $relfname = $relfile.".".$ext;
-                    $info = $this->oIML->ImgInfo($fullname);
                     if( $ext == "jpeg" ) {
-                        $infoJpeg = $info;
-                        $sizeJpeg = $info['filesize'];
-                        $scaleJpeg = $info['w'];
+                        $infoJpeg = $raFileinfo;
+                        $sizeJpeg = $raFileinfo['filesize'];
+                        $scaleJpeg = $raFileinfo['w'];
                     } else {
-                        $infoOther = $info;
-                        $sizeOther = $info['filesize'];
-                        $scaleOther = $info['w'];
+                        $infoOther = $raFileinfo;
+                        $sizeOther = $raFileinfo['filesize'];
+                        $scaleOther = $raFileinfo['w'];
                     }
                     $s .= "<td>"
                              ."<a href='?n=$relfname' target='_blank'>$ext</a>&nbsp;&nbsp;"
-                             .($this->showDelLinks ? "<a href='?del=$relfname' style='color:red'>Del</a>" : "")
+                             .($this->bShowDelLinks ? "<a href='?del=$relfname' style='color:red'>Del</a>" : "")
                          ."</td>";
                 }
                 if( count($raExts) == 1 ) {
@@ -230,84 +256,6 @@ $nSizePercentThreshold = 90;
 
         $s .= "</table>";
 
-        return( $s );
-    }
-
-    function DrawOverlaps( $raOverlap )
-    {
-        $s = "";
-
-        foreach( $raOverlap as $dir => $raFiles ) {
-            $s .= "<div>$dir</div>";
-            foreach( $raFiles as $filename => $raExts ) {
-                $reldir = substr($dir,strlen($this->rootdir));
-                $relfile = $reldir.$filename;
-                $s .= "<div style='margin-left:30px' class='row'>";
-                $infoJpeg = array(); $infoOther = array();
-                $sizeJpeg = $sizeOther = $scaleJpeg = $scaleOther = 0;
-                foreach( $raExts as $ext ) {
-                    $fullname = $dir.$filename.".".$ext;
-                    $relfname = $relfile.".".$ext;
-                    $info = $this->oIML->ImgInfo($fullname);
-                    if( $ext == "jpeg" ) {
-                        $infoJpeg = $info;
-                        $sizeJpeg = $info['filesize'];
-                        $scaleJpeg = max($info['w'], $info['h']);
-                    } else {
-                        $infoOther = $info;
-                        $sizeOther = $info['filesize'];
-                        $scaleOther = max($info['w'], $info['h']);
-                    }
-                    $s .= "<div class='col-md-3'>"
-                             ."<a href='?n=$relfname' target='_blank'>$filename.$ext</a>&nbsp;&nbsp;"
-                             ."<a href='?del=$relfname' style='color:red'>Del</a>"
-                         ."</div>";
-                }
-                $bSized = (floatval($infoJpeg['filesize'])/floatval($infoOther['filesize']) < 0.8);
-                $bScaled = ($infoJpeg['w'] < $infoOther['w']);
-                $linkDelJpg = "<a href='?del=$relfile.jpg' style='color:red'>Del</a>";
-                if( $bSized && $bScaled ) {
-                    $sMsg = "Jpeg is scaled and smaller file - delete JPG $linkDelJpg";
-                    $colour = "#e66";
-                } else if( $bSized ) {
-                    $sMsg = "Jpeg is smaller file - delete JPG $linkDelJpg";
-                    $colour = "#ea6";
-                } else if( $bScaled ) {
-                    $sMsg = "Jpeg is scaled - delete JPG $linkDelJpg";
-                    $colour = "#ee6";
-                } else {
-                    $sMsg = "JPG is good - rename to overwrite Jpeg";
-                    $colour = "green";
-                }
-
-                // Third column shows scale
-                if( $bScaled ) {
-                    $sScale = "<span style='color:green'>${infoJpeg['w']} x ${infoJpeg['h']}</span> < "
-                             ." <span>${infoOther['w']} x ${infoOther['h']}</span>";
-                } else if( $infoJpeg['w'] == $infoOther['w'] ) {
-                    $sScale = "${infoJpeg['w']} x ${infoJpeg['h']} both";
-                } else {
-                    $sScale = "${infoJpeg['w']} x ${infoJpeg['h']} > "
-                             ."${infoOther['w']} x ${infoOther['h']}";
-                }
-                $s .= "<div class='col-md-2' style='font-size:8pt'>$sScale</div>";
-
-                // Fourth column shows filesize
-                if( $bSized) {
-                    $sSize = "<span style='color:green'>${infoJpeg['filesize_human']}</span> < "
-                             ." <span>${infoOther['filesize_human']}</span>";
-                } else if( $infoJpeg['filesize'] == $infoOther['filesize'] ) {
-                    $sSize = "${infoJpeg['filesize_human']} both";
-                } else {
-                    $sSize = "${infoJpeg['filesize_human']} > ${infoOther['filesize_human']}";
-                }
-                $s .= "<div class='col-md-1' style='font-size:8pt'>$sSize</div>";
-
-                // Fifth column shows action
-                $s .= "<div class='col-md-3' style='color:$colour'>$sMsg</div>";
-                $s .= "</div>";
-            }
-        }
         return( $s );
     }
 }
