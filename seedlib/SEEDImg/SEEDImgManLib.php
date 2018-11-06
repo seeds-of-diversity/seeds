@@ -52,6 +52,7 @@ class SEEDImgManLib
             }
             $raFiles[$dir][$filename][$ext] = $this->ImgInfo( $dir.$filename.'.'.$ext );
         }
+	ksort($raFiles);
 
         return( $raFiles );
     }
