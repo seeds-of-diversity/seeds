@@ -49,6 +49,7 @@ class SEEDImgMan
         $ra = array( 'w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0 );
 
         if( file_exists($filename) ) {
+            //var_dump($filename);
             $sz = getimagesize($filename);
             $ra['w'] = $sz[0];
             $ra['h'] = $sz[1];
