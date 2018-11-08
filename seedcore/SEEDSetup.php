@@ -9,6 +9,11 @@
 
 class SEEDSetup2
 {
+    const ACTION_TESTEXIST = 0;
+    const ACTION_CREATETABLES = 1;
+    const ACTION_INSERT = 2;
+    const ACTION_CREATETABLES_INSERT = 3;
+
     private $kfdb;  // the database where tables will be created
     private $sReport = "";
 
@@ -27,41 +32,59 @@ class SEEDSetup2
         Return bool success
      */
     {
-        if( !($bRet = $this->kfdb->TableExists( $table )) ) {
+        if( !($bOk = $this->kfdb->TableExists( $table )) ) {
             if( $bCreate ) {
-                $bRet = $this->kfdb->Execute( $sqlCreateTable );
-                $this->sReport .= ($bRet ? "Created table $table<br/>" : ("Failed to create $table. ".$this->kfdb->GetErrMsg()."<br/>"));
+                $bOk = $this->kfdb->Execute( $sqlCreateTable );
+                $this->sReport .= ($bOk ? "Created table $table<br/>" : ("Failed to create $table. ".$this->kfdb->GetErrMsg()."<br/>"));
             } else {
                 $this->sReport .= "Table $table does not exist<br/>";
             }
         }
-        return( $bRet );
+        return( $bOk );
     }
 
-    function SetupDBTables( $raDef, $bCreate )
+    function SetupDBTables( $raDef, $eAction )
     /*****************************************
-        $raDef['tables'] = array( tablename => sqlCreateTable, ... )
-        $raDef['inserts'] = array( tablename => array(sqlInsert, ...), ... )
+        $raDef['tables'] = array( tablename => array( 'create'=>sqlCreateTable, 'insert'=>array( insert statements ...
      */
     {
-        $bOk = true;
-        foreach( $raDef['tables'] as $tablename => $sqlCreateTable ) {
-            $bOk = $this->SetupTable( $tablename, $sqlCreateTable, $bCreate ) && $bOk;
-        }
-        if( !$bOk ) goto done;
+        $bRet = true;
+        foreach( $raDef['tables'] as $tablename => $raTable ) {
+            $bExists = $this->SetupTable( $tablename, "", self::ACTION_TESTEXIST );
 
-        foreach( $raDef['inserts'] as $tablename => $raInserts ) {
-            if( !$this->kfdb->Query1( "SELECT count(*) FROM $tablename" ) ) {
-                // table is empty so do the inserts
-                foreach( $raInserts as $sql ) {
-                    $this->sReport .= $this->kfdb->Execute( $sql )
-                                            ? "Inserted row to $tablename<br/>" : "Failed to insert row to $tablename<br/>";
+            if( $eAction == self::ACTION_TESTEXIST ) {
+                // Just test existence of all the tables in raDef
+                $bRet = $bRet && $bExists;
+            } else {
+                $ok = true;
+
+                if( in_array( $eAction, array(self::ACTION_CREATETABLES, self::ACTION_CREATETABLES_INSERT) ) ) {
+                    // Create table if not exist
+                    if( !$bExists ) {
+                        $ok = isset($raTable['create']) ? $this->SetupTable( $tablename, $raTable['create'], true )
+                                                        : true;
+                    }
                 }
+
+                // $bExists refers to existence before the create-table step
+                if( $ok && isset($raTable['insert']) &&
+                    (($eAction == self::ACTION_INSERT              && $bExists) ||   // insert only if the table exists
+                     ($eAction == self::ACTION_CREATETABLES_INSERT && !$bExists)) )  // insert only if the table didn't exist but was created
+                {
+                    foreach( $raTable['insert'] as $sql ) {
+                        if( ($ok = $this->kfdb->Execute( $sql )) ) {
+                            $this->sReport .= "Inserted row to $tablename<br/>";
+                        } else {
+                            $this->sReport .= "Failed to insert row to $tablename<br/>";
+                            break;
+                        }
+                    }
+                }
+                $bRet = $bRet && $ok;
             }
         }
 
-        done:
-        return( $bOk );
+        return( $bRet );
     }
 }
 

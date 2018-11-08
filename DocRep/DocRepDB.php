@@ -1137,10 +1137,9 @@ function DocRep_Setup( $oSetup, $bCreate = false )
          Instead, the code that calls this function knows about SEEDSetup.
  */
 {
-    $def = array( 'tables' => array( "docrep2_docs"     => DOCREP2_DB_TABLE_DOCREP_DOCS,
-                                     "docrep2_data"     => DOCREP2_DB_TABLE_DOCREP_DATA,
-                                     "docrep2_docxdata" => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA ),
-                  'inserts' => array( "docrep2_docs" => array(
+    $def = array( 'tables' => array(
+        "docrep2_docs"     => array( 'create' => DOCREP2_DB_TABLE_DOCREP_DOCS,
+                                     'insert' => array(
                                           "INSERT INTO docrep2_docs
                                                           (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
                                                    VALUES (1, NOW(), NOW(), 'folder1','FOLDER',1,1,0,1)",
@@ -1150,17 +1149,20 @@ function DocRep_Setup( $oSetup, $bCreate = false )
                                           "INSERT INTO docrep2_docs
                                                           (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
                                                    VALUES (3, NOW(), NOW(), 'page2','DOC',3,1,1,2)",
-                                          ),
-                                      "docrep2_data" => array(
+                                     ) ),
+        "docrep2_data"     => array( 'create' => DOCREP2_DB_TABLE_DOCREP_DATA,
+                                     'insert' => array(
                                           "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src)
                                                             VALUES (1, NOW(), NOW(), 1,1,'TEXT')",
                                           "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
                                                             VALUES (2, NOW(), NOW(), 2,1,'TEXT','This is the first page')",
                                           "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
                                                             VALUES (3, NOW(), NOW(), 3,1,'TEXT','This is the second page')"
-                                      )
-                   ) );
-    $ok = $oSetup->SetupDBTables( $def, $bCreate );
+                                     ) ),
+        "docrep2_docxdata" => array( 'create' => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA,
+                                     'inserts' => array() )
+        ) );
+    $ok = $oSetup->SetupDBTables( $def, $bCreate ? SEEDSetup2::ACTION_CREATETABLES_INSERT : SEEDSetup2::ACTION_TESTEXIST );
 
     return( $ok );
 }
