@@ -136,6 +136,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         know the fk_SEEDBasket_Products key until PostStore().
      */
     {
+//TODO: there should be a protected method that does this in a standard way. See Get/SetProductValues() too.
         if( $kfrP->Key() ) {
             // Write the prodExtra data from the ProductDefine0 form
             foreach( $this->raProdExtraKeys as $k ) {
@@ -158,6 +159,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
         $oDraw = new MSDCommonDraw( $this->oSB );
 
+//TODO: there should be a standard way to do this - this sets prodExtra into the kfrP owned by the caller, which could overwrite actual Product fields by accident
         $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
         foreach( $this->raProdExtraKeys as $k ) {
             $kfrP->SetValue( $k, @$raPE[$k] );
@@ -207,6 +209,27 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
         return( $s );
     }
+
+    function GetProductValues( KeyframeRecord $kfrP )
+    /************************************************
+        Return an array of normalized "seed" values for this product
+     */
+    {
+//TODO: there should be a protected method that does this in a standard way
+        $raOut = array(
+            '_key'       => $kfrP->Key(),
+            'uid_seller' => $kfrP->Value('uid_seller'),
+            'price'      => $kfrP->Value('item_price'),
+        );
+
+        $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
+        foreach( $this->raProdExtraKeys as $k ) {
+            $raOut[$k] = @$raPE[$k];
+        }
+
+        return( $raOut );
+    }
+
 }
 
 ?>
