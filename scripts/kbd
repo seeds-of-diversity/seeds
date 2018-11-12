@@ -1,0 +1,1 @@
+su -c "echo 9 > /sys/devices/platform/dell-laptop/leds/dell\:\:kbd_backlight/brightness"
