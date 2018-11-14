@@ -168,6 +168,7 @@ class SEEDQ
          */
 
         if( $cmd == 'test' ) {
+            $rQ['bHandled'] = true;
             $rQ['bOk'] = true;
             $rQ['sOut'] = "Test is successful";
             $rQ['raOut'] = array( array( 'first name' => "Fred", 'last name' => "Flintstone" ),
@@ -191,7 +192,7 @@ class SEEDQ
     /********************
      */
     {
-        return( array( 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>array(), 'raMeta'=>array() ) );
+        return( array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>array(), 'raMeta'=>array() ) );
     }
 }
 
