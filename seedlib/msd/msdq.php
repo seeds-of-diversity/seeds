@@ -31,6 +31,12 @@ class MSDQ extends SEEDQ
 
         $kSeed = intval(@$raParms['kS']);   // this is a product number
 
+        if( SEEDCore_StartsWith( $cmd, 'msdSeedList-' ) ) {
+            /* These don't necessarily have a kSeed
+             */
+            $rQ['bHandled'] = true;
+
+        } else
         if( SEEDCore_StartsWith( $cmd, 'msdSeed--' ) ) {
             /* Get kfrS and ensure write access (kSeed is allowed to be 0)
              */
@@ -55,6 +61,10 @@ class MSDQ extends SEEDQ
         }
 
         switch( $cmd ) {
+            case 'msdSeedList-GetData':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->seedListGetData( $raParms );
+                break;
+
             case 'msdSeed-Draw':
                 list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->seedDraw( $kfrS, @$raParms['eDrawMode'] );
                 break;
@@ -78,6 +88,40 @@ class MSDQ extends SEEDQ
 
         done:
         return( $rQ );
+    }
+
+
+    private function seedListGetData( $raParms )
+    /*******************************************
+        Return an array of standard msd seed records.
+     */
+    {
+        $bOk = false;
+        $raOut = array();
+        $sErr = "";
+
+        if( @$raParms['bAll'] ) {
+            $cond = "";
+        } else if( ($kS = intval(@$raParms['kS'])) ) {
+            $cond = "_key='$kS'";
+        } else if( ($uid = intval(@$raParms['uid_seller'])) ) {
+            $cond = "uid_seller='$uid' && product_type='seeds'";
+        } else {
+            $sErr = "seedListGetData: no input parameters";
+            goto done;
+        }
+
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( $cond )) ) {
+            while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
+                $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc );
+            }
+        }
+
+        $bOk = true;
+
+        done:
+        return( array($bOk,$raOut,$sErr) );
+
     }
 
     private function seedUpdate( KeyframeRecord &$kfrS, $raParms )
@@ -227,7 +271,7 @@ class MSDCore
 
     function GetSeedRAFromKfr( KeyframeRecord $kfrS )
     /************************************************
-        Return an array of msd seed values from the kfr+prodextra
+        Return an array of standard msd seed values. The kfr must have come from one of the methods above so it has prodextra information included in it.
      */
     {
         $raOut = array();
@@ -237,5 +281,21 @@ class MSDCore
         }
 
         return( $raOut );
+    }
+
+    function SeedCursorOpen( $cond )
+    {
+        return( $this->oSBDB->GetKFRC( 'P', $cond ) );
+    }
+
+    function SeedCursorFetch( KeyframeRecord &$kfrP )
+    {
+        if( ($ok = $kfrP->CursorFetch()) ) {
+            $raPE = $this->oSBDB->GetProdExtraList( $kfrP->Key() );
+            foreach( $this->GetSeedKeys('PRODEXTRA') as $k ) {
+                $kfrP->SetValue( $k, @$raPE[$k] );
+            }
+        }
+        return( $ok );
     }
 }
