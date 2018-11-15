@@ -13,16 +13,21 @@ class MSDQ extends SEEDQ
     const SEEDDRAW_TINY = 3;        // the most minimal
 
     private $oMSDCore;
-    private $bIsAdmin = false;
+    private $kUidSeller;
     private $currYear = 0;
 
-    function __construct( SEEDAppConsole $oApp, $raParms )
+    function __construct( SEEDAppConsole $oApp, $raConfig )
+    /******************************************************
+        raConfig: config_OverrideUidSeller = the uid_seller for multi-grower app, only allowed if sess->CanAdmin('MSDAdmin')
+                  config_year              = the MSD year for new listings
+     */
     {
-        parent::__construct( $oApp, $raParms );
+        parent::__construct( $oApp, $raConfig );
         $this->oMSDCore = new MSDCore( $oApp );
 
-        $this->bIsAdmin = $oApp->sess->CanAdmin( "MSDAdmin" );
-        $this->currYear = @$raParms['year'] ?: date("Y");
+        $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $oApp->sess->CanAdmin( "MSDAdmin" ))
+                            ? $k : $oApp->sess->GetUID();
+        $this->currYear = @$raConfig['config_year'] ?: date("Y");
     }
 
     function Cmd( $cmd, $raParms = array() )
@@ -79,7 +84,7 @@ class MSDQ extends SEEDQ
                 if( $rQ['bOk'] ) {
                     // extract seed data from the kfr in a standardized way
                     $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
-                    list($bDummy,$rQ['sOut'],$sDummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_SCREEN );
+                    list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_SCREEN );
                 }
                 break;
         }
@@ -134,9 +139,38 @@ class MSDQ extends SEEDQ
         $bOk = false;
         $sErr = "";
 
+        // overlay the raParms on the kfr
+        foreach( $this->oMSDCore->GetSeedKeys('PRODUCT PRODEXTRA') as $k ) {
+            if( isset($raParms[$k]) ) {
+                $kfrS->SetValue( $k, $raParms[$k] );
+            }
+        }
 
-        $bOk = true;
+        // force defaults
+        $kfrS->SetValue( 'uid_seller', $this->kUidSeller );     // especially this one because a) it's included in GetSetKeys so vulnerable to tampering, b) MSDCore assumes GetUID()
+        $kfrS->SetValue( 'product_type', "seeds" );
+        $kfrS->SetValue( 'quant_type', "ITEM-1" );
+        if( !$kfrS->Value('year_1st_listed') ) {
+            $kfrS->SetValue( 'year_1st_listed', $this->currYear );
+        }
+        // force price to float or set default price - use floatval because "0.00" is not false if it's a string
+        if( !($price = floatval($kfrS->Value('item_price'))) ) {
+            $price = in_array( $kfrS->Value('type'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "12.00" : "3.50";
+        }
+        $kfrS->SetValue( 'item_price', $price );
 
+        // validate the result
+        if( !isset( $this->oMSDCore->GetCategories()[$kfrS->Value('category')] ) ) {
+            $sErr = $kfrS->Value('category')." is not a seed directory category";
+            goto done;
+        }
+
+        // save the product and prodextra
+        if( !($bOk = $this->oMSDCore->PutSeedKfr( $kfrS )) ) {
+            $sErr = "Database error saving seed record";
+        }
+
+        done:
         return( array($bOk,$sErr) );
     }
 
@@ -242,6 +276,8 @@ class MSDCore
 
         // product defaults
         $kfr->SetValue( 'uid_seller', $this->oApp->sess->GetUID() );    // correct for single-user updater; multi-user editors will have to re-set this
+        $kfr->SetValue( 'product_type', "seeds" );
+        $kfr->SetValue( 'quant_type', "ITEM-1" );
         $kfr->SetValue( 'eStatus', 'ACTIVE' );
         $kfr->SetValue( 'item_price', '' );  // blank is the right default  '3.50' );
 
@@ -271,6 +307,7 @@ class MSDCore
 
     function GetSeedRAFromKfr( KeyframeRecord $kfrS )
     /************************************************
+        kfrS is a SEEDBasket_Product
         Return an array of standard msd seed values. The kfr must have come from one of the methods above so it has prodextra information included in it.
      */
     {
@@ -283,12 +320,30 @@ class MSDCore
         return( $raOut );
     }
 
+    function PutSeedKfr( KeyframeRecord $kfrS )
+    /******************************************
+        kfrS is a SEEDBasket_Product
+        Save a seed kfr to database. It must already be validated (or move validation code here?)
+     */
+    {
+        // Save/update the product and get a product key if it's a new row.  Then save/update all the prodextra items.
+        if( ($bOk = $kfrS->PutDBRow()) ) {
+            foreach( $this->GetSeedKeys('PRODEXTRA') as $k ) {
+                $this->oSBDB->SetProdExtra( $kfrS->Key(), $k, $kfrS->Value($k) );
+            }
+        }
+        return( $bOk );
+    }
+
     function SeedCursorOpen( $cond )
     {
         return( $this->oSBDB->GetKFRC( 'P', $cond ) );
     }
 
     function SeedCursorFetch( KeyframeRecord &$kfrP )
+    /************************************************
+        kfrS is a SEEDBasket_Product
+     */
     {
         if( ($ok = $kfrP->CursorFetch()) ) {
             $raPE = $this->oSBDB->GetProdExtraList( $kfrP->Key() );
@@ -298,4 +353,16 @@ class MSDCore
         }
         return( $ok );
     }
+
+    function GetCategories() { return( $this->raCategories ); }
+
+    private $raCategories = array(
+            'flowers'    => array( 'db' => "FLOWERS AND WILDFLOWERS", 'EN' => "Flowers and Wildflowers", 'FR' => "Fleurs et gramin&eacute;es sauvages et ornementales" ),
+            'vegetables' => array( 'db' => "VEGETABLES",              'EN' => "Vegetables",              'FR' => "L&eacute;gumes" ),
+            'fruit'      => array( 'db' => "FRUIT",                   'EN' => "Fruits",                  'FR' => "Fruits" ),
+            'herbs'      => array( 'db' => "HERBS AND MEDICINALS",    'EN' => "Herbs and Medicinals",    'FR' => "Fines herbes et plantes m&eacute;dicinales" ),
+            'grain'      => array( 'db' => "GRAIN",                   'EN' => "Grains",                  'FR' => "C&eacute;r&eacute;ales" ),
+            'trees'      => array( 'db' => "TREES AND SHRUBS",        'EN' => "Trees and Shrubs",        'FR' => "Arbres et arbustes" ),
+            'misc'       => array( 'db' => "MISC",                    'EN' => "Miscellaneous",           'FR' => "Divers" ),
+        );
 }
