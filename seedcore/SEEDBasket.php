@@ -39,6 +39,7 @@ class SEEDBasketCore
     SEEDBasketFulfillment uses this to fulfil orders
  */
 {
+    public $oApp;
     public $oDB;
     public $sess;   // N.B. user might not be logged in so use $this->GetUID() instead of $this->sess->GetUID()
                     // No, make sure this is always a SEEDSessionAccount (it's SEEDSession in the constructor!) and it will do the right thing
@@ -48,8 +49,9 @@ class SEEDBasketCore
     private $raParms = array();
     private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
 
-    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
+    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, SEEDAppConsole $oApp, $raHandlerDefs, $raParms = array() )
     {
+        $this->oApp = $oApp;
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), @$raParms['logdir'] );
         $this->raHandlerDefs = $raHandlerDefs;

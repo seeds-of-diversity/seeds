@@ -224,13 +224,13 @@ class MSDCore
 
         switch( $set ) {
             default:
-                return( $kfrKeys + $prodKeys + $prodExtraKeys );
+                return( array_merge($kfrKeys, $prodKeys, $prodExtraKeys ) );
             case 'PRODUCT':
                 return( $prodKeys );
             case 'PRODEXTRA':
                 return( $prodExtraKeys );
             case 'PRODUCT PRODEXTRA':
-                return( $prodKeys + $prodExtraKeys );
+                return( array_merge( $prodKeys, $prodExtraKeys ) );
         }
     }
 

@@ -6,6 +6,7 @@
  */
 
 include_once( SEEDAPP."seedexchange/msdCommon.php" );
+include_once( SEEDLIB."msd/msdq.php" );
 
 class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 {
@@ -22,6 +23,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         $s = "";
 
         if( ($kP = $oFormP->GetKey()) ) {
+//msdq->Cmd msdSeedList-GetData or $this->GetProductValues()
             // this is not a new product, so fetch any ProdExtra
             $raExtra = $this->oSB->oDB->GetProdExtraList( $kP );
             foreach( $this->raProdExtraKeys as $k ) {
@@ -160,6 +162,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         $oDraw = new MSDCommonDraw( $this->oSB );
 
 //TODO: there should be a standard way to do this - this sets prodExtra into the kfrP owned by the caller, which could overwrite actual Product fields by accident
+//msdq->Cmd msdSeedList-GetData or $this->GetProductValues() (or use MSDCore although it is only supposed to be used in seedlib)
         $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
         foreach( $this->raProdExtraKeys as $k ) {
             $kfrP->SetValue( $k, @$raPE[$k] );
@@ -215,21 +218,11 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         Return an array of normalized "seed" values for this product
      */
     {
-//TODO: there should be a protected method that does this in a standard way
-        $raOut = array(
-            '_key'       => $kfrP->Key(),
-            'uid_seller' => $kfrP->Value('uid_seller'),
-            'price'      => $kfrP->Value('item_price'),
-        );
+        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
+        $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', array('kS'=>$kfrP->Key()) );
 
-        $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
-        foreach( $this->raProdExtraKeys as $k ) {
-            $raOut[$k] = @$raPE[$k];
-        }
-
-        return( $raOut );
+        return( $rQ['raOut'] );
     }
-
 }
 
 ?>
