@@ -54,15 +54,15 @@ function SEEDJXSync( jxUrl, jxData )
         data: jxData,
         //dataType: "json",
         success: function(data) {
-            // To debug the server, put die("whatever") in the server code and uncomment below
-            if( SEEDJX_bDebug ) alert("data="+data);
+            // To debug the server, put die("whatever") in the server code and set SEEDJX_bDebug so "whatever" will appear in the console
+            if( SEEDJX_bDebug ) console.log("data="+data);
 
             bSuccess = true;
             oRet = SEEDJX_ParseJSON(data);
         },
         error: function(jqXHR, textStatus, errorThrown) {
             if( SEEDJX_bDebug ) {
-                alert(errorThrown);
+                console.log(errorThrown);
                 //alert(jqXHR);
                 //alert(textStatus);
             }
