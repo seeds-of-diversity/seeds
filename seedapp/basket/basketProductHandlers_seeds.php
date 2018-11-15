@@ -159,7 +159,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 //        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
 //                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
 
-        $oDraw = new MSDCommonDraw( $this->oSB );
+        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
 
 //TODO: there should be a standard way to do this - this sets prodExtra into the kfrP owned by the caller, which could overwrite actual Product fields by accident
 //msdq->Cmd msdSeedList-GetData or $this->GetProductValues() (or use MSDCore although it is only supposed to be used in seedlib)
@@ -180,9 +180,10 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                 $s = "";
                 if( $eDetail == SEEDBasketProductHandler::DETAIL_ALL ) {
 // msd uses class sed_seed for clicking, which is created in DrawSeedFromKFR. Therefore can't click on this heading
-                    $s .= "<strong style='font-size:14pt'>".$kfrP->Value('species')."</strong><br/>";
+//                    $s .= "<strong style='font-size:14pt'>".$kfrP->Value('species')."</strong><br/>";
                 }
-                $s .= $oDraw->DrawVarietyFromKFR( $kfrP, array( 'bNoSections'=>true ) );
+                $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kfrP->Key(), 'eDrawMode'=>0) );
+                $s .= $rQ['bOk'] ? $rQ['sOut'] : ("Missing text for seed #".$kfrP->Key().": {$rQ['sErr']}");
                 break;
         }
         return( $s );

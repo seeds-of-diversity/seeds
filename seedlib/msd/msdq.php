@@ -5,12 +5,16 @@
  * Copyright (c) 2018 Seeds of Diversity
  */
 
+include_once( SEEDLIB."msd/msdcore.php" );
+
+
 class MSDQ extends SEEDQ
 {
     const SEEDDRAW_SCREEN = 0;      // draw category and species
     const SEEDDRAW_SCREENLIST = 1;  // omit category and species because items are in a list
     const SEEDDRAW_PRINT = 2;       // printed directory layout
     const SEEDDRAW_TINY = 3;        // the most minimal
+    const SEEDDRAW_CLICKABLE = 8;   // bitwise-and this to make clickable
 
     private $oMSDCore;
     private $kUidSeller;
@@ -108,9 +112,9 @@ class MSDQ extends SEEDQ
         if( @$raParms['bAll'] ) {
             $cond = "";
         } else if( ($kS = intval(@$raParms['kS'])) ) {
-            $cond = "_key='$kS'";
+            $cond = "P._key='$kS'";
         } else if( ($uid = intval(@$raParms['uid_seller'])) ) {
-            $cond = "uid_seller='$uid' && product_type='seeds'";
+            $cond = "P.uid_seller='$uid'";
         } else {
             $sErr = "seedListGetData: no input parameters";
             goto done;
@@ -182,6 +186,11 @@ class MSDQ extends SEEDQ
         $bOk = false;
         $sOut = $sErr = "";
 
+        $bClickable = $eDrawMode & self::SEEDDRAW_CLICKABLE;
+        $eDrawMode = $eDrawMode % 8;
+
+        $mbrCode = "SODC";
+
         // Show the category and species
         if( $eDrawMode == self::SEEDDRAW_SCREEN ) {
             $sCat = $kfrS->value('category');
@@ -192,9 +201,73 @@ class MSDQ extends SEEDQ
             if( $this->oApp->lang == 'FR' ) {
 
             }
-            $sOut .= "<div class='sed_category'><h2>$sCat</h2></div>"
-                    ."<div class='sed_species'><h2>$sSpecies</h2></div>";
+            //$sOut .= "<div class='msdSeedText_category'><h3>$sCat</h3></div>"
+            $sOut .= "<div class='msdSeedText_species'>$sSpecies</div>";
         }
+
+        $sOut .= "<b>".$kfrS->value('variety')."</b>";
+        if( $eDrawMode == self::SEEDDRAW_PRINT ) {
+            $sOut .= " @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" );
+        } else {
+            $sOut .= $kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" );
+        }
+//        if( in_array( $eDrawMode, array(self::SEEDDRAW_SCREEN,self::SEEDDRAW_SCREENLIST) ) ) {
+//            // Make the variety and mbr_code blue and clickable
+//            $sOut .= "<span style='color:blue;cursor:pointer;' onclick='console01FormSubmit(\"ClickSeed\",".$kfrS->Key().");'>$s</span>";
+//        }
+
+//        $s .= $sButtons1;
+
+        $sOut .= "<br/>";
+
+        $sOut .= $kfrS->ExpandIfNotEmpty( 'days_maturity', "[[]] dtm. " )
+               // this doesn't have much value and it's readily mistaken for the year of harvest
+               //  .($this->bReport ? "@Y@: " : "Y: ").$kfrS->value('year_1st_listed').". "
+                .$kfrS->value('description')." "
+                .$kfrS->ExpandIfNotEmpty( 'origin', ($eDrawMode == self::SEEDDRAW_PRINT ? "@O@" : "Origin").": [[]]. " )
+                .$kfrS->ExpandIfNotEmpty( 'quantity', "<b><i>[[]]</i></b>" );
+
+        if( ($price = $kfrS->Value('item_price')) != 0.00 ) {
+             $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." $".$price;
+        }
+
+/*
+        if( in_array($this->eReportMode, array("EDIT","REVIEW")) ) {
+            // Show colour-coded backgrounds for Deletes, Skips, and Changes
+            if( $kfrS->value('bDelete') ) {
+                $s = "<div class='sed_seed_delete'><b><i>".($this->lang=='FR' ? "Supprim&eacute;" : "Deleted")."</i></b>"
+                    .SEEDCore_NBSP("   ")
+                    .$sButtons2
+                    ."<br/>$s</div>";
+            } else if( $kfrS->value('bSkip') ) {
+                $sStyle = ($this->eReportMode == 'REVIEW') ? "style='background-color:#aaa'" : "";    // because this is used without <style>
+                $s = "<div class='sed_seed_skip' $sStyle><b><i>".($this->lang=='FR' ? "Pass&eacute;" : "Skipped")."</i></b>"
+                    .SEEDCore_NBSP("   ")
+                    .$sButtons2
+                    ."<br/>$s</div>";
+            } else if( $kfrS->value('bChanged') ) {
+                $s = "<div class='sed_seed_change'>$s</div>";
+            }
+        }
+*/
+
+        /* FloatRight contains everything that goes in the top-right corner
+         */
+        $sFloatRight = "";
+        //if( $this->eReportMode == 'EDIT' && !$kfrS->value('bSkip') && !$kfrS->value('bDelete') ) {
+            switch( $kfrS->Value('eOffer') ) {
+                default:
+                case 'member':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
+                case 'grower-member': $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_growermember'>Offered to Members who offer seeds in the Directory</div>";  break;
+                case 'public':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_public'>Offered to the General Public</div>"; break;
+            }
+        //}
+        if( $eDrawMode != self::SEEDDRAW_PRINT )  $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
+
+
+        // Put the FloatRight at the very top of the output block
+        $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
+
 
         $bOk = true;
 
@@ -227,142 +300,3 @@ class MSDQ extends SEEDQ
     }
 }
 
-
-class MSDCore
-/************
-    Basic Member Seed Directory support built on top of SEEDBasket.
-    In general, this should only be used by seedlib-level code. App-level code should use MSDQ instead of this.
- */
-{
-    private $oApp;
-    private $raConfig;
-    private $oSBDB;
-
-    function __construct( SEEDAppConsole $oApp, $raConfig = array() )
-    {
-        $this->oApp = $oApp;
-        $this->raConfig = $raConfig;
-        $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
-    }
-
-    function GetSeedKeys( $set = "" )
-    /********************************
-        The official set of keys that make a seed product record that makes sense outside of SEEDBasket.
-        i.e. not including things like product_type and quant_type which *define* the product.
-     */
-    {
-        $kfrKeys = array( '_key', '_created', '_created_by', '_updated', '_updated_by' );   // not _status because we manage hidden/deleted using eStatus
-        $prodKeys = array( 'uid_seller', 'eStatus', 'img', 'item_price' );
-        $prodExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'days_maturity_seed',
-                                'quantity', 'origin', 'description', 'eOffer', 'year_1st_listed' );
-
-        switch( $set ) {
-            default:
-                return( array_merge($kfrKeys, $prodKeys, $prodExtraKeys ) );
-            case 'PRODUCT':
-                return( $prodKeys );
-            case 'PRODEXTRA':
-                return( $prodExtraKeys );
-            case 'PRODUCT PRODEXTRA':
-                return( array_merge( $prodKeys, $prodExtraKeys ) );
-        }
-    }
-
-    function CreateSeedKfr()
-    /***********************
-     */
-    {
-        $kfr = $this->oSBDB->KFRel('P')->CreateRecord();
-
-        // product defaults
-        $kfr->SetValue( 'uid_seller', $this->oApp->sess->GetUID() );    // correct for single-user updater; multi-user editors will have to re-set this
-        $kfr->SetValue( 'product_type', "seeds" );
-        $kfr->SetValue( 'quant_type', "ITEM-1" );
-        $kfr->SetValue( 'eStatus', 'ACTIVE' );
-        $kfr->SetValue( 'item_price', '' );  // blank is the right default  '3.50' );
-
-        // prodextra defaults
-        $kfr->SetValue( 'eOffer', "member" );
-        $kfr->SetValue( 'year_1st_listed', $this->currYear );
-
-        return( $kfr );
-    }
-
-    function GetSeedKfr( $kProduct )
-    /*******************************
-        Get the kfr for this product and store prodextra values in the kfr too.
-        Only store the standard msd prodextra keys so nobody can overwrite a crucial product field in the kfr by using a prodextra with that name
-     */
-    {
-        $kfrP = null;
-
-        if( $kProduct && ($kfrP = $this->oSBDB->GetKFR( 'P', $kProduct )) ) {
-            $raPE = $this->oSBDB->GetProdExtraList( $kProduct );
-            foreach( $this->GetSeedKeys('PRODEXTRA') as $k ) {
-                $kfrP->SetValue( $k, @$raPE[$k] );
-            }
-        }
-        return( $kfrP );
-    }
-
-    function GetSeedRAFromKfr( KeyframeRecord $kfrS )
-    /************************************************
-        kfrS is a SEEDBasket_Product
-        Return an array of standard msd seed values. The kfr must have come from one of the methods above so it has prodextra information included in it.
-     */
-    {
-        $raOut = array();
-
-        foreach( $this->GetSeedKeys('ALL') as $k ) {
-            $raOut[$k] = $kfrS->Value($k);
-        }
-
-        return( $raOut );
-    }
-
-    function PutSeedKfr( KeyframeRecord $kfrS )
-    /******************************************
-        kfrS is a SEEDBasket_Product
-        Save a seed kfr to database. It must already be validated (or move validation code here?)
-     */
-    {
-        // Save/update the product and get a product key if it's a new row.  Then save/update all the prodextra items.
-        if( ($bOk = $kfrS->PutDBRow()) ) {
-            foreach( $this->GetSeedKeys('PRODEXTRA') as $k ) {
-                $this->oSBDB->SetProdExtra( $kfrS->Key(), $k, $kfrS->Value($k) );
-            }
-        }
-        return( $bOk );
-    }
-
-    function SeedCursorOpen( $cond )
-    {
-        return( $this->oSBDB->GetKFRC( 'P', $cond ) );
-    }
-
-    function SeedCursorFetch( KeyframeRecord &$kfrP )
-    /************************************************
-        kfrS is a SEEDBasket_Product
-     */
-    {
-        if( ($ok = $kfrP->CursorFetch()) ) {
-            $raPE = $this->oSBDB->GetProdExtraList( $kfrP->Key() );
-            foreach( $this->GetSeedKeys('PRODEXTRA') as $k ) {
-                $kfrP->SetValue( $k, @$raPE[$k] );
-            }
-        }
-        return( $ok );
-    }
-
-    function GetCategories() { return( $this->raCategories ); }
-
-    private $raCategories = array(
-            'flowers'    => array( 'db' => "FLOWERS AND WILDFLOWERS", 'EN' => "Flowers and Wildflowers", 'FR' => "Fleurs et gramin&eacute;es sauvages et ornementales" ),
-            'vegetables' => array( 'db' => "VEGETABLES",              'EN' => "Vegetables",              'FR' => "L&eacute;gumes" ),
-            'fruit'      => array( 'db' => "FRUIT",                   'EN' => "Fruits",                  'FR' => "Fruits" ),
-            'herbs'      => array( 'db' => "HERBS AND MEDICINALS",    'EN' => "Herbs and Medicinals",    'FR' => "Fines herbes et plantes m&eacute;dicinales" ),
-            'grain'      => array( 'db' => "GRAIN",                   'EN' => "Grains",                  'FR' => "C&eacute;r&eacute;ales" ),
-            'trees'      => array( 'db' => "TREES AND SHRUBS",        'EN' => "Trees and Shrubs",        'FR' => "Arbres et arbustes" ),
-            'misc'       => array( 'db' => "MISC",                    'EN' => "Miscellaneous",           'FR' => "Divers" ),
-        );
-}
