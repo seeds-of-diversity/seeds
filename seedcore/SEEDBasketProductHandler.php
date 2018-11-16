@@ -31,6 +31,7 @@ class SEEDBasketProductHandler
     const DETAIL_TINY    = "Tiny";
     const DETAIL_SUMMARY = "Summary";
     const DETAIL_ALL     = "All";
+    // These can be extended: any derived product handler can accept any DETAIL_* string it wants to
 
     protected $oSB;
 

@@ -143,6 +143,17 @@ class MSDCore
 
     function GetCategories() { return( $this->raCategories ); }
 
+    function TranslateCategory( $sCat )
+    {
+        return( @$this->raCategories[$sCat][$this->oApp->lang] );
+    }
+
+    function TranslateSpecies( $sSpecies )
+    {
+        return( $sSpecies );
+    }
+
+
     private $raCategories = array(
             'flowers'    => array( 'db' => "FLOWERS AND WILDFLOWERS", 'EN' => "Flowers and Wildflowers", 'FR' => "Fleurs et gramin&eacute;es sauvages et ornementales" ),
             'vegetables' => array( 'db' => "VEGETABLES",              'EN' => "Vegetables",              'FR' => "L&eacute;gumes" ),

@@ -10,6 +10,11 @@ include_once( SEEDLIB."msd/msdq.php" );
 
 class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 {
+    // These are the strings you pass to MSDQ->msdSeed-Draw
+    const DETAIL_VIEW_WITH_SPECIES = 'VIEW_REQUESTABLE VIEW_SHOWSPECIES';
+    const DETAIL_VIEW_NO_SPECIES   = 'VIEW_REQUESTABLE';
+    const DETAIL_EDIT_WITH_SPECIES = 'EDIT VIEW_SHOWSPECIES';
+
     private $raProdExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'quantity', 'origin', 'description' );
 
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
@@ -173,17 +178,13 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                 $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
                 break;
             default:
-
-                $kfrP->SetValue( 'type',   $kfrP->Value('species') );
-                $kfrP->SetValue( 'mbr_id', $kfrP->Value('uid_seller') );
-
-                $s = "";
-                if( $eDetail == SEEDBasketProductHandler::DETAIL_ALL ) {
-// msd uses class sed_seed for clicking, which is created in DrawSeedFromKFR. Therefore can't click on this heading
-//                    $s .= "<strong style='font-size:14pt'>".$kfrP->Value('species')."</strong><br/>";
+                switch( $eDetail ) {
+                    case self::DETAIL_SUMMARY:   $eDrawMode = "VIEW";   break;
+                    case self::DETAIL_ALL:       $eDrawMode = "VIEW VIEW_SHOWCATEGORY VIEW_SHOWSPECIES";  break;
+                    default:                     $eDrawMode = $eDetail; break;  // assume eDetail already has an MSDQ code
                 }
-                $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kfrP->Key(), 'eDrawMode'=>0) );
-                $s .= $rQ['bOk'] ? $rQ['sOut'] : ("Missing text for seed #".$kfrP->Key().": {$rQ['sErr']}");
+                $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kfrP->Key(), 'eDrawMode'=>$eDrawMode) );
+                $s = $rQ['bOk'] ? $rQ['sOut'] : ("Missing text for seed #".$kfrP->Key().": {$rQ['sErr']}");
                 break;
         }
         return( $s );

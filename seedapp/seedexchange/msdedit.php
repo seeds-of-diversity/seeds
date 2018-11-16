@@ -50,7 +50,7 @@ class MSDAppSeedEdit
                 $sList .= "<div id='msdSeed$kP' class='well msdSeedContainer' style='margin:5px'>"
                              ."<div class='msdSeedMsg'></div>"
                              ."<div class='msdSeedText' style='padding:0px;$sStyleCurr'>"
-                                 .$this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler::DETAIL_ALL )
+                                 .$this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES )
                              ."</div>"
                          ."</div>";
                 $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP );

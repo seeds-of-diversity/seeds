@@ -10,12 +10,6 @@ include_once( SEEDLIB."msd/msdcore.php" );
 
 class MSDQ extends SEEDQ
 {
-    const SEEDDRAW_SCREEN = 0;      // draw category and species
-    const SEEDDRAW_SCREENLIST = 1;  // omit category and species because items are in a list
-    const SEEDDRAW_PRINT = 2;       // printed directory layout
-    const SEEDDRAW_TINY = 3;        // the most minimal
-    const SEEDDRAW_CLICKABLE = 8;   // bitwise-and this to make clickable
-
     private $oMSDCore;
     private $kUidSeller;
     private $currYear = 0;
@@ -88,7 +82,7 @@ class MSDQ extends SEEDQ
                 if( $rQ['bOk'] ) {
                     // extract seed data from the kfr in a standardized way
                     $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
-                    list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_SCREEN );
+                    list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
                 }
                 break;
         }
@@ -178,6 +172,13 @@ class MSDQ extends SEEDQ
         return( array($bOk,$sErr) );
     }
 
+    const SEEDDRAW_VIEW              = 'VIEW';              // plain screen view
+    const SEEDDRAW_VIEW_REQUESTABLE  = 'VIEW_REQUESTABLE';  // screen view showing indicator that you can click on it
+    const SEEDDRAW_VIEW_SHOWCATEGORY = 'VIEW_SHOWCATEGORY'; // add this to the above to include the category in the output block
+    const SEEDDRAW_VIEW_SHOWSPECIES  = 'VIEW_SHOWSPECIES';  // add this to the above to include the species in the output block
+    const SEEDDRAW_EDIT              = 'EDIT';              // editor view
+    const SEEDDRAW_PRINT             = 'PRINT';             // output for printing
+
     private function seedDraw( $kfrS, $eDrawMode )
     /*********************************************
         Draw the given seed record. It has already validated with canRead().
@@ -186,87 +187,76 @@ class MSDQ extends SEEDQ
         $bOk = false;
         $sOut = $sErr = "";
 
-        $bClickable = $eDrawMode & self::SEEDDRAW_CLICKABLE;
-        $eDrawMode = $eDrawMode % 8;
+        $bModeEdit = strpos( $eDrawMode, 'EDIT' ) !== false;
+        $bModePrint = strpos( $eDrawMode, 'PRINT' ) !== false;
+
 
         $mbrCode = "SODC";
 
         // Show the category and species
-        if( $eDrawMode == self::SEEDDRAW_SCREEN ) {
-            $sCat = $kfrS->value('category');
-            if( $this->oApp->lang == 'FR' ) {
-
-            }
-            $sSpecies = $kfrS->value('species');
-            if( $this->oApp->lang == 'FR' ) {
-
-            }
-            //$sOut .= "<div class='msdSeedText_category'><h3>$sCat</h3></div>"
-            $sOut .= "<div class='msdSeedText_species'>$sSpecies</div>";
+        if( strpos( $eDrawMode, 'VIEW_SHOWCATEGORY' ) !== false ) {
+            $sOut .= "<div class='msdSeedText_category'>".$this->oMSDCore->TranslateCategory( $kfrS->value('category') )."</div>";
+        }
+        if( strpos( $eDrawMode, 'VIEW_SHOWSPECIES' ) !== false ) {
+            $sOut .= "<div class='msdSeedText_species'>".$this->oMSDCore->TranslateSpecies( $kfrS->value('species') )."</div>";
         }
 
-        $sOut .= "<b>".$kfrS->value('variety')."</b>";
-        if( $eDrawMode == self::SEEDDRAW_PRINT ) {
-            $sOut .= " @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" );
-        } else {
-            $sOut .= $kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" );
-        }
-//        if( in_array( $eDrawMode, array(self::SEEDDRAW_SCREEN,self::SEEDDRAW_SCREENLIST) ) ) {
-//            // Make the variety and mbr_code blue and clickable
-//            $sOut .= "<span style='color:blue;cursor:pointer;' onclick='console01FormSubmit(\"ClickSeed\",".$kfrS->Key().");'>$s</span>";
-//        }
+        // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
+        $sV = "<b>".$kfrS->value('variety')."</b>"
+             .( $bModePrint ? (" @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" ))
+                            : ($kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" )) );
+        $sOut .= strpos($eDrawMode, 'VIEW_REQUESTABLE') !== false
+                    ? "<span style='color:#428bca;cursor:pointer;'>$sV</span>"  // color is bootstrap's link color
+                    : $sV;
 
-//        $s .= $sButtons1;
 
-        $sOut .= "<br/>";
-
-        $sOut .= $kfrS->ExpandIfNotEmpty( 'days_maturity', "[[]] dtm. " )
+        $sOut .= "<br/>"
+                .$kfrS->ExpandIfNotEmpty( 'days_maturity', "[[]] dtm. " )
                // this doesn't have much value and it's readily mistaken for the year of harvest
                //  .($this->bReport ? "@Y@: " : "Y: ").$kfrS->value('year_1st_listed').". "
                 .$kfrS->value('description')." "
-                .$kfrS->ExpandIfNotEmpty( 'origin', ($eDrawMode == self::SEEDDRAW_PRINT ? "@O@" : "Origin").": [[]]. " )
+                .$kfrS->ExpandIfNotEmpty( 'origin', ($bModePrint ? "@O@" : "Origin").": [[]]. " )
                 .$kfrS->ExpandIfNotEmpty( 'quantity', "<b><i>[[]]</i></b>" );
 
         if( ($price = $kfrS->Value('item_price')) != 0.00 ) {
              $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." $".$price;
         }
 
-/*
-        if( in_array($this->eReportMode, array("EDIT","REVIEW")) ) {
-            // Show colour-coded backgrounds for Deletes, Skips, and Changes
-            if( $kfrS->value('bDelete') ) {
-                $s = "<div class='sed_seed_delete'><b><i>".($this->lang=='FR' ? "Supprim&eacute;" : "Deleted")."</i></b>"
-                    .SEEDCore_NBSP("   ")
-                    .$sButtons2
-                    ."<br/>$s</div>";
-            } else if( $kfrS->value('bSkip') ) {
-                $sStyle = ($this->eReportMode == 'REVIEW') ? "style='background-color:#aaa'" : "";    // because this is used without <style>
-                $s = "<div class='sed_seed_skip' $sStyle><b><i>".($this->lang=='FR' ? "Pass&eacute;" : "Skipped")."</i></b>"
-                    .SEEDCore_NBSP("   ")
-                    .$sButtons2
-                    ."<br/>$s</div>";
-            } else if( $kfrS->value('bChanged') ) {
-                $s = "<div class='sed_seed_change'>$s</div>";
-            }
-        }
-*/
 
-        /* FloatRight contains everything that goes in the top-right corner
-         */
-        $sFloatRight = "";
-        //if( $this->eReportMode == 'EDIT' && !$kfrS->value('bSkip') && !$kfrS->value('bDelete') ) {
+        // Edit mode shows some contextual facts floated right that are not shown or shown in other places in other views
+        if( $bModeEdit && $kfrS->value('eStatus')=='ACTIVE' ) {
+            $sFloatRight = "";
             switch( $kfrS->Value('eOffer') ) {
                 default:
                 case 'member':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
                 case 'grower-member': $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_growermember'>Offered to Members who offer seeds in the Directory</div>";  break;
                 case 'public':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_public'>Offered to the General Public</div>"; break;
             }
-        //}
-        if( $eDrawMode != self::SEEDDRAW_PRINT )  $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
+            $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
+            $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
+        }
+
+        // Show colour-coded backgrounds for Deletes, Skips, and Changes
+        if( $bModeEdit ) {
+            if( $kfrS->value('eStatus') == 'DELETED' ) {
+                $sOut = "<div class='sed_seed_delete'><b><i>".($this->oApp->lang=='FR' ? "Supprim&eacute;" : "Deleted")."</i></b>"
+                    .SEEDCore_NBSP("   ")
+                    //.$sButtons2
+                    ."<br/>$sOut</div>";
+            } else if( $kfrS->value('eStatus') == 'INACTIVE' ) {
+                $sOut = "<div class='sed_seed_skip'><b><i>".($this->oApp->lang=='FR' ? "Pass&eacute;" : "Skipped")."</i></b>"
+                    .SEEDCore_NBSP("   ")
+                    //.$sButtons2
+                    ."<br/>$sOut</div>";
+            } else if( $kfrS->value('bChanged') ) {
+                $sOut = "<div class='sed_seed_change'>$sOut</div>";
+            }
+        }
 
 
-        // Put the FloatRight at the very top of the output block
-        $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
+        // close the text in an outer div
+// if( !$bModePrint ) -- not sure whether this div is good with print
+        $sOut = "<div class='sed_seed' id='Seed".$kfrS->Key()."'>$sOut</div>";
 
 
         $bOk = true;
