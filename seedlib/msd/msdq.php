@@ -232,7 +232,8 @@ class MSDQ extends SEEDQ
                 case 'grower-member': $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_growermember'>Offered to Members who offer seeds in the Directory</div>";  break;
                 case 'public':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_public'>Offered to the General Public</div>"; break;
             }
-            $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
+            $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>"
+                           ."<div style='text-align:right'>First listed: ".$kfrS->Value('year_1st_listed')."</div>";
             $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
         }
 
