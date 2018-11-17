@@ -49,7 +49,7 @@ class MSDAppSeedEdit
                 }
                 $sButtonSkip   = $kfrcP->Value('eStatus') == 'INACTIVE' ? "Un-Skip" : "Skip";
                 $sButtonDelete = $kfrcP->Value('eStatus') == 'DELETED' ? "Un-Delete" : "Delete";
-                $sList .= "<div id='msdSeed$kP' class='well msdSeedContainer' style='margin:5px'>"
+                $sList .= "<div id='msdSeed$kP' class='well msdSeedContainer' data-kProduct='$kP' style='margin:5px'>"
                              ."<div class='msdSeedEditButtonContainer' style='float:right'>"
                                  ."<button class='msdSeedEditButton_edit' id='msdSeedEditButton_edit$kP'>Edit</button><br/>"
                                  ."<button class='msdSeedEditButton_skip' id='msdSeedEditButton_skip$kP'>$sButtonSkip</button><br/>"
@@ -133,30 +133,28 @@ var msdSeedContainerCurr = null;  // the current msdSeedContainer
 
 $(document).ready( function() {
     // on click of an msdSeedText or an Edit button, open the edit form
-    $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) {
-        SeedEditForm( $(this).closest(".msdSeedContainer").attr("id") );
-    });
+    $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditForm( $(this).closest(".msdSeedContainer") ); });
+
+    // skip and delete buttons
+    $(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   $(this).closest(".msdSeedContainer") ); });
+    $(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( $(this).closest(".msdSeedContainer") ); });
 });
 
-function SeedEditForm( id )
-/**************************
+function SeedEditForm( container )
+/*********************************
     Open the edit form for a clicked seed listing.
     Input is the verbatim id of the msdSeedContainer
  */
 {
-    // only one msdSeedContainer can be selected at a time
-    if( msdSeedContainerCurr != null ) { console.log("Cannot open multiple forms"); return; }
+    let kSeed = SeedEditValidateContainer( container );
+    if( kSeed == null ) return;
 
-    // validate that this is an msdSeedContainer and get the kProduct
-    let k = 0;
-    if( id.substring(0,7) != 'msdSeed' || !(k=parseInt(id.substring(7))) ) { console.log("Invalid id "+id); return; }
+    msdSeedContainerCurr = container;
 
     // clear previous edit indicators
     $(".msdSeedContainer").css({border:"1px solid #e3e3e3"});
     $(".msdSeedMsg").html("");
 
-
-    msdSeedContainerCurr = $("#"+id);
     msdSeedContainerCurr.css({border:"1px solid blue"});
 
     // Create a form and it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
@@ -166,17 +164,68 @@ function SeedEditForm( id )
     SeedEditSelectEOffer( msdSeedEdit );
     msdSeedEdit.find('#msdSeedEdit_eOffer').change( function() { SeedEditSelectEOffer( msdSeedEdit ); } );
 
-    for( var i in msdSeedEditVars.raSeeds[k] ) {
-        msdSeedEdit.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[k][i]);
+    for( let i in msdSeedEditVars.raSeeds[kSeed] ) {
+        msdSeedEdit.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kSeed][i]);
     }
     msdSeedEdit.fadeIn(500);
 
-    msdSeedEdit.find("form").submit( function(e) { e.preventDefault(); SeedEditSubmit(k); } );
+    msdSeedEdit.find("form").submit( function(e) { e.preventDefault(); SeedEditSubmit(kSeed); } );
     msdSeedEdit.find(".msdSeedEditCancel").click( function(e) { e.preventDefault(); SeedEditCancel(); } );
 
     // disable all control buttons while the form is open
     $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
 }
+
+
+function SeedEditSkip( container )
+{
+    let kSeed = SeedEditValidateContainer( container );
+    if( kSeed == null ) return;
+
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--SkipToggle&kS="+kSeed );
+    if( oRet['bOk'] ) {
+
+
+    }
+}
+
+function SeedEditDelete( container )
+{
+    let kSeed = SeedEditValidateContainer( container );
+    if( kSeed == null ) return;
+
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--DeleteToggle&kS="+kSeed );
+    if( oRet['bOk'] ) {
+
+
+    }
+}
+
+function SeedEditValidateContainer( container )
+{
+    // generally don't allow an msdSeedContainer to be be selected when a form is open
+    if( msdSeedContainerCurr != null ) { console.log("Cannot open multiple forms"); return( null ); }
+
+    let k = parseInt(container.attr("data-kProduct"));
+    if( !k ) { console.log("Invalid data-kProduct"); return( null ); }
+
+    return( k );
+}
+
+
+function SeedEditGetContainerFromId( id )
+{
+    // generally don't allow an msdSeedContainer to be be selected when a form is open
+    if( msdSeedContainerCurr != null ) { console.log("Cannot open multiple forms"); return( null ); }
+
+    // validate that this is an msdSeedContainer and get the kProduct
+//TODO: it would be more sensible just to verify the class (if you want) and store the kProduct in data-kProduct="k"
+    let k = 0;
+    if( id.substring(0,7) != 'msdSeed' || !(k=parseInt(id.substring(7))) ) { console.log("Invalid id "+id); return( null ); }
+
+    return( $("#"+id) );
+}
+
 
 function SeedEditSelectEOffer( msdSeedEdit )
 {
@@ -194,20 +243,20 @@ function SeedEditSelectEOffer( msdSeedEdit )
      }
 }
 
-function SeedEditSubmit(k)
+function SeedEditSubmit(kSeed)
 {
     if( msdSeedContainerCurr == null ) return;
 
-    let p = "cmd=msdSeed--Update&kS="+k+"&"+msdSeedContainerCurr.find('select, textarea, input').serialize();
+    let p = "cmd=msdSeed--Update&kS="+kSeed+"&"+msdSeedContainerCurr.find('select, textarea, input').serialize();
     //alert(p);
 
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", p );
-    console.log(oRet);
+    //console.log(oRet);
     let ok = oRet['bOk'];
 
     if( ok ) {
         // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
-        msdSeedEditVars.raSeeds[k]=oRet['raOut'];
+        msdSeedEditVars.raSeeds[kSeed]=oRet['raOut'];
 
         // sOut contains the revised msdSeedText
         msdSeedContainerCurr.find(".msdSeedText").html( oRet['sOut'] );
