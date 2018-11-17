@@ -10,15 +10,18 @@
 include_once( SEEDCORE."SEEDBasket.php" );
 include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
 include_once( SEEDAPP."basket/basketProductHandlers.php" );     // SEEDBasketProducts_SoD
+include_once( SEEDLIB."msd/msdcore.php" );
 
 
 class MSDCommonDraw
 {
     public $oSB;
+    private $oMSDCore;
 
     function __construct( SEEDBasketCore $oSB )     // actually this is MSDBasketCore
     {
         $this->oSB = $oSB;
+        $this->oMSDCore = new MSDCore( $oSB->oApp );
     }
 
     function DrawMSDList()
@@ -31,12 +34,17 @@ class MSDCommonDraw
         $raCat = $this->oSB->oDB->GetList( "PxPE", "product_type='seeds' AND PE.k='category'",
                                            array('sGroupCol'=>'PE_v', 'sSortCol'=>'PE_v', 'raFieldsOverride'=>array('PE_v'=>'PE.v')) );
         foreach( $raCat as $ra ) {
-            $raSp = $this->oSB->oDB->GetList( "PxPE2", "product_type='seeds' AND PE1.k='category' "
-                                             ."AND PE1.v='".addslashes($ra['PE_v'])."' AND PE2.k='species'",
-                                              array('sGroupCol'=>'PE2_v', 'sSortCol'=>'PE2_v', 'raFieldsOverride'=>array('PE2_v'=>'PE2.v')) );
+            $raSpList = $this->oSB->oDB->GetList( "PxPE2", "product_type='seeds' AND PE1.k='category' "
+                                                 ."AND PE1.v='".addslashes($ra['PE_v'])."' AND PE2.k='species'",
+                                                  array('sGroupCol'=>'PE2_v', 'sSortCol'=>'PE2_v', 'raFieldsOverride'=>array('PE2_v'=>'PE2.v')) );
 
-            $sCat = $this->translateCategory( $ra['PE_v'] );
-            $raSp = $this->translateTypes( $raSp );
+            $sCat = $this->oMSDCore->TranslateCategory( $ra['PE_v'] );
+            // get all the species names and translate them
+            $raSp = array();
+            foreach( $raSpList as $ra2 ) {
+                $raSp[] = $ra2['PE2_v'];
+            }
+            $raSp = $this->oMSDCore->TranslateSpeciesList( $raSp );
 
             $sMSDList .= "<div class='msd-list-category'>"
                             ."<div class='msd-list-category-title'>$sCat</div>"
@@ -50,47 +58,6 @@ class MSDCommonDraw
         $sMSDList = "<div class='msd-list'>$sMSDList</div>";
 
         return( $sMSDList );
-    }
-
-    function translateCategory( $sCatEN )
-    {
-        if( $this->oSB->oW->lang == 'EN' )  return( $sCatEN );
-
-        foreach( $this->raCategories as $k => $ra ) {
-            if( $ra['db'] == $sCatEN )  return( $ra['FR'] );
-        }
-        return( $sCatEN );
-    }
-
-    function translateTypes( $raTypes )
-    {
-        $raOut = array();
-
-        foreach( $raTypes as $ra ) {
-            $k = $ra['PE2_v'];
-
-            $kKlugeTypeKey = $this->oSB->GetKlugeTypeKeyFromName( $k );
-
-            if( $this->oSB->oW->lang == 'FR' && isset($this->raTypesCanon[$k]['FR']) ) {
-                // This would be great except for words like &Eacute;pinards (spinach) that start with a '&' which sorts to the top.
-                // Something like $k = html_entity_decode( $this->raTypesCanon[$v]['FR'], ENT_COMPAT, 'ISO8859-1' );
-                // would be great, to collapse the entity back to a latin-1 character except you have to set a French collation using setlocale
-                // to make the sorting work, else the accented E sorts after z. And who knows how portable the setlocale will be - is fr_FR or fr_CA
-                // language pack installed?
-                // So the brute force method works best, though it will be a challenge if we want to get these names out of SEEDLocal if they have
-                // accented letters at or near the first char.
-                if( isset($this->raTypesCanon[$k]['FR_sort']) ) {
-                    $kSort = $this->raTypesCanon[$k]['FR_sort'];   // use a non-accented version of the name for sorting, and accented version for display
-                } else {
-                    $kSort = $this->raTypesCanon[$k]['FR'];
-                }
-                $raOut[$kSort] = array( 'label' => $this->raTypesCanon[$k]['FR'], 'kSpecies' => $kKlugeTypeKey );
-            } else {
-                $raOut[$k] = array( 'label' => SEEDCore_HSC($k), 'kSpecies' => $kKlugeTypeKey );    // HSC because !bEnt is used by the caller
-            }
-        }
-        ksort( $raOut );
-        return( $raOut );
     }
 
 private $eReportMode = 'VIEW-PUB';
@@ -119,7 +86,7 @@ private $_lastType = "";
             $sCat = $kfrS->value('category');
             if( $this->lang == 'FR' ) {
 // should be a better accessor
-                foreach( $this->raCategories as $ra ) {
+                foreach( $this->oMSDCore->GetCategories() as $ra ) {
                     if( $ra['db'] == $kfrS->value('category') ) {
                         $sCat = $ra['FR'];
                         break;
@@ -227,17 +194,7 @@ private $_lastType = "";
         return( $sOut );
     }
 
-
-    private $raCategories = array(
-            'flowers'    => array( 'db' => "FLOWERS AND WILDFLOWERS", 'EN' => "Flowers and Wildflowers", 'FR' => "Fleurs et gramin&eacute;es sauvages et ornementales" ),
-            'vegetables' => array( 'db' => "VEGETABLES",              'EN' => "Vegetables",              'FR' => "L&eacute;gumes" ),
-            'fruit'      => array( 'db' => "FRUIT",                   'EN' => "Fruits",                  'FR' => "Fruits" ),
-            'herbs'      => array( 'db' => "HERBS AND MEDICINALS",    'EN' => "Herbs and Medicinals",    'FR' => "Fines herbes et plantes m&eacute;dicinales" ),
-            'grain'      => array( 'db' => "GRAIN",                   'EN' => "Grains",                  'FR' => "C&eacute;r&eacute;ales" ),
-            'trees'      => array( 'db' => "TREES AND SHRUBS",        'EN' => "Trees and Shrubs",        'FR' => "Arbres et arbustes" ),
-            'misc'       => array( 'db' => "MISC",                    'EN' => "Miscellaneous",           'FR' => "Divers" ),
-        );
-
+// use the list in msdcore instead -- the method that uses this above is probably not used anymore
     private $raTypesCanon = array(
             'ALPINE COLUMBINE' => array( 'FR' => 'Ancolie des Alpes' ),
             'COLUMBINE' => array( 'FR' => 'Ancolie' ),
