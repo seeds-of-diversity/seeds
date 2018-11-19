@@ -148,6 +148,7 @@ function SeedEditForm( container )
 {
     let kSeed = SeedEditValidateContainer( container );
     if( kSeed == null ) return;
+    if( msdSeedEditVars.raSeeds[kSeed]['eStatus'] == 'DELETED' )  return;   // ignore click on msdText if deleted record
 
     msdSeedContainerCurr = container;
 
@@ -157,7 +158,7 @@ function SeedEditForm( container )
 
     msdSeedContainerCurr.css({border:"1px solid blue"});
 
-    // Create a form and it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
+    // Create a form and put it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
     let msdSeedEdit = $("<div class='msdSeedEdit'><form>$msdSeedEditForm</form></div>");
     msdSeedContainerCurr.append(msdSeedEdit);
 
@@ -174,31 +175,6 @@ function SeedEditForm( container )
 
     // disable all control buttons while the form is open
     $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
-}
-
-
-function SeedEditSkip( container )
-{
-    let kSeed = SeedEditValidateContainer( container );
-    if( kSeed == null ) return;
-
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--SkipToggle&kS="+kSeed );
-    if( oRet['bOk'] ) {
-
-
-    }
-}
-
-function SeedEditDelete( container )
-{
-    let kSeed = SeedEditValidateContainer( container );
-    if( kSeed == null ) return;
-
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--DeleteToggle&kS="+kSeed );
-    if( oRet['bOk'] ) {
-
-
-    }
 }
 
 function SeedEditValidateContainer( container )
@@ -252,23 +228,75 @@ function SeedEditSubmit(kSeed)
 
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", p );
     //console.log(oRet);
-    let ok = oRet['bOk'];
 
-    if( ok ) {
-        // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
-        msdSeedEditVars.raSeeds[kSeed]=oRet['raOut'];
+    if( oRet['bOk'] ) {
+        SeedEditAfterSuccess( msdSeedContainerCurr, oRet );
 
-        // sOut contains the revised msdSeedText
-        msdSeedContainerCurr.find(".msdSeedText").html( oRet['sOut'] );
-
-        SeedEditClose( ok );
+        SeedEditClose( oRet['bOk'] );
     } else {
         // show the error and leave the form open
-        msdSeedContainerCurr.find(".msdSeedMsg").html(
-            "<div class='alert alert-danger' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>"+oRet['sErr']+"</div>" );
+        SeedEditAfterError( msdSeedContainerCurr, oRet );
     }
 
-    return( ok );
+    return( oRet['bOk'] );
+}
+
+function SeedEditSkip( container )
+{
+    let kSeed = SeedEditValidateContainer( container );
+    if( kSeed == null ) return;
+
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--ToggleSkip&kS="+kSeed );
+    if( oRet['bOk'] ) {
+        SeedEditAfterSuccess( container, oRet );
+    }
+}
+
+function SeedEditDelete( container )
+{
+    let kSeed = SeedEditValidateContainer( container );
+    if( kSeed == null ) return;
+
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--ToggleDelete&kS="+kSeed );
+    if( oRet['bOk'] ) {
+        SeedEditAfterSuccess( container, oRet );
+    }
+}
+
+function SeedEditAfterSuccess( container, rQ )
+/*********************************************
+    After a successful update, store the updated data and update the UI to match it
+ */
+{
+    // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
+    msdSeedEditVars.raSeeds[rQ['raOut']['_key']]=rQ['raOut'];
+
+    // sOut contains the revised msdSeedText
+    container.find(".msdSeedText").html( rQ['sOut'] );
+
+    switch( rQ['raOut']['eStatus'] ) {
+        case 'ACTIVE':
+            container.find(".msdSeedEditButton_edit").show().html( "Edit" );
+            container.find(".msdSeedEditButton_skip").show().html( "Skip" );
+            container.find(".msdSeedEditButton_delete").show().html( "Delete" );
+            break;
+        case 'INACTIVE':
+            container.find(".msdSeedEditButton_edit").show().html( "Edit" );
+            container.find(".msdSeedEditButton_skip").show().html( "Un-skip" );
+            container.find(".msdSeedEditButton_delete").show().html( "Delete" );
+            break;
+        case 'DELETED':
+            container.find(".msdSeedEditButton_edit").hide();
+            container.find(".msdSeedEditButton_skip").hide();
+            container.find(".msdSeedEditButton_delete").show().html( "Un-delete" );
+            break;
+    }
+}
+
+function SeedEditAfterError( container, rQ )
+{
+    container.find(".msdSeedMsg").html(
+                "<div class='alert alert-danger' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>"+rQ['sErr']+"</div>" );
 }
 
 function SeedEditCancel()
@@ -300,6 +328,7 @@ basketScript;
 
         // Set parameters for msdSeedEdit. These are initialized to blank, required before you click on anything
         $s .= "<script>
+               var msdSeedEditVars = {};
                msdSeedEditVars.raSeeds = ".json_encode($raSeeds).";
                msdSeedEditVars.qURL = '".SITEROOT_URL."app/q/';
                </script>";

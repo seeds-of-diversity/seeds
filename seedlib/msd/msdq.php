@@ -72,7 +72,7 @@ class MSDQ extends SEEDQ
                 list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->seedDraw( $kfrS, @$raParms['eDrawMode'] );
                 break;
 
-            case "msdSeed--Update":
+            case 'msdSeed--Update':
                 /* msd editor submitted a change to a seed listing
                  *     kS = product key of the seed (0 means insert a new one)
                  *
@@ -84,6 +84,26 @@ class MSDQ extends SEEDQ
                     $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
                     list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
                 }
+                break;
+
+            case 'msdSeed--ToggleSkip':
+                switch( $kfrS->value('eStatus') ) {
+                    default:         $kfrS->SetValue( 'eStatus', 'INACTIVE' ); break;
+                    case 'INACTIVE': $kfrS->SetValue( 'eStatus', 'ACTIVE' ); break;
+                }
+                $rQ['bOk'] = $kfrS->PutDBRow();
+                $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
+                list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
+                break;
+
+            case 'msdSeed--ToggleDelete':
+                switch( $kfrS->value('eStatus') ) {
+                    default:        $kfrS->SetValue( 'eStatus', 'DELETED' ); break;
+                    case 'DELETED': $kfrS->SetValue( 'eStatus', 'ACTIVE' ); break;
+                }
+                $rQ['bOk'] = $kfrS->PutDBRow();
+                $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
+                list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
                 break;
         }
 
