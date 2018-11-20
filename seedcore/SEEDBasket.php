@@ -13,11 +13,33 @@ include_once( "SEEDBasketUpdater.php" );
 include_once( SEEDROOT."Keyframe/KeyframeForm.php" );
 
 
-class SEEDBasketCore
-/*******************
-    Core class for managing a shopping basket
+class SEEDBasketBuyer
+/********************
+    Manage a shopping basket of diverse products
+
+EVERYTHING IN SEEDBasketCore that involves a current basket should go here instead
  */
 {
+    private $oSB;
+    private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
+
+    function __construct( SEEDBasketCore $oSB )
+    {
+        $this->oSB = $oSB;
+    }
+}
+
+
+class SEEDBasketCore
+/*******************
+    Core class for advertising and selling products, buying them, and fulfilling orders
+
+    SEEDBasketBuyer uses this to manage shopping baskets
+    SEEDBasketProductHandler_* uses this to create and advertise products
+    SEEDBasketFulfillment uses this to fulfil orders
+ */
+{
+    public $oApp;
     public $oDB;
     public $sess;   // N.B. user might not be logged in so use $this->GetUID() instead of $this->sess->GetUID()
                     // No, make sure this is always a SEEDSessionAccount (it's SEEDSession in the constructor!) and it will do the right thing
@@ -27,8 +49,9 @@ class SEEDBasketCore
     private $raParms = array();
     private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
 
-    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, $raHandlerDefs, $raParms = array() )
+    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, SEEDAppConsole $oApp, $raHandlerDefs, $raParms = array() )
     {
+        $this->oApp = $oApp;
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), @$raParms['logdir'] );
         $this->raHandlerDefs = $raHandlerDefs;
@@ -535,6 +558,11 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         done:
         $s = $this->DrawBasketContents();
         return( array($bOk,$s) );
+    }
+
+    public function GetProductHandler( $prodType )
+    {
+        return( $this->getHandler( $prodType ) );
     }
 
     private function getHandler( $prodType )

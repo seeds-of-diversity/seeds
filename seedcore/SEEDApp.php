@@ -150,14 +150,14 @@ class SEEDApp_WorkerC extends SEEDApp_Worker
 class SEEDQ
 {
     public $oApp;
-    public $raParms;
+    public $raConfig;
     public $bUTF8 = false;
 
-    function __construct( SEEDAppDB $oApp, $raParms = array() )     // you can use any SEEDApp* object
+    function __construct( SEEDAppDB $oApp, $raConfig = array() )     // you can use any SEEDApp* object
     {
         $this->oApp = $oApp;
-        $this->raParms = $raParms;
-        $this->bUTF8 = intval(@$raParms['bUTF8']);
+        $this->raParms = $raConfig;
+        $this->bUTF8 = intval(@$raConfig['bUTF8']);
     }
 
     function Cmd( $cmd, $parms )
@@ -168,6 +168,7 @@ class SEEDQ
          */
 
         if( $cmd == 'test' ) {
+            $rQ['bHandled'] = true;
             $rQ['bOk'] = true;
             $rQ['sOut'] = "Test is successful";
             $rQ['raOut'] = array( array( 'first name' => "Fred", 'last name' => "Flintstone" ),
@@ -191,7 +192,7 @@ class SEEDQ
     /********************
      */
     {
-        return( array( 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>array(), 'raMeta'=>array() ) );
+        return( array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>array(), 'raMeta'=>array() ) );
     }
 }
 

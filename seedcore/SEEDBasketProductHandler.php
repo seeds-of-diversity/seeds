@@ -31,6 +31,7 @@ class SEEDBasketProductHandler
     const DETAIL_TINY    = "Tiny";
     const DETAIL_SUMMARY = "Summary";
     const DETAIL_ALL     = "All";
+    // These can be extended: any derived product handler can accept any DETAIL_* string it wants to
 
     protected $oSB;
 
@@ -281,6 +282,23 @@ class SEEDBasketProductHandler
         }
 
         return( $s );
+    }
+
+
+    function GetProductValues( KeyframeRecord $kfrP )
+    /************************************************
+        Given a product record, return an array of values normalized for the product type.
+     */
+    {
+        return( $kfrP->ValuesRA() );    // this doesn't do anything - please override
+    }
+
+    function SetProductValues( $raNormal )
+    /*************************************
+        Given an array of normalized product values, return two arrays: SEEDBasket_Products values and SEEDBasket_ProdExtra values
+     */
+    {
+        return( array($raNormal,array()) );    // this doesn't do anything - please override
     }
 }
 

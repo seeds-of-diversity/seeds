@@ -6,9 +6,15 @@
  */
 
 include_once( SEEDAPP."seedexchange/msdCommon.php" );
+include_once( SEEDLIB."msd/msdq.php" );
 
 class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 {
+    // These are the strings you pass to MSDQ->msdSeed-Draw
+    const DETAIL_VIEW_WITH_SPECIES = 'VIEW_REQUESTABLE VIEW_SHOWSPECIES';
+    const DETAIL_VIEW_NO_SPECIES   = 'VIEW_REQUESTABLE';
+    const DETAIL_EDIT_WITH_SPECIES = 'EDIT VIEW_SHOWSPECIES';
+
     private $raProdExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'quantity', 'origin', 'description' );
 
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
@@ -22,6 +28,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         $s = "";
 
         if( ($kP = $oFormP->GetKey()) ) {
+//msdq->Cmd msdSeedList-GetData or $this->GetProductValues()
             // this is not a new product, so fetch any ProdExtra
             $raExtra = $this->oSB->oDB->GetProdExtraList( $kP );
             foreach( $this->raProdExtraKeys as $k ) {
@@ -136,6 +143,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         know the fk_SEEDBasket_Products key until PostStore().
      */
     {
+//TODO: there should be a protected method that does this in a standard way. See Get/SetProductValues() too.
         if( $kfrP->Key() ) {
             // Write the prodExtra data from the ProductDefine0 form
             foreach( $this->raProdExtraKeys as $k ) {
@@ -156,8 +164,10 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 //        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
 //                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
 
-        $oDraw = new MSDCommonDraw( $this->oSB );
+        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
 
+//TODO: there should be a standard way to do this - this sets prodExtra into the kfrP owned by the caller, which could overwrite actual Product fields by accident
+//msdq->Cmd msdSeedList-GetData or $this->GetProductValues() (or use MSDCore although it is only supposed to be used in seedlib)
         $raPE = $this->oSB->oDB->GetProdExtraList( $kfrP->Key() );
         foreach( $this->raProdExtraKeys as $k ) {
             $kfrP->SetValue( $k, @$raPE[$k] );
@@ -168,16 +178,13 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                 $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
                 break;
             default:
-
-                $kfrP->SetValue( 'type',   $kfrP->Value('species') );
-                $kfrP->SetValue( 'mbr_id', $kfrP->Value('uid_seller') );
-
-                $s = "";
-                if( $eDetail == SEEDBasketProductHandler::DETAIL_ALL ) {
-// msd uses class sed_seed for clicking, which is created in DrawSeedFromKFR. Therefore can't click on this heading
-                    $s .= "<strong style='font-size:14pt'>".$kfrP->Value('species')."</strong><br/>";
+                switch( $eDetail ) {
+                    case self::DETAIL_SUMMARY:   $eDrawMode = "VIEW";   break;
+                    case self::DETAIL_ALL:       $eDrawMode = "VIEW VIEW_SHOWCATEGORY VIEW_SHOWSPECIES";  break;
+                    default:                     $eDrawMode = $eDetail; break;  // assume eDetail already has an MSDQ code
                 }
-                $s .= $oDraw->DrawVarietyFromKFR( $kfrP, array( 'bNoSections'=>true ) );
+                $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kfrP->Key(), 'eDrawMode'=>$eDrawMode) );
+                $s = $rQ['bOk'] ? $rQ['sOut'] : ("Missing text for seed #".$kfrP->Key().": {$rQ['sErr']}");
                 break;
         }
         return( $s );
@@ -206,6 +213,24 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         }
 
         return( $s );
+    }
+
+    function GetProductValues( KeyframeRecord $kfrP )
+    /************************************************
+        Return an array of normalized "seed" values for this product
+     */
+    {
+        $raS = array();
+
+        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
+        $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', array('kS'=>$kfrP->Key()) );
+        if( $rQ['bOk'] ) {
+            // msdSeedList-GetData returns an array( kS1=>array(), kS2=>array(),... ) because it can return multiple records.
+            // This case only fetches a single record but it is still indexed by kS
+            $raS = $rQ['raOut'][$kfrP->Key()];
+        }
+
+        return( $raS );
     }
 }
 

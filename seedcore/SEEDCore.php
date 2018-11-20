@@ -320,6 +320,21 @@ function SEEDCore_Bound( $i, $floor = null, $ceiling = null )
     return( $i );
 }
 
+function SEEDCore_StartsWith( $haystack, $needle )
+/*************************************************
+ */
+{
+     return( substr( $haystack, 0, strlen($needle) ) === $needle );
+}
+
+function SEEDCore_EndsWith( $haystack, $needle )
+/***********************************************
+ */
+{
+    $length = strlen($needle);
+    return( substr( $haystack, -$length, $length ) === $needle );   // third parameter is for the boundary condition where $needle==''
+}
+
 function SEEDCore_ParseRangeStr( $sRange )
 /*****************************************
     Parse a string containing a potentially complicated range of numbers
