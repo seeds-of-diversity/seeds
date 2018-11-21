@@ -70,8 +70,11 @@ class MSDAppSeedEdit
                     ."<div><input type='submit' value='Save' style='margin:20px 0px 0px 20px'/></div>"
                     ."</form>";
         }
+        $sForm = "<div class='msdSeedEditGlobalControls' style='position:fixed'>"
+                    ."<button class='msdSeedEditButton_new'>Add New Seed</button>"
+                ."</div>";
         $s = "<div class='container-fluid'><div class='row'>"
-                ."<div class='col-sm-9'>$sList</div>"
+                ."<div class='col-sm-9'><div class='msdSeedContainerList'>$sList</div></div>"
                 ."<div class='col-sm-3'>$sForm</div>"
             ."</div></div>";
 
@@ -98,7 +101,7 @@ $msdSeedEditForm = <<<msdSeedEditForm
         <td><div class='msdSeedEdit_instruction'><b>Origin</b>: Record where you got the original seeds. e.g. another member, a seed company, a local Seedy Saturday.</div></td>
     </tr><tr>
         <td><select id='msdSeedEdit_quantity' name='quantity'><option value=''></option><option value='LQ'>Low Quantity</option><option value='PR'>Please Re-offer</option></select></td>
-        <td><div class='msdSeedEdit_instruction'><b>Quantity</b>: If you have a low quantity of seeds, or if you want to ask requestors to re-offer seeds, indicate that here.</div></td>
+        <td><div class='msdSeedEdit_instruction'><b>Quantity</b>: If you have a low quantity of seeds, or if you want to ask requesters to re-offer seeds, indicate that here.</div></td>
     </tr><tr>
         <td><select id='msdSeedEdit_eOffer' name='eOffer'><option value='member'>All Members</option><option value='grower-member'>Only members who also list seeds</option><option value='public'>General public</option></select></td>
         <td><p class='msdSeedEdit_instruction'><b>Who may request these seeds from you</b>: <span id='msdSeedEdit_eOffer_instructions'></span></p></td>
@@ -123,40 +126,39 @@ $s .= <<<basketStyle
 .msdSeedEdit_inputText   { width:95%;margin:3px 0px }
 .msdSeedEdit_instruction { background-color:white;border:1px solid #aaa;margin:3px 0px 0px 30px;padding:3px }
 .msdSeedEditButtonContainer { text-align:center;margin-left:20px;width:10%;max-width:100px; }
+.msdSeedEditGlobalControls { border:1px solid #aaa; border-radius:2px;padding:10px; }
 </style>
 basketStyle;
 
 $s .= <<<basketScript
 <script>
 var msdSeedEditVars = { qUrl:"", raSeeds:[] };
-var msdSeedContainerCurr = null;  // the current msdSeedContainer
+var msdSeedContainerCurr = null;            // the current msdSeedContainer
+var msdSeedContainerCurrFormOpen = false;   // true when the form is open (generally all other inputs are disabled)
 
 $(document).ready( function() {
     // on click of an msdSeedText or an Edit button, open the edit form
-    $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditForm( $(this).closest(".msdSeedContainer") ); });
+    $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( $(this).closest(".msdSeedContainer") ); });
 
     // skip and delete buttons
     $(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   $(this).closest(".msdSeedContainer") ); });
     $(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( $(this).closest(".msdSeedContainer") ); });
+
+    // new button
+    $(".msdSeedEditButton_new").click( function(e)    { SeedEditNew(); });
 });
 
-function SeedEditForm( container )
-/*********************************
+function SeedEditFormOpen( container )
+/*************************************
     Open the edit form for a clicked seed listing.
-    Input is the verbatim id of the msdSeedContainer
+    Input is the msdSeedContainer of the listing.
  */
 {
     let kSeed = SeedEditValidateContainer( container );
     if( kSeed == null ) return;
     if( msdSeedEditVars.raSeeds[kSeed]['eStatus'] == 'DELETED' )  return;   // ignore click on msdText if deleted record
 
-    msdSeedContainerCurr = container;
-
-    // clear previous edit indicators
-    $(".msdSeedContainer").css({border:"1px solid #e3e3e3"});
-    $(".msdSeedMsg").html("");
-
-    msdSeedContainerCurr.css({border:"1px solid blue"});
+    SeedEditSelectContainer( container, true );
 
     // Create a form and put it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
     let msdSeedEdit = $("<div class='msdSeedEdit'><form>$msdSeedEditForm</form></div>");
@@ -171,16 +173,43 @@ function SeedEditForm( container )
     msdSeedEdit.fadeIn(500);
 
     msdSeedEdit.find("form").submit( function(e) { e.preventDefault(); SeedEditSubmit(kSeed); } );
-    msdSeedEdit.find(".msdSeedEditCancel").click( function(e) { e.preventDefault(); SeedEditCancel(); } );
+    msdSeedEdit.find(".msdSeedEditCancel").click( function(e) { e.preventDefault(); SeedEditFormCancel(); } );
 
     // disable all control buttons while the form is open
     $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
+    $(".msdSeedEditGlobalControls  button").attr("disabled","disabled");
 }
+
+function SeedEditFormCancel()
+{
+    SeedEditFormClose( false );
+}
+
+function SeedEditFormClose( ok )
+{
+    if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
+
+    msdSeedEdit = msdSeedContainerCurr.find('.msdSeedEdit');
+    msdSeedEdit.fadeOut(500, function() {
+            msdSeedEdit.remove();      // wait for the fadeOut to complete before removing the msdSeedEdit
+            if( ok ) {
+                // do this after fadeOut because it looks better afterward
+                msdSeedContainerCurr.find(".msdSeedMsg").html( "<div class='alert alert-success' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>Saved</div>" );
+            }
+            // allow another block to be clicked (keep msdSeedContainerCurr so a New container can be inserted after it)
+            msdSeedContainerCurrFormOpen = false;
+        } );
+
+    // re-enable all control buttons
+    $(".msdSeedEditButtonContainer button").removeAttr("disabled");
+    $(".msdSeedEditGlobalControls  button").removeAttr("disabled");
+}
+
 
 function SeedEditValidateContainer( container )
 {
     // generally don't allow an msdSeedContainer to be be selected when a form is open
-    if( msdSeedContainerCurr != null ) { console.log("Cannot open multiple forms"); return( null ); }
+    if( msdSeedContainerCurrFormOpen ) { console.log("Cannot open multiple forms"); return( null ); }
 
     let k = parseInt(container.attr("data-kProduct"));
     if( !k ) { console.log("Invalid data-kProduct"); return( null ); }
@@ -188,11 +217,28 @@ function SeedEditValidateContainer( container )
     return( k );
 }
 
+function SeedEditSelectContainer( container, bOpenForm )
+{
+    if( msdSeedContainerCurrFormOpen ) return( false );
 
+    msdSeedContainerCurr = container;
+    msdSeedContainerCurrFormOpen = bOpenForm;
+
+    // clear previous edit indicators
+    $(".msdSeedContainer").css({border:"1px solid #e3e3e3"});
+    $(".msdSeedMsg").html("");
+
+    // show the current container is selected
+    msdSeedContainerCurr.css({border:"1px solid blue"});
+
+    return( true );
+}
+
+/*
 function SeedEditGetContainerFromId( id )
 {
     // generally don't allow an msdSeedContainer to be be selected when a form is open
-    if( msdSeedContainerCurr != null ) { console.log("Cannot open multiple forms"); return( null ); }
+    if( msdSeedContainerCurrFormOpen ) { console.log("Cannot open multiple forms"); return( null ); }
 
     // validate that this is an msdSeedContainer and get the kProduct
 //TODO: it would be more sensible just to verify the class (if you want) and store the kProduct in data-kProduct="k"
@@ -201,7 +247,7 @@ function SeedEditGetContainerFromId( id )
 
     return( $("#"+id) );
 }
-
+*/
 
 function SeedEditSelectEOffer( msdSeedEdit )
 {
@@ -221,7 +267,7 @@ function SeedEditSelectEOffer( msdSeedEdit )
 
 function SeedEditSubmit(kSeed)
 {
-    if( msdSeedContainerCurr == null ) return;
+    if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
 
     let p = "cmd=msdSeed--Update&kS="+kSeed+"&"+msdSeedContainerCurr.find('select, textarea, input').serialize();
     //alert(p);
@@ -232,7 +278,7 @@ function SeedEditSubmit(kSeed)
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( msdSeedContainerCurr, oRet );
 
-        SeedEditClose( oRet['bOk'] );
+        SeedEditFormClose( oRet['bOk'] );
     } else {
         // show the error and leave the form open
         SeedEditAfterError( msdSeedContainerCurr, oRet );
@@ -246,6 +292,8 @@ function SeedEditSkip( container )
     let kSeed = SeedEditValidateContainer( container );
     if( kSeed == null ) return;
 
+    SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
+
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--ToggleSkip&kS="+kSeed );
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( container, oRet );
@@ -257,9 +305,18 @@ function SeedEditDelete( container )
     let kSeed = SeedEditValidateContainer( container );
     if( kSeed == null ) return;
 
+    SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
+
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--ToggleDelete&kS="+kSeed );
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( container, oRet );
+    }
+}
+
+function SeedEditNew()
+{
+    if( msdSeedContainerCurr ) {
+        let e = $("<p>Hello World</p>").insertAfter( msdSeedContainerCurr );
     }
 }
 
@@ -297,30 +354,6 @@ function SeedEditAfterError( container, rQ )
 {
     container.find(".msdSeedMsg").html(
                 "<div class='alert alert-danger' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>"+rQ['sErr']+"</div>" );
-}
-
-function SeedEditCancel()
-{
-    SeedEditClose( false );
-}
-
-function SeedEditClose( ok )
-{
-    if( msdSeedContainerCurr == null ) return;
-
-    msdSeedEdit = msdSeedContainerCurr.find('.msdSeedEdit');
-    msdSeedEdit.fadeOut(500, function() {
-            msdSeedEdit.remove();      // wait for the fadeOut to complete before removing the msdSeedEdit
-            if( ok ) {
-                // do this after fadeOut because it looks better afterward
-                msdSeedContainerCurr.find(".msdSeedMsg").html( "<div class='alert alert-success' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>Saved</div>" );
-            }
-            // allow another block to be clicked
-            msdSeedContainerCurr = null;
-        } );
-
-    // re-enable all control buttons
-    $(".msdSeedEditButtonContainer button").removeAttr("disabled");
 }
 
 </script>
