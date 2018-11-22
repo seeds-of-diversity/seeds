@@ -127,7 +127,7 @@ class SEEDAppImgManager
                           e.preventDefault();
                           let v = $('#imgman_currSubdir').val();
                           v = v.match( /^(.*)\/.*\/$/ );
-                          $('#imgman_currSubdir').val( v == null ? '' : v[1] );
+                          $('#imgman_currSubdir').val( v == null ? '' : (v[1]+'/') );
                       });
               });
                </script>";
@@ -154,7 +154,7 @@ class SEEDAppImgManager
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
                     if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
                     if( count($raExts)==1 &&
-                        (isset($raExts['png']) || isset($raExts['mpg'])) &&
+                        (isset($raExts['png']) || isset($raExts['mp4'])) &&
                         substr($filename,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
                 }
 
