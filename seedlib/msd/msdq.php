@@ -180,6 +180,10 @@ class MSDQ extends SEEDQ
             $sErr = $kfrS->Value('category')." is not a seed directory category";
             goto done;
         }
+        if( !$kfrS->Value('species') ) {
+            $sErr = "Please enter a species name";
+            goto done;
+        }
 
         // save the product and prodextra
         if( !($bOk = $this->oMSDCore->PutSeedKfr( $kfrS )) ) {
@@ -237,7 +241,7 @@ class MSDQ extends SEEDQ
                 .$kfrS->ExpandIfNotEmpty( 'quantity', "<b><i>[[]]</i></b>" );
 
         if( ($price = $kfrS->Value('item_price')) != 0.00 ) {
-             $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." $".$price;
+             $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." ".SEEDCore_Dollar( $price, $this->oApp->lang );
         }
 
 

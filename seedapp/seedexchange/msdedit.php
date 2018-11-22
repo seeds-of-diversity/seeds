@@ -7,6 +7,18 @@
  * App to edit Member Seed Directory, built on top of SEEDBasket
  */
 
+/*
+update seeds.SEEDBasket_ProdExtra set v='flowers' where v='FLOWERS AND WILDFLOWERS' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='vegetables' where v='VEGETABLES' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='fruit' where v='FRUIT' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='herbs' where v='HERBS AND MEDICINALS' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='grain' where v='GRAIN' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='trees' where v='TREES AND SHRUBS' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='misc' where v='MISC' and k='category';
+ */
+
+
+
 // for the most part, msd apps try to access seedlib/msd via MSDQ()
 include_once( SEEDLIB."msd/msdq.php" );
 
@@ -199,6 +211,10 @@ function SeedEditFormOpen( container )
     msdSeedEdit.find('#msdSeedEdit_eOffer').change( function() { SeedEditSelectEOffer( msdSeedEdit ); } );
 
     if( kSeed ) {
+        // eOffer==member is not explicitly stored
+        if( !msdSeedEditVars.raSeeds[kSeed]['eOffer'] ) msdSeedEditVars.raSeeds[kSeed]['eOffer'] = 'member';
+
+        // fill in the form with values stored in msdSeedEditVars
         for( let i in msdSeedEditVars.raSeeds[kSeed] ) {
             msdSeedEdit.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kSeed][i]);
         }
