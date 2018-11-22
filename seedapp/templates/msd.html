@@ -1,6 +1,6 @@
 # Seeds of Diversity Member Seed Directory templates
 
-%% msdMain
+%% msdStyle
 <style>
     /* msd-head is positioned at the top, full width, zorder above msd-main.
      * msd-main is positioned at 100px from the top, full width, zorder beneath msd-main.
@@ -64,6 +64,10 @@
 </style>
 
 
+%% msdMain
+[[Include:msdStyle]]
+[[Include:msdSpeciesListScript]]
+
 <table class="msd-head" style='border:none'><tr>
 <td valign='middle' width='25%'>
     <img src='//seeds.ca/i/img/logo/logoA_h-[[lower:$lang]]-300x.png' style='max-height:80px' class='img-responsive'/><br/>
@@ -119,17 +123,6 @@
     var sInstructions = [[Var:jsonInstructions]];
 
     $(document).ready( function() {
-        /* When you click on a category title in the msd-list, the speciesgroup beneath it is toggled
-         */
-        $(".msd-list-category-title").click( function() {
-            var eCat = $(this).closest(".msd-list-category");
-            var eSpList = eCat.find(".msd-list-species-group");
-            eSpList.toggle();
-
-            msdResize();
-        });
-        $(".msd-list-species-group").hide();
-
         /* When you click on a species name in the msd-list, we highlight it and fetch the variety list.
          */
         $(".msd-list-species-title").click( function() {
@@ -172,43 +165,24 @@ window.onresize = function(event) {
 
 function showInstructions()
 {
-	$(".msd-body-varieties").html( sInstructions );
+    $(".msd-body-varieties").html( sInstructions );
 }
 
-function msdResize() {
-    /* msd-list and msd-basket are position:fixed, so they are removed from the format flow. That means they don't automatically
-     * respond to window resizes. Also, msd-list won't do the right thing re scroll bars with overflow-y:auto, because it doesn't know
-     * how big its container is. Since it's fixed on the screen, msd-list has to have a scroll bar when it is taller than the window.
-     */
-
-    // msd-list: Set max-width-height based on its container size so it doesn't spill over, especially horizontally.
-    //           If the list is longer than the available space give it a scroll bar. Nice to hide this if it is not necessary.
-    var hw = $(window).height();
-    var hd = $(".msd-list-col").height();
-    var wd = $(".msd-list-col").width();
-    var yd = $(".msd-list-col").offset().top;
-
-    var maxw = wd;
-    if( maxw < 0 ) maxw = 1;
-    var maxh = (hw-yd-20);  // 20 just for visual padding at the bottom
-    if( maxh < 0 ) maxh = 1;
-
-    $(".msd-list").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
-
-    if( hd > hw - yd ) { 
-        $(".msd-list").css({'overflow-y': "scroll"});
-    } else {
-        $(".msd-list").css({'overflow-y': "auto"});
-    }
-
+function msdResize() 
+{
+    msdResizeList();
+    msdResizeBasket();
+}
+function msdResizeBasket()
+{
     // msd-basket: Give it a scrollbar if it is taller than the window
-    hd = $(".msd-basket-col").height();
-    wd = $(".msd-basket-col").width();
-    yd = $(".msd-basket-col").offset().top;
+    let hd = $(".msd-basket-col").height();
+    let wd = $(".msd-basket-col").width();
+    let yd = $(".msd-basket-col").offset().top;
 
-    maxw = wd;
+    let maxw = wd;
     if( maxw < 0 ) maxw = 1;
-    maxh = (hw-yd-20);  // 20 just for visual padding at the bottom
+    let maxh = (hw-yd-20);  // 20 just for visual padding at the bottom
     if( maxh < 0 ) maxh = 1;
 
     $(".msd-basket-col-fixed").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
@@ -216,7 +190,7 @@ function msdResize() {
     // msd-basket-col: Set width the same as its container so it fits nicely.
     $(".msd-basket-col-fixed").width($(".msd-basket-col").width()-20);
 
-    var sScroll = (hd > hw - yd) ? "scroll" : "auto";
+    let sScroll = (hd > hw - yd) ? "scroll" : "auto";
     $(".msd-basket-col-fixed").css({'overflow-y': sScroll});
 }
 
@@ -362,6 +336,50 @@ function msdClearBasket()
 }
 </script>
 
+
+%% msdSpeciesListScript
+<script>
+$(document).ready( function() {
+    /* When you click on a category title in the msd-list, the speciesgroup beneath it is toggled
+     */
+    $(".msd-list-category-title").click( function() {
+        var eCat = $(this).closest(".msd-list-category");
+        var eSpList = eCat.find(".msd-list-species-group");
+        eSpList.toggle();
+
+        msdResizeList();
+    });
+    $(".msd-list-species-group").hide();
+});
+
+function msdResizeList()
+{
+    /* msd-list and msd-basket are position:fixed, so they are removed from the format flow. That means they don't automatically
+     * respond to window resizes. Also, msd-list won't do the right thing re scroll bars with overflow-y:auto, because it doesn't know
+     * how big its container is. Since it's fixed on the screen, msd-list has to have a scroll bar when it is taller than the window.
+     */
+
+    // msd-list: Set max-width-height based on its container size so it doesn't spill over, especially horizontally.
+    //           If the list is longer than the available space give it a scroll bar. Nice to hide this if it is not necessary.
+    let hw = $(window).height();
+    let hd = $(".msd-list-col").height();
+    let wd = $(".msd-list-col").width();
+    let yd = $(".msd-list-col").offset().top;
+
+    let maxw = wd;
+    if( maxw < 0 ) maxw = 1;
+    let maxh = (hw-yd-20);  // 20 just for visual padding at the bottom
+    if( maxh < 0 ) maxh = 1;
+
+    $(".msd-list").css({'max-height': maxh+"px", 'max-width': maxw+"px"});
+
+    if( hd > hw - yd ) { 
+        $(".msd-list").css({'overflow-y': "scroll"});
+    } else {
+        $(".msd-list").css({'overflow-y': "auto"});
+    }
+}
+</script>
 
 %% msdLogin
 {% if bMbrLogin %}

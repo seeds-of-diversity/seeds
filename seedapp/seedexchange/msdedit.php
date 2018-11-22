@@ -21,6 +21,7 @@ update seeds.SEEDBasket_ProdExtra set v='misc' where v='MISC' and k='category';
 
 // for the most part, msd apps try to access seedlib/msd via MSDQ()
 include_once( SEEDLIB."msd/msdq.php" );
+include_once( SEEDAPP."seedexchange/msdCommon.php" );   // DrawMSDList() should be a seedlib thing
 
 class MSDAppSeedEdit
 /*******************
@@ -91,10 +92,26 @@ class MSDAppSeedEdit
         $sForm = "<div class='msdSeedEditGlobalControls' style='position:fixed'>"
                     ."<button class='msdSeedEditButton_new'>Add New Seed</button>"
                 ."</div>";
-        $s = "<div class='container-fluid'><div class='row'>"
-                ."<div class='col-sm-9'><div class='msdSeedContainerList'>$sList</div></div>"
-                ."<div class='col-sm-3'>$sForm</div>"
+
+        $oDraw = new MSDCommonDraw( $this->oSB );
+        $msdList = $oDraw->DrawMSDList();
+        $raTmplParms = array(
+            'fTemplates' => array( SEEDAPP."templates/msd.html" ),
+            'sFormCid'   => 'Plain',
+            //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
+            'vars'       => array()
+        );
+        $oTmpl = SEEDTemplateMaker( $raTmplParms );
+
+        $s = $oTmpl->ExpandTmpl( 'msdSpeciesListScript', array() )
+            .$oTmpl->ExpandTmpl( 'msdStyle', array() )
+            ."<div class='container-fluid'><div class='row'>"
+                ."<div class='col-sm-2 msd-list-col'>$msdList</div>"
+                ."<div class='col-sm-8'><div class='msdSeedContainerList'>$sList</div></div>"
+                ."<div class='col-sm-2'>$sForm</div>"
             ."</div></div>";
+
+        $s .= "<script>$('.msd-list').css({position:'relative',top:'0px'});</script>";
 
 //$s .= $this->oC->oSB->DrawProductNewForm( 'base-product' );
 //$s .= $this->oC->oSB->DrawProductNewForm( 'membership' );

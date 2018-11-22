@@ -12,6 +12,7 @@ class MSDQ extends SEEDQ
 {
     private $oMSDCore;
     private $kUidSeller;
+    private $bIsAdmin;
 
     function __construct( SEEDAppConsole $oApp, $raConfig )
     /******************************************************
@@ -22,7 +23,8 @@ class MSDQ extends SEEDQ
         parent::__construct( $oApp, $raConfig );
         $this->oMSDCore = new MSDCore( $oApp, array('currYear'=>@$raConfig['currYear']) );
 
-        $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $oApp->sess->CanAdmin( "MSDAdmin" ))
+        $this->bIsAdmin = $oApp->sess->CanAdmin( "MSDAdmin" );
+        $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $this->bIsAdmin)
                             ? $k : $oApp->sess->GetUID();
     }
 
