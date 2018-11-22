@@ -12,7 +12,6 @@ class MSDQ extends SEEDQ
 {
     private $oMSDCore;
     private $kUidSeller;
-    private $currYear = 0;
 
     function __construct( SEEDAppConsole $oApp, $raConfig )
     /******************************************************
@@ -21,11 +20,10 @@ class MSDQ extends SEEDQ
      */
     {
         parent::__construct( $oApp, $raConfig );
-        $this->oMSDCore = new MSDCore( $oApp );
+        $this->oMSDCore = new MSDCore( $oApp, array('currYear'=>@$raConfig['currYear']) );
 
         $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $oApp->sess->CanAdmin( "MSDAdmin" ))
                             ? $k : $oApp->sess->GetUID();
-        $this->currYear = @$raConfig['config_year'] ?: date("Y");
     }
 
     function Cmd( $cmd, $raParms = array() )
@@ -46,7 +44,7 @@ class MSDQ extends SEEDQ
             $rQ['bHandled'] = true;
 
             $kfrS = $kSeed ? $this->oMSDCore->GetSeedKfr( $kSeed ) : $this->oMSDCore->CreateSeedKfr();
-            if( !$kfrS || !($kSeed && $this->canWriteSeed($kfrS) )) {
+            if( !$kfrS || ($kSeed && !$this->canWriteSeed($kfrS) )) {
                 $rQ['sErr'] = "<p>Cannot update information for seed #$kSeed.</p>";
                 goto done;
             }
@@ -169,7 +167,7 @@ class MSDQ extends SEEDQ
         $kfrS->SetValue( 'product_type', "seeds" );
         $kfrS->SetValue( 'quant_type', "ITEM-1" );
         if( !$kfrS->Value('year_1st_listed') ) {
-            $kfrS->SetValue( 'year_1st_listed', $this->currYear );
+            $kfrS->SetValue( 'year_1st_listed', $this->oMSDCore->GetCurrYear() );
         }
         // force price to float or set default price - use floatval because "0.00" is not false if it's a string
         if( !($price = floatval($kfrS->Value('item_price'))) ) {

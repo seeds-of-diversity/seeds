@@ -22,6 +22,16 @@ class MSDAppSeedEdit
         $this->oSB = $oSB;
     }
 
+    private $sContainer =
+        "<div class='well msdSeedContainer' data-kproduct='[[kP]]' style='margin:5px'>"
+           ."<div class='msdSeedEditButtonContainer' style='float:right'>"
+               ."<button class='msdSeedEditButton_edit'>Edit</button><br/>"
+               ."<button class='msdSeedEditButton_skip'>[[sButtonSkip]]</button><br/>"
+               ."<button class='msdSeedEditButton_delete'>[[sButtonDelete]]</button></div>"
+           ."<div class='msdSeedMsg'></div>"
+           ."<div class='msdSeedText' style='padding:0px'>[[sSeedText]]</div>"
+       ."</div>";
+
     function Draw()
     {
         $s = "";
@@ -41,24 +51,20 @@ class MSDAppSeedEdit
             $category = "";
             while( $oMSDCore->SeedCursorFetch( $kfrcP ) ) { // $kfrcP->CursorFetch() ) {
                 $kP = $kfrcP->Key();
-                $bCurr = false; //($kCurrProd && $kfrcP->Key() == $kCurrProd);
-                $sStyleCurr = $bCurr ? "border:2px solid blue;" : "";
                 if( $category != $kfrcP->Value('PE1_v') ) {
                     $category = $kfrcP->Value('PE1_v');
                     $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
                 }
                 $sButtonSkip   = $kfrcP->Value('eStatus') == 'INACTIVE' ? "Un-Skip" : "Skip";
                 $sButtonDelete = $kfrcP->Value('eStatus') == 'DELETED' ? "Un-Delete" : "Delete";
-                $sList .= "<div id='msdSeed$kP' class='well msdSeedContainer' data-kProduct='$kP' style='margin:5px'>"
-                             ."<div class='msdSeedEditButtonContainer' style='float:right'>"
-                                 ."<button class='msdSeedEditButton_edit' id='msdSeedEditButton_edit$kP'>Edit</button><br/>"
-                                 ."<button class='msdSeedEditButton_skip' id='msdSeedEditButton_skip$kP'>$sButtonSkip</button><br/>"
-                                 ."<button class='msdSeedEditButton_delete' id='msdSeedEditButton_delete$kP'>$sButtonDelete</button></div>"
-                             ."<div class='msdSeedMsg'></div>"
-                             ."<div class='msdSeedText' style='padding:0px;$sStyleCurr'>"
-                                 .$this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES )
-                             ."</div>"
-                         ."</div>";
+
+                $sC = $this->sContainer;
+                $sC = str_replace( '[[kP]]', $kP, $sC );
+                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
+                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
+                $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES ), $sC );
+                $sList .= $sC;
+
                 $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP );
             }
         }
@@ -84,8 +90,15 @@ class MSDAppSeedEdit
 //$s .= $this->oC->oSB->DrawProductNewForm( 'book' );
 //$s .= $this->oC->oSB->DrawProductNewForm( 'seeds' );
 
+$categoryOpts = "";
+foreach( $oMSDCore->GetCategories() as $cat => $raCat ) {
+    $categoryOpts .= "<option value='$cat'>{$raCat['EN']}</option>";
+}
+
 $msdSeedEditForm = <<<msdSeedEditForm
-    <table><tr>
+    <table style='width:100%'><tr>
+        <td><select id='msdSeedEdit_category' name='category' class='msdSeedEdit_inputText'>$categoryOpts</select></td><td>&nbsp;</td>
+    </tr><tr>
         <td><input type='text' id='msdSeedEdit_species' name='species' class='msdSeedEdit_inputText' placeholder='Species e.g. LETTUCE'/></td><td>&nbsp;</td>
     </tr><tr>
         <td><input type='text' id='msdSeedEdit_variety' name='variety' class='msdSeedEdit_inputText' placeholder='Variety e.g. Grand Rapids'/></td><td>&nbsp;</td>
@@ -113,6 +126,13 @@ $msdSeedEditForm = <<<msdSeedEditForm
 msdSeedEditForm;
 $msdSeedEditForm = str_replace("\n","",$msdSeedEditForm);   // jquery doesn't like linefeeds in its selectors
 
+$msdSeedContainerTemplate = $this->sContainer;
+$msdSeedContainerTemplate = str_replace( '[[kP]]', "", $msdSeedContainerTemplate );
+$msdSeedContainerTemplate = str_replace( '[[sButtonSkip]]', "Skip", $msdSeedContainerTemplate );
+$msdSeedContainerTemplate = str_replace( '[[sButtonDelete]]', "Delete", $msdSeedContainerTemplate );
+$msdSeedContainerTemplate = str_replace( '[[sSeedText]]', "<h3>New Seed</h3>", $msdSeedContainerTemplate );
+
+
 $s .= <<<basketStyle
 <style>
 .msdSeedText_species { font-size:14pt; font-weight:bold; }
@@ -133,8 +153,9 @@ basketStyle;
 $s .= <<<basketScript
 <script>
 var msdSeedEditVars = { qUrl:"", raSeeds:[] };
-var msdSeedContainerCurr = null;            // the current msdSeedContainer
-var msdSeedContainerCurrFormOpen = false;   // true when the form is open (generally all other inputs are disabled)
+var msdSeedContainerCurr = null;                // the current msdSeedContainer
+var msdSeedContainerCurrFormOpen = false;       // true when the form is open (generally all other inputs are disabled)
+var msdSeedContainerCurrFormOpenIsNew = false;  // true when an open form is a new entry (so Cancel will .remove() it)
 
 $(document).ready( function() {
     // on click of an msdSeedText or an Edit button, open the edit form
@@ -148,6 +169,16 @@ $(document).ready( function() {
     $(".msdSeedEditButton_new").click( function(e)    { SeedEditNew(); });
 });
 
+function SeedEditAttachButtons( container )
+{
+    // on click of an msdSeedText or an Edit button, open the edit form
+    container.find(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( $(this).closest(".msdSeedContainer") ); });
+
+    // skip and delete buttons
+    container.find(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   $(this).closest(".msdSeedContainer") ); });
+    container.find(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( $(this).closest(".msdSeedContainer") ); });
+}
+
 function SeedEditFormOpen( container )
 /*************************************
     Open the edit form for a clicked seed listing.
@@ -155,8 +186,8 @@ function SeedEditFormOpen( container )
  */
 {
     let kSeed = SeedEditValidateContainer( container );
-    if( kSeed == null ) return;
-    if( msdSeedEditVars.raSeeds[kSeed]['eStatus'] == 'DELETED' )  return;   // ignore click on msdText if deleted record
+    if( !kSeed && !msdSeedContainerCurrFormOpenIsNew ) return;
+    if( kSeed && msdSeedEditVars.raSeeds[kSeed]['eStatus'] == 'DELETED' )  return;   // ignore click on msdText if deleted record
 
     SeedEditSelectContainer( container, true );
 
@@ -167,8 +198,13 @@ function SeedEditFormOpen( container )
     SeedEditSelectEOffer( msdSeedEdit );
     msdSeedEdit.find('#msdSeedEdit_eOffer').change( function() { SeedEditSelectEOffer( msdSeedEdit ); } );
 
-    for( let i in msdSeedEditVars.raSeeds[kSeed] ) {
-        msdSeedEdit.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kSeed][i]);
+    if( kSeed ) {
+        for( let i in msdSeedEditVars.raSeeds[kSeed] ) {
+            msdSeedEdit.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kSeed][i]);
+        }
+    } else {
+        // this is a new form - set defaults
+
     }
     msdSeedEdit.fadeIn(500);
 
@@ -196,8 +232,19 @@ function SeedEditFormClose( ok )
                 // do this after fadeOut because it looks better afterward
                 msdSeedContainerCurr.find(".msdSeedMsg").html( "<div class='alert alert-success' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>Saved</div>" );
             }
+
+            if( msdSeedContainerCurrFormOpenIsNew ) {
+                if( ok ) {
+                    // Closing after successful submit of New form
+                } else {
+                    // Closing after Cancel on New form
+                    msdSeedContainerCurr.remove();
+                    msdSeedContainerCurr = null;
+                }
+            }
             // allow another block to be clicked (keep msdSeedContainerCurr so a New container can be inserted after it)
             msdSeedContainerCurrFormOpen = false;
+            msdSeedContainerCurrFormOpenIsNew = false;
         } );
 
     // re-enable all control buttons
@@ -208,12 +255,14 @@ function SeedEditFormClose( ok )
 
 function SeedEditValidateContainer( container )
 {
+    let k = 0;
+
     // generally don't allow an msdSeedContainer to be be selected when a form is open
-    if( msdSeedContainerCurrFormOpen ) { console.log("Cannot open multiple forms"); return( null ); }
-
-    let k = parseInt(container.attr("data-kProduct"));
-    if( !k ) { console.log("Invalid data-kProduct"); return( null ); }
-
+    if( msdSeedContainerCurrFormOpen ) {
+        console.log("Cannot open multiple forms");
+    } else {
+        k = parseInt(container.attr("data-kproduct")) || 0;     // apparently this is zero if parseInt returns NaN
+    }
     return( k );
 }
 
@@ -265,15 +314,15 @@ function SeedEditSelectEOffer( msdSeedEdit )
      }
 }
 
-function SeedEditSubmit(kSeed)
+function SeedEditSubmit( kSeed )
 {
     if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
 
     let p = "cmd=msdSeed--Update&kS="+kSeed+"&"+msdSeedContainerCurr.find('select, textarea, input').serialize();
-    //alert(p);
+    console.log(p);
 
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", p );
-    //console.log(oRet);
+    console.log(oRet);
 
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( msdSeedContainerCurr, oRet );
@@ -290,7 +339,7 @@ function SeedEditSubmit(kSeed)
 function SeedEditSkip( container )
 {
     let kSeed = SeedEditValidateContainer( container );
-    if( kSeed == null ) return;
+    if( !kSeed ) return;
 
     SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
 
@@ -303,7 +352,7 @@ function SeedEditSkip( container )
 function SeedEditDelete( container )
 {
     let kSeed = SeedEditValidateContainer( container );
-    if( kSeed == null ) return;
+    if( !kSeed ) return;
 
     SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
 
@@ -315,9 +364,25 @@ function SeedEditDelete( container )
 
 function SeedEditNew()
 {
+    if( msdSeedContainerCurrFormOpen ) return( null );
+
+    // subst the [[]] in the container template
+    let sContHtml = "$msdSeedContainerTemplate";
+
+    // insert a msdSeedContainer in a nice place
+    let container = $(sContHtml);
     if( msdSeedContainerCurr ) {
-        let e = $("<p>Hello World</p>").insertAfter( msdSeedContainerCurr );
+        container.insertAfter( msdSeedContainerCurr );
+    } else {
+        $(".msdSeedContainerList").prepend( container );
     }
+    SeedEditAttachButtons( container );
+
+    // make it the msdSeedContainerCurr, open the form in the container, mark it as a New form so Cancel will remove() it
+    msdSeedContainerCurrFormOpenIsNew = true;
+    SeedEditFormOpen( container );
+
+
 }
 
 function SeedEditAfterSuccess( container, rQ )
@@ -325,11 +390,18 @@ function SeedEditAfterSuccess( container, rQ )
     After a successful update, store the updated data and update the UI to match it
  */
 {
+    let kSeed = rQ['raOut']['_key'];    // for New items this will be novel information
+
     // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
-    msdSeedEditVars.raSeeds[rQ['raOut']['_key']]=rQ['raOut'];
+    msdSeedEditVars.raSeeds[kSeed]=rQ['raOut'];
 
     // sOut contains the revised msdSeedText
     container.find(".msdSeedText").html( rQ['sOut'] );
+
+    // set data-kproduct for New items
+    if( msdSeedContainerCurrFormOpenIsNew ) {
+        container.attr( 'data-kproduct', kSeed );
+    }
 
     switch( rQ['raOut']['eStatus'] ) {
         case 'ACTIVE':

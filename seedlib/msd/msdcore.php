@@ -16,13 +16,17 @@ class MSDCore
     private $oApp;
     private $raConfig;
     private $oSBDB;
+    private $currYear;
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     {
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+        $this->currYear = @$raConfig['config_year'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
     }
+
+    function GetCurrYear()  { return( $this->currYear ); }
 
     function GetSeedKeys( $set = "" )
     /********************************
@@ -95,6 +99,8 @@ class MSDCore
         foreach( $this->GetSeedKeys('ALL') as $k ) {
             $raOut[$k] = $kfrS->Value($k);
         }
+        // the above does raOut['_key']=value('_key') which doesn't actually work, so overwrite it
+        $raOut['_key'] = $kfrS->Key();
 
         return( $raOut );
     }
