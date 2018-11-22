@@ -12,7 +12,7 @@ class SEEDAppImgManager
     // controls
     private $currSubdir;
     private $bShowDelLinks;
-    private $bShowOnlyOverlap;
+    private $bShowOnlyIncomplete;
 
     private $bDebug = false;    // make this true to show what we're doing
 
@@ -28,10 +28,10 @@ class SEEDAppImgManager
         //$this->bShowDelLinks = $oApp->oC->oSVA->SmartGPC( 'imgman_bShowDelLinks', array(0,1) );
         if( isset($_REQUEST['bControlsSubmitted']) ) {  // this just says that the control form was submitted
             $oApp->oC->oSVA->VarSet( 'imgman_bShowDelLinks', intval(@$_REQUEST['imgman_bShowDelLinks']) );
-            $oApp->oC->oSVA->VarSet( 'imgman_bShowOnlyOverlap', intval(@$_REQUEST['imgman_bShowOnlyOverlap']) );
+            $oApp->oC->oSVA->VarSet( 'imgman_bShowOnlyIncomplete', intval(@$_REQUEST['imgman_bShowOnlyIncomplete']) );
         }
         $this->bShowDelLinks = $oApp->oC->oSVA->VarGet( 'imgman_bShowDelLinks' );
-        $this->bShowOnlyOverlap = $oApp->oC->oSVA->VarGet( 'imgman_bShowOnlyOverlap' );
+        $this->bShowOnlyIncomplete = $oApp->oC->oSVA->VarGet( 'imgman_bShowOnlyIncomplete' );
     }
 
     function Main()
@@ -106,7 +106,7 @@ class SEEDAppImgManager
 
         $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
                  ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
-                 ."<div><input type='checkbox' name='imgman_bShowOnlyOverlap' value='1' ".($this->bShowOnlyOverlap ? 'checked' : "")."/> Show Only Incomplete Files</div>"
+                 ."<div><input type='checkbox' name='imgman_bShowOnlyIncomplete' value='1' ".($this->bShowOnlyIncomplete ? 'checked' : "")."/> Show Only Incomplete Files</div>"
                  ."<div><input type='text' name='imgman_currSubdir' id='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/> <button id='backbutton'>&lt;-</button></div>"
                  ."<div><input type='submit' value='Set Controls'/></div>"
              ."</form></div>";
@@ -148,11 +148,20 @@ class SEEDAppImgManager
         foreach( $raFiles as $dir => $raF ) {
             $reldir = substr($dir,strlen($this->rootdir));
 
-            $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=".urlencode($reldir)."'>$dir</a></td></tr>";
+            $bDrawDir = true;
             foreach( $raF as $filename => $raExts ) {
-                if( $this->bShowOnlyOverlap && count($raExts)==1 && isset($raExts['jpeg']) ) {
-                    // don't show files that have been completed
-                    continue;
+                if( $this->bShowOnlyIncomplete ) {
+                    if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
+                    if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
+                    if( count($raExts)==1 &&
+                        (isset($raExts['png']) || isset($raExts['mpg'])) &&
+                        substr($filename,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
+                }
+
+                // this dir has files to show so draw it
+                if( $bDrawDir ) {
+                    $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=".urlencode($reldir)."'>$dir</a></td></tr>";
+                    $bDrawDir = false;
                 }
 
                 $relfile = $reldir.$filename;
