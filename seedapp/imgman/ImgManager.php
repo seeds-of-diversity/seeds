@@ -107,7 +107,7 @@ class SEEDAppImgManager
         $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
                  ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
                  ."<div><input type='checkbox' name='imgman_bShowOnlyOverlap' value='1' ".($this->bShowOnlyOverlap ? 'checked' : "")."/> Show Only Incomplete Files</div>"
-                 ."<div><input type='text' name='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/> Current Subdirectory</div>"
+                 ."<div><input type='text' name='imgman_currSubdir' id='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/> <button id='backbutton'>&lt;-</button></div>"
                  ."<div><input type='submit' value='Set Controls'/></div>"
              ."</form></div>";
 
@@ -118,6 +118,19 @@ class SEEDAppImgManager
             $s .= "<h3>Files under $currDir</h3>";
         }
         $s .= $this->DrawFiles( $raFiles );
+
+        $s .= "<style>#backbutton {}</style>";
+
+        $s .= "<script>
+              $(document).ready( function() {
+                      $('#backbutton').click( function(e) {
+                          e.preventDefault();
+                          let v = $('#imgman_currSubdir').val();
+                          v = v.match( /^(.*)\/.*\/$/ );
+                          $('#imgman_currSubdir').val( v == null ? '' : v[1] );
+                      });
+              });
+               </script>";
 
         $s .= "<script>SEEDCore_CleanBrowserAddress();</script>";
 
@@ -135,7 +148,7 @@ class SEEDAppImgManager
         foreach( $raFiles as $dir => $raF ) {
             $reldir = substr($dir,strlen($this->rootdir));
 
-            $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=$reldir'>$dir</a></td></tr>";
+            $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=".urlencode($reldir)."'>$dir</a></td></tr>";
             foreach( $raF as $filename => $raExts ) {
                 if( $this->bShowOnlyOverlap && count($raExts)==1 && isset($raExts['jpeg']) ) {
                     // don't show files that have been completed
@@ -150,7 +163,7 @@ class SEEDAppImgManager
                 $sMsg = "";
                 $colour = "";
                 foreach( $raExts as $ext => $raFileinfo ) {
-                    $relfname = $relfile.".".$ext;
+                    $relfurl = urlencode($relfile.".".$ext);
                     if( $ext == "jpeg" ) {
                         $infoJpeg = $raFileinfo;
                         $sizeJpeg = $raFileinfo['filesize'];
@@ -161,8 +174,8 @@ class SEEDAppImgManager
                         $scaleOther = $raFileinfo['w'];
                     }
                     $s .= "<td>"
-                             ."<a href='?n=$relfname' target='_blank'>$ext</a>&nbsp;&nbsp;"
-                             .($this->bShowDelLinks ? "<a href='?del=$relfname' style='color:red'>Del</a>" : "")
+                             ."<a href='?n=$relfurl' target='_blank'>$ext</a>&nbsp;&nbsp;"
+                             .($this->bShowDelLinks ? "<a href='?del=$relfurl' style='color:red'>Del</a>" : "")
                          ."</td>";
                 }
                 if( count($raExts) == 1 ) {
@@ -219,8 +232,9 @@ class SEEDAppImgManager
                 $s .= "<td style='font-size:8pt'>$sSize</td>";
 
                 // Fifth column shows action
-                $linkDelJpg = "<b><a href='?del=$relfile.jpg' style='color:red'>Delete</a></b>";
-                $linkKeepJpg = "<b><a href='?move=$relfile.jpg' style='color:green'>Keep</a></b>";
+                $relfurl = urlencode($relfile);
+                $linkDelJpg = "<b><a href='?del=$relfurl.jpg' style='color:red'>Delete</a></b>";
+                $linkKeepJpg = "<b><a href='?move=$relfurl.jpg' style='color:green'>Keep</a></b>";
 
 $nSizePercentThreshold = 90;
 
