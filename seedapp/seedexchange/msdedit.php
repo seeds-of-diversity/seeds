@@ -38,9 +38,9 @@ class MSDAppSeedEdit
     private $sContainer =
         "<div class='well msdSeedContainer' data-kproduct='[[kP]]' style='margin:5px'>"
            ."<div class='msdSeedEditButtonContainer' style='float:right'>"
-               ."<button class='msdSeedEditButton_edit'>Edit</button><br/>"
-               ."<button class='msdSeedEditButton_skip'>[[sButtonSkip]]</button><br/>"
-               ."<button class='msdSeedEditButton_delete'>[[sButtonDelete]]</button></div>"
+               ."<button class='msdSeedEditButton_edit' style='display:none'>Edit</button><br/>"
+               ."<button class='msdSeedEditButton_skip' style='display:none'>Skip</button><br/>"
+               ."<button class='msdSeedEditButton_delete' style='display:none'>Delete</button></div>"
            ."<div class='msdSeedMsg'></div>"
            ."<div class='msdSeedText' style='padding:0px'>[[sSeedText]]</div>"
        ."</div>";
@@ -68,13 +68,13 @@ class MSDAppSeedEdit
                     $category = $kfrcP->Value('PE1_v');
                     $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
                 }
-                $sButtonSkip   = $kfrcP->Value('eStatus') == 'INACTIVE' ? "Un-Skip" : "Skip";
-                $sButtonDelete = $kfrcP->Value('eStatus') == 'DELETED' ? "Un-Delete" : "Delete";
+//                $sButtonSkip   = $kfrcP->Value('eStatus') == 'INACTIVE' ? "Un-Skip" : "Skip";
+//                $sButtonDelete = $kfrcP->Value('eStatus') == 'DELETED' ? "Un-Delete" : "Delete";
 
                 $sC = $this->sContainer;
                 $sC = str_replace( '[[kP]]', $kP, $sC );
-                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
-                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
+//                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
+//                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
                 $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES ), $sC );
                 $sList .= $sC;
 
@@ -104,7 +104,7 @@ class MSDAppSeedEdit
         $oTmpl = SEEDTemplateMaker( $raTmplParms );
 
         $s = $oTmpl->ExpandTmpl( 'msdSpeciesListScript', array() )
-            .$oTmpl->ExpandTmpl( 'msdStyle', array() )
+            .$oTmpl->ExpandTmpl( 'msdEditStyle', array() )
             ."<div class='container-fluid'><div class='row'>"
                 ."<div class='col-sm-2 msd-list-col'>$msdList</div>"
                 ."<div class='col-sm-8'><div class='msdSeedContainerList'>$sList</div></div>"
@@ -157,8 +157,8 @@ $msdSeedEditForm = str_replace("\n","",$msdSeedEditForm);   // jquery doesn't li
 
 $msdSeedContainerTemplate = $this->sContainer;
 $msdSeedContainerTemplate = str_replace( '[[kP]]', "", $msdSeedContainerTemplate );
-$msdSeedContainerTemplate = str_replace( '[[sButtonSkip]]', "Skip", $msdSeedContainerTemplate );
-$msdSeedContainerTemplate = str_replace( '[[sButtonDelete]]', "Delete", $msdSeedContainerTemplate );
+//$msdSeedContainerTemplate = str_replace( '[[sButtonSkip]]', "Skip", $msdSeedContainerTemplate );
+//$msdSeedContainerTemplate = str_replace( '[[sButtonDelete]]', "Delete", $msdSeedContainerTemplate );
 $msdSeedContainerTemplate = str_replace( '[[sSeedText]]', "<h3>New Seed</h3>", $msdSeedContainerTemplate );
 
 
@@ -188,24 +188,35 @@ var msdSeedContainerCurrFormOpenIsNew = false;  // true when an open form is a n
 
 $(document).ready( function() {
     // on click of an msdSeedText or an Edit button, open the edit form
+/*
     $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( $(this).closest(".msdSeedContainer") ); });
 
     // skip and delete buttons
     $(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   $(this).closest(".msdSeedContainer") ); });
     $(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( $(this).closest(".msdSeedContainer") ); });
-
+*/
+    $(".msdSeedContainer").each( function() { SeedEditInitButtons( $(this) ); });
     // new button
     $(".msdSeedEditButton_new").click( function(e)    { SeedEditNew(); });
 });
 
-function SeedEditAttachButtons( container )
+function SeedEditInitButtons( container )
+/****************************************
+    Attach event listeners to the controls in a container. Show/hide the buttons based on eStatus.
+ */
 {
     // on click of an msdSeedText or an Edit button, open the edit form
-    container.find(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( $(this).closest(".msdSeedContainer") ); });
+    container.find(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( container ); });
 
     // skip and delete buttons
-    container.find(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   $(this).closest(".msdSeedContainer") ); });
-    container.find(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( $(this).closest(".msdSeedContainer") ); });
+    container.find(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   container ); });
+    container.find(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( container ); });
+
+    let kSeed = SeedEditGetKProduct( container );
+    if( kSeed ) {
+        let eStatus = msdSeedEditVars.raSeeds[kSeed]['eStatus'];
+        SeedEditSetButtonLabels( container, eStatus )
+    }
 }
 
 function SeedEditFormOpen( container )
@@ -294,10 +305,17 @@ function SeedEditValidateContainer( container )
     if( msdSeedContainerCurrFormOpen ) {
         console.log("Cannot open multiple forms");
     } else {
-        k = parseInt(container.attr("data-kproduct")) || 0;     // apparently this is zero if parseInt returns NaN
+        k = SeedEditGetKProduct( container );
     }
     return( k );
 }
+
+function SeedEditGetKProduct( container )
+{
+    k = parseInt(container.attr("data-kproduct")) || 0;     // apparently this is zero if parseInt returns NaN
+    return( k );
+}
+
 
 function SeedEditSelectContainer( container, bOpenForm )
 {
@@ -436,7 +454,13 @@ function SeedEditAfterSuccess( container, rQ )
         container.attr( 'data-kproduct', kSeed );
     }
 
-    switch( rQ['raOut']['eStatus'] ) {
+    SeedEditSetButtonLabels( container, rQ['raOut']['eStatus'] );
+}
+
+function SeedEditSetButtonLabels( container, eStatus )
+{
+    switch( eStatus ) {
+        default:
         case 'ACTIVE':
             container.find(".msdSeedEditButton_edit").show().html( "Edit" );
             container.find(".msdSeedEditButton_skip").show().html( "Skip" );
