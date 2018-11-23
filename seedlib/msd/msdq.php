@@ -211,10 +211,20 @@ class MSDQ extends SEEDQ
         $bOk = false;
         $sOut = $sErr = "";
 
-        $bModeEdit = strpos( $eDrawMode, 'EDIT' ) !== false;
-        $bModePrint = strpos( $eDrawMode, 'PRINT' ) !== false;
-        $bRequestable = strpos($eDrawMode, 'VIEW_REQUESTABLE') !== false && $this->oMSDCore->IsRequestableByUser( $kfrS );
-
+        /* There are four kinds of views:
+         *     VIEW                 plain screen view
+         *     VIEW_REQUESTABLE     screen view for seed that the user is allowed to request
+         *     EDIT                 drawn in the editor
+         *     PRINT                printed directory
+         */
+        $eView = "VIEW";
+        foreach( array('VIEW_REQUESTABLE','EDIT','PRINT') as $e ) {
+            if( strpos( $eDrawMode, $e ) !== false ) { $eView = $e; break; }
+        }
+        // except the VIEW_REQUESTABLE more is only allowed if the current user is allowed to request the seed
+        if( $eView == 'VIEW_REQUESTABLE' ) {
+            $eView = $this->oMSDCore->IsRequestableByUser( $kfrS ) ? 'VIEW_REQUESTABLE' : 'VIEW';
+        }
 
         $mbrCode = "SODC";
 
@@ -228,9 +238,9 @@ class MSDQ extends SEEDQ
 
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
         $sV = "<b>".$kfrS->value('variety')."</b>"
-             .( $bModePrint ? (" @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" ))
-                            : ($kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" )) );
-        $sOut .= $bRequestable
+             .( $eView=='PRINT' ? (" @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" ))
+                                : ($kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" )) );
+        $sOut .= $eView=='VIEW_REQUESTABLE'
                     ? "<span style='color:#428bca;cursor:pointer;'>$sV</span>"  // color is bootstrap's link color
                     : $sV;
 
@@ -240,7 +250,7 @@ class MSDQ extends SEEDQ
                // this doesn't have much value and it's readily mistaken for the year of harvest
                //  .($this->bReport ? "@Y@: " : "Y: ").$kfrS->value('year_1st_listed').". "
                 .$kfrS->value('description')." "
-                .$kfrS->ExpandIfNotEmpty( 'origin', ($bModePrint ? "@O@" : "Origin").": [[]]. " )
+                .$kfrS->ExpandIfNotEmpty( 'origin', ($eView=='PRINT' ? "@O@" : "Origin").": [[]]. " )
                 .$kfrS->ExpandIfNotEmpty( 'quantity', "<b><i>[[]]</i></b>" );
 
         if( ($price = $kfrS->Value('item_price')) != 0.00 ) {
@@ -249,7 +259,7 @@ class MSDQ extends SEEDQ
 
         $sFloatRight = "";
         // Edit mode shows some contextual facts floated right that are not shown or shown in other places in other views
-        if( $bModeEdit && $kfrS->value('eStatus')=='ACTIVE' ) {
+        if( $eView=='EDIT' && $kfrS->value('eStatus')=='ACTIVE' ) {
             switch( $kfrS->Value('eOffer') ) {
                 default:
                 case 'member':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
@@ -258,13 +268,13 @@ class MSDQ extends SEEDQ
             }
             $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>"
                            ."<div style='text-align:right'>First listed: ".$kfrS->Value('year_1st_listed')."</div>";
-        } else if( $bRequestable ) {
+        } else if( $eView =='VIEW_REQUESTABLE' ) {
             $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
         }
         if( $sFloatRight ) $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
 
         // Show colour-coded backgrounds for Deletes, Skips, and Changes
-        if( $bModeEdit ) {
+        if( $eView=='EDIT' ) {
             if( $kfrS->value('eStatus') == 'DELETED' ) {
                 $sOut = "<div class='sed_seed_delete'><b><i>".($this->oApp->lang=='FR' ? "Supprim&eacute;" : "Deleted")."</i></b>"
                     .SEEDCore_NBSP("   ")
@@ -282,7 +292,7 @@ class MSDQ extends SEEDQ
 
 
         // close the text in an outer div
-// if( !$bModePrint ) -- not sure whether this div is good with print
+// if( $eView!='PRINT' ) -- not sure whether this div is good with print
         $sOut = "<div class='sed_seed' id='Seed".$kfrS->Key()."'>$sOut</div>";
 
 

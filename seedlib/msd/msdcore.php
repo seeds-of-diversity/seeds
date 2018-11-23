@@ -130,13 +130,22 @@ class MSDCore
         if( $kfrS->value('eStatus') != 'ACTIVE' )  goto done;
 
         switch( $kfrS->value('eOffer') ) {
+            default:
             case 'member':
-$ok = false;// "I am a current member";
+                // I am a member
+                $ok = $this->oApp->sess->CanRead( 'sed' );
                 break;
             case 'grower':
-$ok = false;//"I am a listed member";
+                // I am a member offering seeds
+                $ok = $this->oApp->sess->CanRead( 'sed' ) &&
+                      ($this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.SEEDBasket_Products "
+                                                 ."WHERE uid_seller='".$this->oApp->sess->GetUID()."' AND "
+                                                       ."product_type='seeds' AND "
+                                                       ."eStatus='ACTIVE' AND "
+                                                       ."_status='0'" ));
                 break;
             case 'public':
+                // anyone can request these seeds
                 $ok = true;
                 break;
         }
