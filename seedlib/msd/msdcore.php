@@ -120,6 +120,31 @@ class MSDCore
         return( $bOk );
     }
 
+    function IsRequestableByUser( $kfrS )
+    /************************************
+        Return true if the currently logged-in user is allowed to request this seed
+     */
+    {
+        $ok = false;
+
+        if( $kfrS->value('eStatus') != 'ACTIVE' )  goto done;
+
+        switch( $kfrS->value('eOffer') ) {
+            case 'member':
+$ok = false;// "I am a current member";
+                break;
+            case 'grower':
+$ok = false;//"I am a listed member";
+                break;
+            case 'public':
+                $ok = true;
+                break;
+        }
+
+        done:
+        return( $ok );
+    }
+
     function SeedCursorOpen( $cond )
     {
 // could just do $kfrcP = $this->oDB->GetKFRC( "P", "product_type='seeds' ".($cond ? "AND $cond " : "") if sorting is not required

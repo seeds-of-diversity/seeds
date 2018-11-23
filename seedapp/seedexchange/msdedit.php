@@ -427,13 +427,11 @@ function SeedEditNew()
     } else {
         $(".msdSeedContainerList").prepend( container );
     }
-    SeedEditAttachButtons( container );
+    SeedEditInitButtons( container );
 
     // make it the msdSeedContainerCurr, open the form in the container, mark it as a New form so Cancel will remove() it
     msdSeedContainerCurrFormOpenIsNew = true;
     SeedEditFormOpen( container );
-
-
 }
 
 function SeedEditAfterSuccess( container, rQ )

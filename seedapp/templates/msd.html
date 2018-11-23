@@ -2,7 +2,28 @@
 
 %% msdStyle
 <style>
-    /* msd-head is positioned at the top, full width, zorder above msd-main.
+    .msd-list-col             { }
+    .msd-list                 { background-color: #eee; position:fixed; top:100px; padding:3px; }  /*border-right:0px solid #aaa; */
+    .msd-list-category        { border-bottom:1px solid #ddd; margin-bottom:5px; }
+    .msd-list-category-title  { font-weight:bold; cursor:pointer; }
+    .msd-list-species-group   { margin-left:10px; display:none; font-size:12px; cursor:pointer; }
+
+    .msd-body                 { }
+    .msd-body-title           { font-size: 30px; }  // 30px is the same as bootstrap h2
+    .msd-body-varieties       { margin-left: 20px; }
+
+    .msd-basket-col           { }
+    .msd-basket-col-fixed     { position:fixed; top:100px; }   /* a fixed box in the right column */
+
+    .msd-order-info           { background-color:#eee; width:100%; margin-bottom:40px; text-align:center; padding:15px;
+                                border-bottom:1px solid #888; border-left:1px solid #888; border-right:1px solid #888;}
+
+</style>
+
+%% msdBasketStyle
+[[Include:msdStyle]]
+<style>
+    /* msd-head is positioned at the top, full width, z-order above msd-main.
      * msd-main is positioned at 100px from the top, full width, zorder beneath msd-main.
      * This clips msd-main when it scrolls up.
      * All other fixed-position elements have to be positioned the same way wrt top:, but they don't have scrolling issues.
@@ -31,22 +52,6 @@
         /* padding:10px; */
     }
 
-    .msd-list-col             { }
-    .msd-list                 { background-color: #eee; position:fixed; top:100px; padding:3px; }  /*border-right:0px solid #aaa; */
-    .msd-list-category        { border-bottom:1px solid #ddd; margin-bottom:5px; }
-    .msd-list-category-title  { font-weight:bold; cursor:pointer; }
-    .msd-list-species-group   { margin-left:10px; display:none; font-size:12px; cursor:pointer; }
-
-    .msd-body                 { }
-    .msd-body-title           { font-size: 30px; }  // 30px is the same as bootstrap h2
-    .msd-body-varieties       { margin-left: 20px; }
-
-    .msd-basket-col           { }
-    .msd-basket-col-fixed     { position:fixed; top:100px; }   /* a fixed box in the right column */
-
-    .msd-order-info           { background-color:#eee; width:100%; margin-bottom:40px; text-align:center; padding:15px;
-                                border-bottom:1px solid #888; border-left:1px solid #888; border-right:1px solid #888;}
-
 
     /* put these in a shared template */
     .storeBox
@@ -60,12 +65,7 @@
     .storeBasketErrmsg
         { color:red; text-align:center; }
 
-    .sed_seed_mc { float: right; }
-</style>
-
-%% msdBasketStyle
-[[Include:msdStyle]]
-<style>
+    .sed_seed_mc { float: right; }  /* also used by msdSeedEdit because it is in msdSeedText but that doesn't want floating */
 </style>
 
 %% msdEditStyle
@@ -186,6 +186,7 @@ function msdResize()
 function msdResizeBasket()
 {
     // msd-basket: Give it a scrollbar if it is taller than the window
+    let hw = $(window).height();
     let hd = $(".msd-basket-col").height();
     let wd = $(".msd-basket-col").width();
     let yd = $(".msd-basket-col").offset().top;

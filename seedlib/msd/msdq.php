@@ -213,6 +213,7 @@ class MSDQ extends SEEDQ
 
         $bModeEdit = strpos( $eDrawMode, 'EDIT' ) !== false;
         $bModePrint = strpos( $eDrawMode, 'PRINT' ) !== false;
+        $bRequestable = strpos($eDrawMode, 'VIEW_REQUESTABLE') !== false && $this->oMSDCore->IsRequestableByUser( $kfrS );
 
 
         $mbrCode = "SODC";
@@ -229,7 +230,7 @@ class MSDQ extends SEEDQ
         $sV = "<b>".$kfrS->value('variety')."</b>"
              .( $bModePrint ? (" @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" ))
                             : ($kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" )) );
-        $sOut .= strpos($eDrawMode, 'VIEW_REQUESTABLE') !== false
+        $sOut .= $bRequestable
                     ? "<span style='color:#428bca;cursor:pointer;'>$sV</span>"  // color is bootstrap's link color
                     : $sV;
 
@@ -246,10 +247,9 @@ class MSDQ extends SEEDQ
              $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." ".SEEDCore_Dollar( $price, $this->oApp->lang );
         }
 
-
+        $sFloatRight = "";
         // Edit mode shows some contextual facts floated right that are not shown or shown in other places in other views
         if( $bModeEdit && $kfrS->value('eStatus')=='ACTIVE' ) {
-            $sFloatRight = "";
             switch( $kfrS->Value('eOffer') ) {
                 default:
                 case 'member':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
@@ -258,8 +258,10 @@ class MSDQ extends SEEDQ
             }
             $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>"
                            ."<div style='text-align:right'>First listed: ".$kfrS->Value('year_1st_listed')."</div>";
-            $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
+        } else if( $bRequestable ) {
+            $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
         }
+        if( $sFloatRight ) $sOut = "<div style='float:right'>$sFloatRight</div>".$sOut;
 
         // Show colour-coded backgrounds for Deletes, Skips, and Changes
         if( $bModeEdit ) {
