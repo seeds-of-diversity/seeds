@@ -50,6 +50,8 @@ class MSDAppSeedEdit
         $s = "";
         $sForm = $sList = "";
 
+        $uidSeller = $this->oSB->oApp->sess->GetUID();
+
         $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
         $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
         $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
@@ -60,7 +62,7 @@ class MSDAppSeedEdit
 //                                                   ."AND PE2.k='species' "
 //                                                   ."AND PE3.k='variety' ",
 //                                                   array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
-        if( ($kfrcP = $oMSDCore->SeedCursorOpen( "uid_seller='1'" )) ) {
+        if( ($kfrcP = $oMSDCore->SeedCursorOpen( "uid_seller='$uidSeller'" )) ) {
             $category = "";
             while( $oMSDCore->SeedCursorFetch( $kfrcP ) ) { // $kfrcP->CursorFetch() ) {
                 $kP = $kfrcP->Key();
