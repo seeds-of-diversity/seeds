@@ -80,7 +80,7 @@ class MSDAppSeedEdit
                 $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES ), $sC );
                 $sList .= $sC;
 
-                $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP );
+                $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP, array('bUTF8'=>true) );
             }
         }
 

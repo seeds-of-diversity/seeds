@@ -136,7 +136,7 @@ class MSDQ extends SEEDQ
 
         if( ($kfrc = $this->oMSDCore->SeedCursorOpen( $cond )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
-                $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc );
+                $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
             }
         }
 

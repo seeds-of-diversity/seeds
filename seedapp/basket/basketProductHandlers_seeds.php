@@ -215,14 +215,17 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function GetProductValues( KeyframeRecord $kfrP )
-    /************************************************
+    function GetProductValues( KeyframeRecord $kfrP, $raParms = array() )
+    /********************************************************************
         Return an array of normalized "seed" values for this product
+
+        raParms: bUTF8 (default false)
      */
     {
         $raS = array();
 
-        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
+        $bUTF8 = @$raParms['bUTF8'];
+        $oMSDQ = new MSDQ( $this->oSB->oApp, array('bUTF8'=>$bUTF8) );
         $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', array('kS'=>$kfrP->Key()) );
         if( $rQ['bOk'] ) {
             // msdSeedList-GetData returns an array( kS1=>array(), kS2=>array(),... ) because it can return multiple records.

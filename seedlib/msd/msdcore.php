@@ -88,16 +88,19 @@ class MSDCore
         return( $kfrP );
     }
 
-    function GetSeedRAFromKfr( KeyframeRecord $kfrS )
-    /************************************************
+    function GetSeedRAFromKfr( KeyframeRecord $kfrS, $raParms = array() )
+    /********************************************************************
         kfrS is a SEEDBasket_Product
         Return an array of standard msd seed values. The kfr must have come from one of the methods above so it has prodextra information included in it.
      */
     {
         $raOut = array();
 
+        $bUTF8 = @$raParms['bUTF8'];
+
         foreach( $this->GetSeedKeys('ALL') as $k ) {
-            $raOut[$k] = $kfrS->Value($k);
+            $v = $kfrS->Value($k);
+            $raOut[$k] = $bUTF8 ? utf8_encode($v) : $v;
         }
         // the above does raOut['_key']=value('_key') which doesn't actually work, so overwrite it
         $raOut['_key'] = $kfrS->Key();

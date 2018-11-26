@@ -285,8 +285,8 @@ class SEEDBasketProductHandler
     }
 
 
-    function GetProductValues( KeyframeRecord $kfrP )
-    /************************************************
+    function GetProductValues( KeyframeRecord $kfrP, $raParms = array() )
+    /********************************************************************
         Given a product record, return an array of values normalized for the product type.
      */
     {
