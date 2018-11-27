@@ -227,6 +227,8 @@ function SeedEditFormOpen( container )
     Input is the msdSeedContainer of the listing.
  */
 {
+if( msdSeedContainerCurrFormOpen ) return;  // ValidateContainer returns 0 if already open, but that is ignored if a New form is currently open
+
     let kSeed = SeedEditValidateContainer( container );
     if( !kSeed && !msdSeedContainerCurrFormOpenIsNew ) return;
     if( kSeed && msdSeedEditVars.raSeeds[kSeed]['eStatus'] == 'DELETED' )  return;   // ignore click on msdText if deleted record
