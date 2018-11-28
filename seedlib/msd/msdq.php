@@ -226,7 +226,7 @@ class MSDQ extends SEEDQ
             $eView = $this->oMSDCore->IsRequestableByUser( $kfrS ) ? 'VIEW_REQUESTABLE' : 'VIEW';
         }
 
-        $mbrCode = "SODC";
+        $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
 
         // Show the category and species
         if( strpos( $eDrawMode, 'VIEW_SHOWCATEGORY' ) !== false ) {
