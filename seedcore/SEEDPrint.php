@@ -12,8 +12,9 @@ class SEEDPrintHTML
     Formats HTML pages for printing
  */
 {
+// 2018-11 changed top from 1.825in to 1.945in because it looked like the address should be 3mm lower
     protected $sStyle = "
-.SPaddrblock { position:absolute; width:3.5in; height:1in; left:0.75in; top:1.825in; border:1px dashed #fff; } /* change #fff to something else to see where the address will go */
+.SPaddrblock { position:absolute; width:3.5in; height:1in; left:0.75in; top:1.945in; border:1px dashed #fff; } /* change #fff to something else to see where the address will go */
 .SPaddrblockpad { padding:0.125in; white-space: nowrap; }
 ";
     protected $sBody = "";
