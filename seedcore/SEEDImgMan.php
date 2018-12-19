@@ -46,17 +46,23 @@ class SEEDImgMan
 
     function ImgInfoByFilename( $filename )
     {
-        $ra = array( 'w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0 );
+        $ra = array( 'w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0, 'filesize_human'=>0 );
+
+        if( in_array( substr($filename,-4), array('.mp4','.mpg','.flv') ) ) goto done;
 
         if( file_exists($filename) ) {
             //var_dump($filename);
-            $sz = getimagesize($filename);
+            if( !($sz = getimagesize($filename)) ) {
+                echo "<p>Could not read $filename</p>";
+                goto done;
+            }
             $ra['w'] = $sz[0];
             $ra['h'] = $sz[1];
             $ra['mime'] = $sz['mime'];
             $ra['filesize'] = filesize($filename);
             $ra['filesize_human'] = SEEDCore_HumanFilesize( $ra['filesize'] );
         }
+        done:
         return( $ra );
     }
 
