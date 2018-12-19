@@ -17,7 +17,7 @@ class SEEDAppImgManager
     function __construct( SEEDAppConsole $oApp, $raConfig )
     {
         $this->oApp = $oApp;
-        $this->oIML = new SEEDImgManLib( $oApp );
+        $this->oIML = new SEEDImgManLib( $oApp, $raConfig['imgmanlib'] );
 
         $this->rootdir = $raConfig['rootdir'];
         $this->currSubdir = $oApp->oC->oSVA->SmartGPC( 'imgman_currSubdir', array() );
@@ -52,7 +52,7 @@ class SEEDAppImgManager
         if( substr($currDir,-1,1) != '/' ) $currDir .= '/';
 
         if( ($cmd = SEEDInput_Str('cmd')) ) {
-            $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ), array( 'fSizePercentThreshold'=>90.0 ) );
+            $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
 
             if( $cmd == 'singlekeep' || $cmd == 'singledelete' ) {
                 if( !($relbase = SEEDInput_Str('relbase')) )  die( "relbase not specified with cmd $cmd" );
@@ -77,7 +77,7 @@ class SEEDAppImgManager
         }
 
         // re-run this to get any changes made above
-        $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ), array( 'fSizePercentThreshold'=>90.0 ) );
+        $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
 
         $nActionConvert = $nActionKeep = $nActionDelete = 0;
         /* $raFiles = [dir][filebase] => array( 'exts'=> [ext1 => fileinfo, ext2 => fileinfo, ...], 'action' => ... )
@@ -275,9 +275,9 @@ $fScalePercentThreshold = 90.0;
 }
 
 
-function ImgManagerApp( SEEDAppConsole $oApp, $rootdir )
+function ImgManagerApp( SEEDAppConsole $oApp, $rootdir, $raConfig )
 {
-    $oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir ) );
+    $oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir, 'imgmanlib' => $raConfig['imgmanlib'] ) );
 
     $raParms = array( "raScriptFiles" => array( W_CORE."js/SEEDCore.js" ) );
     echo Console02Static::HTMLPage( utf8_encode($oImgApp->Main()), "", 'EN', $raParms );   // sCharset defaults to utf8

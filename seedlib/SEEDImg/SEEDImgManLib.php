@@ -16,9 +16,14 @@ class SEEDImgManLib
 
     private $bDebug = false;    // make this true to show what we're doing
 
-    function __construct( SEEDAppSession $oApp )
+    function __construct( SEEDAppSession $oApp, $raConfig )
     {
         $this->oApp = $oApp;
+        $this->raConfig = $raConfig;
+        if( !isset($this->raConfig['fSizePercentThreshold']) )  die( "fSizePercentThreshold not defined in SEEDImgManLib raConfig" );
+        if( !isset($this->raConfig['bounding_box']) )           die( "bounding_box not defined in SEEDImgManLib raConfig" );
+        if( !isset($this->raConfig['jpg_quality']) )            die( "jpg_quality not defined in SEEDImgManLib raConfig" );
+
         $this->oIM = new SEEDImgMan();
     }
 
@@ -65,17 +70,11 @@ class SEEDImgManLib
         return( $raFiles );
     }
 
-    function AnalyseImages( $raFiles, $raParms )
-    /*******************************************
+    function AnalyseImages( $raFiles )
+    /*********************************
         With a file list from GetAllImgDir, decide what needs to be done
-
-        raParms: fSizePercentThreshold = % of size reduction beneath which we recommend to delete original
      */
     {
-        if( !($fSizePercentThreshold = @$raParms['fSizePercentThreshold']) ) {
-            die( 'fSizePercentThreshold not defined in SEEDImgManLib::AnalyseImages()' );
-        }
-
         foreach( $raFiles as $dir => &$raF ) {
             foreach( $raF as $file => &$raFVar ) {
                 $raExts = $raFVar['exts'];
@@ -108,7 +107,7 @@ class SEEDImgManLib
 
                 // If there are scales and sizes of two files to compare, recommend an action
                 if( $scaleJpeg && $scaleOther && $sizeJpeg && $sizeOther ) {
-                    if( $raFVar['info']['sizePercent'] <= $fSizePercentThreshold ) {
+                    if( $raFVar['info']['sizePercent'] <= $this->raConfig['fSizePercentThreshold'] ) {
                         $raFVar['action'] = 'DELETE_ORIG MAJOR_FILESIZE_REDUCTION';
                     } else if( $sizeJpeg < $sizeOther ) {
                         $raFVar['action'] = 'KEEP_ORIG MINOR_FILESIZE_REDUCTION';
@@ -131,7 +130,10 @@ class SEEDImgManLib
         switch( $action ) {
             case 'CONVERT':
                 $ext = isset($raFVar['exts']['jpg']) ? 'jpg' : 'JPG';
-                $exec = "convert \"${dir}${filebase}.${ext}\" -quality 85 -resize 1200x1200\> \"${dir}${filebase}.jpeg\"";
+                $exec = "convert \"${dir}${filebase}.${ext}\" "
+                       ."-quality {$this->raConfig['jpg_quality']} "
+                       ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
+                       ."\"${dir}${filebase}.jpeg\"";
                 if( $this->bDebug ) echo $exec."<br/>";
                 exec( $exec );
                 // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)
