@@ -150,7 +150,7 @@ $msdSeedEditForm = <<<msdSeedEditForm
         <td><select id='msdSeedEdit_eOffer' name='eOffer'><option value='member'>All Members</option><option value='grower-member'>Only members who also list seeds</option><option value='public'>General public</option></select></td>
         <td><p class='msdSeedEdit_instruction'><b>Who may request these seeds from you</b>: <span id='msdSeedEdit_eOffer_instructions'></span></p></td>
     </tr><tr>
-        <td><nobr>$<input type='text' id='msdSeedEdit_price' name='price' class='msdSeedEdit_inputText'/></nobr></td>
+        <td><nobr>$<input type='text' id='msdSeedEdit_item_price' name='item_price' class='msdSeedEdit_inputText'/></nobr></td>
         <td><div class='msdSeedEdit_instruction'><b>Price</b>: We recommend $3.50 for seeds and $12.00 for roots and tubers. That is the default if you leave this field blank. Members who offer seeds (like you!) get an automatic discount of $1 per item.</div></td>
     </tr></table>
     <input type='submit' value='Save'/> <button class='msdSeedEditCancel' type='button'>Cancel</button>
