@@ -2,11 +2,10 @@
 
 /* MSDCore
  *
- * Copyright (c) 2018 Seeds of Diversity
+ * Copyright (c) 2018-2019 Seeds of Diversity
  *
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
-
 
 class MSDCore
 /************
@@ -23,10 +22,26 @@ class MSDCore
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
-        $this->currYear = @$raConfig['config_year'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
+        $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
     }
 
     function GetCurrYear()  { return( $this->currYear ); }
+
+    /* Permissions are defined by MSD = what each member can do with their own listings
+     *                            MSDOffice = what office volunteers and staff can do with the whole directory
+     *
+     *      MSD:R         you can read your own information in the msd (we don't use this because any member can)
+     *      MSD:W         you can edit your own information (we probably don't use this because any member can)
+     *      MSD:A         we don't use this because magical abilities are given by MSDOffice:A
+     *      MSDOffice:R   you can look at anyone's non-public information (like their INACTIVE seeds)
+     *      MSDOffice:W   you can edit anyone's seeds
+     *      MSDOffice:A   you can do magical things with the Member Seed Directory
+     */
+    //function PermMSDR()
+    //function PermMSDW()
+    //function PermOfficeR()
+    function PermOfficeW()  { return( $this->oApp->sess->CanWrite('MSDOffice') || $this->PermAdmin() ); }
+    function PermAdmin()    { return( $this->oApp->sess->CanAdmin('MSDOffice') ); }
 
     function GetSeedKeys( $set = "" )
     /********************************
@@ -92,6 +107,8 @@ class MSDCore
     /********************************************************************
         kfrS is a SEEDBasket_Product
         Return an array of standard msd seed values. The kfr must have come from one of the methods above so it has prodextra information included in it.
+
+        Values in the kfrS are always cp1252: use $raParms['bUTF8'] to get all fields in utf8
      */
     {
         $raOut = array();
@@ -112,6 +129,8 @@ class MSDCore
     /******************************************
         kfrS is a SEEDBasket_Product
         Save a seed kfr to database. It must already be validated (or move validation code here?)
+
+        Values in the kfrS are always cp1252 to convert them before SetValue before calling this
      */
     {
         // Save/update the product and get a product key if it's a new row.  Then save/update all the prodextra items.
@@ -136,10 +155,12 @@ class MSDCore
             default:
             case 'member':
                 // I am a member
+// use a different method to determine membership
                 $ok = $this->oApp->sess->CanRead( 'sed' );
                 break;
             case 'grower':
                 // I am a member offering seeds
+// use a different method to determine membership
                 $ok = $this->oApp->sess->CanRead( 'sed' ) &&
                       ($this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.SEEDBasket_Products "
                                                  ."WHERE uid_seller='".$this->oApp->sess->GetUID()."' AND "
@@ -172,7 +193,7 @@ class MSDCore
 
     function SeedCursorFetch( KeyframeRecord &$kfrP )
     /************************************************
-        kfrS is a SEEDBasket_Product
+        kfrP is a SEEDBasket_Product
      */
     {
         if( ($ok = $kfrP->CursorFetch()) ) {
@@ -446,4 +467,3 @@ class MSDCore
             'TURNIP - RUTABAGA' => array( 'FR' => 'Rutabagas' ),
     );
 }
-

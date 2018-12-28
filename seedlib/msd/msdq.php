@@ -12,19 +12,17 @@ class MSDQ extends SEEDQ
 {
     private $oMSDCore;
     private $kUidSeller;
-    private $bIsAdmin;
 
     function __construct( SEEDAppConsole $oApp, $raConfig )
     /******************************************************
-        raConfig: config_OverrideUidSeller = the uid_seller for multi-grower app, only allowed if sess->CanAdmin('MSDAdmin')
-                  config_year              = the MSD year for new listings
+        raConfig: config_OverrideUidSeller = the uid_seller for multi-grower app, only allowed if sess->CanWrite('MSDOffice')
+                  config_currYear          = the MSD year for new listings
      */
     {
         parent::__construct( $oApp, $raConfig );
-        $this->oMSDCore = new MSDCore( $oApp, array('currYear'=>@$raConfig['currYear']) );
+        $this->oMSDCore = new MSDCore( $oApp, array('currYear'=>@$raConfig['config_currYear']) );
 
-        $this->bIsAdmin = $oApp->sess->CanAdmin( "MSDAdmin" );
-        $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $this->bIsAdmin)
+        $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $this->oMSDCore->PermOfficeW())
                             ? $k : $oApp->sess->GetUID();
     }
 
@@ -81,7 +79,7 @@ class MSDQ extends SEEDQ
                 list($rQ['bOk'],$rQ['sErr']) = $this->seedUpdate( $kfrS, $raParms );
                 if( $rQ['bOk'] ) {
                     // extract seed data from the kfr in a standardized way
-                    $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
+                    $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS, array('bUTF8'=>$this->bUTF8) );
                     list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
                 }
                 break;
@@ -92,7 +90,7 @@ class MSDQ extends SEEDQ
                     case 'INACTIVE': $kfrS->SetValue( 'eStatus', 'ACTIVE' ); break;
                 }
                 $rQ['bOk'] = $kfrS->PutDBRow();
-                $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
+                $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS, array('bUTF8'=>$this->bUTF8) );
                 list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
                 break;
 
@@ -102,7 +100,7 @@ class MSDQ extends SEEDQ
                     case 'DELETED': $kfrS->SetValue( 'eStatus', 'ACTIVE' ); break;
                 }
                 $rQ['bOk'] = $kfrS->PutDBRow();
-                $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS );
+                $rQ['raOut'] = $this->oMSDCore->GetSeedRAFromKfr( $kfrS, array('bUTF8'=>$this->bUTF8) );
                 list($dummy,$rQ['sOut'],$dummy) = $this->seedDraw( $kfrS, self::SEEDDRAW_EDIT.' '.self::SEEDDRAW_VIEW_SHOWSPECIES );
                 break;
         }
@@ -157,10 +155,12 @@ class MSDQ extends SEEDQ
         $bOk = false;
         $sErr = "";
 
-        // overlay the raParms on the kfr
+        // Overlay the raParms on the kfr. The kfr always contains cp1252, so if the parms are utf8 convert the encoding.
         foreach( $this->oMSDCore->GetSeedKeys('PRODUCT PRODEXTRA') as $k ) {
             if( isset($raParms[$k]) ) {
-                $kfrS->SetValue( $k, $raParms[$k] );
+                $v = $raParms[$k];
+                if( $this->bUTF8 ) $v = utf8_decode($v);
+                $kfrS->SetValue( $k, $v );
             }
         }
 
@@ -180,11 +180,11 @@ class MSDQ extends SEEDQ
         // validate the result
         if( !isset( $this->oMSDCore->GetCategories()[$kfrS->Value('category')] ) ) {
             $sErr = $kfrS->Value('category')." is not a seed directory category";
-            goto done;
+            //goto done;
         }
         if( !$kfrS->Value('species') ) {
             $sErr = "Please enter a species name";
-            goto done;
+            //goto done;
         }
 
         // save the product and prodextra
@@ -221,25 +221,33 @@ class MSDQ extends SEEDQ
         foreach( array('VIEW_REQUESTABLE','EDIT','PRINT') as $e ) {
             if( strpos( $eDrawMode, $e ) !== false ) { $eView = $e; break; }
         }
-        // except the VIEW_REQUESTABLE more is only allowed if the current user is allowed to request the seed
+        // except the VIEW_REQUESTABLE mode is only allowed if the current user is allowed to request the seed
         if( $eView == 'VIEW_REQUESTABLE' ) {
             $eView = $this->oMSDCore->IsRequestableByUser( $kfrS ) ? 'VIEW_REQUESTABLE' : 'VIEW';
         }
 
         $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
 
+        $raSeed = $this->oMSDCore->GetSeedRAFromKfr( $kfrS, array('bUTF8'=>$this->bUTF8) );
+
         // Show the category and species
         if( strpos( $eDrawMode, 'VIEW_SHOWCATEGORY' ) !== false ) {
-            $sOut .= "<div class='msdSeedText_category'>".$this->oMSDCore->TranslateCategory( $kfrS->value('category') )."</div>";
+            // if category were stored in utf8 and its translations were too, it would not be complicated to decide where to change the encoding
+            $sOut .= "<div class='msdSeedText_category'>"
+                    .$this->QCharset( $this->oMSDCore->TranslateCategory( $kfrS->value('category') ) )
+                    ."</div>";
         }
         if( strpos( $eDrawMode, 'VIEW_SHOWSPECIES' ) !== false ) {
-            $sOut .= "<div class='msdSeedText_species'>".$this->oMSDCore->TranslateSpecies( $kfrS->value('species') )."</div>";
+            // if species were stored in utf8 and its translations were too, it would not be complicated to decide where to change the encoding
+            $sOut .= "<div class='msdSeedText_species'>"
+                    .$this->QCharset( $this->oMSDCore->TranslateSpecies( $kfrS->value('species') ) )
+                    ."</div>";
         }
 
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
-        $sV = "<b>".$kfrS->value('variety')."</b>"
-             .( $eView=='PRINT' ? (" @M@ <b>$mbrCode</b>".$kfrS->ExpandIfNotEmpty( 'bot_name', "<br/><b><i>[[]]</i></b>" ))
-                                : ($kfrS->ExpandIfNotEmpty( 'bot_name', " <b><i>[[]]</i></b>" )) );
+        $sV = "<b>{$raSeed['variety']}</b>"
+             .( $eView=='PRINT' ? (" @M@ <b>$mbrCode</b>".SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'bot_name', "<br/><b><i>[[]]</i></b>" ))
+                                : (SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'bot_name', " <b><i>[[]]</i></b>" )) );
         $sOut .= $eView=='VIEW_REQUESTABLE'
                     ? "<span style='color:#428bca;cursor:pointer;'>$sV</span>"  // color is bootstrap's link color
                     : $sV;
@@ -249,9 +257,9 @@ class MSDQ extends SEEDQ
                 .$kfrS->ExpandIfNotEmpty( 'days_maturity', "[[]] dtm. " )
                // this doesn't have much value and it's readily mistaken for the year of harvest
                //  .($this->bReport ? "@Y@: " : "Y: ").$kfrS->value('year_1st_listed').". "
-                .$kfrS->value('description')." "
-                .$kfrS->ExpandIfNotEmpty( 'origin', ($eView=='PRINT' ? "@O@" : "Origin").": [[]]. " )
-                .$kfrS->ExpandIfNotEmpty( 'quantity', "<b><i>[[]]</i></b>" );
+                .$raSeed['description']." "
+                .SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'origin', ($eView=='PRINT' ? "@O@" : "Origin").": [[]]. " )
+                .SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'quantity', "<b><i>[[]]</i></b>" );
 
         if( ($price = $kfrS->Value('item_price')) != 0.00 ) {
              $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." ".SEEDCore_Dollar( $price, $this->oApp->lang );
@@ -305,23 +313,24 @@ class MSDQ extends SEEDQ
     private function canReadSeed( $kfrP )
     /************************************
         Anyone is allowed to see an ACTIVE seed product. Sellers can see their own non-ACTIVE seed products.
+        Office personnel can see any seed product.
      */
     {
         $ok = $kfrP
            && $kfrP->Value('product_type') == 'seeds'
-           && ($kfrP->Value('eStatus')=='ACTIVE' || $kfrP->Value('uid_seller')==$this->oApp->sess->GetUID() || $this->bIsAdmin);
+           && ($kfrP->Value('eStatus')=='ACTIVE' || $kfrP->Value('uid_seller')==$this->oApp->sess->GetUID() || $this->oMSDCore->PermOfficeW());
 
         return( $ok );
     }
 
     private function canWriteSeed( $kfrP )
     /*************************************
-        You have to be the seller or an admin.
+        You have to be the seller of this seed or an office personnel.
      */
     {
         $ok = $kfrP
            && $kfrP->Value('product_type') == 'seeds'
-           && ($kfrP->Value('uid_seller')==$this->oApp->sess->GetUID() || $this->bIsAdmin);
+           && ($kfrP->Value('uid_seller')==$this->oApp->sess->GetUID() || $this->oMSDCore->PermOfficeW());
 
         return( $ok );
     }

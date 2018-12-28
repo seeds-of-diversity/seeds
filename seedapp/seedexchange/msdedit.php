@@ -45,12 +45,12 @@ class MSDAppSeedEdit
            ."<div class='msdSeedText' style='padding:0px'>[[sSeedText]]</div>"
        ."</div>";
 
-    function Draw()
+    function Draw( $uidSeller )
     {
         $s = "";
         $sForm = $sList = "";
 
-        $uidSeller = $this->oSB->oApp->sess->GetUID();
+        if( !$uidSeller )  $uidSeller = $this->oSB->oApp->sess->GetUID();
 
         $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
         $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
@@ -183,7 +183,7 @@ basketStyle;
 
 $s .= <<<basketScript
 <script>
-var msdSeedEditVars = { qUrl:"", raSeeds:[] };
+var msdSeedEditVars = { qUrl:"", raSeeds:[], overrideUidSeller:0 };
 var msdSeedContainerCurr = null;                // the current msdSeedContainer
 var msdSeedContainerCurrFormOpen = false;       // true when the form is open (generally all other inputs are disabled)
 var msdSeedContainerCurrFormOpenIsNew = false;  // true when an open form is a new entry (so Cancel will .remove() it)
@@ -373,7 +373,9 @@ function SeedEditSubmit( kSeed )
 {
     if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
 
-    let p = "cmd=msdSeed--Update&kS="+kSeed+"&"+msdSeedContainerCurr.find('select, textarea, input').serialize();
+    let p = "cmd=msdSeed--Update&kS="+kSeed+"&"
+          + (msdSeedEditVars['overrideUidSeller'] ? ("config_OverrideUidSeller="+msdSeedEditVars['overrideUidSeller']+"&") : "")
+          + msdSeedContainerCurr.find('select, textarea, input').serialize();
     console.log(p);
 
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", p );
@@ -490,11 +492,19 @@ function SeedEditAfterError( container, rQ )
 </script>
 basketScript;
 
-        // Set parameters for msdSeedEdit. These are initialized to blank, required before you click on anything
+        /* Set parameters for msdSeedEdit. These are initialized to blank, required before you click on anything.
+         *
+         * raSeeds           : All the seed information is drawn to the UI but also stored here. This is how we get the info to
+         *                     fill the edit form. When submitted, a fresh copy of the normalized data is returned and stored here.
+         * qURL              : Directory of our ajax handlers
+         * overrideUidSeller : This is the uid of the grower whose seeds are being edited. This is passed to msdq.
+         *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
+         */
         $s .= "<script>
                var msdSeedEditVars = {};
                msdSeedEditVars.raSeeds = ".json_encode($raSeeds).";
                msdSeedEditVars.qURL = '".SITEROOT_URL."app/q/';
+               msdSeedEditVars.overrideUidSeller = $uidSeller;
                </script>";
 
         return( $s );
