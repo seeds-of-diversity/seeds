@@ -171,20 +171,27 @@ class MSDQ extends SEEDQ
         if( !$kfrS->Value('year_1st_listed') ) {
             $kfrS->SetValue( 'year_1st_listed', $this->oMSDCore->GetCurrYear() );
         }
-        // force price to float or set default price - use floatval because "0.00" is not false if it's a string
-        if( !($price = floatval($kfrS->Value('item_price'))) ) {
-            $price = in_array( $kfrS->Value('type'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "12.00" : "3.50";
+
+        /* item_price can be anything you want, but if you give a plain number render it as %0.2d
+         * and if it is blank set the default price
+         */
+        if( !($price = $kfrS->Value('item_price')) ) {
+            // blank so set default
+            $price = in_array( $kfrS->Value('species'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "12.00" : "3.50";
+            $kfrS->SetValue( 'item_price', $price );
+        } else if( is_numeric($price) ) {
+            $price = sprintf( "%.2f", floatval($price) );
+            $kfrS->SetValue( 'item_price', $price );
         }
-        $kfrS->SetValue( 'item_price', $price );
 
         // validate the result
         if( !isset( $this->oMSDCore->GetCategories()[$kfrS->Value('category')] ) ) {
             $sErr = $kfrS->Value('category')." is not a seed directory category";
-            //goto done;
+            goto done;
         }
         if( !$kfrS->Value('species') ) {
             $sErr = "Please enter a species name";
-            //goto done;
+            goto done;
         }
 
         // save the product and prodextra
@@ -261,8 +268,12 @@ class MSDQ extends SEEDQ
                 .SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'origin', ($eView=='PRINT' ? "@O@" : "Origin").": [[]]. " )
                 .SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'quantity', "<b><i>[[]]</i></b>" );
 
-        if( ($price = $kfrS->Value('item_price')) != 0.00 ) {
-             $sOut .= " ".($this->oApp->lang=='FR' ? "Prix" : "Price")." ".SEEDCore_Dollar( $price, $this->oApp->lang );
+        /* item_price can be whatever you want. If it is numeric it is forced to %.2f format.
+         * A literal zero becomes 0.00, which suppresses the Price label.
+         */
+        if( ($price = $kfrS->Value('item_price')) != '0.00' ) {
+             $sOut .= " ".($this->oApp->lang=='FR' ? "Prix:" : "Price:")." "
+                     .(is_numeric($price) ? SEEDCore_Dollar( $price, $this->oApp->lang ) : $price);
         }
 
         $sFloatRight = "";
