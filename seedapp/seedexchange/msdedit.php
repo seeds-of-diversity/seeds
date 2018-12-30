@@ -56,6 +56,9 @@ class MSDAppSeedEdit
         $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
         $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
 
+        $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
+                 .utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
+
         $raSeeds = array();
 //        $kfrcP = $this->oC->oSB->oDB->GetKFRC( "PxPE3", "product_type='seeds' AND uid_seller='1' "
 //                                                   ."AND PE1.k='category' "

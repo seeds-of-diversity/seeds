@@ -466,4 +466,13 @@ class MSDCore
             'TURNIP' => array( 'FR' => 'Navets' ),
             'TURNIP - RUTABAGA' => array( 'FR' => 'Rutabagas' ),
     );
+
+    function GetGrowerName( $kGrower )
+    {
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,company FROM seeds2.mbr_contacts WHERE _key='$kGrower'" );
+        if( !($name = trim($ra['firstname'].' '.$ra['lastname'])) ) {
+            $name = $ra['company'];
+        }
+        return( $name );
+    }
 }
