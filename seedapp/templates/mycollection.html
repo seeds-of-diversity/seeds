@@ -1,0 +1,202 @@
+# Seeds of Diversity Seed Collection Manager templates
+
+%% mycollStyle
+<style>
+
+</style>
+
+
+%% mycollForms
+<div id='consolePageStart' class='consolePage'>
+<h3>New Accession</h3>
+<form>
+<div class='row'>
+<div class='col-sm-3'>Search for the cultivar</div>
+<div class='col-sm-9'><span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
+                      [[dummy_pcv | size:10 class:SFU_TextComplete | placeholder='Search']]
+                      [[hidden:fk_sl_pcv|class:cpvar_fk_sl_pcv]]
+                      <select class='SFUAC_Select'></select>
+</div></div>
+<div class='row'>
+<div class='col-sm-3'>If the original name is different than the 'primary' cultivar name above, record it here</div>
+<div class='col-sm-3'>[[cpvar_oname | class:cpvar_oname]]
+</div></div>
+<input type='submit' value='Next'/>
+</form></div>
+
+<div id='consolePage1' class='consolePage' style='display:none'>
+<form>
+<div>Your name is <span class='cpvar_oname'></span></div>
+<p>Question 2: Who's your cat?</p>
+<input type='text' class='cpvar_cat'/>
+<input type='submit' value='Next'/>
+</form>
+</div>
+
+<div id='consolePage2' class='consolePage' style='display:none'>
+<form>
+<p>Confirm</p>
+<div>Your name is <span class='cpvar_name'></span></div>
+<div>Your cat is <span class='cpvar_cat'></span></div>
+<input type='submit'/>
+</form>
+</div>
+
+
+<script>
+var config = {
+        pages: {
+            Start: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     return( oCP.FormVal('fk_sl_pcv') != '' ? 1 : '' );
+                 }
+               },
+            1: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     return( oCP.FormVal('cat') != '' ? 2 : '' );
+                 }
+               },
+            2: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     finalReport();
+                     return( 2 );
+                 },
+               }
+        }
+};
+
+var oCP = new ConsolePage( config );
+oCP.Ready();
+
+function finalReport()
+{
+    alert( 'You are '+oCP.GetVar('name')+' and your cat is '+oCP.GetVar('cat') );
+}
+
+</script>
+
+<script>
+
+$(document).ready( function() { 
+
+    // don't set up the autocomplete if there isn't one - offset().left below causes a js error that kills other ready() functions
+    if( typeof $('.SFU_TextComplete').offset() == 'undefined' )  return;
+
+    // Set up the AutoComplete select box
+    //     Show Select on focus, and hide it when a value is selected.
+    //     Except, it's nice to be able to hide Select without choosing a value.
+    //     Select.hide on AutoComplete.blur didn't work because the Select doesn't receive the click.
+    //     You can use a complex combination of focus and mousedown, but it's complex.
+    //     Select.toggle on AutoComplete.click is great, except that you can't activate the Select by obtaining focus via tab key.
+    //         In a complicated screen you won't do that much anyway.      
+
+//keyup
+    $('.SFU_TextComplete').click( function(e){ 
+
+        let oTC = $(this);   // preserve $this in the closure below
+        
+        let select = $(this).siblings('.SFUACSelect');
+        // Create and position the select control if it doesn't exist 
+        if( !select.length ) {
+            select = $("<select class='SFUACSelect'><option>Foo</option></select>").insertAfter($(this));
+
+            let xSearch = $(this).offset().left;
+            let ySearch = $(this).offset().top;
+            let hSearch = $(this).outerHeight();
+            let xAnchor = $(this).parent().offset().left;
+            let yAnchor = $(this).parent().offset().top;
+            select.css({ position:'absolute', left:xSearch-xAnchor, top:ySearch-yAnchor+hSearch+1, 'z-index':2 });
+            
+            select.click( function(e){ e.preventDefault(); oTC.val( $(this).val() ); $(this).remove(); }); //SEEDFormUIAutoComplete_SelectClick2(); $('.SFUAC_Select').hide();});
+        }
+        
+//            $('.SFUAC_Select').toggle();
+
+            /* Position the Select just below the Search box. The right way seems to be absolute positioning with top and left
+             * calculated using the Search Box. But absolute positions are relative to the closest positioned (e.g. position:relative) ancestor.
+             * That means you have to set some ancestor to 
+             *
+             *     style='position:relative' class='SFUAC_Anchor'
+             *
+             * so we can find the Search box in static coordinates and compute its location relative to the Anchor, then position the Select 
+             * relative to that Anchor.
+             */
+            var xSearch = $('.SFU_TextComplete').offset().left;
+            var ySearch = $('.SFU_TextComplete').offset().top;
+            var hSearch = $('.SFU_TextComplete').outerHeight();
+            var xAnchor = $('.SFUAC_Anchor').offset().left;
+            var yAnchor = $('.SFUAC_Anchor').offset().top;
+            $('.SFUAC_Select').css({ left:xSearch-xAnchor, top:ySearch+hSearch-yAnchor });
+        });
+    $('.SFUAC_Select').click( function(e){ e.preventDefault(); SEEDFormUIAutoComplete_SelectClick2(); $('.SFUAC_Select').hide();});
+    $('.SFUAC_Select').css({ display:'none', 
+                             position:'absolute'
+                           });
+    $('.SFUAC_Select').attr({ size:$('.SFUAC_Select option').length }); 
+    
+    $('.SFU_TextComplete').keyup( function(e){ SEEDFormUIAutoComplete_Change2(); });
+    
+});
+
+var SEEDFormUIParms2 = { urlQ : "https://www.seeds.ca/app/q/index.php" };
+//var SEEDFormUIParms = { urlQ : "http://localhost/seedsCurr/seeds.ca2/app/q/index.php" };
+
+function SEEDFormUIAutoComplete_Change2()
+{
+    var urlQ = SEEDFormUIParms2['urlQ']; // ajax request to authenticate parameters
+    var sSearch = $(".SFU_TextComplete").val();  //var formData = $(".SFU_TextComplete").serialize();alert(formData);
+
+    // don't bother searching unless the user has typed at least 3 chars
+    if( sSearch.length < 3 )  return;
+    //if( !sSearch )  return;
+    
+    jxData = { cmd : 'rosettaPCVSearch',
+               lang : "EN",
+               srch : sSearch
+             };
+
+// extend SEEDJX to take a function ( o ) that is called on async completion 
+    var o = SEEDJX( urlQ, jxData );
+
+    if( !o ) {
+        alert( "Sorry there is a server problem" );
+    } else {
+        //var bOk = o['bOk'];
+        //var sOut = o['sOut'];
+        var raOut = o['raOut'];
+        
+        $(".SFUAC_Select option").each(function() {
+            $(this).remove();
+        });
+
+        c = raOut.length;
+        if( c > 20 ) c = 20;
+        for( var i = 0; i < c; ++i ) {
+            var r = raOut[i];
+// because json can't transmit cp1252 special chars, only utf8 - another reason to make everything utf8         
+//          if( r['P_name']==null ) { r['P_name'] = r['P_name_utf8']; } obsolete, no longer sent
+            $('.SFUAC_Select').append($('<option>', { value: r['P__key'], text: r['S_psp']+" : "+r['P_name']+" ("+r['P__key']+")" }) );
+        }
+    }
+
+    // make the select control tall enough to contain all options
+    $('.SFUAC_Select').attr({ size:$('.SFUAC_Select option').length }); 
+}
+
+
+function SEEDFormUIAutoComplete_SelectClick2()
+{
+    var sel = $(".SFUAC_Select").val();
+    
+    $("#cultivarText").html( $('.SFUAC_Select option:selected').text() );
+    $("#sfAp_fk_sl_pcv").val(sel);
+}
+
+</script>
+
