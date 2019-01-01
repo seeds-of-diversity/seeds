@@ -14,12 +14,10 @@ class SEEDAppImgManager
     private $bShowDelLinks;
     private $bShowOnlyIncomplete;
 
-    private $bDebug = false;    // make this true to show what we're doing
-
     function __construct( SEEDAppConsole $oApp, $raConfig )
     {
         $this->oApp = $oApp;
-        $this->oIML = new SEEDImgManLib( $oApp );
+        $this->oIML = new SEEDImgManLib( $oApp, $raConfig['imgmanlib'] );
 
         $this->rootdir = $raConfig['rootdir'];
         $this->currSubdir = $oApp->oC->oSVA->SmartGPC( 'imgman_currSubdir', array() );
@@ -50,56 +48,52 @@ class SEEDAppImgManager
             }
         }
 
-        if( ($n = SEEDInput_Str('move')) ) {
-            // Move foo.jpg to foo.jpeg (usually because foo.jpg is a good file)
-            $newfilename = $this->rootdir.substr($n,0,strrpos($n,'.')).".jpeg";
-            $oldfilename = $this->rootdir.$n;
-            if( file_exists($newfilename) ) {
-                unlink($newfilename);
-            }
-            rename( $oldfilename, $newfilename );
-        }
-
         $currDir = $this->rootdir.$this->currSubdir;
         if( substr($currDir,-1,1) != '/' ) $currDir .= '/';
 
-        if( SEEDInput_Str('cmd') == 'convert' ) {
-            $nConverted = 0;
-            $raFiles = $this->oIML->GetAllImgInDir( $currDir );
-            /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
-             */
-            foreach( $raFiles as $dir => $raF ) {
-                foreach( $raF as $file => $raExt ) {
-                    if( (isset($raExt['jpg']) || isset($raExt['JPG'])) && !isset($raExt['jpeg']) ) {
-                        $nConverted++;
-                        $exec = "convert \"${dir}${file}.jpg\" -quality 85 -resize 1200x1200\> \"${dir}${file}.jpeg\"";
-                        if( $this->bDebug ) echo $exec."<br/>";
-                        exec( $exec );
+        if( ($cmd = SEEDInput_Str('cmd')) ) {
+            $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
 
-                        // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)
+            if( $cmd == 'singlekeep' || $cmd == 'singledelete' ) {
+                if( !($relbase = SEEDInput_Str('relbase')) )  die( "relbase not specified with cmd $cmd" );
+                $searchForFilebase = $this->rootdir.$relbase;
+            }
+            foreach( $raFiles as $dir => $raF ) {
+                foreach( $raF as $filebase => $raFVar ) {
+                    if( ($cmd == 'convert' && $raFVar['action'] == 'CONVERT') ||
+                        ($cmd == 'multikeep' && SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' )) ||
+                        ($cmd == 'multidelete' && SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' )) )
+                    {
+                        $this->oIML->DoAction( $dir, $filebase, $raFVar );
+                    }
+
+                    if( ($cmd == 'singlekeep' && SEEDCore_StartsWith($raFVar['action'],'KEEP_ORIG') && $dir.$filebase == $searchForFilebase) ||
+                        ($cmd == 'singledelete' && SEEDCore_StartsWith($raFVar['action'],'DELETE_ORIG') && $dir.$filebase == $searchForFilebase) )
+                    {
+                        $this->oIML->DoAction( $dir, $filebase, $raFVar );
                     }
                 }
             }
         }
 
-        // if converted above, re-run this
-        $raFiles = $this->oIML->GetAllImgInDir( $currDir );
+        // re-run this to get any changes made above
+        $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
 
-//        $raOverlap = $this->oIML->FindOverlap( $raFiles );
-//        if( count($raOverlap) ) {
-//            $s .= "<h3>You have overlapping image versions</h3>";
-//            $s .= $this->DrawOverlaps( $raOverlap );
-//            goto done;
-//        }
-
-
-        $nJPG = 0;
-        /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
+        $nActionConvert = $nActionKeep = $nActionDelete = 0;
+        /* $raFiles = [dir][filebase] => array( 'exts'=> [ext1 => fileinfo, ext2 => fileinfo, ...], 'action' => ... )
          */
         foreach( $raFiles as $dir => $raF ) {
-            foreach( $raF as $file => $raExt ) {
-                if( (isset($raExt['jpg']) || isset($raExt['JPG'])) && !isset($raExt['jpeg']) ) {
-                    $nJPG++;
+            foreach( $raF as $filebase => $raFVar ) {
+                if( !@$raFVar['action'] )  continue;
+
+                if( $raFVar['action'] == 'CONVERT' ) {
+                    $nActionConvert++;
+                } else if( SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' ) ) {
+                    $nActionKeep++;
+                } else if( SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' ) ) {
+                    $nActionDelete++;
+                } else {
+                    die( "Unexpected action ".$raFVar['action'] );
                 }
             }
         }
@@ -111,12 +105,12 @@ class SEEDAppImgManager
                  ."<div><input type='submit' value='Set Controls'/></div>"
              ."</form></div>";
 
-        if( $nJPG ) {
-            $s .= "<h3>You have unconverted JPG images</h3>"
-                ."<p><a href='?cmd=convert'>Click here to convert $nJPG jpg files to jpeg</a></p>";
-        } else {
-            $s .= "<h3>Files under $currDir</h3>";
-        }
+        if( $nActionConvert )  $s .= "<p><a href='?cmd=convert'>Click here to convert $nActionConvert jpg files to jpeg</a></p>";
+        if( $nActionKeep )     $s .= "<p><a href='?cmd=multikeep' style='color:green'>Click here to execute the $nActionKeep <b>Keep</b> links below</a></p>";
+        if( $nActionDelete )   $s .= "<p><a href='?cmd=multidelete' style='color:red'>Click here to execute the $nActionDelete <b>Delete</b> links below</a></p>";
+
+        $s .= "<h3>Files under $currDir</h3>";
+
         $s .= $this->DrawFiles( $raFiles );
 
         $s .= "<style>#backbutton {}</style>";
@@ -149,13 +143,14 @@ class SEEDAppImgManager
             $reldir = substr($dir,strlen($this->rootdir));
 
             $bDrawDir = true;
-            foreach( $raF as $filename => $raExts ) {
+            foreach( $raF as $filebase => $raFVar ) {
+                $raExts = $raFVar['exts'];
                 if( $this->bShowOnlyIncomplete ) {
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
                     if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
                     if( count($raExts)==1 &&
                         (isset($raExts['png']) || isset($raExts['mp4'])) &&
-                        substr($filename,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
+                        substr($filebase,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
                 }
 
                 // this dir has files to show so draw it
@@ -164,9 +159,9 @@ class SEEDAppImgManager
                     $bDrawDir = false;
                 }
 
-                $relfile = $reldir.$filename;
+                $relfile = $reldir.$filebase;
                 $s .= "<tr><td width='30px'>&nbsp;</td>"
-                     ."<td style='max-width:150px'>$filename</td>";
+                     ."<td style='max-width:150px'>$filebase</td>";
                 $infoJpeg = array(); $infoOther = array();
                 $sizeJpeg = $sizeOther = $scaleJpeg = $scaleOther = $sizePercent = $scalePercent = 0;
                 $sMsg = "";
@@ -193,87 +188,83 @@ class SEEDAppImgManager
                 }
 
                 // Third column shows scale
-                if( $scaleJpeg && $scaleOther ) {
-                    $scalePercent = intval( (floatval($scaleJpeg) / floatval($scaleOther)) * 100);
+                $sScale = "";
+                $scaleJpeg = @$raFVar['info']['scaleJpeg'];
+                $scaleOther = @$raFVar['info']['scaleOther'];
 
-                    if( $scaleJpeg < $scaleOther ) {
-                        $sScale = "<span style='color:green'>${infoJpeg['w']} x ${infoJpeg['h']}</span> < "
-                                 ." <span>${infoOther['w']} x ${infoOther['h']}</span>";
-                    } else if( $scaleJpeg > $scaleOther ) {
-                        $sScale = "<span style='color:red'>${infoJpeg['w']} x ${infoJpeg['h']}</span> > "
-                                 ." <span>${infoOther['w']} x ${infoOther['h']}</span>";
+                if( $scaleJpeg && $scaleOther ) {
+                    if( $raFVar['info']['scalePercent'] < 100.0 ) {
+                        $sScale = "<span style='color:green'>{$raFVar['info']['sScaleX_Jpeg']}</span> < "
+                                 ." <span>{$raFVar['info']['sScaleX_Other']}</span>";
+                    } else if( $raFVar['info']['scalePercent'] > 100.0 ) {
+                        $sScale = "<span style='color:red'>{$raFVar['info']['sScaleX_Jpeg']}</span> > "
+                                 ." <span>{$raFVar['info']['sScaleX_Other']}</span>";
                     } else {
-                        $sScale = "${infoJpeg['w']} x ${infoJpeg['h']}";
+                        $sScale = $raFVar['info']['sScaleX_Jpeg'];
                     }
-                } else {
-                    if( $scaleJpeg ) {
-                        $sScale = "${infoJpeg['w']} x ${infoJpeg['h']}";
-                    } else if( $scaleOther ) {
-                        $sScale = "${infoOther['w']} x ${infoOther['h']}";
-                    } else {
-                        $sScale = "&nbsp;";
-                    }
+                } else if( $scaleJpeg ) {
+                    $sScale = $raFVar['info']['sScaleX_Jpeg'];
+                } else if( $scaleOther ) {
+                    $sScale = $raFVar['info']['sScaleX_Other'];
                 }
                 $s .= "<td style='font-size:8pt'>$sScale</td>";
 
                 // Fourth column shows filesize
+                $sSize = "";
+                $sizeJpeg = @$raFVar['info']['sizeJpeg'];
+                $sizeOther = @$raFVar['info']['sizeOther'];
+                $fhJpeg = @$raFVar['info']['filesize_human_Jpeg'];
+                $fhOther = @$raFVar['info']['filesize_human_Other'];
                 if( $sizeJpeg && $sizeOther ) {
-                    $sizePercent = intval( (floatval($sizeJpeg) / floatval($sizeOther)) * 100);
-
+                    $percent = intval($raFVar['info']['sizePercent']);
                     if( $sizeJpeg < $sizeOther ) {
-                        $sSize = "<span style='color:green'>${infoJpeg['filesize_human']}</span> < "
-                                 ." <span>${infoOther['filesize_human']}</span> ($sizePercent)%";
+                        $sSize = "<span style='color:green'>$fhJpeg</span> &lt; <span>$fhOther</span> ($percent)%";
                     } else if( $sizeJpeg > $sizeOther ) {
-                        $sSize = "<span style='color:red'>${infoJpeg['filesize_human']}</span> > "
-                                 ." <span>${infoOther['filesize_human']}</span> ($sizePercent)%";
+                        $sSize = "<span style='color:red'>$fhJpeg</span> &gt; <span>$fhOther</span> ($percent)%";
                     } else {
-                        $sSize = $infoJpeg['filesize_human'];
+                        $sSize = $fhJpeg;
                     }
-                } else {
-                    if( $sizeJpeg ) {
-                        $sSize = $infoJpeg['filesize_human'];
-                    } else if( $scaleOther ) {
-                        $sSize = $infoOther['filesize_human'];
-                    } else {
-                        $sSize = "&nbsp;";
-                    }
+                } else if( $sizeJpeg ) {
+                    $sSize = $fhJpeg;
+                } else if( $scaleOther ) {
+                    $sSize = $fhOther;
                 }
                 $s .= "<td style='font-size:8pt'>$sSize</td>";
 
                 // Fifth column shows action
                 $relfurl = urlencode($relfile);
-                $linkDelJpg = "<b><a href='?del=$relfurl.jpg' style='color:red'>Delete</a></b>";
-                $linkKeepJpg = "<b><a href='?move=$relfurl.jpg' style='color:green'>Keep</a></b>";
+                $linkDelJpg = "<b><a href='?cmd=singledelete&relbase=$relfurl' style='color:red'>Delete</a></b>";
+                $linkKeepJpg = "<b><a href='?cmd=singlekeep&relbase=$relfurl' style='color:green'>Keep</a></b>";
 
-$nSizePercentThreshold = 90;
-
-                if( !$scaleJpeg || !$scaleOther || !$sizeJpeg || !$sizeOther ) {
-                    $sMsg = "";
-                } else
-                if( $sizePercent <= $nSizePercentThreshold ) {
-                    // arbitrary scalePercentThreshold not related to nSizePercentThreshold
-                    if( $scalePercent > 90 ) {
-                        $sMsg = "Filesize reduced a lot with ".($scalePercent == 100 ? "no" : "<b>minor</b>")." loss of scale - delete original JPG $linkDelJpg";
-                        $colour = "orange";
+$fScalePercentThreshold = 90.0;
+                $sMsg = "";
+                if( $scaleJpeg && $scaleOther && $sizeJpeg && $sizeOther && @$raFVar['action'] ) {
+                    list($action,$reason) = explode( ' ', $raFVar['action'] );
+                    if( $action == 'DELETE_ORIG' && $reason == 'MAJOR_FILESIZE_REDUCTION' ) {
+                        if( $raFVar['info']['scalePercent'] > $fScalePercentThreshold ) {
+                            $sMsg = "$linkDelJpg : Filesize reduced a lot with "
+                                   .($raFVar['info']['scalePercent'] == 100.0 ? "no" : "<b>minor</b>")
+                                   ." loss of scale - delete original JPG";
+                            $colour = "orange";
+                        } else {
+                            $sMsg = " $linkDelJpg : Filesize reduced a lot with significant loss of scale - delete original JPG";
+                            $colour = "red";
+                        }
+                    } else if( $action == 'KEEP_ORIG' && $reason == 'MINOR_FILESIZE_REDUCTION' ) {
+                        $sMsg = "$linkKeepJpg : Minor filesize reduction -- keep original JPG";
+                        $colour = "green";
+                    } else if( $action == 'KEEP_ORIG' && $reason == 'FILESIZE_INCREASE' ) {
+                        $sMsg = "$linkKeepJpg : File got bigger -- keep original JPG";
+                        $colour = "green";
+                    } else if( $action == 'KEEP_ORIG' && $reason == 'FILESIZE_UNCHANGED' ) {
+                        $sMsg = " $linkKeepJpg : Filesize not changed -- keep original JPG";
+                        $colour = "green";
                     } else {
-                        $sMsg = "Filesize reduced a lot with significant loss of scale - delete original JPG $linkDelJpg";
-                        $colour = "red";
+                        die( "Unexpected action ".$raFVar['action'] );
                     }
-                } else
-                if( $sizeJpeg < $sizeOther ) {
-                    $sMsg = "Minor filesize reduction -- keep original JPG $linkKeepJpg";
-                    $colour = "green";
-                } else
-                if( $sizeJpeg > $sizeOther ) {
-                    $sMsg = "File got bigger -- keep original JPG $linkKeepJpg";
-                    $colour = "green";
-                } else {
-                    $sMsg = "Filesize not changed -- keep original JPG $linkKeepJpg";
-                    $colour = "green";
                 }
-
-                $s .= "<td style='color:$colour'>$sMsg</td>";
-                $s .= "</tr>";
+                $s .= "<td style='color:$colour'>$sMsg</td>"
+                     ."</tr>";
             }
         }
 
@@ -284,9 +275,9 @@ $nSizePercentThreshold = 90;
 }
 
 
-function ImgManagerApp( SEEDAppConsole $oApp, $rootdir )
+function ImgManagerApp( SEEDAppConsole $oApp, $rootdir, $raConfig )
 {
-    $oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir ) );
+    $oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir, 'imgmanlib' => $raConfig['imgmanlib'] ) );
 
     $raParms = array( "raScriptFiles" => array( W_CORE."js/SEEDCore.js" ) );
     echo Console02Static::HTMLPage( utf8_encode($oImgApp->Main()), "", 'EN', $raParms );   // sCharset defaults to utf8

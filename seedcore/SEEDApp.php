@@ -37,18 +37,18 @@ class SEEDAppDB extends SEEDAppBase
 //  public $logdir is inherited
     public $kfdb;
 
-    function __construct( $raParms )
-    /*******************************
+    function __construct( $raConfig )
+    /********************************
         raParms: kfdbHost, kfdbUserid, kfdbPassword, and kfdbDatabase are required
      */
     {
-        parent::__construct( $raParms );
+        parent::__construct( $raConfig );
 
-        if( !($this->kfdb = new KeyframeDatabase( $raParms['kfdbUserid'], $raParms['kfdbPassword'], @$raParms['kfdbHost'] )) ) {    // kfdbHost is optional
+        if( !($this->kfdb = new KeyframeDatabase( $raConfig['kfdbUserid'], $raConfig['kfdbPassword'], @$raConfig['kfdbHost'] )) ) {    // kfdbHost is optional
             die( "Cannot connect to database" );
         }
 
-        if( !$this->kfdb->Connect( $raParms['kfdbDatabase'] ) ) {
+        if( !$this->kfdb->Connect( $raConfig['kfdbDatabase'] ) ) {
             die( $this->kfdb->GetErrMsg() );
         }
     }
@@ -151,13 +151,17 @@ class SEEDQ
 {
     public $oApp;
     public $raConfig;
-    public $bUTF8 = false;
+    public $bUTF8 = true;
 
-    function __construct( SEEDAppDB $oApp, $raConfig = array() )     // you can use any SEEDApp* object
+    /* By convention, configuration parameters start with 'config_' and are given to the constructor. (These include config for derived Q handlers).
+     * All other command parameters are given to Cmd().
+     * This allows an ajax http parameter array to differentiate config from command parms, and pass the same array to both.
+     */
+    function __construct( SEEDAppDB $oApp, $raConfig = array() )     // you can use any SEEDApp* object as the first argument
     {
         $this->oApp = $oApp;
-        $this->raParms = $raConfig;
-        $this->bUTF8 = intval(@$raConfig['bUTF8']);
+        $this->raConfig = $raConfig;
+        if( isset($raConfig['config_bUTF8']) ) $this->bUTF8 = intval($raConfig['config_bUTF8']);
     }
 
     function Cmd( $cmd, $parms )
@@ -182,7 +186,7 @@ class SEEDQ
 
     function QCharset( $s )
     /**********************
-        If the input is cp1252, the output will be the charset defined by $this->bUTF8
+        Use this on fields that are cp1252: the output will be the charset defined by $this->bUTF8
      */
     {
         return( $this->bUTF8 ? utf8_encode( $s ) : $s );

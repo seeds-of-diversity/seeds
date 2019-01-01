@@ -224,8 +224,9 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
     {
         $raS = array();
 
-        $bUTF8 = @$raParms['bUTF8'];
-        $oMSDQ = new MSDQ( $this->oSB->oApp, array('bUTF8'=>$bUTF8) );
+        $bUTF8 = intval(@$raParms['bUTF8']);
+
+        $oMSDQ = new MSDQ( $this->oSB->oApp, array('config_bUTF8'=>$bUTF8) );
         $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', array('kS'=>$kfrP->Key()) );
         if( $rQ['bOk'] ) {
             // msdSeedList-GetData returns an array( kS1=>array(), kS2=>array(),... ) because it can return multiple records.

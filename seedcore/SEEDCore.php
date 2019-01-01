@@ -105,6 +105,14 @@ function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
     return( $sTemplate );
 }
 
+function SEEDCore_ArrayExpandIfNotEmpty( $ra, $k, $sTemplate, $bEnt = true )
+/***************************************************************************
+    Return template string with all [[]] replaced by $ra[$k] if that value is not empty
+ */
+{
+    $v = @$ra[$k];
+    return( $v ? str_replace( "[[]]", ($bEnt ? SEEDStd_HSC($v) : $v), $sTemplate ) : "" );
+}
 /**
  * Replace "[[]]" with $ra[0], repeat for $ra[1], etc.
  */
