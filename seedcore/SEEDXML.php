@@ -56,7 +56,17 @@ class SEEDXML
         bPreserveWS = preserve whitespace in the xml
      */
     {
-
+        $bPreserveWS      = SEEDCore_ArraySmartVal( $raParms, 'bPreserveWS',      array(true,false) );
+        $bProcessIncludes = SEEDCore_ArraySmartVal( $raParms, 'bProcessIncludes', array(true,false) );
+        
+        if( !$this->oDom ) {
+            $this->oDom = new DOMDocument;
+        }
+        $this->oDom->preserveWhiteSpace = $bPreserveWS;
+        $this->oDom->loadxml( $sXML );
+        if( $bProcessIncludes ) {
+            $this->oDom->xinclude();       // this does <xi:include>
+        }
     }
 
     function TransformXSLFile( $fnameXSL )
