@@ -2,7 +2,7 @@
 #  $1=="md5" or $1=="md5list" : optional to generate checksum files
 #  $2 : optional password for the zip
 
-DIRSCRIPT=~/public_html/scripts
+DIRSCRIPT=~/seeds/scripts
 
 ls  | while read i
 do
