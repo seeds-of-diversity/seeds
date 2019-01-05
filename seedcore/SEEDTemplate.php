@@ -46,32 +46,6 @@ class SEEDTemplate
 
         $this->oLoader = @$raConfig['loader']['oLoader'] ? $raConfig['loader']['oLoader']
                                                          : $this->factory_Loader();
-
-        if( @$raConfig['sTemplates'] ) {
-            if( is_array( $raConfig['sTemplates'] ) ) {
-                foreach( $raConfig['sTemplates'] as $sT )  $this->oLoader->LoadStr( $sT );
-            } else {
-                $this->oLoader->LoadStr( $raConfig['sTemplates'] );
-            }
-        }
-        if( @$raConfig['raTemplates'] ) {
-            // There is no easy way to distinguish an array of templates from an array of arrays of templates,
-            // so just merge them into one array
-            $this->oLoader->LoadRA( $raConfig['raTemplates'] );
-        }
-        if( @$raConfig['fTemplates'] ) {
-            if( is_array( $raConfig['fTemplates'] ) ) {
-                foreach( $raConfig['fTemplates'] as $fT ) {
-                    if( ($sTmpl = file_get_contents($fT)) ) {
-                        $this->oLoader->LoadStr( $sTmpl );
-                    }
-                }
-            } else {
-                if( ($sTmpl = file_get_contents($raConfig['fTemplates'])) ) {
-                    $this->oLoader->LoadStr( $sTmpl );
-                }
-            }
-        }
     }
 
     function GetVarsRA()            { return( $this->oDSVars->GetValuesRA() ); }   // only implemented for plain array base class
@@ -127,7 +101,36 @@ class SEEDTemplate
 class SEEDTemplateLoader {
     protected $raTmpl = array();
 
-    function __construct() {}
+    function __construct( $raConfig )
+    {
+        if( @$raConfig['sTemplates'] ) {
+            if( is_array( $raConfig['sTemplates'] ) ) {
+                foreach( $raConfig['sTemplates'] as $sT )  $this->LoadStr( $sT );
+            } else {
+                $this->LoadStr( $raConfig['sTemplates'] );
+            }
+        }
+        if( @$raConfig['raTemplates'] ) {
+            // There is no easy way to distinguish an array of templates from an array of arrays of templates,
+            // so just merge them into one array
+            $this->LoadRA( $raConfig['raTemplates'] );
+        }
+        if( @$raConfig['fTemplates'] ) {
+            if( is_array( $raConfig['fTemplates'] ) ) {
+                foreach( $raConfig['fTemplates'] as $fT ) {
+                    if( ($sTmpl = file_get_contents($fT)) ) {
+                        $this->LoadStr( $sTmpl );
+                    }
+                }
+            } else {
+                if( ($sTmpl = file_get_contents($raConfig['fTemplates'])) ) {
+                    $this->LoadStr( $sTmpl );
+                }
+            }
+        }
+    }
+
+    function GetRATmpl()  { return( $this->raTmpl ); }
 
     function LoadStr( $sTmplGroup, $sMark = '%%' )
     /*********************************************
@@ -222,18 +225,13 @@ class SEEDTemplate_Generator
     const USE_TWIG = 1;
     const USE_SEEDTAG = 2;
 
-// Wanted this class to be a stateless SEEDTemplate factory, but the callbacks need to know things e.g. oLoader for [[include:]]
-// and the class heirarchy makes it hard to store that info in the generated objects. So instead this is a slightly stateful Generator that's
-// built to create elegant-looking processor-independent SEEDTemplate objects which are almost actually elegant.
-//
-// Probably what was intended was for this to be a derivation of a generic SEEDTemplate, providing a loader and a set of processors
     protected $flags = 0;
     protected $oDSVars = null;
     protected $oSeedTag = null;
     protected $oTwig = null;
     protected $oLoader = null;
 
-    private $raConfig;
+    protected $raConfig;
 
     function __construct( $raConfig = array() )
     {
@@ -246,7 +244,10 @@ class SEEDTemplate_Generator
         $this->flags = isset($raConfig['use']) ? $raConfig['use']
                                                : (self::USE_SEEDTAG | self::USE_TWIG);
 
-        // create the required processors, and possibly the loader
+        // create the loader, which is shared by all processors
+        $this->oLoader = $this->factory_Loader();
+
+        // create the required processors
         if( $this->flags & self::USE_TWIG ) {
             // Twig should be included by vendor/autoload.php
             $this->oTwig = $this->factory_Twig();
@@ -255,10 +256,6 @@ class SEEDTemplate_Generator
             include_once( SEEDCORE."SEEDTag.php" );
             $this->oSeedTag = $this->factory_SEEDTag( @$this->raConfig['SEEDTagParms'] ?: array(),
                                                       $this->oDSVars );    // make SEEDTag use the same var datastore as SEEDTemplate and Twig
-        }
-        // if the above processor factories didn't create the loader, create it using the default factory
-        if( !$this->oLoader ) {
-            $this->oLoader = $this->factory_Loader();
         }
     }
 
@@ -281,11 +278,6 @@ class SEEDTemplate_Generator
 
         $raST['loader']['oLoader'] = $this->oLoader;
 
-        // use the base methods for reading/loading templates
-        if( @$this->raConfig['sTemplates'] )  $raST['sTemplates'] = $this->raConfig['sTemplates'];
-        if( @$this->raConfig['raTemplates'] ) $raST['raTemplates'] = $this->raConfig['raTemplates'];
-        if( @$this->raConfig['fTemplates'] )  $raST['fTemplates'] = $this->raConfig['fTemplates'];
-
         $oTmpl = new SEEDTemplate( $raST, $this->oDSVars );    // use global datastore for all template processors
 
 // Kluge: to process [[include:]] the HandleTag needs SEEDTemplate
@@ -296,20 +288,22 @@ class SEEDTemplate_Generator
 
     function ExpandSEEDTag( $s, SEEDDataStore $oDSVars, SEEDTemplateLoader $oLoader )
     {
-        // oDSVars from SEEDTemplate is the shared global datastore that's also used in this object, and oSeedTag
-        // That means if the template has a [[SetVar:]] everyone will see the new value
-        // It also means the argument can be ignored here
+        // oDSVars from SEEDTemplate is the shared global datastore that's also used in this object, and oSeedTag.
+        // That means if the template has a [[SetVar:]] everyone will see the new value.
+        // It also means the argument can be ignored here.
         return( $this->oSeedTag->ProcessTags($s) );
     }
 
     function ExpandTwig( $s, SEEDDataStore $oDSVars, SEEDTemplateLoader $oLoader )
     {
-        // H2o takes a simple array of readonly vars, and it has no SetVar like SEEDTag does.
-        // The SEEDDataStore passed here by SEEDTemplate::ExpandStr is the same one used by ExpandSEEDTag so any [[SetVar:]]
-        // in the template will be visible by h2o as long as SEEDTags are processed before h2o tags
+        // The SEEDDataStore passed here by SEEDTemplate::ExpandStr is the same one used by ExpandSEEDTag.
+        // However, Twig is processed first to avoid SEEDTag side-effects in false Twig conditional blocks,
+        // so any [[SetVar:a|b]] will be processed after any {{a}}
+        // If you want to set {{a}} you must use {{set:a}}.
+        // If you want to set [[Var:a]] you must use [[SetVar:a]].
+        // It is legal to do this:
+        // {{set:a=b}} [[SetVar:a|{{a}}]]  {{a}}  [[Var:a]]
         $raVars = $oDSVars->GetValuesRA();
-        //$this->oH2o->nodelist = $this->oH2o->parse($s);
-        //return( $this->oTwig->render( $s, $raVars ) );
 
         // See the code for createTemplate(). It puts the string in a Twig_Loader_Array() and uses Twig_Loader_Chain() to
         // provide access to the other templates. Could just do that here.
@@ -326,24 +320,20 @@ class SEEDTemplate_Generator
     /* Create the Twig object and its loader
      */
     {
-        //if( !$this->oLoader ) {
-        //    $this->oLoader = @$this->raConfig['TwigLoader'] ?: $this->factory_TwigLoader( $this->raConfig );
-        //}
-        //$twigParms = array( 'loader' => $this->oLoader );
         return( new Twig_Environment( $this->factory_TwigLoader() ) );
     }
 
     protected function factory_TwigLoader( $raParms = array() )
     {
-        $loader = new Twig_Loader_Array( [ 'index' => 'Hello {{ name }}!' ] );
+        if( !($loader = @$this->raConfig['TwigLoader']) ) {
+            $loader = new Twig_Loader_Array( $this->oLoader->GetRATmpl() );
+        }
         return( $loader );
-        //return( new SEEDTemplateLoader_Twig($raParms) );
     }
 
     protected function factory_Loader()
     {
-        // the default
-        return( new SEEDTemplateLoader() );
+        return( new SEEDTemplateLoader( $this->raConfig ) );
     }
 }
 
