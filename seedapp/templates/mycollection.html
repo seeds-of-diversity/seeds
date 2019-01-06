@@ -2,7 +2,6 @@
 
 %% mycollStyle
 <style>
-
 </style>
 
 
@@ -10,59 +9,158 @@
 <div id='consolePageStart' class='consolePage'>
 <h3>New Accession</h3>
 <form>
-<p>Seeds were grown from another accession --> Enter inventory number</p>
-<p>Seeds are new in this collection --> Search for cultivar</p>
-
-<p>Approx total weight</p>
-
+<div class='well myc-section'>Are these seeds regenerated from our collection?</div>
+<p>If these seeds were regrown from our collection:</p>
 <div class='row'>
-<div class='col-sm-3'>Search for the cultivar</div>
-<div class='col-sm-9'><span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
-                      [[dummy_pcv | size:10 class:SFU_TextComplete | placeholder='Search']]
-                      [[hidden:fk_sl_pcv|class:cpvar_fk_sl_pcv]]
-                      <select class='SFUAC_Select'></select>
-</div></div>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Enter parent inventory number</div>
+    <div class='col-sm-6'>[[formtext: slinv]]</div>
+</div>
 <div class='row'>
-<div class='col-sm-3'>If the original name is different than the 'primary' cultivar name above, record it here</div>
-<div class='col-sm-3'>[[cpvar_oname | class:cpvar_oname]]
-</div></div>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-10'><hr style='border-color:#ccc'/></div>
+</div>    
+<p>If these seeds are new to our collection:</p>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Search for the cultivar name</div>
+    <div class='col-sm-6'>
+        <span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
+        [[text:dummy_pcv | size:10 class:SFU_TextComplete | placeholder='Search']]
+        [[hidden:fk_sl_pcv|class:cpvar_fk_sl_pcv]]
+        <select class='SFUAC_Select'></select>
+    </div>
+</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>If the original name is different than the 'primary' cultivar name above, record it here</div>
+    <div class='col-sm-6'>[[formtext:oname | class:cpvar_oname]]</div>
+</div>
+<p>&nbsp;</p>
+<div class='well myc-section'>What is the total weight of the seeds?</div>
+<div class='row'>
+    <div class='col-sm-6'></div>
+    <div class='col-sm-6'>[[formtext:gtotal | class:cpvar_gtotal]] grams</div>
+</div>
 <input type='submit' value='Next'/>
 </form></div>
 
 
-<div id='consolePage1' class='consolePage' style='display:none'>
-<p>Please count out 100 seeds and weigh them --> 100 seed weight</p>
-<p>Population size for <span class='cpvar_species'></span> --> fill in if we don't know it</p>
-</div>
-
-
-<div id='consolePage2' class='consolePage' style='display:none'>
-<p>Based on <span class='cpvar_gtotal'></span> grams weight and <span class='cpvar_g100'></span> grams per 100 seeds, you can:</p>
-<p>Put some seeds in frozen storage [10] populations (X grams)</p>
-<p>Donate some seeds to PGRC [10] populations (X grams)</p>
-<p>Do a germination test --> [10] seeds</p>
-<p>Put the remainder in working storage (X grams)</p>
-</div>
-
-
-<div id='consolePage3' class='consolePage' style='display:none'>
-<p>Inventory # I : Working storage will be X grams --> Location</p>
-<p>Inventory # I2: N populations to frozen storage is N2 seeds = X grams. --> Location</p>
-<p>N populations to PGRC is N2 seeds = X grams. Mark this as # I</p>
-<p>Mark your germination test of N seeds as # I</p>
+<div id='consolePagePop100' class='consolePage' style='display:none'>
+<h3>New Accession</h3>
 <form>
-<div>Cultivar: <span class='cpvar_slinv'></span></div>
-<p>Who provided these seeds?</p>
-<p>Seeds grown by a Seeds of Diversity member --> Find member, year grown</p>
-<p>Seeds purchased from a seed company --> Enter name and year purchased</p>
-<p>Seeds obtained from elsewhere --> Enter where, year grown</p>
-<input type='text' class='cpvar_cat'/>
+<p>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_oname'></span>.</p> 
+<div class='well myc-section'>Please count out 100 seeds and weigh them. This helps us calculate how many seeds we're storing.</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>100 seeds weigh </div>
+    <div class='col-sm-6'>[[formtext:g100 | class:cpvar_g100]] grams</div>
+</div>
+<p>&nbsp;</p>
+<div class='well myc-section'>How many of these seeds make a minimum population? Take germination rate into account if you know it.</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>A population needs </div>
+    <div class='col-sm-6'>[[formtext:pop | class:cpvar_pop]] seeds</div>
+</div>
+<input type='submit' value='Next'/>
+</form></div>
+
+
+<div id='consolePageActions' class='consolePage' style='display:none'>
+<h3>New Accession</h3>
+<p>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_oname'></span>.</p> 
+<p>100 seeds weigh <span class='cpvar_g100'></span> grams.</p>
+<p><span class='cpvar_pop'></span> seeds make a minimal population.</p> 
+
+<form>
+<div class='well myc-section'>Now decide where to put the seeds. Based on <span class='cpvar_gtotal'></span> grams weight and <span class='cpvar_g100'></span> grams per 100 seeds, you can:</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Do a germination test</div>
+    <div class='col-sm-6'>[[formtext:nSeedsGerm | class:cpvar_nSeedsGerm]] seeds (X grams)</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Put some seeds in frozen storage</div>
+    <div class='col-sm-6'>[[formtext:nPopI1 | class:cpvar_nPopI2]] populations (X grams)</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Donate some seeds to PGRC</div>
+    <div class='col-sm-6'>[[formtext:nPopPGRC | class:cpvar_nPopPGRC]] populations (X grams)</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Put the rest in working storage</div>
+    <div class='col-sm-6'>P populations (X grams)</div>
+</div>
+<input type='submit' value='Next'/>
+</form></div>
+
+
+<div id='consolePageSupplier' class='consolePage' style='display:none'>
+<h3>New Accession</h3>
+<p>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_oname'></span>.</p> 
+<p>100 seeds weigh <span class='cpvar_g100'></span> grams.</p>
+<p><span class='cpvar_pop'></span> seeds make a minimal population.</p> 
+
+<form>
+<div class='well myc-section'>Which boxes/jars will you put the seeds in?</div>
+<div class='row'>
+    <div class='col-sm-6'></div>
+    <div class='col-sm-6'>Enter location:</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Inventory # <span class='cpvar_slinv1'></span></div>
+    <div class='col-sm-4'>Working storage is <span class='cpvar_gI1'></span> grams</div>
+    <div class='col-sm-6'>[[formtext:locI1 | class:cpvar_locI1]]</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Inventory # <span class='cpvar_slinv2'></span></div>
+    <div class='col-sm-4'><span class='cpvar_nPopI2'></span> populations to frozen storage (<span class='cpvar_nSeedsI2'></span> seeds) = <span class='cpvar_gI2'></span> grams</div>
+    <div class='col-sm-6'>[[formtext:locI2 | class:cpvar_locI2]]</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Mark # <span class='cpvar_slinv1'></span></div>
+    <div class='col-sm-4'><span class='cpvar_nPopPGRC'></span> populations to PGRC (<span class='cpvar_nSeedsPGRC'></span> seeds) = <span class='cpvar_gPGRC'></span> grams</div>
+    <div class='col-sm-6'></div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Mark # <span class='cpvar_slinv1'></span></div>
+    <div class='col-sm-4'><span class='cpvar_nSeedsGerm'></span> seeds for germination test</div>
+    <div class='col-sm-6'></div>
+</div>
+
+<div class='well myc-section'>Who provided these seeds?</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Seeds grown by a Seeds of Diversity member</div>
+    <div class='col-sm-6'>[[formtext:_supplierSoD | class:cpvar_supplierSoD]] Search</div>
+</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Seeds purchased from a seed company</div>
+    <div class='col-sm-6'>[[formtext:supplierCmp | class:cpvar_supplierCmp]] Search</div>
+</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Seeds obtained from elsewhere</div>
+    <div class='col-sm-6'>[[formtext:supplierOther | class:cpvar_supplierOther]] Enter source</div>
+</div>
+<hr style='border-color:#ccc'/>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Year that the seeds were grown or purchased</div>
+    <div class='col-sm-6'>[[formtext:year | class:cpvar_year]]</div>
+</div>
+
 <input type='submit' value='Next'/>
 </form>
 </div>
 
 
-<div id='consolePage4' class='consolePage' style='display:none'>
+<div id='consolePageConfirm' class='consolePage' style='display:none'>
 <form>
 <p>Saved</p>
 <div>Working storage : Inventory # I : X grams : Location <span class='cpvar_name'></span></div>
@@ -82,23 +180,39 @@ var config = {
             Start: {
                  model: 'LoadStore',
                  fnPre: function() {},
-                 fnPost: function() {
-                     return( oCP.FormVal('fk_sl_pcv') != '' ? 1 : '' );
+                 fnPost: function() { console.log('foo');
+                     return( 'Pop100' );
                  }
                },
-            1: {
+            Pop100: {
                  model: 'LoadStore',
                  fnPre: function() {},
                  fnPost: function() {
-                     return( oCP.FormVal('cat') != '' ? 2 : '' );
+                     return( 'Actions' );
                  }
                },
-            2: {
+            Actions: {
                  model: 'LoadStore',
                  fnPre: function() {},
                  fnPost: function() {
                      finalReport();
-                     return( 2 );
+                     return( 'Supplier' );
+                 }
+               },
+            Supplier: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     finalReport();
+                     return( 'Confirm' );
+                 }
+               },
+             Confirm: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     finalReport();
+                     return( 'Confirm' );
                  },
                }
         }
