@@ -1,10 +1,12 @@
 <?php
 
+include_once( "console02tabset.php" );
+
 /* console02
  *
  * Basic console framework
  *
- * Copyright (c) 2009-2018 Seeds of Diversity Canada
+ * Copyright (c) 2009-2019 Seeds of Diversity Canada
  */
 
 class Console02
@@ -16,7 +18,7 @@ class Console02
  * HEADER_LINKS: add more links at the top -- array( array( 'label'=>text, 'href'=>url, {'target'=>_window} ), ... )
  */
 {
-    private $oApp;     // SEEDAppSession is here for Console02 to use; you should already have a SEEDAppConsole handy that contains a Console02
+    public  $oApp;      // Console02 and SEEDAppConsole are circularly referenced
     private $raParms = array();
     private $sConsoleName = ""; // from raParms['CONSOLE_NAME'] : this keeps different console apps from conflicting in the session var space
     private $raMsg = array( 'usermsg'=>"", 'errmsg'=>"" );
@@ -24,11 +26,13 @@ class Console02
     public $oSVA;      // user's stuff with namespace of CONSOLE_NAME
     private $oSVAInt;  // console's own stuff
 
-    function __construct( SEEDAppSession $oApp, $raParms = array() )
+    function __construct( SEEDAppConsole $oApp, $raParms = array() )
     {
         $this->oApp = $oApp;
         $this->SetConfig( $raParms );
     }
+
+    function GetConfig()  { return( $this->raParms ); }
 
     function SetConfig( $raConfig )
     /******************************
@@ -48,6 +52,7 @@ class Console02
         $this->oSVAInt = new SEEDSessionVarAccessor( $this->oApp->sess, "console02i_".$this->sConsoleName );
     }
 
+    function GetConsoleName()  { return( $this->sConsoleName ); }
 
     function AddUserMsg( $s )  { $this->AddMsg( $s, 'usermsg' ); }
     function GetUserMsg()      { $this->GetMsg( 'usermsg' ); }
@@ -70,10 +75,7 @@ class Console02
         $tail  = @$this->raParms['HEADER_TAIL'];
 
         // Do this here so template callbacks can set usermsg and errmsg, etc
-//        $sTemplate = ($bExpand ? $this->ExpandTemplate( $sTemplate ) : $sTemplate);
-
-        // default is draw the console for a logged-in user; consoles for anonymous users have to set this false
-        $bLogin = @$this->raParms['bLogin'] !== false;
+        $sTemplate = ($bExpand ? $this->ExpandTemplate( $sTemplate ) : $sTemplate);
 
         if( ($m = $this->GetErrMsg() ) ) {
             $s .= $this->bBootstrap ? "<div class='alert alert-danger'>$m</div>"
@@ -103,7 +105,7 @@ class Console02
             }
             $s .= SEEDCore_NBSP("",20);
         }
-        if( $bLogin ) {
+        if( $this->oApp->sess->IsLogin() ) {
             $s .= "<a href='".SITEROOT."login/' class='console02-header-link'>Home</a>".SEEDCore_NBSP("",5)
                  ."<a href='".SITEROOT."login/?sessioncmd=logout' class='console01-header-link'>Logout</a>";
         }
@@ -112,13 +114,58 @@ class Console02
              .$sTemplate
              ."</div>";
 
-        if( true ) { // $this->bBootstrap ) {
-            // Bootstrap seems to reset a margin/padding that (some) browsers put around the body by default (and we've come to expect)
-            $s = "<div style='margin:10px;'>".$s."</div>";
-        }
-
         return( $s );
     }
+
+// Use SEEDTag here instead of this.
+// Currently it only replaces [[TabSet:foo]] with the named tabset
+    function ExpandTemplate( $sTemplate )
+    {
+        $regex = '\[\['. // opening brackets
+                     '(([^\]]*)\:)?'. // namespace (if any)
+                     '([^\]]*?)'. // target
+                     '(\|([^\]]*?))?'. // title (if any)
+                 '\]\]'; // closing brackets
+
+        $sOut = preg_replace_callback("/$regex/i",array(&$this,"_expandtemplate_callback"), $sTemplate );
+        return( $sOut );
+    }
+
+    function _expandtemplate_callback( $raMatches )
+    /* Handle tags of the form: [[namespace: tag | title]]
+     *
+     * raMatches[0] = whole tag content including [[ ]]
+     * raMatches[1] = namespace (if any) with colon
+     * raMatches[2] = namespace (if any) without colon
+     * raMatches[3] = tag
+     * raMatches[4] = title (if any) with leading |
+     * raMatches[5] = title (if any)
+     */
+    {
+        return( $this->ExpandTemplateTag( trim(@$raMatches[2]), trim(@$raMatches[3]), trim(@$raMatches[5]) ) );
+    }
+
+    function ExpandTemplateTag( $namespace, $tag, $title )
+    {
+        $s = "";
+        switch( $namespace ) {
+            case "TabSet":
+                $oCTS = new ConsoleTabSet( $this );
+                $s .= $oCTS->TabSetDraw( $tag );
+                break;
+/*
+            case "":
+                $s .= $this->DrawTag( $tag, $title );
+                break;
+            default:
+                $s .= $this->DrawTagNS( $namespace, $tag, $title );
+                break;
+*/
+        }
+        return( $s );
+    }
+
+
 
     function HTMLPage( $sBody, $sHead = "" )
     {
@@ -136,7 +183,7 @@ class Console02
                                   ."border-top:2px $color1 solid;"
                                   ."border-bottom:2px $color1 solid; }\n"
         .".console01-header-link { font-size:10pt;color:green;text-decoration:none }\n"
-        ."#console-body {}\n";
+        ."#console-body {margin:10px}\n";
 
         return( $s );
     }
