@@ -10,6 +10,11 @@
 <div id='consolePageStart' class='consolePage'>
 <h3>New Accession</h3>
 <form>
+<p>Seeds were grown from another accession --> Enter inventory number</p>
+<p>Seeds are new in this collection --> Search for cultivar</p>
+
+<p>Approx total weight</p>
+
 <div class='row'>
 <div class='col-sm-3'>Search for the cultivar</div>
 <div class='col-sm-9'><span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
@@ -24,19 +29,47 @@
 <input type='submit' value='Next'/>
 </form></div>
 
+
 <div id='consolePage1' class='consolePage' style='display:none'>
+<p>Please count out 100 seeds and weigh them --> 100 seed weight</p>
+<p>Population size for <span class='cpvar_species'></span> --> fill in if we don't know it</p>
+</div>
+
+
+<div id='consolePage2' class='consolePage' style='display:none'>
+<p>Based on <span class='cpvar_gtotal'></span> grams weight and <span class='cpvar_g100'></span> grams per 100 seeds, you can:</p>
+<p>Put some seeds in frozen storage [10] populations (X grams)</p>
+<p>Donate some seeds to PGRC [10] populations (X grams)</p>
+<p>Do a germination test --> [10] seeds</p>
+<p>Put the remainder in working storage (X grams)</p>
+</div>
+
+
+<div id='consolePage3' class='consolePage' style='display:none'>
+<p>Inventory # I : Working storage will be X grams --> Location</p>
+<p>Inventory # I2: N populations to frozen storage is N2 seeds = X grams. --> Location</p>
+<p>N populations to PGRC is N2 seeds = X grams. Mark this as # I</p>
+<p>Mark your germination test of N seeds as # I</p>
 <form>
-<div>Your name is <span class='cpvar_oname'></span></div>
-<p>Question 2: Who's your cat?</p>
+<div>Cultivar: <span class='cpvar_slinv'></span></div>
+<p>Who provided these seeds?</p>
+<p>Seeds grown by a Seeds of Diversity member --> Find member, year grown</p>
+<p>Seeds purchased from a seed company --> Enter name and year purchased</p>
+<p>Seeds obtained from elsewhere --> Enter where, year grown</p>
 <input type='text' class='cpvar_cat'/>
 <input type='submit' value='Next'/>
 </form>
 </div>
 
-<div id='consolePage2' class='consolePage' style='display:none'>
+
+<div id='consolePage4' class='consolePage' style='display:none'>
 <form>
-<p>Confirm</p>
-<div>Your name is <span class='cpvar_name'></span></div>
+<p>Saved</p>
+<div>Working storage : Inventory # I : X grams : Location <span class='cpvar_name'></span></div>
+<div>Frozen storage : Inventory # I2 (or none) : X grams : Location <span class='cpvar_name'></span></div>
+<div>PGRC : Marked as # I (or none) : X grams <span class='cpvar_name'></span></div>
+<div>Germination test : PGRC : Marked as # I (or none) : N seeds <span class='cpvar_name'></span></div>
+
 <div>Your cat is <span class='cpvar_cat'></span></div>
 <input type='submit'/>
 </form>
