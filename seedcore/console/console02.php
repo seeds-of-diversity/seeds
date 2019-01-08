@@ -24,10 +24,11 @@ class Console02
     public $oSVA;      // user's stuff with namespace of CONSOLE_NAME
     private $oSVAInt;  // console's own stuff
 
-    function __construct( SEEDAppSession $oApp, $raParms = array() )
+    function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
         $this->oApp = $oApp;
-        $this->SetConfig( $raParms );
+        $this->SetConfig( $raConfig );
+        if( !isset($raParms['bBootstrap']) )  $this->bBootstrap = true;
     }
 
     function SetConfig( $raConfig )
@@ -50,10 +51,10 @@ class Console02
 
 
     function AddUserMsg( $s )  { $this->AddMsg( $s, 'usermsg' ); }
-    function GetUserMsg()      { $this->GetMsg( 'usermsg' ); }
+    function GetUserMsg()      { return($this->GetMsg( 'usermsg' )); }
 
     function AddErrMsg( $s )   { $this->AddMsg( $s, 'errmsg' ); }
-    function GetErrMsg()       { $this->GetMsg( 'errmsg' ); }
+    function GetErrMsg()       { return($this->GetMsg( 'errmsg' )); }
 
     function GetMsg( $sKey )     { return( @$this->raMsg[$sKey] ); }
     function AddMsg( $s, $sKey ) { @$this->raMsg[$sKey] .= $s; }
@@ -130,13 +131,14 @@ class Console02
         $sSkin = 'blue';
         $color1 = ($sSkin == 'green' ? 'green' : '');
 
-        $s = "<STYLE>"
+        $s = "<style>"
         .".console01-header-title { display:inline-block;" // IE needs this display type to draw borders
                                   ."font-size:14pt;font-weight:bold;padding:3px;"
                                   ."border-top:2px $color1 solid;"
                                   ."border-bottom:2px $color1 solid; }\n"
         .".console01-header-link { font-size:10pt;color:green;text-decoration:none }\n"
-        ."#console-body {}\n";
+        ."#console-body {}\n"
+        ."</style>";
 
         return( $s );
     }
