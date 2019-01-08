@@ -153,6 +153,13 @@ class SEEDFormParms {
         $raOut['rows'] = array();
         $raOut['control'] = array();
 
+        if( !$this->cid ) {
+            // In Vanilla mode we can't distinguish which parms belong to our form and there can only be one record,
+            // so just put $_REQUEST in the first $raOut row.  The code at the bottom fills in default portions of the row definition.
+            $raOut['rows'][0]['values'] = $ra1D;
+            goto done;
+        }
+
         foreach( $ra1D as $k => $v ) {
             if( substr( $k, 0, 3 ) != 'sf'.$this->cid )  continue;
             $c = substr( $k, 3, 1 );
@@ -184,7 +191,9 @@ class SEEDFormParms {
             }
         }
 
-        /* Make sure every row has a key (default 0), and values, control arrays, to ease error checking
+        done:
+
+        /* Make sure every row has a key (default 0), and values, control arrays, to ease error checking (do this for Vanilla too)
          */
         foreach( $raOut['rows'] as $k => $v ) {
             if( !isset($raOut['rows'][$k]['k']) )       $raOut['rows'][$k]['k'] = 0;
@@ -192,6 +201,7 @@ class SEEDFormParms {
             if( !isset($raOut['rows'][$k]['values']) )  $raOut['rows'][$k]['values'] = array();
             if( !isset($raOut['rows'][$k]['control']) ) $raOut['rows'][$k]['control'] = array();
         }
+
         return( $raOut );
     }
 }
