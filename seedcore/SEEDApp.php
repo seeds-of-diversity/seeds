@@ -99,12 +99,12 @@ class SEEDAppConsole extends SEEDAppSessionAccount
 //  public $logdir is inherited
 //  public $kfdb is inherited
 //  public $sess is inherited
-    public $oC;     // ConsoleUI gets the SEEDAppSession part of this class
+    public $oC;
 
     function __construct( $raParms )
     {
         parent::__construct( $raParms );
-        $this->oC = new Console02( $this ); // Console02 takes SEEDAppSession
+        $this->oC = new Console02( $this ); // Console02 and SEEDAppConsole are circularly referenced
     }
 }
 
