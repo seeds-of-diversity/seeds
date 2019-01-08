@@ -18,7 +18,7 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
     // If this is localhost, just draw the mail on the screen because that's easier in development.
     $bPretendToSend = ($_SERVER["SERVER_NAME"] == "localhost");
     // Or uncomment this to send on dev machines (you have to configure your php.ini with an smtp)
-    $bPretendToSend = false;
+    //$bPretendToSend = false;
 
 
     if( is_string($from) ) {
