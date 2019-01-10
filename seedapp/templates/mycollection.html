@@ -9,40 +9,43 @@
 
 
 <script>
+/* SFU_TextComplete
+
+   Make a text input that creates a <select> containing search matches.
+   There can be multiple TextComplete controls because they are defined per id.
+
+   Use SFU_TextCompleteVars to define the TextComplete controls and their handlers.
+   { 'id_of_SFU_TextComplete' : { // Called when someone types in the text control. Return the <option>s that match the search text.
+                                  'fnFillSelect' : function (sSearch) { return [ [val, label], [val, label] ] },
+                                  // Called when someone clicks on an <option>
+                                  'fnSelectChoose' : function (val) { } 
+   }
+ */
 var SFU_TextCompleteVars = {};
 
 $(document).ready( function() { 
-
-    // don't set up the autocomplete if there isn't one - offset().left below causes a js error that kills other ready() functions
+    // Don't set up the TextComplete if there isn't one. offset().left below causes a js error that kills other ready() functions
     if( typeof $('.SFU_TextComplete').offset() == 'undefined' )  return;
-
-    // Set up the AutoComplete select box
-    //     Show Select on focus, and hide it when a value is selected.
-    //     Except, it's nice to be able to hide Select without choosing a value.
-    //     Select.hide on AutoComplete.blur didn't work because the Select doesn't receive the click.
-    //     You can use a complex combination of focus and mousedown, but it's complex.
-    //     Select.toggle on AutoComplete.click is great, except that you can't activate the Select by obtaining focus via tab key.
-    //         In a complicated screen you won't do that much anyway.      
 
     $('.SFU_TextComplete').click( function(e) { 
         let oTC = $(this);   // preserve $this in the closure below
 
+        // Get the <select> that was created on a previous click or create it if it doesn't exist
         let select = $(this).siblings('.SFUACSelect');
-        // Create and position the select control if it doesn't exist 
         if( !select.length ) {
             select = $("<select class='SFUACSelect'><option>--- Type more ---</option></select>").insertAfter($(this));
 
             let xSearch = $(this).offset().left;
             let ySearch = $(this).offset().top;
             let hSearch = $(this).outerHeight();
-
             let xAnchor = $(this).parent().offset().left;
             let yAnchor = $(this).parent().offset().top;
             select.css({ position:'absolute', left:xSearch-xAnchor, top:ySearch-yAnchor+hSearch+1, 'z-index':2 });
             
-            select.click( function(e) { 
+            // When someone clicks on an <option> send its value to fnSelectChoose and remove the <select> 
+            select.click( function(e) {
                 e.preventDefault(); 
-                let v = SFU_TextCompleteVars[oTC.attr('id')];console.log(v);
+                let v = SFU_TextCompleteVars[oTC.attr('id')];
                 if( typeof v != 'undefined' ) {
                     oTC.val( (v['fnSelectChoose'])( $(this).val() ) ); 
                     $(this).remove(); 
@@ -51,10 +54,9 @@ $(document).ready( function() {
         }
     });
     
+    // In someone has typed at least 3 chars in the text input, use the callback to fetch a set of <options> that match
     $('.SFU_TextComplete').keyup( function(e) { 
         let srchVal = $(this).val();
-
-        // don't bother searching unless the user has typed at least 3 chars
         if( srchVal.length < 3 )  return;
         
         let select = $(this).siblings('.SFUACSelect');
@@ -68,11 +70,12 @@ $(document).ready( function() {
         let v = SFU_TextCompleteVars[$(this).attr('id')];
         if( typeof v != 'undefined' ) {
             let options = (v['fnFillSelect'])(srchVal);
+            // limit the number of options to 20 because you can keep typing to get a better match
             nOpts = options.length;
             if( nOpts > 20 ) nOpts = 20;
             for( let i = 0; i < nOpts; ++i ) {
                 let r = options[i];
-                select.append($('<option>', { value: r['P__key'], text: r['S_name_en']+" : "+r['P_name']+" ("+r['P__key']+")" }) );
+                select.append($('<option>', { value: r['val'], text: r['label'] }));
             }
         }
 
@@ -93,7 +96,7 @@ $(document).ready( function() {
 <div class='row'>
     <div class='col-sm-2'></div>
     <div class='col-sm-4'>Enter parent inventory number</div>
-    <div class='col-sm-6'>[[formtext: slinv]]</div>
+    <div class='col-sm-6'>[[formtext: parent_inv | class:cpvar_parent_inv]]</div>
 </div>
 <div class='row'>
     <div class='col-sm-2'></div>
@@ -102,15 +105,17 @@ $(document).ready( function() {
 <p>If these seeds are new to our collection:</p>
 <div class='row'>
     <div class='col-sm-2'></div>
-    <div class='col-sm-4'>Search for the cultivar name</div>
+    <div class='col-sm-4'>Search for the cultivar</div>
     <div class='col-sm-6'>
-        <span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
+        <span id='cultivarText' style='font-size:9pt'></span>
         [[text:dummy_pcv | size:10 class:SFU_TextComplete | placeholder='Search']]
         [[hidden:fk_sl_pcv|class:cpvar_fk_sl_pcv]]
+        [[hidden:t_sname|class:cpvar_t_sname]]
+        [[hidden:t_pname|class:cpvar_t_pname]]
     </div>
 </div>
 <script>
-var cp1pcvSearch = [];
+var cp1_pcvSearch = [];
 SFU_TextCompleteVars['dummy_pcv'] = { 
     'fnFillSelect' : 
             function( sSearch ) {
@@ -122,29 +127,36 @@ SFU_TextCompleteVars['dummy_pcv'] = {
                                      srch : sSearch
                              };
                 let o = SEEDJX( urlQ, jxData );
-                if( !o ) {
+                if( !o || !o['bOk'] || !o['raOut'] ) {
                     alert( "Sorry there is a server problem" );
                 } else {
                     //var bOk = o['bOk'];
                     //var sOut = o['sOut'];
-                    raRet = o['raOut'];
-                    cp1pcvSearch = raRet;   // save this so we can look it up in fnSelectChoose
+                    for( let i = 0; i < o['raOut'].length; ++i ) {
+                        r = o['raOut'][i];
+                        raRet[i] = { val: r['P__key'],
+                                     label: r['S_name_en']+" : "+r['P_name']+" ("+r['P__key']+")" };
+                    }
+                    cp1_pcvSearch = o['raOut'];   // save this so we can look it up in fnSelectChoose
                 }
                 return( raRet );
             },
     'fnSelectChoose' : 
             function( val ) {
-                for( let i = 0; i < cp1pcvSearch.length; ++i ) {
-                    let r = cp1pcvSearch[i];
+                for( let i = 0; i < cp1_pcvSearch.length; ++i ) {
+                    let r = cp1_pcvSearch[i];
                     if( r['P__key'] == val ) {
                         $("#consolePageStart #cultivarText").html( r['S_name_en']+" : "+r['P_name']+" ("+r['P__key']+")" );
                         $("#consolePageStart #fk_sl_pcv").val( r['P__key'] );
+                        $("#consolePageStart #t_sname").val( r['S_name_en'] );
+                        $("#consolePageStart #t_pname").val( r['P_name'] );
+                        // fill in the oname with the pname
+                        $("#consolePageStart #oname").val( r['P_name'] );
                         break;
                     }
                 }
             }
 };
-
 </script>
 <div class='row' style='margin-top:5px'>
     <div class='col-sm-2'></div>
@@ -164,8 +176,7 @@ SFU_TextCompleteVars['dummy_pcv'] = {
 <div id='consolePagePop100' class='consolePage' style='display:none'>
 <h3>New Accession</h3>
 <form>
-<p>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_oname'></span>.</p>
-<p>That is cultivar  <span class='cpvar_fk_sl_pcv'></span>.
+[[include:youhave]]
 <div class='well myc-section'>Please count out 100 seeds and weigh them. This helps us calculate how many seeds we're storing.</div>
 <div class='row'>
     <div class='col-sm-2'></div>
@@ -289,7 +300,7 @@ SFU_TextCompleteVars['dummy_pcv'] = {
 </form>
 </div>
 
-
+# js variables starting with t_ or cpvar_t_ are temporary within the consolePage, not stored on the server
 <script>
 var config = {
         pages: {
@@ -297,8 +308,17 @@ var config = {
                  model: 'LoadStore',
                  fnPre: function() {},
                  fnPost: function() {
-                     return( 'Pop100' );
-                 }
+                     // Proceed when there is a cultivar and weight. Cultivar can be from parent_inv or fk_sl_pcv
+                     let bCV = false;
+                     let pi;
+                     if( (pi = oCP.FormVal('parent_inv')) ) {
+                         // load the inventory record and get the species/pname/P__key
+                         bCV = true;
+                     } else if( oCP.FormVal('fk_sl_pcv') ) {
+                         bCV = true;
+                     }
+                     let gtotal = parseInt(oCP.FormVal('gtotal')) || 0;
+                     return( bCV && gtotal ? 'Pop100' : 'Start' );               }
                },
             Pop100: {
                  model: 'LoadStore',
@@ -343,3 +363,8 @@ function finalReport()
 }
 
 </script>
+
+
+%% youhave
+<p>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_t_sname'></span> : <span class='cpvar_t_pname'></span> (pcv <span class='cpvar_fk_sl_pcv'></span>).</p>
+

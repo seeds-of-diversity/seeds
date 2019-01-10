@@ -20,12 +20,13 @@ class ConsolePage
         this.ShowPage( this.cpPage );
     }
     
-    GetVar( k )  	{ return( this.cpVars[k] ); }
+    GetVar( k )      { return( this.cpVars[k] ); }
     SetVarX( k, v )  { this.cpVars[k] = v; }
 
     FormVal( k )
     /***********
-        Get the current value of the input k on page p
+        Get the current value of the input k. 
+        Use this in fnPost instead of GetVar because values in forms have not been stored in cpVars yet.
      */
     {
         return( this._formVal( this.cpPage, k ) );
