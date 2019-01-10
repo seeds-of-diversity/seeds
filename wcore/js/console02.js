@@ -21,7 +21,7 @@ class ConsolePage
     }
     
     GetVar( k )      { return( this.cpVars[k] ); }
-    SetVarX( k, v )  { this.cpVars[k] = v; }
+    SetVar( k, v )   { this.cpVars[k] = v; }
 
     FormVal( k )
     /***********
@@ -38,6 +38,29 @@ class ConsolePage
     {
         return( $('#consolePage'+p+' .cpvar_'+k).val() );
     }
+
+    _formValSet( p, k, v )
+    /*********************
+     */
+    {
+        let e = $('#consolePage'+p+' .cpvar_'+k);
+        if( e.length ) {
+            if( $.inArray( e.prop('tagName'), ['INPUT','SELECT','TEXTAREA'] ) != -1 ) {
+                e.val( v );
+            } else {
+                e.html( v );
+            }
+        }
+    }
+
+    FormValSet( k, v )
+    /*****************
+        Set a value in a named form element. 
+        Use this in fnPre - LoadVars happens before fnPre.
+     */
+    {
+        this._formValSet( this.cpPage, k, v );
+    }
     
     LoadVars( p )
     /************
@@ -45,14 +68,7 @@ class ConsolePage
      */
     {
         for( let k in this.cpVars ) {
-            let e = $('#consolePage'+p+' .cpvar_'+k);
-            if( e.length ) {
-                if( $.inArray( e.prop('tagName'), ['INPUT','SELECT','TEXTAREA'] ) != -1 ) {
-                    e.val( this.GetVar(k) );
-                } else {
-                    e.html( this.GetVar(k) );
-                }
-            }
+            this._formValSet( p, k, this.GetVar(k) );
         }
     }
     
@@ -69,7 +85,7 @@ class ConsolePage
                 let c = clist[i];
                 if( c.substring(0,6) == 'cpvar_' ) {
                     c = c.substring(6);
-                    oCP.SetVarX( c, $(this).val() );
+                    oCP.SetVar( c, $(this).val() );
                 }
             }
         });

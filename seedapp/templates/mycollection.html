@@ -201,26 +201,26 @@ SFU_TextCompleteVars['dummy_pcv'] = {
 <p><span class='cpvar_pop'></span> seeds make a minimal population.</p> 
 
 <form>
-<div class='well myc-section'>Now decide where to put the seeds. Based on <span class='cpvar_gtotal'></span> grams weight and <span class='cpvar_g100'></span> grams per 100 seeds, you can:</div>
+<div class='well myc-section'>Now decide where to put the seeds. Based on <span class='cpvar_gtotal'></span> grams total weight and <span class='cpvar_g100'></span> grams per 100 seeds, you can:</div>
 <div class='row'>
     <div class='col-sm-2'></div>
     <div class='col-sm-4'>Do a germination test</div>
-    <div class='col-sm-6'>[[formtext:nSeedsGerm | class:cpvar_nSeedsGerm]] seeds (X grams)</div>
+    <div class='col-sm-6'>[[formtext:nSeedsGerm | class:cpvar_nSeedsGerm]] seeds (<span class='cpvar_gGerm'></span> grams)</div>
 </div>
 <div class='row'>
     <div class='col-sm-2'></div>
     <div class='col-sm-4'>Put some seeds in frozen storage</div>
-    <div class='col-sm-6'>[[formtext:nPopI1 | class:cpvar_nPopI2]] populations (X grams)</div>
+    <div class='col-sm-6'>[[formtext:nPopI2 | class:cpvar_nPopI2]] populations (<span class='cpvar_gI2'></span> grams)</div>
 </div>
 <div class='row'>
     <div class='col-sm-2'></div>
     <div class='col-sm-4'>Donate some seeds to PGRC</div>
-    <div class='col-sm-6'>[[formtext:nPopPGRC | class:cpvar_nPopPGRC]] populations (X grams)</div>
+    <div class='col-sm-6'>[[formtext:nPopPGRC | class:cpvar_nPopPGRC]] populations (<span class='cpvar_gPGRC'></span> grams)</div>
 </div>
 <div class='row'>
     <div class='col-sm-2'></div>
     <div class='col-sm-4'>Put the rest in working storage</div>
-    <div class='col-sm-6'>P populations (X grams)</div>
+    <div class='col-sm-6'><span class='cpvar_nPopI'></span> populations (<span class='cpvar_gI1'></span> grams)</div>
 </div>
 <input type='submit' value='Next'/>
 </form></div>
@@ -321,27 +321,46 @@ var config = {
                                       };
                          let o = SEEDJX( urlQ, jxData );
                          if( o && o['bOk'] ) {
-                             $('#consolePageStart #t_sname').val( o['raOut']['S_name_en'] );
-                             $('#consolePageStart #t_pname').val( o['raOut']['P_name'] );
-                             $('#consolePageStart #fk_sl_pcv').val( o['raOut']['P__key'] );
+                             oCP.FormValSet( 't_sname', o['raOut']['S_name_en'] );
+                             oCP.FormValSet( 't_pname', o['raOut']['P_name'] );
+                             oCP.FormValSet( 'fk_sl_pcv', o['raOut']['P__key'] );
                              bCV = true;
                          }
                      } else if( oCP.FormVal('fk_sl_pcv') ) {
                          bCV = true;
                      }
-                     let gtotal = parseInt(oCP.FormVal('gtotal')) || 0;
-                     return( bCV && gtotal ? 'Pop100' : 'Start' );               }
+                     let gtotal = parseFloat(oCP.FormVal('gtotal')) || 0;
+                     return( bCV && gtotal ? 'Pop100' : '' );
+                 }
                },
             Pop100: {
                  model: 'LoadStore',
                  fnPre: function() {},
                  fnPost: function() {
-                     return( 'Actions' );
+                     let g100 = parseFloat(oCP.FormVal('g100')) || 0;
+                     let pop = parseInt(oCP.FormVal('pop')) || 0;
+                     return( g100 && pop ? 'Actions' : '' );
                  }
                },
             Actions: {
                  model: 'LoadStore',
-                 fnPre: function() {},
+                 fnPre: function() {
+                     let nSeedsGerm = 10;
+                     let nPopI2 = 10;
+                     let nPopPGRC = 10;
+                     let pop = oCP.GetVar('pop');
+                     oCP.FormValSet( 'nSeedsGerm', nSeedsGerm );
+                     oCP.FormValSet( 'nPopI2', nPopI2 );
+                     oCP.FormValSet( 'nPopPGRC', nPopPGRC );
+                     let gGerm = nSeedsGerm * oCP.GetVar('g100') / 100;
+                     let gI2 = nPopI2 * oCP.GetVar('pop') * oCP.GetVar('g100') / 100;
+                     let gPGRC = nPopPGRC * oCP.GetVar('pop') * oCP.GetVar('g100') / 100;
+                     let gI1 = oCP.GetVar('gtotal') - gI2 - gPGRC - gGerm;
+                     oCP.FormValSet( 'gGerm', gGerm );
+                     oCP.FormValSet( 'gI1', gI1 );
+                     oCP.FormValSet( 'gI2', gI2 );
+                     oCP.FormValSet( 'gPGRC', gPGRC );
+                   },
                  fnPost: function() {
                      finalReport();
                      return( 'Supplier' );
