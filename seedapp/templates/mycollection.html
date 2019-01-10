@@ -313,7 +313,19 @@ var config = {
                      let pi;
                      if( (pi = oCP.FormVal('parent_inv')) ) {
                          // load the inventory record and get the species/pname/P__key
-                         bCV = true;
+                         let urlQ = "http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php"; //"https://www.seeds.ca/app/q/index.php";
+                         let jxData = { cmd : 'collection-getInv',
+                                        lang : "EN",
+                                        kColl : 1,
+                                        nInv : pi
+                                      };
+                         let o = SEEDJX( urlQ, jxData );
+                         if( o && o['bOk'] ) {
+                             $('#consolePageStart #t_sname').val( o['raOut']['S_name_en'] );
+                             $('#consolePageStart #t_pname').val( o['raOut']['P_name'] );
+                             $('#consolePageStart #fk_sl_pcv').val( o['raOut']['P__key'] );
+                             bCV = true;
+                         }
                      } else if( oCP.FormVal('fk_sl_pcv') ) {
                          bCV = true;
                      }
