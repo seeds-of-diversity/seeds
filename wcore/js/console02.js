@@ -23,6 +23,12 @@ class ConsolePage
     GetVar( k )      { return( this.cpVars[k] ); }
     SetVar( k, v )   { this.cpVars[k] = v; }
 
+    GetVarInt( k )   { return( parseInt(this.GetVar(k)) || 0 ); }
+    GetVarFloat( k ) { return( parseFloat(this.GetVar(k)) || 0.0 ); }
+    
+    FormValInt( k )   { return( parseInt(this.FormVal(k)) || 0 ); }
+    FormValFloat( k ) { return( parseFloat(this.FormVal(k)) || 0.0 ); }
+    
     FormVal( k )
     /***********
         Get the current value of the input k. 
