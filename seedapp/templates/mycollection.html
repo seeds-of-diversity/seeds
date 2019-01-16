@@ -335,8 +335,8 @@ var config = {
                  model: 'LoadStore',
                  fnPre: function() {
                      let nSeedsGerm = 10;
-                     let nPopI2 = 10;
-                     let nPopPGRC = 10;
+                     let nPopI2 = 3;
+                     let nPopPGRC = 3;
                      oCP.FormValSet( 'nSeedsGerm', nSeedsGerm );
                      oCP.FormValSet( 'nPopI2', nPopI2 );
                      oCP.FormValSet( 'nPopPGRC', nPopPGRC );
@@ -351,6 +351,7 @@ var config = {
                      oCP.FormValSet( 'gI1', gI1 );
                      oCP.FormValSet( 'gI2', gI2 );
                      oCP.FormValSet( 'gPGRC', gPGRC );
+                     oCP.FormValSet( 'gpop', pop * gSeed );
                      
                      let nPopI1 = gI1 / gSeed / pop;
                      oCP.FormValSet( 'nPopI1', nPopI1 );
@@ -396,8 +397,8 @@ var config = {
                      let gPGRC = oCP.GetVar('nPopPGRC') * pop * gSeed;
                      let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
 
-                     let loc1 = oCP.FormVal('loc1');
-                     let loc2 = oCP.FormVal('loc2');
+                     let loc1 = oCP.FormVal('locI1');
+                     let loc2 = oCP.FormVal('locI2');
                      
                      let jxData = { cmd : 'collection--addLot',
                                     lang : "EN",
@@ -445,5 +446,8 @@ oCP.Ready();
 %% AddAccessionHeading
 <h3>New Accession</h3>
 <p class='head1'>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_t_sname'></span> : <span class='cpvar_t_pname'></span> (pcv <span class='cpvar_fk_sl_pcv'></span>).</p>
-<p class='head2'>100 seeds weigh <span class='cpvar_g100'></span> grams. <span class='cpvar_pop'></span> seeds make a minimal population.</p> 
+<p class='head2'>100 seeds weigh <span class='cpvar_g100'></span> grams.<br/>
+<span class='cpvar_pop'></span> seeds make a minimal population.<br/>
+A population is <span class='cpvar_gpop'></span> grams.<br/>
+</p> 
 
