@@ -2,7 +2,7 @@
 
 /* SEEDTag
  *
- * Copyright (c) 2014-2017 Seeds of Diversity Canada
+ * Copyright (c) 2014-2019 Seeds of Diversity Canada
  *
  * Parse and process tags of the form [[tag: p0 | p1...]]
  *
@@ -613,4 +613,74 @@ case 'image2': // until not using DocRepWiki
     }
 }
 
-?>
+
+function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
+/****************************************************************
+    A table is formatted like this:
+
+    |||table-type(table parms)
+    ||| first || row || of || columns
+    |||{td-attrs} second ||{td-attrs} row || of || columns
+ */
+{
+    $ok = false;
+    $s = "";
+    $eTable = "";
+
+    if( substr( $sTemplate, 0, 4 ) == "||| " ) {    // starting table without a header is deprecated
+        $eTable = "table-old";
+        $raAttrs = array();
+
+    } else if( substr( $sTemplate, 0, 9 ) == "|||TABLE(" ) {
+        $eTable = "table";
+        $parms = substr( $sTemplate, 20, strpos( $sTemplate, ')' ) );
+        $raAttrs = explode( ',', $parms );
+
+        $sTemplate = substr( $sTemplate, strpos( $sTemplate, "||| ") );     // point to first row
+    } else if( substr( $sTemplate, 0, 19 ) == "|||BOOTSTRAP_TABLE(" ) {
+        $eTable = "bstable";
+        $parms = strtok( substr( $sTemplate, 19 ), ')' );
+        $raAttrs = explode( '|', $parms );
+
+        $sTemplate = substr( $sTemplate, strpos( $sTemplate, "||| ") );     // point to first row
+    } else {
+        // no table here
+        goto done;
+    }
+
+    if( $eTable == 'table-old' || $eTable == 'bstable' ) {
+        $raRows = explode( "||| ", substr($sTemplate,4) );  // skip the first ||| to prevent an empty first element
+    } else {
+        $raRows = explode( "\n", $sTemplate );
+    }
+
+    foreach( $raRows as $row ) {
+        $s .= $eTable == 'bstable' ? "<div class='row'>" : "<tr valign='top'>";
+        $raCols = explode( "|| ", $row );
+        $iCol = 0;
+        foreach( $raCols as $col ) {
+            $tdattrs = @$raAttrs[$iCol++];
+            $col = trim($col);
+
+            // {attrs}
+            $s1 = strpos( $col, "{" );
+            $s2 = strpos( $col, "}" );
+            if( $s1 !== false && $s2 !== false ) {
+                $tdattrs .= " ".substr( $col, $s1 + 1, $s2 - $s1 - 1 );
+                $col = substr( $col, $s2 +1 );
+            }
+
+            // *label*
+            if( substr( $col, 0, 1 ) == '*' && substr( $col, -1, 1 ) == '*' ) {
+                $col = "<label>".substr( $col, 1, -1 )."</label>";
+            }
+            $s .= $eTable == 'bstable' ? "<div $tdattrs>$col</div>" : "<td $tdattrs>$col</td>";
+        }
+        $s .= $eTable == 'bstable' ? "</div>" : "</tr>";
+    }
+
+    $ok = true;
+
+    done:
+    return( array($ok,$s) );
+}
