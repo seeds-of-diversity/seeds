@@ -2,10 +2,8 @@
 
 /* Crop Profiles reporting
  *
- * Copyright (c) 2009-2018 Seeds of Diversity Canada
- *
+ * Copyright (c) 2009-2019 Seeds of Diversity Canada
  */
-
 
 class SLProfilesReport
 {
@@ -150,15 +148,15 @@ class SLProfilesReport
             //include_once( SEEDCOMMON."sl/desc/".$sp.".php" );
 
             switch( $sp ) {
-                //case "apple"  : $s .=   appleForm( $this->oSLDescDB, $this->kVI); break;
+                case "apple"  : $s .=   appleForm( $this->oProfilesDB, $kVI); break;
                 case "bean"   : $s .=    beanForm( $this->oProfilesDB, $kVI); break;
-                //case "garlic" : $s .=  garlicForm( $this->oSLDescDB, $this->kVI); break;
-                //case "lettuce": $s .= lettuceForm( $this->oSLDescDB, $this->kVI); break;
-                //case "onion"  : $s .=   onionForm( $this->oSLDescDB, $this->kVI); break;
-                //case "pea"    : $s .=     peaForm( $this->oSLDescDB, $this->kVI); break;
-                //case "pepper" : $s .=  pepperForm( $this->oSLDescDB, $this->kVI); break;
-                //case "potato" : $s .=  potatoForm( $this->oSLDescDB, $this->kVI); break;
-                //case "squash" : $s .=  squashForm( $this->oSLDescDB, $this->kVI); break;
+                case "garlic" : $s .=  garlicForm( $this->oProfilesDB, $kVI); break;
+                case "lettuce": $s .= lettuceForm( $this->oProfilesDB, $kVI); break;
+                case "onion"  : $s .=   onionForm( $this->oProfilesDB, $kVI); break;
+                case "pea"    : $s .=     peaForm( $this->oProfilesDB, $kVI); break;
+                case "pepper" : $s .=  pepperForm( $this->oProfilesDB, $kVI); break;
+                case "potato" : $s .=  potatoForm( $this->oProfilesDB, $kVI); break;
+                case "squash" : $s .=  squashForm( $this->oProfilesDB, $kVI); break;
                 case "tomato" : $s .=  tomatoForm( $this->oProfilesDB, $kVI); break;
             }
         } else {
@@ -192,6 +190,79 @@ class SLProfilesReport
 
         return( $s );
     }
+}
+
+
+
+function appleForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+$raAppleForm = array(
+    array( 'cmd'=>'section', 'title_EN'=>"General", 'title_FR'=>"General" ),
+    array(     'cmd'=>'q_f', 'k'=>'apple_SoD_i__age' ),
+    array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__condition' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Spring", 'title_FR'=>"Spring"),
+    array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__hardy' ),
+    array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__habit' ),
+    array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__vigour' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Flowers (late spring, early summer)", 'title_FR'=>"Flowers (late spring, early summer)"),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__flowerseason' ),
+	array(     'cmd'=>'q_i', 'k'=>'apple_SoD_i__flowerduration' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__flowerregularity' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__flowersecondary' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__selfcompatible' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__ANTHERCOL' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__CARPELARR' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__FLWRCOLOR' ),
+	array(     'cmd'=>'q_f', 'k'=>'apple_GRIN_f__FLOWERSIZE' ),
+	array(     'cmd'=>'q_i', 'k'=>'apple_GRIN_i__FLWRINFLOR' ),
+
+
+	array( 'cmd'=>'section', 'title_EN'=>"Leaves (Mid summer)", 'title_FR'=>"Leaves (Mid summer)"),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__LFHAIRSURF' ),
+	array(     'cmd'=>'q_f', 'k'=>'apple_GRIN_f__LEAFLENGTH' ),
+	//img echo "<DIV class='d_a' align=center><IMG src='../img/apple/apple LEAFLENGTH.gif' height=120></DIV>";
+	array(     'cmd'=>'q_m_t', 'k'=>'apple_GRIN_m__LEAFSHAPE' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__LEAFLOBING' ),
+
+
+	array( 'cmd'=>'section', 'title_EN'=>"Fruit (Harvest season)", 'title_FR'=>"Fruit (Harvest season)"),
+	array(     'cmd'=>'q_m_t', 'k'=>'apple_SoD_m__fruitshape' ),
+	array(     'cmd'=>'q_m_t', 'k'=>'apple_GRIN_m__TOPFRTSHAPE' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__FRUITTENAC' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__fruitearliness' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__fruitsize' ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"Apple skin colour is often made up of two layers: an underlying \"ground colour\" that appears first, and an \"over colour\" that usually appears when the fruit ripens. ".
+										 "<BR/>e.g. Golden Delicious has an even yellow ground colour, sometimes with a blush of pink over colour. ".
+										 "<BR/>e.g. Gala has an underlying yellow-orange ground colour, often with stripes of red over colour. ".
+										 "<BR/>e.g. McIntosh has an underlying green ground colour with a large splash of red over colour."),
+    array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__skingroundcolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__skinovercolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__skinoverpattern' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__FRUITBLOOM' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__bruising' ),
+	array(     'cmd'=>'q_i', 'k'=>'apple_GRIN_i__CARPELNUM' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__FRTFLSHCOL' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__FRTFLSHFRM' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_SoD_m__texture' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__FRTFLSHFLA' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__SEEDCOLOR' ),
+	array(     'cmd'=>'q_m', 'k'=>'apple_GRIN_m__SEEDSHAPE' ),
+
+
+);
+
+$oF->SetDefs( SLDescDefsApple::$raDefsApple );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raAppleForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
 }
 
 
@@ -290,6 +361,67 @@ return ($f);
 }
 
 
+function garlicForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+
+$raGarlicForm = array(
+	array( 'cmd'=>'head', 'head_EN'=>"garlic"),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'garlic_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'garlic_SoD_d__harvestdate' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"When you planted the cloves", 'title_FR'=>"When you planted the cloves" ),
+	array(     'cmd'=>'q_f', 'k'=>'garlic_SoD_f__sowdistance' ),
+	array(     'cmd'=>'q_b', 'k'=>'garlic_SoD_b__mulch' ),
+    array(     'cmd'=>'q_f', 'k'=>'garlic_SoD_f__mulchthickness' ),
+    array(     'cmd'=>'q_s', 'k'=>'garlic_SoD_s__mulchmaterial' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Cultivation", 'title_FR'=>"Cultivation" ),
+    array(     'cmd'=>'q_b', 'k'=>'garlic_SoD_b__irrigated' ),
+    array(     'cmd'=>'q_b', 'k'=>'garlic_SoD_b__fertilized' ),
+    array(     'cmd'=>'q_s', 'k'=>'garlic_SoD_s__fertilizerandamount' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__weedcontrol' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Mid-Season", 'title_FR'=>"Mid-Season" ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__leafcolour' ),
+    array(     'cmd'=>'q_f', 'k'=>'garlic_SoD_f__leaflength' ),
+    array(     'cmd'=>'q_f', 'k'=>'garlic_SoD_f__leafwidth' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__foliage' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_GRIN_m__PLANTVIGOR' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Scapes", 'title_FR'=>"Scapes" ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__scapeproduced' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__scaperemoved' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__scapestemshape' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__scapebulbils' ),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Harvest", 'title_FR'=>"Harvest" ),
+    array(     'cmd'=>'q_f', 'k'=>'garlic_GRIN_f__PLANTHEIGHT' ),
+    array(     'cmd'=>'q_i', 'k'=>'garlic_SoD_i__bulbharvest' ),
+    array(     'cmd'=>'q_f', 'k'=>'garlic_GRIN_f__BULBDIAM' ),
+    array(     'cmd'=>'q_m_t', 'k'=>'garlic_GRIN_m__BULBSHAPE' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__bulbskincolour' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__cloveskincolour' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__clovesperbulb' ),
+    array(     'cmd'=>'q_i', 'k'=>'garlic_SoD_i__clovesperbulb' ),
+    array(     'cmd'=>'q_m', 'k'=>'garlic_SoD_m__clovearrangement' ),
+    array(     'cmd'=>'q_b', 'k'=>'garlic_SoD_b__bulbpeel' ),
+    array(     'cmd'=>'q_b', 'k'=>'garlic_SoD_b__clovepeel' ),
+);
+
+$oF->SetDefs( SLDescDefsGarlic::$raDefsGarlic );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raGarlicForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
 
 function tomatoForm( SLProfilesDB $oDB, $kVI ){
 $oF = new SLProfilesForm( $oDB, $kVI );
@@ -342,6 +474,382 @@ $raTomatoForm = array(
 $oF->SetDefs( SLDescDefsTomato::$raDefsTomato );  // this tells SLDescForm how to interpret the 'garlic' descriptors
 
 $f .= $oF->DrawForm( $raTomatoForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
+
+function pepperForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+$raPepperFormCommon = array(
+    array( 'cmd'=>'head', 'head_EN'=>"pepper"),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__harvestdate' ),
+
+);
+
+$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
+$f .= $oF->DrawForm( $raPepperFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+
+$raPepperForm = array(
+
+	array( 'cmd'=>'section', 'title_EN'=>"General", 'title_FR'=>"Genral" ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_GRIN_m__COMMCAT' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_GRIN_m__PUNGENCY2' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Early-Season", 'title_FR'=>"Early-Season" ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__stemcolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__stemshape' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__pubescence' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__branchhabit' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Leaves", 'title_FR'=>"Leaves" ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__leafcolour' ),
+	array(     'cmd'=>'q_m_t', 'k'=>'pepper_SoD_m__leafshape' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_GRIN_m__LEAFTEXT' ),
+	array(     'cmd'=>'q_f', 'k'=>'pepper_SoD_f__leaflength' ),
+	array(     'cmd'=>'q_f', 'k'=>'pepper_SoD_f__leafwidth' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Flowers", 'title_FR'=>"Flowers" ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__flowerposition' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__flowercolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__anthercolour' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Fruit", 'title_FR'=>"Fruit" ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__fruitcolourunripe' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__fruitcolourripe' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_GRIN_m__FRUITPOS' ),
+	array(     'cmd'=>'q_m_t', 'k'=>'pepper_SoD_m__fruitshape' ),
+	array(     'cmd'=>'q_f', 'k'=>'pepper_GRIN_f__FRUITLNGTH' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Late-Season", 'title_FR'=>"Late-Season" ),
+	array(     'cmd'=>'q_f', 'k'=>'pepper_SoD_f__plantheight' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_GRIN_m__STEMNUM' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__planthabit' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Seeds", 'title_FR'=>"Seeds" ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__seedcolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'pepper_SoD_m__seedsurface' ),
+
+);
+
+$oF->SetDefs( SLDescDefsPepper::$raDefsPepper );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raPepperForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
+
+
+function lettuceForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+$raLettuceFormCommon = array(
+	array( 'cmd'=>'head', 'head_EN'=>"lettuce"),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__lharvestdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__boltdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__seeddate' ),
+
+);
+
+$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
+$f .= $oF->DrawForm( $raLettuceFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+
+$raLettuceForm = array(
+
+	array( 'cmd'=>'section', 'title_EN'=>"Harvest", 'title_FR'=>"Harvest" ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"Please answer these questions when the lettuce is ready to harvest."),
+    array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__HEADTYPE' ),
+    array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__LEAFCOLOR' ),
+	array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__ANTHOCYAN' ),
+	array(     'cmd'=>'q_f', 'k'=>'lettuce_GRIN_f__HEADDEPTH' ),
+	array(     'cmd'=>'q_f', 'k'=>'lettuce_GRIN_f__HEADDIAM' ),
+	array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__HEADSOLID' ),
+	array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__LEAFCRISP' ),
+	array(     'cmd'=>'q_f', 'k'=>'lettuce_SoD_f__LEAFDIMEN_L' ),
+	array(     'cmd'=>'q_f', 'k'=>'lettuce_SoD_f__LEAFDIMEN_W' ),
+	array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__LEAFFOLD' ),
+	array(     'cmd'=>'q_m_t', 'k'=>'lettuce_GRIN_m__LEAFSHAPE' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Flowers", 'title_FR'=>"Flowers" ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"Please answer these question if you allowed your lettuce to bolt and produce flowers."),
+    array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__FLOWERCOL' ),
+	array(     'cmd'=>'q_f', 'k'=>'lettuce_GRIN_f__FLOWERDIAM' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Seeds", 'title_FR'=>"Seeds" ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"Please answer these question if you allowed your lettuce to mature and produce ripe seeds."),
+    array(     'cmd'=>'q_f', 'k'=>'lettuce_GRIN_f__PLANTHGT' ),
+	array(     'cmd'=>'q_m', 'k'=>'lettuce_GRIN_m__SEEDCOLOR' ),
+
+);
+$oF->SetDefs( SLDescDefsLettuce::$raDefsLettuce );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raLettuceForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
+
+function onionForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+$raOnionFormCommon = array(
+	array( 'cmd'=>'head', 'head_EN'=>"onion"),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__diestartdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__harvestdate' ),
+
+
+);
+
+$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
+$f .= $oF->DrawForm( $raOnionFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+
+$raOnionForm = array(
+
+	array( 'cmd'=>'section', 'title_EN'=>"Mid-Season", 'title_FR'=>"Mid-Season" ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__oniontype' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__leafcolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__leafattitude' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_GRIN_m__LEAFSTRUCT' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Late-Season", 'title_FR'=>"Late-Season" ),
+	array(     'cmd'=>'q_f', 'k'=>'onion_GRIN_f__PLANTHEIGHT' ),
+	array(     'cmd'=>'q_f', 'k'=>'onion_SoD_f__leafwidth' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Flowers", 'title_FR'=>"Flowers" ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"This section is for onions that produce true flowers.  Note that some onions are biennial, producing flowers only in their second year.  Also, some produce topsets which are not flowers - make sure that you know the difference between a flower and a topset." ),
+	array(     'cmd'=>'q_b', 'k'=>'onion_SoD_b__flowerability' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__flowercolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_GRIN_m__ANTHERCOL' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Bulbs", 'title_FR'=>"Bulbs" ),
+	array(     'cmd'=>'q_f', 'k'=>'onion_GRIN_f__BULBDIAM' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_GRIN_m__BULBSHAPE' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__bulbskincolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__bulbfleshcolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'onion_SoD_m__bulbhearts' ),
+
+);
+$oF->SetDefs( SLDescDefsOnion::$raDefsOnion );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raOnionForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
+
+function peaForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+$raPeaFormCommon = array(
+    array( 'cmd'=>'head', 'head_EN'=>"pea"),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__poddate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__seeddate' ),
+
+
+);
+
+$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
+$f .= $oF->DrawForm( $raPeaFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+
+$raPeaForm = array(
+	/*
+	array( 'cmd'=>'section', 'title_EN'=>"Sample", 'title_FR'=>"Sample" ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"Sample" ),
+	array(     'cmd'=>'q_', 'k'=>'' ),
+	*/
+	array( 'cmd'=>'section', 'title_EN'=>"Seedling", 'title_FR'=>"Seedling" ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__COTYLCOLOR' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Flower", 'title_FR'=>"Flower" ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__FLOWERCOL' ),
+	array(     'cmd'=>'q_i', 'k'=>'pea_GRIN_i__FLOWPEDUNC' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Harvest", 'title_FR'=>"Harvest" ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_SoD_f__LEAFLENGTH' ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_SoD_f__LEAFWIDTH' ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_GRIN_f__HEIGHT' ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_GRIN_f__INTERNODE' ),
+	array(     'cmd'=>'q_i', 'k'=>'pea_GRIN_i__NODES' ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_GRIN_f__STEMDIAM' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Pods", 'title_FR'=>"Pods" ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__PODTYPE' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__PODCOLOR' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__PODSHAPE' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__PODAPEX' ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_GRIN_f__PODLENGTH' ),
+	array(     'cmd'=>'q_f', 'k'=>'pea_GRIN_f__PODWIDTH' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Seeds", 'title_FR'=>"Seeds" ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__HILUMCOLOR' ),
+	array(     'cmd'=>'inst', 'inst_EN'=>"Most pea seeds are uniform green/white in colour, but some have other colours or markings." ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__SDCOATCOL' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__SDPATTERN' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__SDPATCOLOR' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__SEEDSURF' ),
+	array(     'cmd'=>'q_i', 'k'=>'pea_GRIN_i__SEEDSPOD' ),
+	array(     'cmd'=>'q_m', 'k'=>'pea_GRIN_m__STEMFASC' ),
+
+);
+$oF->SetDefs( SLDescDefsPea::$raDefsPea );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raPeaForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
+
+function potatoForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+
+$raPotatoFormCommon = array(
+	array( 'cmd'=>'head', 'head_EN'=>"potato"),
+
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__diestartdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__dieenddate' ),
+
+
+);
+
+$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
+$f .= $oF->DrawForm( $raPotatoFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+
+$raPotatoForm = array(
+
+	array( 'cmd'=>'section', 'title_EN'=>"Mid-Season", 'title_FR'=>"Mid-Season" ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__foliagematurity' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__planthabit' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__flowerfrequency' ),
+	array(     'cmd'=>'q_s', 'k'=>'potato_SoD_s__flowercolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__berrynumber' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_GRIN_m__VIGOR' ),
+	array(     'cmd'=>'q_s', 'k'=>'potato_SoD_s__leafcolour' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Tubers", 'title_FR'=>"Tubers" ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__tubergreening' ),
+	array(     'cmd'=>'q_s', 'k'=>'potato_SoD_s__tubershape' ),
+	array(     'cmd'=>'q_s', 'k'=>'potato_SoD_s__tuberskincolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__skintexture' ),
+	array(     'cmd'=>'q_s', 'k'=>'potato_SoD_s__tuberfleshcolour' ),
+	array(     'cmd'=>'q_s', 'k'=>'potato_SoD_s__tubereyecolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__eyedepth' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__tubernumber' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__tubersize' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__hollowheart' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__resistdamageexternal' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__resistdamageinternal' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__storageability' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__drought' ),
+	array(     'cmd'=>'q_m', 'k'=>'potato_SoD_m__frost' ),
+
+);
+
+$oF->SetDefs( SLDescDefsPotato::$raDefsPotato );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raPotatoForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+
+   //dw_sect( "Dates" );
+return ($f);
+}
+
+
+function squashForm( SLProfilesDB $oDB, $kVI ){
+$oF = new SLProfilesForm( $oDB, $kVI );
+$oF->Update();
+
+$f = $oF->Style();
+
+$raSquashFormCommon = array(
+	array( 'cmd'=>'head', 'head_EN'=>"squash"),
+    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdatemale' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdatefemale' ),
+    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__harvestdate' ),
+
+
+);
+
+$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
+$f .= $oF->DrawForm( $raSquashFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+
+$raSquashForm = array(
+	array( 'cmd'=>'section', 'title_EN'=>"Mid-Season", 'title_FR'=>"Mid-Season" ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__PLANTHABIT' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__VIGOR' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Leaves", 'title_FR'=>"Leaves" ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_SoD_f__leaflength' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_SoD_f__leafwidth' ),
+	array(     'cmd'=>'q_s', 'k'=>'squash_SoD_s__leafshape' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Flowers", 'title_FR'=>"Flowers" ),
+	array(     'cmd'=>'q_s', 'k'=>'squash_SoD_s__flowercolour' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_SoD_f__flowerlength' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_SoD_f__flowerwidth' ),
+	array(     'cmd'=>'q_s', 'k'=>'squash_SoD_s__anthercolour' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Fruit", 'title_FR'=>"Fruit" ),
+	array(     'cmd'=>'q_b', 'k'=>'squash_GRIN_b__UNIFORMITY' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__FRUITCOLOR' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__FRUITSPOT' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__FLESHCOLOR' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_GRIN_f__FLESHDEPTH' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_GRIN_f__FRUITLEN' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_GRIN_f__FRUITDIAM' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__FRUITRIB' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_GRIN_m__FRUITSET' ),
+
+	array( 'cmd'=>'section', 'title_EN'=>"Seeds", 'title_FR'=>"Seeds" ),
+	array(     'cmd'=>'q_s', 'k'=>'squash_SoD_s__seedcolour' ),
+	array(     'cmd'=>'q_m', 'k'=>'squash_SoD_m__seednumber' ),
+	array(     'cmd'=>'q_f', 'k'=>'squash_SoD_f__seedlength' ),
+
+);
+
+$oF->SetDefs( SLDescDefsSquash::$raDefsSquash );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+
+$f .= $oF->DrawForm( $raSquashForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
 
    //dw_sect( "Dates" );
 return ($f);
