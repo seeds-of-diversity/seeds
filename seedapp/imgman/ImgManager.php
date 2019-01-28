@@ -101,7 +101,10 @@ class SEEDAppImgManager
         $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
                  ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
                  ."<div><input type='checkbox' name='imgman_bShowOnlyIncomplete' value='1' ".($this->bShowOnlyIncomplete ? 'checked' : "")."/> Show Only Incomplete Files</div>"
-                 ."<div><input type='text' name='imgman_currSubdir' id='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/> <button id='backbutton'>&lt;-</button></div>"
+                 ."<div>"
+                     ."<input type='text' name='imgman_currSubdir' id='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/>"
+                     ."<button type='button' id='backbutton'>&lt;-</button>"  // type='button' makes it non-submit
+                 ."</div>"
                  ."<div><input type='submit' value='Set Controls'/></div>"
              ."</form></div>";
 
