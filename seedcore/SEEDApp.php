@@ -9,6 +9,7 @@
 
 include_once( "SEEDCore.php" );
 include_once( "SEEDSessionAccount.php" );
+include_once( "SEEDSessionAccountUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
 include_once( SEEDCORE."console/console02.php" );
 
@@ -84,12 +85,24 @@ class SEEDAppSessionAccount extends SEEDAppSession
         // However since $sess is itself subclassed, it is built as base SEEDSession then replaced by SEEDSessionAccount.
         parent::__construct( $raParms );
 
-        // SEEDSessionAccount parms are in a sub-array of raParms. Feed it the logdir if that's defined at the top level of the array.
+        /* SEEDSessionAccount parms are in a sub-array of raParms.
+         *
+         * raParms['oSessUI']              = SEEDSessionAccountUI object to handle the UI
+         * raParms['sessParms']['logfile'] = the logfile for SEEDSession table changes
+         * raParms['sessParms']['logdir']  = the logdir for SEEDSession table changes - use raParms['logdir'] if not defined
+         */
+        // Feed it the logdir if that's defined at the top level of the array.
         $raSessParms = @$raParms['sessParms'] ?: array();
         if( !isset($raSessParms['logfile']) && !isset($raSessParms['logdir']) && isset($raParms['logdir']) ) {
             $raSessParms['logdir'] = $raParms['logdir'];
         }
         $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], $raSessParms );
+
+        // Handle the session UI (e.g. draw login form if !IsLogin, logout, send password)
+        if( !($oUI = @$raParms['oSessUI']) ) {
+            $oUI = new SEEDSessionAccountUI( $this );
+        }
+//        $oUI->DoUI();   // if this outputs anything to the browser, it must exit and never return to here
     }
 }
 
