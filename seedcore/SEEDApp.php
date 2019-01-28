@@ -165,11 +165,10 @@ class SEEDQ
     }
 
     function Cmd( $cmd, $parms )
+    /* Derived classes implement their own cmd processors, which can be chained via bHandled
+     */
     {
         $rQ = $this->GetEmptyRQ();
-
-        /* Derived classes should implement their own cmd processors.
-         */
 
         if( $cmd == 'test' ) {
             $rQ['bHandled'] = true;
