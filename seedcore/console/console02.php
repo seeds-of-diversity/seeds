@@ -22,6 +22,7 @@ class Console02
     private $raParms = array();
     private $sConsoleName = ""; // from raParms['CONSOLE_NAME'] : this keeps different console apps from conflicting in the session var space
     private $raMsg = array( 'usermsg'=>"", 'errmsg'=>"" );
+    private $bBootstrap;
 
     public $oSVA;      // user's stuff with namespace of CONSOLE_NAME
     private $oSVAInt;  // console's own stuff
@@ -30,7 +31,7 @@ class Console02
     {
         $this->oApp = $oApp;
         $this->SetConfig( $raConfig );
-        if( !isset($raParms['bBootstrap']) )  $this->bBootstrap = true;
+        $this->bBootstrap = isset($raParms['bBootstrap']) ? $raParms['bBoostrap'] : true;
     }
 
     function GetConfig()  { return( $this->raParms ); }
@@ -67,7 +68,7 @@ class Console02
     function DrawConsole( $sTemplate, $bExpand = true )
     /**************************************************
         Draw the body of a console.
-        Use DrawPage to put it in an html page.
+        Use HTMLPage to put it in an html page.
      */
     {
         $s = $this->Style();
