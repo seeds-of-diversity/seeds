@@ -71,50 +71,59 @@ class Console02
         Use HTMLPage to put it in an html page.
      */
     {
-        $s = $this->Style();
-
-        $title = @$this->raParms['HEADER'];
-        $tail  = @$this->raParms['HEADER_TAIL'];
+        $sMsgs = $sHeader = $sTail = $sLinks = "";
 
         // Do this here so template callbacks can set usermsg and errmsg, etc
         $sTemplate = ($bExpand ? $this->ExpandTemplate( $sTemplate ) : $sTemplate);
 
+        /* sMsgs appear at the top
+         */
         if( ($m = $this->GetErrMsg() ) ) {
-            $s .= $this->bBootstrap ? "<div class='alert alert-danger'>$m</div>"
-                                    : "<p style='background-color:#fee;color:red;padding:1em'>$m</p>";
+            $sMsgs .= $this->bBootstrap ? "<div class='alert alert-danger'>$m</div>"
+                                        : "<p style='background-color:#fee;color:red;padding:1em'>$m</p>";
         }
         if( ($m = $this->GetUserMsg() ) ) {
-            $s .= $this->bBootstrap ? "<div class='alert alert-success'>$m</div>"
-                                    : "<p style='background-color:#eee;color:black;padding:1em'>$m</p>";
+            $sMsgs .= $this->bBootstrap ? "<div class='alert alert-success'>$m</div>"
+                                          : "<p style='background-color:#eee;color:black;padding:1em'>$m</p>";
         }
 
-        /* Heading and header links
+        /* Header and Tail
          */
-        $s .= "<table border='0' width='100%'><tr>"
-             ."<td valign='top'>"
-             .(@$this->raParms['bLogo'] ? "<img src='//www.seeds.ca/i/img/logo/logoA-60x.png' width='60' height='50' style='display:inline-block'/>" : "")
-             .($title ? "<span class='console02-header-title'>$title</span>" : "")
-             ."</td>"
-             ."<td valign='top'>$tail &nbsp;</td>"
-             ."<td valign='top' style='float:right'>";
+        $sHeader = (@$this->raParms['bLogo'] ? "<img src='//www.seeds.ca/i/img/logo/logoA-60x.png' width='60' height='50' style='display:inline-block'/>" : "")
+                  .("<span class='console02-header-title'>".@$this->raParms['HEADER']."</span>");
+        $sTail  = @$this->raParms['HEADER_TAIL'];
+
+        /* Links to the right of the header and tail
+         */
         if( isset($this->raParms['HEADER_LINKS']) ) {
             foreach( $this->raParms['HEADER_LINKS'] as $ra ) {
-                $s .= "<a href='${ra['href']}' class='console02-header-link'"
+                $sLinks .=
+                      "<a href='${ra['href']}' class='console02-header-link'"
                      .(isset($ra['target']) ? " target='${ra['target']}'" : "")
                      .(isset($ra['onclick']) ? " onclick='${ra['onclick']}'" : "")
                      .">"
-                     .$ra['label']."</a>".SEEDStd_StrNBSP("",5);
+                     .$ra['label']."</a>".SEEDCore_NBSP("",5);
             }
-            $s .= SEEDCore_NBSP("",20);
+            $sLinks .= SEEDCore_NBSP("",20);
         }
         if( $this->oApp->sess->IsLogin() ) {
-            $s .= "<a href='".SITEROOT."login/' class='console02-header-link'>Home</a>".SEEDCore_NBSP("",5)
-                 ."<a href='".SITEROOT."login/?sessioncmd=logout' class='console01-header-link'>Logout</a>";
+            $sLinks .= "<a href='".SITEROOT."login/' class='console02-header-link'>Home</a>".SEEDCore_NBSP("",5)
+                      ."<a href='".SITEROOT."login/?sessioncmd=logout' class='console01-header-link'>Logout</a>";
         }
-        $s .= "</td></tr></table>"
-             ."<div id='console-body' width='100%'>"
-             .$sTemplate
-             ."</div>";
+
+        /* Put it all together
+         */
+        $s = $sMsgs
+            ."<table border='0' style='width:100%;margin-bottom:10px'><tr>"
+            ."<td valign='top'>$sHeader</td>"
+            ."<td valign='top'>$sTail &nbsp;</td>"
+            ."<td valign='top'><div style='float:right'>$sLinks</div></td>"
+            ."</tr></table>"
+            .$sTemplate;
+
+        /* And wrap it in a body div so we can apply a margin
+         */
+        $s = "<div class='console02-body' width='100%'>$s</div>";
 
         return( $s );
     }
@@ -173,23 +182,6 @@ class Console02
     {
 
     }
-
-    function Style()
-    {
-        $sSkin = 'blue';
-        $color1 = ($sSkin == 'green' ? 'green' : '');
-
-        $s = "<style>"
-        .".console01-header-title { display:inline-block;" // IE needs this display type to draw borders
-                                  ."font-size:14pt;font-weight:bold;padding:3px;"
-                                  ."border-top:2px $color1 solid;"
-                                  ."border-bottom:2px $color1 solid; }\n"
-        .".console01-header-link { font-size:10pt;color:green;text-decoration:none }\n"
-        ."#console-body {margin:10px}\n"
-        ."</style>";
-
-        return( $s );
-    }
 }
 
 
@@ -206,7 +198,6 @@ class Console02Static
             sCharset      : UTF-8 by default
             bCTHeader     : output header(Content-type) by default, =>false to disable
             sTitle        : <title>
-            sHttpPrefix   : specify http or https, same as page by default
             sBodyAttr     : attrs for body tag e.g. onload
             raScriptFiles : script files for the header
             raCSSFiles    : css files for the header
@@ -215,11 +206,6 @@ class Console02Static
         // use bootstrap and JQuery by default
         $bBootstrap = (@$raParms['bBootstrap'] !== false);
         $bJQuery    = (@$raParms['bJQuery'] !== false);
-
-        // match <head> links to the page's ssl
-        if( !($sHttpPrefix = @$raParms['sHttpPrefix']) ) {
-            $sHttpPrefix = @$_SERVER['HTTPS'] == 'on' ? "https" : "http";
-        }
 
         // by default we output header(Content-type) and use UTF-8
         $bCTHeader = (@$raParms['bCTHeader'] !== false);
@@ -256,9 +242,15 @@ class Console02Static
                      ."<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->\n"
                      ."<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->\n"
                      ."<!--[if lt IE 9]>\n"
-                     ."<script src='$sHttpPrefix://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js'></script>"
-                     ."<script src='$sHttpPrefix://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js'></script>"
+                     ."<script src='//oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js'></script>"
+                     ."<script src='//oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js'></script>"
                      ."<![endif]-->";
+        }
+
+        /* Set the css and js for the requested console skin, and add extra css and js files too.
+         */
+        if( @$raParms['consoleSkin'] == 'green' ) {
+            $sHead .= "<link rel='stylesheet' type='text/css' href='".W_CORE."css/console02.css'></link>";
         }
         if( @$raParms['raCSSFiles'] ) {
             foreach( $raParms['raCSSFiles'] as $v ) {

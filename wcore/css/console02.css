@@ -1,0 +1,20 @@
+/* Console02 general styling
+ */
+
+.console02-header-title { 
+        display:inline-block;   /* IE needs this display type to draw borders */
+        font-size:14pt; font-weight:bold;
+        padding:3px;
+        border-top:2px green solid;
+        border-bottom:2px green solid;
+}
+
+.console02-header-link {
+        font-size:10pt;
+        color:green;
+        text-decoration:none;
+}
+
+.console02-body {
+        margin:10px;
+}
