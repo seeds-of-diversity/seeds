@@ -222,6 +222,8 @@ class SEEDSessionAccount extends SEEDSession
     {
         $ok = false;
 
+        if( !is_array($raPerms) ) { var_dump($raPerms); die( "Perms must be array" ); }
+
         // An empty array always succeeds
         if( !$raPerms || count($raPerms)==0 ) {
             $ok = true;
