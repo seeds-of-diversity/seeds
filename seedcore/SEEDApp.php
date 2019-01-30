@@ -114,10 +114,10 @@ class SEEDAppConsole extends SEEDAppSessionAccount
 //  public $sess is inherited
     public $oC;
 
-    function __construct( $raParms )
+    function __construct( $raConfig )
     {
-        parent::__construct( $raParms );
-        $this->oC = new Console02( $this ); // Console02 and SEEDAppConsole are circularly referenced
+        parent::__construct( $raConfig );
+        $this->oC = new Console02( $this, $raConfig['consoleConfig'] ); // Console02 and SEEDAppConsole are circularly referenced
     }
 }
 

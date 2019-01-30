@@ -18,3 +18,47 @@
 .console02-body {
         margin:10px;
 }
+
+
+
+/* Console02TabSet styling
+ */
+
+.console02-tabset-frame {
+  --ts-bgcolor: #b8b8b8; 
+}
+
+.console02-tabset-tabs {
+        margin-left:20px;
+}
+
+.console02-tabset-tab {
+        display:inline-block;
+        white-space:nowrap;
+        padding: 0px 15px;
+        font-size:16pt;
+        border-radius: 8px 8px 0px 0px;
+        border:1px solid var(--ts-bgcolor);
+}
+.console02-tabset-tab-current {
+        background-color:var(--ts-bgcolor);
+        color:white;
+}
+
+.console02-tabset-tab-link {
+        color:#444;
+}
+ 
+.console02-tabset-tab-ghost {
+        color:#bbb;
+}
+
+.console02-tabset-controlarea {
+        background-color:var(--ts-bgcolor);
+        border-radius: 15px 15px 0px 0px;
+}
+
+.console02-tabset-contentarea {
+        border:1px solid var(--ts-bgcolor);
+        border-radius: 0px 0px 15px 15px;
+}

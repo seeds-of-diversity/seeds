@@ -25,7 +25,7 @@ class Console02
     private $bBootstrap;
 
     public $oSVA;      // user's stuff with namespace of CONSOLE_NAME
-    private $oSVAInt;  // console's own stuff
+    /* private but used by Console02TabSet */ public $oSVAInt;  // console's own stuff
 
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
@@ -161,7 +161,7 @@ class Console02
         $s = "";
         switch( $namespace ) {
             case "TabSet":
-                $oCTS = new ConsoleTabSet( $this );
+                $oCTS = new Console02TabSet( $this );
                 $s .= $oCTS->TabSetDraw( $tag );
                 break;
 /*

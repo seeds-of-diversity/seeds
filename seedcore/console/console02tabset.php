@@ -17,13 +17,26 @@
  */
 
 
-class ConsoleTabSet
+class Console02TabSet
 {
+    const PERM_HIDE  = 0;  // don't show the tab at all
+    const PERM_SHOW  = 1;  // show the tab fully
+    const PERM_GHOST = 2;  // show a non-clickable tab, no way to hack to the content (users will know that tab exists but can't use it)
+
+    private $tsLinkPrefix = "c02ts_";   // http parm prefix for tab links ( $_REQUEST[$tsLinkPrefix.$tsid] = $tabname )
     private $oC;
 
     function __construct( Console02 $oC )
     {
         $this->oC = $oC;
+
+        // Respond to a user clicking on a tab
+        foreach( $_REQUEST as $k => $v ) {
+            if( SEEDCore_StartsWith( $k, $this->tsLinkPrefix ) ) {
+                $tsid = substr( $k, strlen($this->tsLinkPrefix) );
+                $this->oC->oSVAInt->VarSet( "TabSet_".$tsid, $v );  // current tabname for the tsid
+            }
+        }
     }
 
     function TabSetGetSVA( $tsid, $tabname )
@@ -31,7 +44,7 @@ class ConsoleTabSet
         Every tab can have its own SVA for saving application state information.
      */
     {
-        return( new SEEDSessionVarAccessor( $this->oC->oApp->sess, "console_".$this->oC->GetConsoleName()."_${tsid}_${tabname}" ) );
+        return( new SEEDSessionVarAccessor( $this->oC->oApp->sess, "console02TabSet_".$this->oC->GetConsoleName()."_${tsid}_${tabname}" ) );
     }
 
     function TabSetDraw( $tsid )
@@ -56,51 +69,50 @@ class ConsoleTabSet
         // Tell the TabSet to initialize itself on the current tab
         $this->TabSetInit( $tsid, $sTabCurr );
 
-        $s .= "<div class='console02_tabsetframe'>"
-             ."<ul class='console02_TStabs'>";
+        $s .= "<div class='console02-tabset-frame'>"
+             ."<div class='console02-tabset-tabs'>";
 
-        $i = 0;
-        $tabnamePrev = "";
         foreach( $raTS['tabs'] as $tabname => $raTab ) {
             $eAllowed = $this->TabSetPermission( $tsid, $tabname );
-            if( $eAllowed == Console01::TABSET_PERM_HIDE )  continue;
+            if( $eAllowed == self::PERM_HIDE )  continue;
 
-            // tabA0  first, not current
-            // tabA1  first, current
-            // tabB01 non-first, current
-            // tabB10 non-first, previous current
-            // tabB00 non-first, not current and previous not current
-            // tabC0  tail of the last tab, not current
-            // tabC1  tail of the last tab, current
+            if( $tabname == $sTabCurr ) {
+                // This is the current tab. Show that it's special.
+                $class = 'console02-tabset-tab-current';
+                $label = $raTab['label'];
+                $raLinkParms = $this->TabSetExtraLinkParms( $tsid, $tabname, array('bCurrent'=>true) );
+                $raLinkParms[$this->tsLinkPrefix.$tsid] = $tabname;
+                $label = "<a href='{$_SERVER['PHP_SELF']}?".SEEDCore_ParmsRA2URL($raLinkParms)."' style='color:inherit;text-decoration:none'>{$raTab['label']}</a>";
 
-            $bCurrent = ($tabname == $sTabCurr);
+            } else if( $eAllowed == self::PERM_SHOW ) {
+                // This is an available non-current tab. Put a link in it.
+                $class = 'console02-tabset-tab-link';
+                $raLinkParms = $this->TabSetExtraLinkParms( $tsid, $tabname, array('bCurrent'=>false) );
+                $raLinkParms[$this->tsLinkPrefix.$tsid] = $tabname;
+                $label = "<a href='{$_SERVER['PHP_SELF']}?".SEEDCore_ParmsRA2URL($raLinkParms)."' style='color:inherit;text-decoration:none'>{$raTab['label']}</a>";
 
-            if( $i == 0 ) {
-                // first tab
-                $class = 'console01_TFtabA'.($bCurrent ? "1" : "0");
             } else {
-                // not the first tab
-                $class = 'console01_TFtabB'.($bCurrent ? "01" :
-                ($tabnamePrev == $sTabCurr ? "10" : "00") );
+                // This is a ghost tab. It has no link so nothing happens if you click on it.
+                $class = 'console02-tabset-tab-ghost';
+                $label = $raTab['label'];
             }
-            if( $eAllowed == Console01::TABSET_PERM_SHOW ) {
-                $raLinkParms = $this->TabSetExtraLinkParms( $tsid, $tabname, array('bCurrent'=>$bCurrent) );
-                // tell console to make tabname the active tab in the tabset tsid
-                $raLinkParms['c01tf_'.$tsid] = $tabname;
-                $sLink = "<A HREF='{$_SERVER['PHP_SELF']}?".SEEDStd_ParmsRA2URL($raLinkParms)."'>{$raTab['label']}</A>";
-            } else {
-            	// TABSET_PERM_GHOST
-                $sLink = "<SPAN style='color:grey'>{$raTab['label']}</SPAN>";
-            }
-            $s .= "<TD class='$class'><NOBR>$sLink</NOBR></TD>";
-
-            ++$i;
-            $tabnamePrev = $tabname;
+            $s .= "<div class='console02-tabset-tab $class'>$label</div>";
         }
-        $s .= "<TD class='console01_TFtabC".($tabnamePrev == $sTabCurr ? "1" : "0")."'>&nbsp;</TD>"
-             ."</TR></TABLE>";
+        $s .= "</div>";     // console02-tabset-tabs
 
         // Control and Content areas
+        $s .= "<div class='console02-tabset-controlarea'>"
+             ."<br/><br/><br/><br/>"
+             ."</div>"
+             ."<div class='console02-tabset-contentarea'>"
+             ."<br/><br/><br/><br/>"
+             ."<br/><br/><br/><br/>"
+             ."<br/><br/><br/><br/>"
+             ."</div>";
+
+        $s .= "</div>";   // console02-tabset-frame
+
+
         $sControl = $sContent = "";
         if( $this->TabSetPermission($tsid,$sTabCurr) == Console01::TABSET_PERM_SHOW ) {
             $mContent = $tsid.$sTabCurr.'Content';
@@ -175,7 +187,7 @@ $s .= "<div class='console01_frame2-ctrl'>"
 
     function TabSetGetCurrentTab( $tsid )
     {
-        $tab = $this->oSVAInt->VarGet( "TS".$tsid );
+        $tab = $this->oC->oSVAInt->VarGet( "TabSet_".$tsid );
         // if blank or not in tabs list or not visible, reset and get the first item in the tabs list.
         // if not visble get the next, repeat.
         // if none are visible, return blank.
@@ -193,7 +205,7 @@ $s .= "<div class='console01_frame2-ctrl'>"
             $this->oC->TabSetInit( $tsid, $tabname );
         } else {
             // Maybe you created a method named after the tabset/tabname in a derivation of this class, or of Console02
-            $m = "TS".$tsid.$tabname.'Init';
+            $m = "TabSet_{$tsid}_{$tabname}_Init";
             if( method_exists( $this->oC, $m ) ) {
                 $this->oC->$m();
             } else if( method_exists( $this, $m ) ) {
@@ -214,10 +226,19 @@ $s .= "<div class='console01_frame2-ctrl'>"
     }
 
     function TabSetPermission( $tsid, $tabname )
+    /*******************************************
+        Return self::PERM_* based on whether the current user has the required permissions on the given tab
+     */
     {
-        // Return values: TABSET_PERM_HIDE, TABSET_PERM_SHOW, TABSET_PERM_GHOST
+        $ret = self::PERM_HIDE;
 
-        return( Console01::TABSET_PERM_SHOW );
+        if( ($raP = @$this->oC->GetConfig()['TABSETS'][$tsid]['perms']) ) {                      // HIDE if nobody defined the perms
+            $ret = isset($raP[$tabname]) && $this->oC->oApp->sess->TestPermRA($raP[$tabname])    // Can be [], which always succeeds
+                        ? self::PERM_SHOW
+                        : self::PERM_GHOST;
+        }
+
+        return( $ret );
     }
 
     function TabSetControlDraw( $tsid, $tabname )
