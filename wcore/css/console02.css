@@ -36,7 +36,7 @@
         display:inline-block;
         white-space:nowrap;
         padding: 0px 15px;
-        font-size:16pt;
+        font-size:12pt;
         border-radius: 8px 8px 0px 0px;
         border:1px solid var(--ts-bgcolor);
 }

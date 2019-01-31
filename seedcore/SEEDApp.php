@@ -117,7 +117,7 @@ class SEEDAppConsole extends SEEDAppSessionAccount
     function __construct( $raConfig )
     {
         parent::__construct( $raConfig );
-        $this->oC = new Console02( $this, $raConfig['consoleConfig'] ); // Console02 and SEEDAppConsole are circularly referenced
+        $this->oC = new Console02( $this, @$raConfig['consoleConfig'] ?: array() ); // Console02 and SEEDAppConsole are circularly referenced
     }
 }
 

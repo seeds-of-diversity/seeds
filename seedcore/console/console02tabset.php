@@ -14,6 +14,22 @@
  *
  * Each tabset has a tsid.
  * So a tab can be uniquely identified by consoleAppName_tsid_tabname
+ *
+ * raConfig = [ tsidA => ['tabs'  => [tabname1 => ['label'=>label1],
+ *                                    tabname2 => ['label'=>label2] ],
+ *                        'perms' => [tabname1 => [SEEDSessionAccount perm def],
+ *                                    tabname2 => [SEEDSessionAccount perm def],
+ *                                                '|'
+ *                       ],
+ *              tsidB => ['tabs'  => [tabname1 => ['label'=>label1], ...
+ *
+ * Notes:
+ * 1) You can have more than one tabset, and draw them independently with TabSetDraw(tsid).
+ * 2) The perms are defined separately from the tabs so SEEDSessionAccount::TestPermsRA(config[tsid]['perms']) can test whether
+ *    the whole perms set allows ANY tabs to be accessed e.g. to determine whether the whole tabset should be visible.
+ *    a) '|' has to be specified in the perms array to enable OR permissions.
+ *    b) The perms op '|' (or others) is another reason 'perms' is separated from 'tabs'; you can iterate through 'tabs' to get the exact list of tabs.
+ *    c) Keys are ignored by TestPermsRA() so the tabnames can be used by Console but don't get in the way for the purpose explained here.
  */
 
 
@@ -25,10 +41,12 @@ class Console02TabSet
 
     private $tsLinkPrefix = "c02ts_";   // http parm prefix for tab links ( $_REQUEST[$tsLinkPrefix.$tsid] = $tabname )
     private $oC;
+    private $raConfig;
 
-    function __construct( Console02 $oC )
+    function __construct( Console02 $oC, $raConfig )
     {
         $this->oC = $oC;
+        $this->raConfig = $raConfig;
 
         // Respond to a user clicking on a tab
         foreach( $_REQUEST as $k => $v ) {
@@ -50,20 +68,14 @@ class Console02TabSet
     function TabSetDraw( $tsid )
     /***************************
         Draw a tabbed form, getting the current tab from the console session vars.
-
-        $raConfig['TABSETS'] must have [ $tsid => ['tabs' => [tabname1 => ['label'=>label1,'perms'=>...], tabname2 => ['label'=>label2,'perms'=> ...
      */
     {
         $s = "";
 
-        if( !($raTS = $this->oC->GetConfig()['TABSETS'][$tsid]) )  goto done;
+        if( !($raTS = $this->raConfig[$tsid]) )  goto done;
 
         // Get the current tab, defaulting to the first one
-        $sTabCurr = $this->TabSetGetCurrentTab( $tsid );
-        if( !$sTabCurr || !isset($raTS['tabs'][$sTabCurr]) ) {
-            reset( $raTS['tabs'] );          // point to the first element
-            $sTabCurr = key($raTS['tabs']);  // the key of the first element (the first tabname)
-        }
+        $sTabCurr = $this->TabSetGetCurrentTab( $tsid, true );
         $sLabelCurr = $raTS['tabs'][$sTabCurr]['label'];
 
         // Tell the TabSet to initialize itself on the current tab
@@ -100,21 +112,8 @@ class Console02TabSet
         }
         $s .= "</div>";     // console02-tabset-tabs
 
-        // Control and Content areas
-        $s .= "<div class='console02-tabset-controlarea'>"
-             ."<br/><br/><br/><br/>"
-             ."</div>"
-             ."<div class='console02-tabset-contentarea'>"
-             ."<br/><br/><br/><br/>"
-             ."<br/><br/><br/><br/>"
-             ."<br/><br/><br/><br/>"
-             ."</div>";
-
-        $s .= "</div>";   // console02-tabset-frame
-
-
         $sControl = $sContent = "";
-        if( $this->TabSetPermission($tsid,$sTabCurr) == Console01::TABSET_PERM_SHOW ) {
+        if( $this->TabSetPermission($tsid,$sTabCurr) == self::PERM_SHOW ) {
             $mContent = $tsid.$sTabCurr.'Content';
             $mControl = $tsid.$sTabCurr.'Control';
 
@@ -122,77 +121,41 @@ class Console02TabSet
             $sContent = method_exists( $this, $mContent ) ? $this->$mContent() : $this->TabSetContentDraw($tsid,$sTabCurr);
         }
 
-        $sSpacer1_1 = "<IMG height='1' width='1' src='".W_ROOT_SEEDCOMMON."console/spacer.gif'/>";
-        $sSpacer12_1  = "<IMG height='1' width='12' src='".W_ROOT_SEEDCOMMON."console/spacer.gif'/>";
-        $sSpacer12_19 = "<IMG height='19' width='12' src='".W_ROOT_SEEDCOMMON."console/spacer.gif'/>";
-        $sSpacer12_20 = "<IMG height='20' width='12' src='".W_ROOT_SEEDCOMMON."console/spacer.gif'/>";
-        $sSpacer15_20 = "<IMG height='20' width='15' src='".W_ROOT_SEEDCOMMON."console/spacer.gif'/>";
-
-$s .= "<div class='console01_frame2-ctrl'>"
-     ."<div class='console01_frame2-ctrl-tl'></div>"
-     ."<div class='console01_frame2-ctrl-tc'></div>"
-     ."<div class='console01_frame2-ctrl-tr'></div>"
-     ."<div class='console01_frame2-ctrl-cl'></div>"
-     ."<div class='console01_frame2-ctrl-cc'></div>"
-     ."<div class='console01_frame2-ctrl-cr'></div>"
-     ."<div class='console01_frame2-ctrl-bl'></div>"
-     ."<div class='console01_frame2-ctrl-bc'></div>"
-     ."<div class='console01_frame2-ctrl-br'></div>"
-     ."<div class='console01_frame2-ctrl-body'>"
-     .(!empty($sControl) ? "<DIV style='margin:10px'>$sControl</DIV>" : "&nbsp;")
-     ."</div>"
-     ."</div>";
-
-        $s .= "<TABLE border='0' cellpadding='0' cellspacing='0' width='100%'>"
-/*        // frame top
-        ."<TR valign='top'>"
-        ."<TD class='console01_frame-1-1-topleft' width='12' height='20'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-1-2-topmiddle' height='20'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-1-3-topright' width='15' height='20'>$sSpacer1_1</TD>"
-        ."</TR>"
-        ."<TR valign='top'>"
-        ."<TD class='console01_frame-2-1-topleft' width='12'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-2-2-topmiddle'>"
-        .(!empty($sControl) ? "<DIV style='margin:10px'>$sControl</DIV>" : "&nbsp;")
-        ."</TD>"
-        ."<TD class='console01_frame-2-3-topright' width='15'>$sSpacer1_1</TD>"
-        ."</TR>"
-        ."<TR valign='top'>"
-        ."<TD class='console01_frame-3-1-topleft' width='12' height='20'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-3-2-topmiddle' height='20'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-3-3-topright' width='12' height='20'>$sSpacer1_1</TD>"
-        ."</TR>"
-*/
-        // frame body
-        ."<TR valign='top'>"
-        ."<TD class='console01_frame-4-1-middleleft' width='12'>$sSpacer1_1</TD>"
-        ."<TD>"
-        ."<DIV class='console01_tabsetcontent' style='".@$raTF['divstyle']."'>"
-        .$sContent."&nbsp;"
-        ."</DIV></TD>"
-        ."<TD class='console01_frame-4-3-middleright' width='15'>$sSpacer12_19</TD>"
-        ."</TR>"
-        // frame bottom
-        ."<TR valign='top'>"
-        ."<TD class='console01_frame-5-1-bottomleft' width='12' height='19'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-5-2-bottommiddle' height='19'>$sSpacer1_1</TD>"
-        ."<TD class='console01_frame-5-3-bottomright' width='15' height='19'>$sSpacer1_1</TD>"
-        ."</TR></TABLE>"
-        ."</DIV>";
+        // Control and Content areas
+        $s .= "<div class='console02-tabset-controlarea'>$sControl</div>"
+             ."<div class='console02-tabset-contentarea'>$sContent</div>"
+             ."</div>";   // console02-tabset-frame
 
         done:
         return( $s );
     }
 
 
-    function TabSetGetCurrentTab( $tsid )
+    function TabSetGetCurrentTab( $tsid, $bFindDefaultIfNoneCurrent = true )
     {
-        $tab = $this->oC->oSVAInt->VarGet( "TabSet_".$tsid );
-        // if blank or not in tabs list or not visible, reset and get the first item in the tabs list.
-        // if not visble get the next, repeat.
-        // if none are visible, return blank.
-        // save the current tab in $this->oC->oSVAInt
-        return( $tab );
+        $tabname = $this->oC->oSVAInt->VarGet( "TabSet_".$tsid );
+
+        if( !($raTS = $this->raConfig[$tsid]) ) goto done;
+
+        // If tab is blank or not in tabs list or not visible, find the first visible tab
+        if( !$tabname || !isset($raTS['tabs'][$tabname]) || $this->TabSetPermission( $tsid, $tabname ) != self::PERM_SHOW ) {
+
+            $tabname = '';  // return this if no default found
+            if( $bFindDefaultIfNoneCurrent ) {
+                // Find the first tab that is PERM_SHOW
+                foreach( $raTS['tabs'] as $k => $ra ) {
+                    if( $this->TabSetPermission( $tsid, $k ) == self::PERM_SHOW ) {
+                        $tabname = $k;
+                        break;
+                    }
+                }
+            }
+            // Save the current tab in $this->oC->oSVAInt
+            $this->oC->oSVAInt->VarSet( "TabSet_".$tsid, $tabname );
+        }
+
+        done:
+        return( $tabname );
     }
 
     function TabSetInit( $tsid, $tabname )
@@ -232,8 +195,11 @@ $s .= "<div class='console01_frame2-ctrl'>"
     {
         $ret = self::PERM_HIDE;
 
-        if( ($raP = @$this->oC->GetConfig()['TABSETS'][$tsid]['perms']) ) {                      // HIDE if nobody defined the perms
-            $ret = isset($raP[$tabname]) && $this->oC->oApp->sess->TestPermRA($raP[$tabname])    // Can be [], which always succeeds
+        // use isset because "if(@$raP[$tabname])" would fail for [] which is allowed and always succeeds.
+        if( ($raP = @$this->raConfig[$tsid]['perms']) &&
+            isset($raP[$tabname]) )
+        {
+            $ret = $this->oC->oApp->sess->TestPermRA($raP[$tabname])
                         ? self::PERM_SHOW
                         : self::PERM_GHOST;
         }
