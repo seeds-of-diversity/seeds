@@ -123,8 +123,15 @@ class DocRepApp1
     function Style()
     {
         $s = "<style>
-              .docrepapp_treetabs { margin-left: -30px; margin-bottom: -20px; }
-              .docrepapp_treetabs li { display: inline-block; padding: 5px 10px; color:#007bff; }
+              .docrepapp_treetabs { margin-left: -25px; margin-bottom: -17px; }
+              .docrepapp_treetabs li {
+                  display: inline-block;
+                  padding: 2px 15px;
+                  color:#444;
+                  border-radius: 8px 8px 0px 0px;
+                  border:1px solid #777;
+                  border-bottom:none;
+              }
               </style>";
 
         $s .= <<<DocRepApp1_Script

@@ -114,11 +114,8 @@ class Console02TabSet
 
         $sControl = $sContent = "";
         if( $this->TabSetPermission($tsid,$sTabCurr) == self::PERM_SHOW ) {
-            $mContent = $tsid.$sTabCurr.'Content';
-            $mControl = $tsid.$sTabCurr.'Control';
-
-            $sControl = method_exists( $this, $mControl ) ? $this->$mControl() : $this->TabSetControlDraw($tsid,$sTabCurr);
-            $sContent = method_exists( $this, $mContent ) ? $this->$mContent() : $this->TabSetContentDraw($tsid,$sTabCurr);
+            $sControl = $this->TabSetControlDraw( $tsid, $sTabCurr );
+            $sContent = $this->TabSetContentDraw( $tsid, $sTabCurr );
         }
 
         // Control and Content areas
@@ -160,22 +157,10 @@ class Console02TabSet
 
     function TabSetInit( $tsid, $tabname )
     {
-        /* You can make a derived class overriding this method to initialize the tab set.
-         * Otherwise, we will try to find other methods where you did that.
+        /* Override this method or define another that findMethod will find
          */
-        if( method_exists( $this->oC, "TabSetInit" ) ) {
-            // You added this method to your derivation of Console02
-            $this->oC->TabSetInit( $tsid, $tabname );
-        } else {
-            // Maybe you created a method named after the tabset/tabname in a derivation of this class, or of Console02
-            $m = "TabSet_{$tsid}_{$tabname}_Init";
-            if( method_exists( $this->oC, $m ) ) {
-                $this->oC->$m();
-            } else if( method_exists( $this, $m ) ) {
-                $this->$m();
-            } else {
-                // Nope, no initialization method
-            }
+        if( ($m = $this->findmethod( $tsid, $tabname, "Init" )) ) {
+            call_user_func( $m, $tsid, $tabname );
         }
     }
 
@@ -185,6 +170,15 @@ class Console02TabSet
         //
         // $raParms    : parms used by this method
         //                   bCurrent = this is the current tab
+
+        /* Override this method or define another that findMethod will find
+         */
+        $ret = array();
+
+        if( ($m = $this->findmethod( $tsid, $tabname, "ExtraLinkParms" )) ) {
+            $ret = call_user_func( $m, $tsid, $tabname );
+        }
+
         return( array() );
     }
 
@@ -193,15 +187,24 @@ class Console02TabSet
         Return self::PERM_* based on whether the current user has the required permissions on the given tab
      */
     {
+        /* Override this method or define another that findMethod will find
+         */
+
         $ret = self::PERM_HIDE;
 
-        // use isset because "if(@$raP[$tabname])" would fail for [] which is allowed and always succeeds.
-        if( ($raP = @$this->raConfig[$tsid]['perms']) &&
-            isset($raP[$tabname]) )
-        {
-            $ret = $this->oC->oApp->sess->TestPermRA($raP[$tabname])
-                        ? self::PERM_SHOW
-                        : self::PERM_GHOST;
+        if( ($m = $this->findmethod( $tsid, $tabname, "Permission" )) ) {
+            $ret = call_user_func( $m, $tsid, $tabname );
+        } else {
+            /* Base method tests tab permissions using TestPermRA()
+             */
+            // use isset because "if(@$raP[$tabname])" would fail for [] which is allowed and always succeeds.
+            if( ($raP = @$this->raConfig[$tsid]['perms']) &&
+                isset($raP[$tabname]) )
+            {
+                $ret = $this->oC->oApp->sess->TestPermRA($raP[$tabname])
+                            ? self::PERM_SHOW
+                            : self::PERM_GHOST;
+            }
         }
 
         return( $ret );
@@ -209,16 +212,50 @@ class Console02TabSet
 
     function TabSetControlDraw( $tsid, $tabname )
     {
-        // override to place controls in the upper frame area
-        return( "" );
+        /* Override this method or define another that findMethod will find
+         */
+        $s = "";
+
+        if( ($m = $this->findmethod( $tsid, $tabname, "ControlDraw" )) ) {
+            $s = call_user_func( $m, $tsid, $tabname );
+        }
+        return( $s );
     }
 
     function TabSetContentDraw( $tsid, $tabname )
     {
-        // override to draw the main content
-        return( "" );
+        /* Override this method or define another that findMethod will find
+         */
+        $s = "";
+
+        if( ($m = $this->findmethod( $tsid, $tabname, "ContentDraw" )) ) {
+            $s = call_user_func( $m, $tsid, $tabname );
+        }
+        return( $s );
     }
 
 
+    private function findmethod( $tsid, $tabname, $method )
+    {
+        /* Try to find a method that implements the given $method
+         */
+        $ret = null;
 
+        if( method_exists( $this->oC, "TabSet$method" ) ) {
+            // You added this method to your derivation of Console02
+            $ret = array($this->oC, "TabSet$method" );
+        } else {
+            // Maybe you created a method named after the tabset/tabname in a derivation of this class, or of Console02
+            $m = "TabSet_{$tsid}_{$tabname}_{$method}";
+            if( method_exists( $this, $m ) ) {
+                $ret = array( $this, $m );
+            } else if( method_exists( $this->oC, $m ) ) {
+                $ret = array( $this->oC, $m );
+            } else {
+                // Nope, couldn't find a method
+            }
+        }
+
+        return( $ret );
+    }
 }
