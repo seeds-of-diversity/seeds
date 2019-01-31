@@ -23,6 +23,7 @@ class Console02
     private $sConsoleName = ""; // from raParms['CONSOLE_NAME'] : this keeps different console apps from conflicting in the session var space
     private $raMsg = array( 'usermsg'=>"", 'errmsg'=>"" );
     private $bBootstrap;
+    private $oTabSet = null;    // Custom Console02TabSet can be specified by DrawConsole parms
 
     public $oSVA;      // user's stuff with namespace of CONSOLE_NAME
     /* private but used by Console02TabSet */ public $oSVAInt;  // console's own stuff
@@ -45,7 +46,7 @@ class Console02
 
         /* You can reset the sConsoleName and the oSVAs using SetConfig
          */
-        $this->sConsoleName = @$raParms['CONSOLE_NAME'];
+        $this->sConsoleName = @$this->raParms['CONSOLE_NAME'];
 
         /* oSVA is for the client to use, namespaced by sConsoleName.
          * oSVAInt is for the console's housekeeping - also namespaced by sConsoleName but clients should not use it
@@ -65,16 +66,26 @@ class Console02
     function GetMsg( $sKey )     { return( @$this->raMsg[$sKey] ); }
     function AddMsg( $s, $sKey ) { @$this->raMsg[$sKey] .= $s; }
 
-    function DrawConsole( $sTemplate, $bExpand = true )
-    /**************************************************
+    function DrawConsole( $sTemplate, $raParms = array() )
+    /*****************************************************
         Draw the body of a console.
         Use HTMLPage to put it in an html page.
+
+        raParms: bExpand = use ExpandTemplate (default true)
+                 oTabSet = a Console02TabSet to use for [[TabSet:...]] expansion
      */
     {
         $sMsgs = $sHeader = $sTail = $sLinks = "";
 
+        if( @$raParms['oTabSet'] ) {
+            // The caller has specified their own Console02TabSet
+            $this->oTabSet = $raParms['oTabSet'];
+        }
+
         // Do this here so template callbacks can set usermsg and errmsg, etc
-        $sTemplate = ($bExpand ? $this->ExpandTemplate( $sTemplate ) : $sTemplate);
+        if( SEEDCore_ArraySmartVal($raParms, 'bExpand', [true,false]) ) {
+            $sTemplate = $this->ExpandTemplate( $sTemplate );
+        }
 
         /* sMsgs appear at the top
          */
@@ -161,8 +172,17 @@ class Console02
         $s = "";
         switch( $namespace ) {
             case "TabSet":
-                $oCTS = new Console02TabSet( $this );
-                $s .= $oCTS->TabSetDraw( $tag );
+                $oCTS = null;
+                if( $this->oTabSet ) {
+                    // caller has specified their own Console02TabSet
+                    $oCTS = $this->oTabSet;
+                } else if( isset($this->raParms['TABSETS']) ) {
+                    // use the base Console02TabSet
+                    $oCTS = new Console02TabSet( $this, $this->raParms['TABSETS'] );
+                }
+                if( $oCTS ) {
+                    $s .= $oCTS->TabSetDraw( $tag );
+                }
                 break;
 /*
             case "":
