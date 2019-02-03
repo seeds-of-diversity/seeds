@@ -79,30 +79,30 @@ class SEEDAppSessionAccount extends SEEDAppSession
 //  public $kfdb is inherited
 //  public $sess is inherited
 
-    function __construct( $raParms )
+    function __construct( $raConfig )
     {
         // This is structured as a SEEDAppSession so client code (like Console) can use it as that base class.
         // However since $sess is itself subclassed, it is built as base SEEDSession then replaced by SEEDSessionAccount.
-        parent::__construct( $raParms );
+        parent::__construct( $raConfig );
 
-        /* SEEDSessionAccount parms are in a sub-array of raParms.
+        /* SEEDSessionAccount config is in a sub-array of raConfig.
          *
-         * raParms['oSessUI']              = SEEDSessionAccountUI object to handle the UI
-         * raParms['sessParms']['logfile'] = the logfile for SEEDSession table changes
-         * raParms['sessParms']['logdir']  = the logdir for SEEDSession table changes - use raParms['logdir'] if not defined
+         * raConfig['oSessUI']              = SEEDSessionAccountUI object to handle the UI
+         * raConfig['sessConfig']['logfile'] = the logfile for SEEDSession table changes
+         * raConfig['sessConfig']['logdir']  = the logdir for SEEDSession table changes - use raConfig['logdir'] if not defined
          */
         // Feed it the logdir if that's defined at the top level of the array.
-        $raSessParms = @$raParms['sessParms'] ?: array();
-        if( !isset($raSessParms['logfile']) && !isset($raSessParms['logdir']) && isset($raParms['logdir']) ) {
-            $raSessParms['logdir'] = $raParms['logdir'];
+        $raSessConfig = @$raConfig['sessConfig'] ?: array();
+        if( !isset($raSessConfig['logfile']) && !isset($raSessConfig['logdir']) && isset($raConfig['logdir']) ) {
+            $raSessConfig['logdir'] = $raConfig['logdir'];
         }
-        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], $raSessParms );
+        $this->sess = new SEEDSessionAccount( $this->kfdb, $raConfig['sessPermsRequired'], $raSessConfig );
 
         // Handle the session UI (e.g. draw login form if !IsLogin, logout, send password)
-        if( !($oUI = @$raParms['oSessUI']) ) {
-            $oUI = new SEEDSessionAccountUI( $this );
+        if( !($oUI = @$raConfig['oSessUI']) ) {
+            $oUI = new SEEDSessionAccountUI( $this, @$raConfig['sessUIConfig'] ?: [] );
         }
-//        $oUI->DoUI();   // if this outputs anything to the browser, it must exit and never return to here
+        $oUI->DoUI();   // if this outputs anything to the browser, it must exit and never return to here
     }
 }
 

@@ -201,18 +201,19 @@ class SEEDSessionAccount extends SEEDSession
     function TestPermRA( $raPerms )
     /******************************
         Return true if the current user has permissions that match the given array.
-        An empty array always succeeds.
+
+        'PUBLIC' always succeeds regardless of IsLogin(), and must appear first in a '|' list to allow anonymous login (because of short-circuit logic)
+        [] is equivalent to IsLogin()
      */
     {
-        if( !$this->IsLogin() )  return( false );
-
         return( $this->_testPerms($raPerms) );
     }
 
     private function _testPerms( $raPerms )
     /**************************************
         $raPerms is an array of permission operands.
-        [] always succeeds
+        ['PUBLIC'] always succeeds and allows !IsLogin
+        [] always succeeds if IsLogin
         ['R a'] is a simple test that 'a' has read permission
         ['&', 'R a', 'W b', ...] tests that all of the operands in the array pass permission test -- & can occur anywhere in the array
         ['|', 'R a', 'W b', ...] tests that any one of the operands in the array pass permission test -- | can occur anywhere in the array
@@ -224,9 +225,9 @@ class SEEDSessionAccount extends SEEDSession
 
         if( !is_array($raPerms) ) { var_dump($raPerms); die( "Perms must be array" ); }
 
-        // An empty array always succeeds
-        if( !$raPerms || count($raPerms)==0 ) {
-            $ok = true;
+        // An empty array always succeeds if logged in
+        if( (!$raPerms || count($raPerms)==0) ) {
+            $ok = $this->IsLogin();
             goto done;
         }
 
@@ -241,7 +242,11 @@ class SEEDSessionAccount extends SEEDSession
             if( is_array($v) ) {
                 // This is a nested array. Evaluate with this method recursively.
                 $x = $this->_testPerms( $v );
+            } else if( $v == 'PUBLIC' ) {
+                // This is a special perm that always succeeds regardless of IsLogin()
+                $x = true;
             } else {
+                // Regular perm string. Only returns true if IsLogin()
                 // "mode perm" e.g. "RW foobar", "A foobar", "WA foobar"
                 list($mode,$perm) = explode( ' ', $v, 2 );
                 $x = $this->TestPerm( $perm, $mode );
@@ -252,6 +257,7 @@ class SEEDSessionAccount extends SEEDSession
                 if( ($ok = $ok || $x) )  goto done;
             }
         }
+        //var_dump($raPerms,$ok);
 
         done:
         return( $ok );
@@ -264,10 +270,11 @@ class SEEDSessionAccount extends SEEDSession
     {
         $ok = false;
 
-        if( $this->kfrSession ) {
+        if( !$this->IsLogin() &&   // this is probably redundant with $this->kfrSession==null, but it's critical to be clear here
+            $this->kfrSession )
+        {
             $ok = (strpos($this->kfrSession->value("perms$mode"), " $perm ") !== false);  // NB !== because 0 means first position
         }
-        if( !$ok ) $this->error = SEEDSESSION_ERR_PERM_NOT_FOUND;
 
         return( $ok );
     }

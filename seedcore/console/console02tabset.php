@@ -74,8 +74,9 @@ class Console02TabSet
 
         if( !($raTS = $this->raConfig[$tsid]) )  goto done;
 
-        // Get the current tab, defaulting to the first one
-        $sTabCurr = $this->TabSetGetCurrentTab( $tsid, true );
+        // Get the current tab, defaulting to the first one (can return '' if no tabs have perms)
+        if( !($sTabCurr = $this->TabSetGetCurrentTab( $tsid, true )) )  goto done;
+
         $sLabelCurr = $raTS['tabs'][$sTabCurr]['label'];
 
         // Tell the TabSet to initialize itself on the current tab
