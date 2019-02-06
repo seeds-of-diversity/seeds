@@ -160,14 +160,15 @@ class SEEDSessionAccount extends SEEDSession
         }
 
         // Test permissions for any user session that was created or found.
-        if( $this->_testPerms($raPerms) ) {
-            $this->bLogin = true;
-        } else {
+        // Assume bLogin during _testPerms because it will fail otherwise. It is called by public TestPerms() so it must check.
+        $this->bLogin = true;
+        if( !$this->_testPerms($raPerms) ) {
             $this->eLoginState = self::SESSION_PERMS_FAILED;
+            $this->bLogin = false;
         }
 
     done:
-        if( $this->IsLogin() ) {
+        if( $this->bLogin ) {
             // This could have been done in makeSession (which does this lookup!) or findSession, but we prefer to do it after the perms are checked above
             list($kUser,$this->raUser,$this->raMetadata) = $this->oDB->GetUserInfo( $this->kfrSession->Value('uid') );
         }
@@ -227,7 +228,7 @@ class SEEDSessionAccount extends SEEDSession
 
         // An empty array always succeeds if logged in. Since this is called in the constructor before IsLogin is set, check eLoginState.
         if( (!$raPerms || count($raPerms)==0) ) {
-            $ok = $this->IsLogin() || in_array($this->eLoginState, [self::SESSION_CREATED, self::SESSION_FOUND]);
+            $ok = $this->IsLogin();
             goto done;
         }
 
@@ -270,12 +271,10 @@ class SEEDSessionAccount extends SEEDSession
     {
         $ok = false;
 
-        if( !$this->IsLogin() &&   // this is probably redundant with $this->kfrSession==null, but it's critical to be clear here
-            $this->kfrSession )
+        if( $this->IsLogin() && $this->kfrSession )
         {
             $ok = (strpos($this->kfrSession->value("perms$mode"), " $perm ") !== false);  // NB !== because 0 means first position
         }
-
         return( $ok );
     }
 
