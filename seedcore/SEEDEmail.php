@@ -64,6 +64,11 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
             }
         }
 
+        if( @$raParms['attachments'] ) {
+            foreach( $raParms['attachments'] as $attachmentFilename ) {
+                $oMail->AddAttachLocalFile( $attachmentFilename, '' );  // expecting ezmail to figure out the mimetype
+            }
+        }
         if( empty($bodyText) ) $bodyText = strip_tags( $bodyHTML );
         $oMail->SetBodyText( $bodyText );
         if( !empty( $bodyHTML ) ) {
