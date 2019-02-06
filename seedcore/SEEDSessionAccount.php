@@ -225,9 +225,9 @@ class SEEDSessionAccount extends SEEDSession
 
         if( !is_array($raPerms) ) { var_dump($raPerms); die( "Perms must be array" ); }
 
-        // An empty array always succeeds if logged in
+        // An empty array always succeeds if logged in. Since this is called in the constructor before IsLogin is set, check eLoginState.
         if( (!$raPerms || count($raPerms)==0) ) {
-            $ok = $this->IsLogin();
+            $ok = $this->IsLogin() || in_array($this->eLoginState, [self::SESSION_CREATED, self::SESSION_FOUND]);
             goto done;
         }
 
