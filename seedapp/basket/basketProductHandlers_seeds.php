@@ -193,6 +193,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
     function Purchase0( KeyframeRecord $kfrP )
     {
+        // ProductDraw returns utf8 by default because it uses MSDQ
         $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_ALL )."</div>"
             ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
             ."<input type='hidden' name='sb_product' value='".$kfrP->Key()."'/>";
@@ -206,6 +207,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
      */
     {
         $kfrP = $this->oSB->oDB->GetProduct( $kfrBPxP->Value('P__key') );
+        // ProductDraw returns utf8 by default because it uses MSDQ
         $s = $this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_TINY );
 
         if( $kfrBPxP->Value('quant_type') == 'ITEM_N' && ($n = $kfrBPxP->Value('n')) > 1 ) {

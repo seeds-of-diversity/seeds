@@ -80,6 +80,8 @@ class MSDAppSeedEdit
                 $sC = str_replace( '[[kP]]', $kP, $sC );
 //                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
 //                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
+
+                // DrawProduct returns utf8 by default
                 $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES ), $sC );
                 $sList .= $sC;
 
