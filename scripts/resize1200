@@ -1,2 +1,4 @@
+# N.B. if you type this on a command line make sure you remember to \-escape the > character or it looks like a redirect to a file called "-quality" 
+
 convert "$1" -resize 1200x1200\>  -quality 85 "$1"
 

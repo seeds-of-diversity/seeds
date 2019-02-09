@@ -1,7 +1,7 @@
 # Put each child directory in a tarfile
 #  $1=="md5" or $1=="md5list" : optional to generate checksum files
 
-DIRSCRIPT=~/public_html/scripts
+DIRSCRIPT=~/seeds/scripts
 
 echo "Doing (tar -cf \"$DIRBACK/$f.tar\" \"$f\" "
 
