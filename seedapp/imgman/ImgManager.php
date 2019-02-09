@@ -149,7 +149,7 @@ class SEEDAppImgManager
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
                     if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
                     if( count($raExts)==1 &&
-                        (isset($raExts['png']) || isset($raExts['mp4'])) &&
+                        (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) || isset($raExts['webp'])) &&
                         substr($filebase,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
                 }
 
@@ -280,7 +280,7 @@ function ImgManagerApp( SEEDAppConsole $oApp, $rootdir, $raConfig )
     $oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir, 'imgmanlib' => $raConfig['imgmanlib'] ) );
 
     $raParms = array( "raScriptFiles" => array( W_CORE."js/SEEDCore.js" ) );
-    echo Console02Static::HTMLPage( utf8_encode($oImgApp->Main()), "", 'EN', $raParms );   // sCharset defaults to utf8
+    echo Console02Static::HTMLPage( $oImgApp->Main(), "", 'EN', $raParms );   // sCharset defaults to utf8 and filesystem uses utf8
 }
 
 ?>
