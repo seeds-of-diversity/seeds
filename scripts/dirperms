@@ -1,0 +1,15 @@
+# Make all descendant directories visible / invisible
+
+if [ "$1" == "show" ]
+then 
+PERMS=755
+elif [ "$1" = "hide" ]
+then 
+PERMS=750
+else
+echo "dirperms show|hide"
+exit
+fi
+
+echo $PERMS
+find . -type d -exec chmod $PERMS '{}' \;
