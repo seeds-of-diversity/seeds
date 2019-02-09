@@ -9,6 +9,7 @@
 
 include_once( "SEEDCore.php" );
 include_once( "SEEDSessionAccount.php" );
+include_once( "SEEDSessionAccountUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeDB.php" );
 include_once( SEEDCORE."console/console02.php" );
 
@@ -37,18 +38,18 @@ class SEEDAppDB extends SEEDAppBase
 //  public $logdir is inherited
     public $kfdb;
 
-    function __construct( $raParms )
-    /*******************************
+    function __construct( $raConfig )
+    /********************************
         raParms: kfdbHost, kfdbUserid, kfdbPassword, and kfdbDatabase are required
      */
     {
-        parent::__construct( $raParms );
+        parent::__construct( $raConfig );
 
-        if( !($this->kfdb = new KeyframeDatabase( $raParms['kfdbUserid'], $raParms['kfdbPassword'], @$raParms['kfdbHost'] )) ) {    // kfdbHost is optional
+        if( !($this->kfdb = new KeyframeDatabase( $raConfig['kfdbUserid'], $raConfig['kfdbPassword'], @$raConfig['kfdbHost'] )) ) {    // kfdbHost is optional
             die( "Cannot connect to database" );
         }
 
-        if( !$this->kfdb->Connect( $raParms['kfdbDatabase'] ) ) {
+        if( !$this->kfdb->Connect( $raConfig['kfdbDatabase'] ) ) {
             die( $this->kfdb->GetErrMsg() );
         }
     }
@@ -78,18 +79,30 @@ class SEEDAppSessionAccount extends SEEDAppSession
 //  public $kfdb is inherited
 //  public $sess is inherited
 
-    function __construct( $raParms )
+    function __construct( $raConfig )
     {
         // This is structured as a SEEDAppSession so client code (like Console) can use it as that base class.
         // However since $sess is itself subclassed, it is built as base SEEDSession then replaced by SEEDSessionAccount.
-        parent::__construct( $raParms );
+        parent::__construct( $raConfig );
 
-        // SEEDSessionAccount parms are in a sub-array of raParms. Feed it the logdir if that's defined at the top level of the array.
-        $raSessParms = @$raParms['sessParms'] ?: array();
-        if( !isset($raSessParms['logfile']) && !isset($raSessParms['logdir']) && isset($raParms['logdir']) ) {
-            $raSessParms['logdir'] = $raParms['logdir'];
+        /* SEEDSessionAccount config is in a sub-array of raConfig.
+         *
+         * raConfig['oSessUI']              = SEEDSessionAccountUI object to handle the UI
+         * raConfig['sessConfig']['logfile'] = the logfile for SEEDSession table changes
+         * raConfig['sessConfig']['logdir']  = the logdir for SEEDSession table changes - use raConfig['logdir'] if not defined
+         */
+        // Feed it the logdir if that's defined at the top level of the array.
+        $raSessConfig = @$raConfig['sessConfig'] ?: array();
+        if( !isset($raSessConfig['logfile']) && !isset($raSessConfig['logdir']) && isset($raConfig['logdir']) ) {
+            $raSessConfig['logdir'] = $raConfig['logdir'];
         }
-        $this->sess = new SEEDSessionAccount( $this->kfdb, $raParms['sessPermsRequired'], $raSessParms );
+        $this->sess = new SEEDSessionAccount( $this->kfdb, $raConfig['sessPermsRequired'], $raSessConfig );
+
+        // Handle the session UI (e.g. draw login form if !IsLogin, logout, send password)
+        if( !($oUI = @$raConfig['oSessUI']) ) {
+            $oUI = new SEEDSessionAccountUI( $this, @$raConfig['sessUIConfig'] ?: [] );
+        }
+        $oUI->DoUI();   // if this outputs anything to the browser, it must exit and never return to here
     }
 }
 
@@ -99,12 +112,12 @@ class SEEDAppConsole extends SEEDAppSessionAccount
 //  public $logdir is inherited
 //  public $kfdb is inherited
 //  public $sess is inherited
-    public $oC;     // ConsoleUI gets the SEEDAppSession part of this class
+    public $oC;
 
-    function __construct( $raParms )
+    function __construct( $raConfig )
     {
-        parent::__construct( $raParms );
-        $this->oC = new Console02( $this ); // Console02 takes SEEDAppSession
+        parent::__construct( $raConfig );
+        $this->oC = new Console02( $this, @$raConfig['consoleConfig'] ?: array() ); // Console02 and SEEDAppConsole are circularly referenced
     }
 }
 
@@ -151,21 +164,24 @@ class SEEDQ
 {
     public $oApp;
     public $raConfig;
-    public $bUTF8 = false;
+    public $bUTF8 = true;
 
-    function __construct( SEEDAppDB $oApp, $raConfig = array() )     // you can use any SEEDApp* object
+    /* By convention, configuration parameters start with 'config_' and are given to the constructor. (These include config for derived Q handlers).
+     * All other command parameters are given to Cmd().
+     * This allows an ajax http parameter array to differentiate config from command parms, and pass the same array to both.
+     */
+    function __construct( SEEDAppDB $oApp, $raConfig = array() )     // you can use any SEEDApp* object as the first argument
     {
         $this->oApp = $oApp;
-        $this->raParms = $raConfig;
-        $this->bUTF8 = intval(@$raConfig['bUTF8']);
+        $this->raConfig = $raConfig;
+        if( isset($raConfig['config_bUTF8']) ) $this->bUTF8 = intval($raConfig['config_bUTF8']);
     }
 
     function Cmd( $cmd, $parms )
+    /* Derived classes implement their own cmd processors, which can be chained via bHandled
+     */
     {
         $rQ = $this->GetEmptyRQ();
-
-        /* Derived classes should implement their own cmd processors.
-         */
 
         if( $cmd == 'test' ) {
             $rQ['bHandled'] = true;
@@ -182,7 +198,7 @@ class SEEDQ
 
     function QCharset( $s )
     /**********************
-        If the input is cp1252, the output will be the charset defined by $this->bUTF8
+        Use this on fields that are cp1252: the output will be the charset defined by $this->bUTF8
      */
     {
         return( $this->bUTF8 ? utf8_encode( $s ) : $s );

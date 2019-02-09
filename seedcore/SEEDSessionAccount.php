@@ -31,24 +31,37 @@ class SEEDSessionAccount extends SEEDSession
     If login credentials given for a SEEDSessionAccount (optionally with permissions), open an active account session.
     If account session is already active, use it.
 
-    $raPerms can have two forms:
-        1) an array of conjunctions of permissions:  'X'=>'R', 'Y'=>'W'  = read perms on X AND write perms on Y
-        2) an array of disjunctions of those arrays: array( 'X'=>'R', 'Y'=>'W' ), array( 'C'=>'A' )  = (read X AND write Y) OR admin C
+    $raPerms:
+        - nested arrays of "modes perm"
+        - if an array contains more than one element, an additional element '|' or '&' signifies the operator for them
+        - if operator is not defined, '&' is assumed
+        - the operator element may occur in any location in an array (first element, between, at the end)
+        - an empty array always succeeds
 
-        Note that the second form can have arbitrary (and ignored) keys on the array
-            e.g. 'oneWay' => array( 'X'=>'R', 'Y'=>'W' ), 'anotherWay' => array( 'C'=>'A' )
+        e.g. this permission expression:
+        ( ('R A' and 'R B') or ('R C' and 'R D') )
+          and
+        ( ['W E' and 'R A'] or 'A F' )
 
-        An empty array always succeeds
+        is coded like this:
+        array(
+          [ ['R A','R B'],          // if op not defined assume &
+            '|',
+            ['R C', '&', 'R D']
+          ],
+          '&',
+          [ '|',                          // position of op relative to operands doesn't matter
+            ['W E','R A'],
+            ['A F']
+          ]
+        )
 
-An array containing only arrays is a set of disjunctions
-An array containing one or more non-arrays is a set of conjunctions
+    N.B. The arrays only have values (not keys) and their elements can be re-ordered without changing the meaning of the expressions.
+         This is a feature that allows sub-arrays to be marked with meaningful keys.
 
-array( array(A), array(B), array(C) )  == A || B || C
-
-array( A, B )                          == A && B
-
-array( array( A, B ), array( array(C), array(D), array(E) ) ==  (A && B) || (C || D || E)
-array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C && (D || (E && F))
+         e.g. A page containing three tabs can use this array to determine whether the page is accessible:
+                [ 'tab1' => ['R foo'], 'tab2'=> ['W foo'], 'tab3' => ['R foo','|','R bar'], '|' ]
+              and each of tab1, tab2, tab3 to determine whether each of those tabs are accessible separately.
 
     $raParms:
         'uid' => email or kUser
@@ -146,22 +159,16 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
             goto done;
         }
 
-
-        // Require permissions for any user session that was created or found.
-        //
-        // N.B. If there is an active user session, it remains open if the perms fail, but the SEEDSessionAuth looks like no user session exists
-        //      This means if you're on a page you can see, then go to a page you can't, then to a third that you can, you'll see the first and third
-        //      but the second page will behave as if you were logged out. (the UI might log you out as a safeguard, but this object doesn't)
-        //      This also means you can login to a page that you can't see, get a "no permission" message from the UI, and then go to a page
-        //      you can see, and find you're already logged in.
-        if( $this->privateTestPerms($raPerms) ) {
-            $this->bLogin = true;
-        } else {
+        // Test permissions for any user session that was created or found.
+        // Assume bLogin during _testPerms because it will fail otherwise. It is called by public TestPerms() so it must check.
+        $this->bLogin = true;
+        if( !$this->_testPerms($raPerms) ) {
             $this->eLoginState = self::SESSION_PERMS_FAILED;
+            $this->bLogin = false;
         }
 
     done:
-        if( $this->IsLogin() ) {
+        if( $this->bLogin ) {
             // This could have been done in makeSession (which does this lookup!) or findSession, but we prefer to do it after the perms are checked above
             list($kUser,$this->raUser,$this->raMetadata) = $this->oDB->GetUserInfo( $this->kfrSession->Value('uid') );
         }
@@ -195,55 +202,65 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
     function TestPermRA( $raPerms )
     /******************************
         Return true if the current user has permissions that match the given array.
-        An empty array always succeeds.
+
+        'PUBLIC' always succeeds regardless of IsLogin(), and must appear first in a '|' list to allow anonymous login (because of short-circuit logic)
+        [] is equivalent to IsLogin()
      */
     {
-        if( !$this->IsLogin() )  return( false );
-
-        return( $this->privateTestPerms($raPerms) );
+        return( $this->_testPerms($raPerms) );
     }
 
-    private function privateTestPerms( $raPerms )
-    /********************************************
-        This allows the constructor to test perms before finalizing the login state.
-        There are other ways to do this, but the intention would not be as clear.
+    private function _testPerms( $raPerms )
+    /**************************************
+        $raPerms is an array of permission operands.
+        ['PUBLIC'] always succeeds and allows !IsLogin
+        [] always succeeds if IsLogin
+        ['R a'] is a simple test that 'a' has read permission
+        ['&', 'R a', 'W b', ...] tests that all of the operands in the array pass permission test -- & can occur anywhere in the array
+        ['|', 'R a', 'W b', ...] tests that any one of the operands in the array pass permission test -- | can occur anywhere in the array
+        ['R a', 'W b', ...] same as if '&' were in the array
+        ['&', 'R a', array(...) ] uses recursion with this method to assess the result of the array
      */
     {
         $ok = false;
 
-        // An empty array always succeeds
-        if( !$raPerms || count($raPerms)==0 ) {
-            $ok = true;
+        if( !is_array($raPerms) ) { var_dump($raPerms); die( "Perms must be array" ); }
 
-        /* 1) array of perm=>mode is a set of conjunctions of permissions:
-         *    'X'=>'R', 'Y'=>'W'  =  (read perms on X) AND (write perms on Y)
-         */
-        } else if( !is_array( reset($raPerms) ) ) {  // reset returns the first value
-            // perms are restrictive, so begin by assuming success
-            $ok = true;
+        // An empty array always succeeds if logged in. Since this is called in the constructor before IsLogin is set, check eLoginState.
+        if( (!$raPerms || count($raPerms)==0) ) {
+            $ok = $this->IsLogin();
+            goto done;
+        }
 
-            foreach( $raPerms as $p => $m ) {
-                if( !$this->TestPerm( $p, $m ) ) {
-                    $ok = false;
-                    break;
-                }
+        // find the operator in this array (use & if not defined)
+        $bAnd = !in_array( '|', $raPerms );
+        $ok = $bAnd ? true : false;         // keep checking until this value changes (then short-circuit)
+
+        // evaluate each array member and apply the operator
+        foreach( $raPerms as $v ) {
+            if( $v == '&' || $v == '|' ) continue;  // skip the operator
+
+            if( is_array($v) ) {
+                // This is a nested array. Evaluate with this method recursively.
+                $x = $this->_testPerms( $v );
+            } else if( $v == 'PUBLIC' ) {
+                // This is a special perm that always succeeds regardless of IsLogin()
+                $x = true;
+            } else {
+                // Regular perm string. Only returns true if IsLogin()
+                // "mode perm" e.g. "RW foobar", "A foobar", "WA foobar"
+                list($mode,$perm) = explode( ' ', $v, 2 );
+                $x = $this->TestPerm( $perm, $mode );
             }
-
-        /* 2) array of arrays like (1) is a set of disjunctions of those conjunctions:
-         *    array( 'X'=>'R', 'Y'=>'W' ), array( 'C'=>'A' )  = (read X AND write Y) OR admin C
-         */
-        } else {
-            foreach( $raPerms as $ra ) {
-                $ok = true;
-                foreach( $ra as $p => $m ) {
-                    if( !$this->TestPerm( $p, $m ) ) {
-                        $ok = false;
-                        break;
-                    }
-                }
-                if( $ok ) break;   // a successful conjunction makes the whole expression successful
+            if( $bAnd ) {
+                if( !($ok = $ok && $x) )  goto done;
+            } else {
+                if( ($ok = $ok || $x) )  goto done;
             }
         }
+        //var_dump($raPerms,$ok);
+
+        done:
         return( $ok );
     }
 
@@ -254,11 +271,10 @@ array( array( A, B ), C, array( array(D), array( E, F ) ) ) ==  (A && B) && C &&
     {
         $ok = false;
 
-        if( $this->kfrSession ) {
+        if( $this->IsLogin() && $this->kfrSession )
+        {
             $ok = (strpos($this->kfrSession->value("perms$mode"), " $perm ") !== false);  // NB !== because 0 means first position
         }
-        if( !$ok ) $this->error = SEEDSESSION_ERR_PERM_NOT_FOUND;
-
         return( $ok );
     }
 

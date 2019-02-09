@@ -15,7 +15,7 @@ class KeyframeForm extends SEEDCoreForm
 /*****************
  */
 {
-    // $oDS is defined in SEEDForm - this derivation must create a KeyFrameDataStore before calling SEEDForm
+    // $oDS is defined in SEEDForm - this derivation must create a KeyFrameDataStore before calling SEEDCoreForm::__construct
 
     private $kfrel;  // though this is also stored in the oDS, it makes more sense for clients to reference it here via Kfrel()
 
@@ -30,6 +30,7 @@ class KeyframeForm extends SEEDCoreForm
 
     function Kfrel()  { return( $this->kfrel ); }
 
+    function GetKFR()                       { return( $this->oDS->GetKFR() ); }
     function SetKFR( KeyframeRecord $kfr )  { $this->oDS->SetKFR( $kfr ); }
 
     function GetKey()  { return( ($kfr = $this->oDS->GetDataObj()) ? $kfr->Key() : 0 ); }

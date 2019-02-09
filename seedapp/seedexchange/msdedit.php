@@ -45,16 +45,19 @@ class MSDAppSeedEdit
            ."<div class='msdSeedText' style='padding:0px'>[[sSeedText]]</div>"
        ."</div>";
 
-    function Draw()
+    function Draw( $uidSeller )
     {
         $s = "";
         $sForm = $sList = "";
 
-        $uidSeller = $this->oSB->oApp->sess->GetUID();
+        if( !$uidSeller )  $uidSeller = $this->oSB->oApp->sess->GetUID();
 
         $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
         $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
         $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
+
+        $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
+                 .utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
 
         $raSeeds = array();
 //        $kfrcP = $this->oC->oSB->oDB->GetKFRC( "PxPE3", "product_type='seeds' AND uid_seller='1' "
@@ -77,6 +80,8 @@ class MSDAppSeedEdit
                 $sC = str_replace( '[[kP]]', $kP, $sC );
 //                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
 //                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
+
+                // DrawProduct returns utf8 by default
                 $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES ), $sC );
                 $sList .= $sC;
 
@@ -150,7 +155,7 @@ $msdSeedEditForm = <<<msdSeedEditForm
         <td><select id='msdSeedEdit_eOffer' name='eOffer'><option value='member'>All Members</option><option value='grower-member'>Only members who also list seeds</option><option value='public'>General public</option></select></td>
         <td><p class='msdSeedEdit_instruction'><b>Who may request these seeds from you</b>: <span id='msdSeedEdit_eOffer_instructions'></span></p></td>
     </tr><tr>
-        <td><nobr>$<input type='text' id='msdSeedEdit_price' name='price' class='msdSeedEdit_inputText'/></nobr></td>
+        <td><nobr>$<input type='text' id='msdSeedEdit_item_price' name='item_price' class='msdSeedEdit_inputText'/></nobr></td>
         <td><div class='msdSeedEdit_instruction'><b>Price</b>: We recommend $3.50 for seeds and $12.00 for roots and tubers. That is the default if you leave this field blank. Members who offer seeds (like you!) get an automatic discount of $1 per item.</div></td>
     </tr></table>
     <input type='submit' value='Save'/> <button class='msdSeedEditCancel' type='button'>Cancel</button>
@@ -183,7 +188,7 @@ basketStyle;
 
 $s .= <<<basketScript
 <script>
-var msdSeedEditVars = { qUrl:"", raSeeds:[] };
+var msdSeedEditVars = { qUrl:"", raSeeds:[], overrideUidSeller:0 };
 var msdSeedContainerCurr = null;                // the current msdSeedContainer
 var msdSeedContainerCurrFormOpen = false;       // true when the form is open (generally all other inputs are disabled)
 var msdSeedContainerCurrFormOpenIsNew = false;  // true when an open form is a new entry (so Cancel will .remove() it)
@@ -373,7 +378,9 @@ function SeedEditSubmit( kSeed )
 {
     if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
 
-    let p = "cmd=msdSeed--Update&kS="+kSeed+"&"+msdSeedContainerCurr.find('select, textarea, input').serialize();
+    let p = "cmd=msdSeed--Update&kS="+kSeed+"&"
+          + (msdSeedEditVars['overrideUidSeller'] ? ("config_OverrideUidSeller="+msdSeedEditVars['overrideUidSeller']+"&") : "")
+          + msdSeedContainerCurr.find('select, textarea, input').serialize();
     console.log(p);
 
     let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", p );
@@ -490,11 +497,19 @@ function SeedEditAfterError( container, rQ )
 </script>
 basketScript;
 
-        // Set parameters for msdSeedEdit. These are initialized to blank, required before you click on anything
+        /* Set parameters for msdSeedEdit. These are initialized to blank, required before you click on anything.
+         *
+         * raSeeds           : All the seed information is drawn to the UI but also stored here. This is how we get the info to
+         *                     fill the edit form. When submitted, a fresh copy of the normalized data is returned and stored here.
+         * qURL              : Directory of our ajax handlers
+         * overrideUidSeller : This is the uid of the grower whose seeds are being edited. This is passed to msdq.
+         *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
+         */
         $s .= "<script>
                var msdSeedEditVars = {};
                msdSeedEditVars.raSeeds = ".json_encode($raSeeds).";
                msdSeedEditVars.qURL = '".SITEROOT_URL."app/q/';
+               msdSeedEditVars.overrideUidSeller = $uidSeller;
                </script>";
 
         return( $s );

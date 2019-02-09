@@ -18,7 +18,7 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
     // If this is localhost, just draw the mail on the screen because that's easier in development.
     $bPretendToSend = ($_SERVER["SERVER_NAME"] == "localhost");
     // Or uncomment this to send on dev machines (you have to configure your php.ini with an smtp)
-    // $bPretendToSend = false;
+    //$bPretendToSend = false;
 
 
     if( is_string($from) ) {
@@ -50,7 +50,7 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
 
         $oMail = new cPHPezMail();
         $oMail->SetFrom( $sFromEmail, $sFromName );
-        $oMail->AddHeader( 'Reply-to', $sFromEmail );
+        $oMail->AddHeader( 'Reply-to', @$raParms['reply-to'] ?: $sFromEmail );
         $oMail->AddTo( $to );
         $oMail->SetSubject( $subject );
         if( @$raParms['cc'] ) {
@@ -64,6 +64,11 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
             }
         }
 
+        if( @$raParms['attachments'] ) {
+            foreach( $raParms['attachments'] as $attachmentFilename ) {
+                $oMail->AddAttachLocalFile( $attachmentFilename, '' );  // expecting ezmail to figure out the mimetype
+            }
+        }
         if( empty($bodyText) ) $bodyText = strip_tags( $bodyHTML );
         $oMail->SetBodyText( $bodyText );
         if( !empty( $bodyHTML ) ) {

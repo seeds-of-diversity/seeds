@@ -1,0 +1,453 @@
+# Seeds of Diversity Seed Collection Manager templates
+
+%% mycollStyle
+<style>
+</style>
+
+
+%% mycollForms
+
+# THIS WAS MOVED TO SFUTextComplete.js
+<script>
+/* SFU_TextComplete
+
+   Make a text input that creates a <select> containing search matches.
+   There can be multiple TextComplete controls because they are defined per id.
+
+   Use SFU_TextCompleteVars to define the TextComplete controls and their handlers.
+   { 'id_of_SFU_TextComplete' : { // Called when someone types in the text control. Return the <option>s that match the search text.
+                                  'fnFillSelect' : function (sSearch) { return [ [val, label], [val, label] ] },
+                                  // Called when someone clicks on an <option>
+                                  'fnSelectChoose' : function (val) { } 
+   }
+ */
+var SFU_TextCompleteVars = {};
+
+$(document).ready( function() { 
+    // Don't set up the TextComplete if there isn't one. offset().left below causes a js error that kills other ready() functions
+    if( typeof $('.SFU_TextComplete').offset() == 'undefined' )  return;
+
+    $('.SFU_TextComplete').click( function(e) { 
+        let oTC = $(this);   // preserve $this in the closure below
+
+        // Get the <select> that was created on a previous click or create it if it doesn't exist
+        let select = $(this).siblings('.SFUACSelect');
+        if( !select.length ) {
+            select = $("<select class='SFUACSelect'><option>--- Type more ---</option></select>").insertAfter($(this));
+
+            let xSearch = $(this).offset().left;
+            let ySearch = $(this).offset().top;
+            let hSearch = $(this).outerHeight();
+            let xAnchor = $(this).parent().offset().left;
+            let yAnchor = $(this).parent().offset().top;
+            select.css({ position:'absolute', left:xSearch-xAnchor, top:ySearch-yAnchor+hSearch+1, 'z-index':2 });
+            
+            // When someone clicks on an <option> send its value to fnSelectChoose and remove the <select> 
+            select.click( function(e) {
+                e.preventDefault(); 
+                let v = SFU_TextCompleteVars[oTC.attr('id')];
+                if( typeof v != 'undefined' ) {
+                    oTC.val( (v['fnSelectChoose'])( $(this).val() ) ); 
+                    $(this).remove(); 
+                }
+            });
+        }
+    });
+    
+    // In someone has typed at least 3 chars in the text input, use the callback to fetch a set of <options> that match
+    $('.SFU_TextComplete').keyup( function(e) { 
+        let srchVal = $(this).val();
+        if( srchVal.length < 3 )  return;
+        
+        let select = $(this).siblings('.SFUACSelect');
+        if( !select.length ) return;
+
+        // remove all <option>s from the <select>
+        select.find('option').each(function() { $(this).remove(); });
+        
+        // call the defined function to get new options
+        let nOpts = 0;
+        let v = SFU_TextCompleteVars[$(this).attr('id')];
+        if( typeof v != 'undefined' ) {
+            let options = (v['fnFillSelect'])(srchVal);
+            // limit the number of options to 20 because you can keep typing to get a better match
+            nOpts = options.length;
+            if( nOpts > 20 ) nOpts = 20;
+            for( let i = 0; i < nOpts; ++i ) {
+                let r = options[i];
+                select.append($('<option>', { value: r['val'], text: r['label'] }));
+            }
+        }
+
+        // make the select control tall enough to contain all options
+        select.attr({ size: nOpts }); 
+    });
+});
+
+</script>
+
+
+
+<div id='consolePageStart' class='consolePage'>
+<h3>New Accession</h3>
+<form>
+<div class='well myc-section'>Are these seeds regenerated from our collection?</div>
+<p>If these seeds were regrown from our collection:</p>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Enter parent Lot #</div>
+    <div class='col-sm-6'>[[formtext: parent_inv | class:cpvar_parent_inv]]</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-10'><hr style='border-color:#ccc'/></div>
+</div>    
+<p>If these seeds are new to our collection:</p>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Search for the cultivar</div>
+    <div class='col-sm-6'>
+        <span id='cultivarText' style='font-size:9pt'></span>
+        [[text:dummy_pcv | size:10 class:SFU_TextComplete | placeholder='Search']]
+        [[hidden:fk_sl_pcv|class:cpvar_fk_sl_pcv]]
+        [[hidden:t_sname|class:cpvar_t_sname]]
+        [[hidden:t_pname|class:cpvar_t_pname]]
+    </div>
+</div>
+<script>
+var cp1_pcvSearch = [];
+SFU_TextCompleteVars['dummy_pcv'] = { 
+    'fnFillSelect' : 
+            function( sSearch ) {
+                let raRet = [];
+
+                let jxData = { cmd : 'rosettaPCVSearch',
+                                     lang : "EN",
+                                     srch : sSearch
+                             };
+                let o = SEEDJX( urlQ+"index.php", jxData );
+                if( !o || !o['bOk'] || !o['raOut'] ) {
+                    alert( "Sorry there is a server problem" );
+                } else {
+                    //var bOk = o['bOk'];
+                    //var sOut = o['sOut'];
+                    for( let i = 0; i < o['raOut'].length; ++i ) {
+                        r = o['raOut'][i];
+                        raRet[i] = { val: r['P__key'],
+                                     label: r['S_name_en']+" : "+r['P_name']+" ("+r['P__key']+")" };
+                    }
+                    cp1_pcvSearch = o['raOut'];   // save this so we can look it up in fnSelectChoose
+                }
+                return( raRet );
+            },
+    'fnSelectChoose' : 
+            function( val ) {
+                for( let i = 0; i < cp1_pcvSearch.length; ++i ) {
+                    let r = cp1_pcvSearch[i];
+                    if( r['P__key'] == val ) {
+                        $("#consolePageStart #cultivarText").html( r['S_name_en']+" : "+r['P_name']+" ("+r['P__key']+")" );
+                        $("#consolePageStart #fk_sl_pcv").val( r['P__key'] );
+                        $("#consolePageStart #t_sname").val( r['S_name_en'] );
+                        $("#consolePageStart #t_pname").val( r['P_name'] );
+                        // fill in the oname with the pname
+                        $("#consolePageStart #oname").val( r['P_name'] );
+                        break;
+                    }
+                }
+            }
+};
+</script>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>If the original name is different than the 'primary' cultivar name above, record it here</div>
+    <div class='col-sm-6'>[[formtext:oname | class:cpvar_oname]]</div>
+</div>
+<p>&nbsp;</p>
+<div class='well myc-section'>What is the total weight of the seeds?</div>
+<div class='row'>
+    <div class='col-sm-6'></div>
+    <div class='col-sm-6'>[[formtext:gtotal | class:cpvar_gtotal]] grams</div>
+</div>
+<input type='submit' value='Next'/>
+</form></div>
+
+
+<div id='consolePagePop100' class='consolePage' style='display:none'>
+[[include:AddAccessionHeading]]
+<form>
+<div class='well myc-section'>Please count out 100 seeds and weigh them. This helps us calculate how many seeds we're storing.</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>100 seeds weigh </div>
+    <div class='col-sm-6'>[[formtext:g100 | class:cpvar_g100]] grams</div>
+</div>
+<p>&nbsp;</p>
+<div class='well myc-section'>How many of these seeds make a minimum population? Take germination rate into account if you know it.</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>A population needs </div>
+    <div class='col-sm-6'>[[formtext:pop | class:cpvar_pop]] seeds</div>
+</div>
+<input type='submit' value='Next'/>
+</form></div>
+
+
+<div id='consolePageActions' class='consolePage' style='display:none'>
+[[include:AddAccessionHeading]]
+<form>
+<div class='well myc-section'>Now decide how to divide the seeds. Based on <span class='cpvar_gtotal'></span> grams total weight and <span class='cpvar_g100'></span> grams per 100 seeds, you can:</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Do a germination test</div>
+    <div class='col-sm-6'>[[formtext:nSeedsGerm | class:cpvar_nSeedsGerm]] seeds (<span class='cpvar_gGerm'></span> grams)</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Put some seeds in frozen storage</div>
+    <div class='col-sm-6'>[[formtext:nPopI2 | class:cpvar_nPopI2]] populations (<span class='cpvar_gI2'></span> grams)</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Donate some seeds to PGRC</div>
+    <div class='col-sm-6'>[[formtext:nPopPGRC | class:cpvar_nPopPGRC]] populations (<span class='cpvar_gPGRC'></span> grams)</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Put the rest in working storage</div>
+    <div class='col-sm-6'><!-- <span class='cpvar_nPopI1'></span> populations --> (<span class='cpvar_gI1'></span> grams)</div>
+</div>
+<input type='submit' value='Next'/>
+</form></div>
+
+
+<div id='consolePageSupplier' class='consolePage' style='display:none'>
+[[include:AddAccessionHeading]]
+<form>
+<div class='well myc-section'>Weigh the seeds into containers, and record where you put them.</div>
+<div class='row'>
+    <div class='col-sm-6'></div>
+    <div class='col-sm-6'>Enter location:</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Working storage</span></div>
+    <div class='col-sm-4'>Lot #  <span class='cpvar_nLot1'></span> : <span class='cpvar_gI1'></span> grams</div>
+    <div class='col-sm-6'>[[formtext:locI1 | class:cpvar_locI1]]</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Frozen storage, <span class='cpvar_nPopI2'></span> populations (<span class='cpvar_nSeedsI2'></span> seeds)</div>
+    <div class='col-sm-4'>Lot #  <span class='cpvar_nLot2'></span> : <span class='cpvar_gI2'></span> grams</div>
+    <div class='col-sm-6'>[[formtext:locI2 | class:cpvar_locI2]]</div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>PGRC, <span class='cpvar_nPopPGRC'></span> populations (<span class='cpvar_nSeedsPGRC'></span> seeds)</div>
+    <div class='col-sm-4'>Mark them lot # <span class='cpvar_nLot1'></span> : <span class='cpvar_gPGRC'></span> grams</div>
+    <div class='col-sm-6'></div>
+</div>
+<div class='row'>
+    <div class='col-sm-2'>Germ test, <span class='cpvar_nSeedsGerm'></span> seeds</div>
+    <div class='col-sm-4'>Mark them # <span class='cpvar_nLot1'></span></div>
+    <div class='col-sm-6'></div>
+</div>
+
+<!-- 
+<div class='well myc-section'>Who provided these seeds?</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Seeds grown by a Seeds of Diversity member</div>
+    <div class='col-sm-6'>[[formtext:_supplierSoD | class:cpvar_supplierSoD]] Search</div>
+</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Seeds purchased from a seed company</div>
+    <div class='col-sm-6'>[[formtext:supplierCmp | class:cpvar_supplierCmp]] Search</div>
+</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Seeds obtained from elsewhere</div>
+    <div class='col-sm-6'>[[formtext:supplierOther | class:cpvar_supplierOther]] Enter source</div>
+</div>
+-->
+<div class='well myc-section'>Final questions</div>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Who provided these seeds?</div>
+    <div class='col-sm-6'>[[formtext:_supplier | class:cpvar_supplier]]</div>
+</div>
+
+<hr style='border-color:#ccc'/>
+<div class='row' style='margin-top:5px'>
+    <div class='col-sm-2'></div>
+    <div class='col-sm-4'>Year that the seeds were grown or purchased</div>
+    <div class='col-sm-6'>[[formtext:year | class:cpvar_year]]</div>
+</div>
+
+<input type='submit' value='Save'/>
+</form>
+</div>
+
+
+# js variables starting with t_ or cpvar_t_ are temporary within the consolePage, not stored on the server
+<script>
+var urlQ = "[[Var:qURL]]"; //"http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php";
+
+var config = {
+        pages: {
+            Start: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     // Proceed when there is a cultivar and weight. Cultivar can be from parent_inv or fk_sl_pcv
+                     let bCV = false;
+                     let pi;
+                     if( (pi = oCP.FormVal('parent_inv')) ) {
+                         // load the inventory record and get the species/pname/P__key
+                         let jxData = { cmd : 'collection-getLot',
+                                        lang : "EN",
+                                        kColl : 1,
+                                        nInv : pi
+                                      };
+                         let o = SEEDJX( urlQ+"index.php", jxData );
+                         if( o && o['bOk'] ) {
+                             oCP.FormValSet( 't_sname', o['raOut']['S_name_en'] );
+                             oCP.FormValSet( 't_pname', o['raOut']['P_name'] );
+                             oCP.FormValSet( 'fk_sl_pcv', o['raOut']['P__key'] );
+                             bCV = true;
+                         }
+                     } else if( oCP.FormVal('fk_sl_pcv') ) {
+                         bCV = true;
+                     }
+                     let gtotal = oCP.FormValFloat('gtotal');
+                     return( bCV && gtotal ? 'Pop100' : '' );
+                 }
+               },
+            Pop100: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     $("#consolePagePop100 .head2").remove(); // don't allow g100 and pop to interfere with inputs
+                 },
+                 fnPost: function() {
+                     let g100 = oCP.FormValFloat('g100');
+                     let pop = oCP.FormValInt('pop');
+                     return( g100 && pop ? 'Actions' : '' );
+                 }
+               },
+            Actions: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     let nSeedsGerm = 10;
+                     let nPopI2 = 3;
+                     let nPopPGRC = 3;
+                     oCP.FormValSet( 'nSeedsGerm', nSeedsGerm );
+                     oCP.FormValSet( 'nPopI2', nPopI2 );
+                     oCP.FormValSet( 'nPopPGRC', nPopPGRC );
+
+                     let pop = oCP.GetVarInt('pop');
+                     let gSeed = oCP.GetVarFloat('g100') / 100.0;
+                     let gGerm = nSeedsGerm * gSeed;
+                     let gI2 = nPopI2 * pop * gSeed;
+                     let gPGRC = nPopPGRC * pop * gSeed;
+                     let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
+                     oCP.FormValSet( 'gGerm', gGerm );
+                     oCP.FormValSet( 'gI1', gI1 );
+                     oCP.FormValSet( 'gI2', gI2 );
+                     oCP.FormValSet( 'gPGRC', gPGRC );
+                     oCP.FormValSet( 'gpop', pop * gSeed );
+                     
+                     let nPopI1 = gI1 / gSeed / pop;
+                     oCP.FormValSet( 'nPopI1', nPopI1 );
+                   },
+                 fnPost: function() {
+                     let nPopI2 = oCP.FormVal('nPopI2');
+                     
+                     let jxData = { cmd : 'collection--reserveLot',
+                             lang : "EN",
+                             kColl : 1,
+                             n     : (nPopI2 ? 2 : 1)   // one assumed for i1 and another optional for i2
+                           };
+                     let o = SEEDJX( urlQ+"index.php", jxData );
+                     if( o && o['bOk'] ) {
+                         oCP.SetVar( 'nLot1', o['raOut']['nLot1'] );
+                         oCP.SetVar( 'nLot2', o['raOut']['nLot2'] );
+                         return( 'Supplier' );
+                     } else {
+                         return( '' );  // a problem we can't fix
+                     }
+                 }
+               },
+            Supplier: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     let pop = oCP.GetVarInt('pop');
+                     let gSeed = oCP.GetVarFloat('g100') / 100.0;
+                     let gGerm = oCP.GetVarInt('nSeedsGerm') * gSeed;
+                     let gI2 = oCP.GetVar('nPopI2') * pop * gSeed;
+                     let gPGRC = oCP.GetVar('nPopPGRC') * pop * gSeed;
+                     let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
+
+                     oCP.FormValSet( 'gGerm', gGerm );
+                     oCP.FormValSet( 'gI1', gI1 );
+                     oCP.FormValSet( 'gI2', gI2 );
+                     oCP.FormValSet( 'gPGRC', gPGRC );
+                 },
+                 fnPost: function() {
+                     let pop = oCP.GetVarInt('pop');
+                     let gSeed = oCP.GetVarFloat('g100') / 100.0;
+                     let gGerm = oCP.GetVarInt('nSeedsGerm') * gSeed;
+                     let gI2 = oCP.GetVar('nPopI2') * pop * gSeed;
+                     let gPGRC = oCP.GetVar('nPopPGRC') * pop * gSeed;
+                     let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
+
+                     let loc1 = oCP.FormVal('locI1');
+                     let loc2 = oCP.FormVal('locI2');
+                     
+                     let jxData = { cmd : 'collection--addLot',
+                                    lang : "EN",
+                                    kColl : 1,
+                                    kPCV : oCP.GetVar('fk_sl_pcv'),
+                                    g1  : gI1,
+                                    g2  : gI2,
+                                    loc1 : loc1,
+                                    loc2 : loc2,
+                                    nLot1 : oCP.GetVar('nLot1'),
+                                    nLot2 : oCP.GetVar('nLot2'),
+                                    supplier : oCP.FormVal('supplier'),
+                                    dHarvest : oCP.FormVal('year'),
+                                    parent_inv : oCP.GetVar('parent_inv'),
+                                    ocv : oCP.GetVar('oname')
+                                  };console.log(jxData);
+                     let o = SEEDJX( urlQ+"index.php", jxData );
+                     if( o && o['bOk'] ) {
+                         let s = urlQ+"../collection/index.php?pMode=editacc&sfLui_k="+o['raOut']['kInv1']; console.log(s);
+                         location.replace(s);
+                     } else {
+                         return( '' );
+                     }
+                 }
+               },
+             Confirm: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     
+                 },
+                 fnPost: function() {
+                     finalReport();
+                     return( 'Confirm' );
+                 },
+               }
+        }
+};
+
+var oCP = new ConsolePage( config );
+oCP.Ready();
+
+</script>
+
+
+%% AddAccessionHeading
+<h3>New Accession</h3>
+<p class='head1'>You have <span class='cpvar_gtotal'></span> grams of <span class='cpvar_t_sname'></span> : <span class='cpvar_t_pname'></span> (pcv <span class='cpvar_fk_sl_pcv'></span>).</p>
+<p class='head2'>100 seeds weigh <span class='cpvar_g100'></span> grams.<br/>
+<span class='cpvar_pop'></span> seeds make a minimal population.<br/>
+A population is <span class='cpvar_gpop'></span> grams.<br/>
+</p> 
+

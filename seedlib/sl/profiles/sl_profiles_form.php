@@ -214,7 +214,7 @@ class SLProfilesForm
         $s = "<div class='sld_q'>"
             ."<div style='float:right'>"
                 .$this->prepForm( $k )
-                .$this->oForm->Select2( 'v', $raOptions )
+                .$this->oForm->Select( 'v', $raOptions )
             ."</div>"
             .$q    // <LABEL for='$k'></LABEL><BR/>
             ."</div>";

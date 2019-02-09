@@ -1,0 +1,5 @@
+# list directories between 700-999M
+du -h | grep ^[789][^\.].M | sort
+
+# list directories 1.0G and up
+du -h | grep ^...G | sort
