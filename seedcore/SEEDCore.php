@@ -573,15 +573,18 @@ function SEEDPRG()
         // A form was submitted. Defer processing until the page is reloaded via 303, which causes the browser to do a GET on the given location.
         $uniqid = uniqid();
         $_SESSION['seedprg'][$uniqid] = $_POST;
-
-        header( "Location: {$_SERVER['PHP_SELF']}?seedprgid=$uniqid", true, 303 );
+        setcookie( 'seedprg', $uniqid );
+        header( "Location: {$_SERVER['PHP_SELF']}", true, 303 );
+        //header( "Location: {$_SERVER['PHP_SELF']}?seedprgid=$uniqid", true, 303 );
         exit;
     } else
-    if( ($uniqid = @$_REQUEST['seedprgid']) && isset($_SESSION['seedprg'][$uniqid]) ) {
+    if( ($uniqid = @$_COOKIE['seedprg']) && isset($_SESSION['seedprg'][$uniqid]) ) {
         // A 303 was issued (by the code above) so the browser did a GET on the page.
         // Restore the deferred form parms and return true to tell the calling code to process $_POST now.
         $_POST = $_SESSION['seedprg'][$uniqid];
-        unset( $_SESSION['seedprg'] );  // might as well get rid of the whole array because there shouldn't be multiple elements
+        $_REQUEST += $_POST;
+        setcookie( 'seedprg', '', time()-3600 ); // expiration date in the past deletes the cookie from the browser (blank value works too)
+        unset( $_SESSION['seedprg'] );           // might as well get rid of the whole array because there shouldn't be multiple elements
 
         $doPost = true;
     }
