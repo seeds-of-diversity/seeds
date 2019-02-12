@@ -61,12 +61,14 @@ class SEEDBasketCore
 
     function Cmd( $cmd, $raParms = array() )
     /***************************************
+klugeUTF8 = true: return sOut and sErr in utf8
      */
     {
         $raOut = array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"" );
 
         switch( strtolower($cmd) ) {    // don't have to strip slashes because no arbitrary commands
-            case "addtobasket":
+            case "sb-addtobasket":
+            case "addtobasket":     // deprecate
                 /* Add a product to the current basket
                  * 'sb_product' = name of product to add to current basket (if it is_numeric this is the product _key)
                  * $raParms also contains BP parameters prefixed by sb_*
@@ -74,7 +76,7 @@ class SEEDBasketCore
                 $raOut['bHandled'] = true;
                 $kfrP = null;
 
-                if( ($prodName = SEEDInput_Str('sb_product')) ) {
+                if( ($prodName = SEEDInput_Str('sProduct')) ) {
                     if( is_numeric($prodName) ) {
                         $kfrP = $this->oDB->GetProduct( intval($prodName) );
                     } else {
@@ -85,22 +87,24 @@ class SEEDBasketCore
                     $raOut['sErr'] = "There is no product '$prodName'";
                     goto done;
                 }
-                list($raOut['bOk'],$raOut['sOut']) = $this->addProductToBasket( $kfrP, $raParms );
+                list($raOut['bOk'],$raOut['sOut'],$raOut['sErr']) = $this->addProductToBasket( $kfrP, $raParms, @$raParms['klugeUTF8'] );
                 break;
 
-            case "removefrombasket":
+            case "sb-removefrombasket":
+            case "removefrombasket":    // deprecate
                 // kBP = key of purchase to remove
                 $raOut['bHandled'] = true;
 
-                if( ($kBP = SEEDSafeGPC_GetInt('kBP',$raParms)) ) {
-                    list($raOut['bOk'],$raOut['sOut']) = $this->removeProductFromBasket( $kBP );
+                if( ($kBP = SEEDInput_Int('kBP')) ) {
+                    list($raOut['bOk'],$raOut['sOut']) = $this->removeProductFromBasket( $kBP, @$raParms['klugeUTF8'] );
                 }
                 break;
 
-            case "clearbasket":
+            case "sb-clearbasket":
+            case "clearbasket":     // deprecate
                 $raOut['bHandled'] = true;
 
-                list($raOut['bOk'],$raOut['sOut']) = $this->clearBasket();
+                list($raOut['bOk'],$raOut['sOut']) = $this->clearBasket( @$raParms['klugeUTF8'] );
                 break;
         }
 
@@ -322,7 +326,7 @@ class SEEDBasketCore
         return( $s );
     }
 
-    function DrawBasketContents( $raParms = array() )
+    function DrawBasketContents( $raParms = array(), $klugeUTF8 = false )
     /************************************************
         Draw the contents of the current basket.
 
@@ -342,7 +346,7 @@ $s .= "<style>
 
         $kBPHighlight = intval(@$raParms['kBPHighlight']);
 
-        $raSummary = $this->ComputeBasketSummary();
+        $raSummary = $this->ComputeBasketSummary( $klugeUTF8 );
 
         foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
             if( isset($this->raParms['fn_sellerNameFromUid']) ) {
@@ -362,7 +366,7 @@ $s .= "<style>
                      ."<div class='sb_basket_td'>"
                          // Use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
                          // Only draw the Remove icon for items with kBP because discounts, etc, are coded with kBP==0 and those shouldn't be removable on their own
-                         .($raItem['kBP'] ? ("<img height='14' onclick='RemoveFromBasket(".$raItem['kBP'].");' src='http://seeds.ca/w/img/ctrl/delete01.png'/>") : "")
+                         .($raItem['kBP'] ? ("<img height='14' onclick='RemoveFromBasket(".$raItem['kBP'].");' src='//seeds.ca/w/img/ctrl/delete01.png'/>") : "")
                          ."</div>"
                      ."</div>";
             }
@@ -379,7 +383,7 @@ $s .= "<style>
         return( $s ? $s : "Your Basket is Empty" );
     }
 
-    function ComputeBasketSummary()
+    function ComputeBasketSummary( $klugeUTF8 = false )
     /******************************
         Compute information about the current basket
 
@@ -405,6 +409,7 @@ $s .= "<style>
                 }
 
                 $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
+                if( $klugeUTF8 ) $oHandler->SetKlugeUTF8(true);
                 $sItem = $oHandler->PurchaseDraw( $kfrBPxP );
                 $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
                 $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
@@ -490,13 +495,18 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         Command methods
      */
 
-    private function addProductToBasket( KeyframeRecord $kfrP, $raParmsBP )
+    private function addProductToBasket( KeyframeRecord $kfrP, $raParmsBP, $klugeUTF8 )
     {
         $kBPNew = 0;
+        $sOut = $sErr = "";
+        $bOk = false;
 
         // Create a basket if there isn't one, and make sure any existing basket is open.
         $this->BasketAcquire();
-        if( !$this->BasketIsOpen() )  goto done;
+        if( !$this->BasketIsOpen() ) {
+            $sErr = "Please login";     // one common reason why this fails (not the only one?)
+            goto done;
+        }
 
         // The input parms can be http or just ordinary arrays
         //     sb_n   (int):    quantity to add
@@ -506,21 +516,23 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         if( ($n = intval(@$raParmsBP['sb_n'])) )    $raPurchaseParms['n'] = $n;
         if( ($f = floatval(@$raParmsBP['sb_f'])) )  $raPurchaseParms['f'] = $f;
         foreach( $raParmsBP as $k => $v ) {
-            if( substr($k,0,5) != 'sb_p_' || strlen($k) < 6 ) continue;
-
-            $raPurchaseParms[substr($k,5)] = $v;
+            if( substr($k,0,5) == 'sb_p_' && ($k1 = substr($k,5)) ) {
+                $raPurchaseParms[$k1] = $v;
+            }
         }
 
-        if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) {
-            $kBPNew = $oHandler->Purchase2( $kfrP, $raPurchaseParms );
+        if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) &&
+            ($kBPNew = $oHandler->Purchase2( $kfrP, $raPurchaseParms )) )
+        {
+            $sOut = $this->DrawBasketContents( ['kBPHighlight'=>$kBPNew], $klugeUTF8 );
+            $bOk = true;
         }
 
         done:
-        return( $kBPNew ? array( true, $this->DrawBasketContents( array( 'kBPHighlight'=>$kBPNew ) ) )
-                        : array( false, "" ) );
+        return( array( $bOk, $sOut, $sErr ) );
     }
 
-    private function removeProductFromBasket( $kBP )
+    private function removeProductFromBasket( $kBP, $klugeUTF8 )
     /***********************************************
         Delete the given BP from the current basket
      */
@@ -540,11 +552,11 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
 
         done:
         // always return the current basket because some interfaces will just draw it no matter what happened
-        $s = $this->DrawBasketContents();
+        $s = $this->DrawBasketContents( [], $klugeUTF8 );
         return( array($bOk,$s) );
     }
 
-    private function clearBasket()
+    private function clearBasket( $klugeUTF8 )
     /*****************************
      */
     {
@@ -556,7 +568,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
         $bOk = $this->oDB->kfdb->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE fk_SEEDBasket_Baskets='$kB'" );
 
         done:
-        $s = $this->DrawBasketContents();
+        $s = $this->DrawBasketContents( [], $klugeUTF8 );
         return( array($bOk,$s) );
     }
 

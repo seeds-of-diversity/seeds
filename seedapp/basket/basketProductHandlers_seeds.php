@@ -164,7 +164,9 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 //        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
 //                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
 
-        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
+        //$this->SetKlugeUTF8( true );
+
+        $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>$this->GetKlugeUTF8()] );
 
 //TODO: there should be a standard way to do this - this sets prodExtra into the kfrP owned by the caller, which could overwrite actual Product fields by accident
 //msdq->Cmd msdSeedList-GetData or $this->GetProductValues() (or use MSDCore although it is only supposed to be used in seedlib)
@@ -176,6 +178,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
                 $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
+                if( $this->GetKlugeUTF8() ) { $s = utf8_encode($s); }
                 break;
             default:
                 switch( $eDetail ) {

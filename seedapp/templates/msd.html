@@ -285,19 +285,19 @@ function getVarietyList( kSp )
 }
 
 // put this in a common place
-function AddToBasket_Name( name )
+function AddToBasket_Name( name_or_kProduct )
 {
     jQuery.ajax({ url: qUrl,
-                  data: { cmd: "AddToBasket", sb_product: name },
+                  data: { cmd: "sb-AddToBasket", sProduct: name_or_kProduct },
                   success: function ( data, textStatus, jqXHR ) 
-                           { var rQ = window.JSON.parse(data);
-                             var bOk = rQ['bOk'];
-                             var sOut = rQ['sOut'];
-                             if( bOk ) { 
+                           { let rQ = window.JSON.parse(data);
+                             let sOut = rQ['sOut'];
+                             let sErr = rQ['sErr'];
+                             if( rQ['bOk'] ) { 
                                  $('.storeBasketContent').html(sOut);
                                  $('.storeBasketErrmsg').html("");
                              } else {
-                                 $('.storeBasketErrmsg').html(sOut);
+                                 $('.storeBasketErrmsg').html(sErr);
                              }
                            },
                   error:   function ( jqXHR, textStatus, errorThrown ) { alert("Error "+errorThrown); }
@@ -306,13 +306,12 @@ function AddToBasket_Name( name )
 function RemoveFromBasket( kBP )
 {
     jQuery.ajax({ url: qUrl,
-                  data: { cmd: "RemoveFromBasket", kBP: kBP },
+                  data: { cmd: "sb-RemoveFromBasket", kBP: kBP },
                   success: function ( data, textStatus, jqXHR ) 
                            { var rQ = window.JSON.parse(data); 
-                             var bOk = rQ['bOk'];
                              var sOut = rQ['sOut'];
                              var sErr = rQ['sErr'];
-                             if( bOk ) { 
+                             if( rQ['bOk'] ) { 
                                  $('.storeBasketContent').html(sOut);
                                  $('.storeBasketErrmsg').html("");
                              } else {
@@ -331,7 +330,7 @@ function msdPlaceRequest()
 function msdClearBasket()
 {
     jQuery.ajax({ url: qUrl,
-                  data: { cmd: "ClearBasket" },
+                  data: { cmd: "sb-ClearBasket" },
                   success: function ( data, textStatus, jqXHR ) 
                            { var rQ = window.JSON.parse(data); 
                              var bOk = rQ['bOk'];

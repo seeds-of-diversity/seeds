@@ -35,6 +35,11 @@ class SEEDBasketProductHandler
 
     protected $oSB;
 
+    private  $klugeUTF8 = false;
+    function GetKlugeUTF8()         { return( $this->klugeUTF8 ); }
+    function SetKlugeUTF8( $bUTF8 ) { $this->klugeUTF8 = $bUTF8; }
+
+
     function __construct( SEEDBasketCore $oSB )
     {
         $this->oSB = $oSB;
@@ -222,7 +227,7 @@ class SEEDBasketProductHandler
         if( !$this->oSB->BasketIsOpen() ) goto done;
 // should this verify that the BP belongs to this basket? Every derivation would have to, unless the Core checks this and everyone promises not to call here independently
 
-        $bOk = $kfrBP->kfrel->kfdb->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE _key='".$kfrBP->Key()."'" );
+        $bOk = $kfrBP->KFrel()->KFDB()->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE _key='".$kfrBP->Key()."'" );
 
         done:
         return( $bOk );
