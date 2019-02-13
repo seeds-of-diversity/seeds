@@ -2,7 +2,7 @@
 
 /* Basket product handlers
  *
- * Copyright (c) 2016-2017 Seeds of Diversity Canada
+ * Copyright (c) 2016-2019 Seeds of Diversity Canada
  */
 
 include_once( SEEDCORE."SEEDBasket.php" );
@@ -72,7 +72,7 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
         return( parent::ProductDefine1( $oDS ) );
     }
 
-    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
     {
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
@@ -167,7 +167,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
     {
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
@@ -180,7 +180,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function Purchase0( KeyframeRecord $kfrP )
+    function Purchase0( KeyframeRecord $kfrP, $raParms = [] )
     /*****************************************
         Given a product, draw the form that a store would show to purchase it.
         Form parms can be:

@@ -2,7 +2,7 @@
 
 /* SEEDBasketProductHandler.php
  *
- * Copyright (c) 2016 Seeds of Diversity Canada
+ * Copyright (c) 2016-2019 Seeds of Diversity Canada
  *
  * Base class of the product handlers that you use whenever you do anything involving a product
  */
@@ -113,7 +113,7 @@ class SEEDBasketProductHandler
         // e.g. a derived class might store metadata in SEEDBasket_ProdExtra
     }
 
-    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
     /*****************************************************
         Show a product definition in more or less detail
      */
@@ -155,7 +155,7 @@ class SEEDBasketProductHandler
         }
     }
 
-    function Purchase0( KeyframeRecord $kfrP )
+    function Purchase0( KeyframeRecord $kfrP, $raParms = [] )
     /*****************************************
         Given a product, draw the form that a store would show to purchase it.
         Form parms can be:
@@ -201,7 +201,7 @@ class SEEDBasketProductHandler
         return( $kfrBP ? $kfrBP->Key() : 0 );
     }
 
-    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false )
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false, $raParms = [] )
     /*****************************************************************
         Draw a product in a basket, in more or less detail.
      */

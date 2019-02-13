@@ -2,7 +2,7 @@
 
 /* SEEDBasket.php
  *
- * Copyright (c) 2016 Seeds of Diversity Canada
+ * Copyright (c) 2016-2019 Seeds of Diversity Canada
  *
  * Manage a shopping basket of diverse products
  */
@@ -296,13 +296,13 @@ klugeUTF8 = true: return sOut and sErr in utf8
         return( $s );
     }
 
-    function DrawProduct( KeyframeRecord $kfrP, $eDetail )
+    function DrawProduct( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
     {
         return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
-                ? $oHandler->ProductDraw( $kfrP, $eDetail ) : "" );
+                ? $oHandler->ProductDraw( $kfrP, $eDetail, $raParms ) : "" );
     }
 
-    function DrawPurchaseForm( $prodName )
+    function DrawPurchaseForm( $prodName, $raParms = [] )
     /*************************************
         Given a product name, get the form that you would see in a store for purchasing it
      */
@@ -320,7 +320,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
         }
 
         $oHandler = $this->getHandler( $kfrP->Value('product_type') );
-        $s .= $oHandler->Purchase0( $kfrP );
+        $s .= $oHandler->Purchase0( $kfrP, $raParms );
 
         done:
         return( $s );
@@ -409,8 +409,7 @@ $s .= "<style>
                 }
 
                 $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
-                if( $klugeUTF8 ) $oHandler->SetKlugeUTF8(true);
-                $sItem = $oHandler->PurchaseDraw( $kfrBPxP );
+                $sItem = $oHandler->PurchaseDraw( $kfrBPxP, ['bUTF8'=>$klugeUTF8] );
                 $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
                 $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
 

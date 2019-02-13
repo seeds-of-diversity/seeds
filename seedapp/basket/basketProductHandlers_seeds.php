@@ -2,7 +2,7 @@
 
 /* Basket product handler for Seeds
  *
- * Copyright (c) 2016-2017 Seeds of Diversity Canada
+ * Copyright (c) 2016-2019 Seeds of Diversity Canada
  */
 
 include_once( SEEDAPP."seedexchange/msdCommon.php" );
@@ -153,20 +153,22 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         }
     }
 
-    function ProductDraw( KeyframeRecord $kfrP, $eDetail )
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
     /*****************************************************
         DETAIL_TINY     : species variety
         DETAIL_SUMMARY  : what you see in the seed directory
         DETAIL_ALL      : species + what you see in the seed directory
+
+        raParms:  bUTF8 = output utf8
      */
     {
         include_once( SEEDCOMMON."sl/sed/sedCommonDraw.php" );
 //        $oSed = new SEDCommonDraw( $this->oSB->oDB->kfdb, $this->oSB->GetUID_SB(), "EN",
 //                                   $this->oSB->sess->CanRead("sed") ? "VIEW-MBR" : "VIEW-PUB" );
 
-        //$this->SetKlugeUTF8( true );
+        $bUTF8 = intval(@$raParms['bUTF8']) || $this->GetKlugeUTF8();
 
-        $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>$this->GetKlugeUTF8()] );
+        $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>$bUTF8] );
 
 //TODO: there should be a standard way to do this - this sets prodExtra into the kfrP owned by the caller, which could overwrite actual Product fields by accident
 //msdq->Cmd msdSeedList-GetData or $this->GetProductValues() (or use MSDCore although it is only supposed to be used in seedlib)
@@ -178,7 +180,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
                 $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
-                if( $this->GetKlugeUTF8() ) { $s = utf8_encode($s); }
+                if( $bUTF8 ) { $s = utf8_encode($s); }
                 break;
             default:
                 switch( $eDetail ) {
@@ -194,24 +196,23 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
     }
 
 
-    function Purchase0( KeyframeRecord $kfrP )
+    function Purchase0( KeyframeRecord $kfrP, $raParms = [] )
     {
-        // ProductDraw returns utf8 by default because it uses MSDQ
-        $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_ALL )."</div>"
+        $s = "<div style='display:inline-block'>".$this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_ALL, $raParms )."</div>"
             ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
             ."<input type='hidden' name='sb_product' value='".$kfrP->Key()."'/>";
 
         return( $s );
     }
 
-    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false )
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false, $raParms = [] )
     /*****************************************************************
         Draw a product in a basket, in more or less detail.
      */
     {
         $kfrP = $this->oSB->oDB->GetProduct( $kfrBPxP->Value('P__key') );
         // ProductDraw returns utf8 by default because it uses MSDQ
-        $s = $this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_TINY );
+        $s = $this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_TINY, $raParms );
 
         if( $kfrBPxP->Value('quant_type') == 'ITEM_N' && ($n = $kfrBPxP->Value('n')) > 1 ) {
             $s .= " ($n @ ".$this->oSB->dollar($this->oSB->priceFromRange($kfrBPxP->Value('item_price'), $n)).")";

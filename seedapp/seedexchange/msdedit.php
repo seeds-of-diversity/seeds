@@ -2,7 +2,7 @@
 
 /* msdedit
  *
- * Copyright (c) 2018 Seeds of Diversity
+ * Copyright (c) 2018-2019 Seeds of Diversity
  *
  * App to edit Member Seed Directory, built on top of SEEDBasket
  */
@@ -81,8 +81,7 @@ class MSDAppSeedEdit
 //                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
 //                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
 
-                // DrawProduct returns utf8 by default
-                $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES ), $sC );
+                $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES, ['bUTF8'=>true] ), $sC );
                 $sList .= $sC;
 
                 $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP, array('bUTF8'=>true) );
