@@ -21,4 +21,7 @@ class MSDLib
 
     function PermOfficeW()  { return( $this->oMSDCore->PermOfficeW() ); }
     function PermAdmin()    { return( $this->oMSDCore->PermAdmin() ); }
+
+    function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
+
 }

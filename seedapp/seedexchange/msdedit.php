@@ -45,7 +45,7 @@ class MSDAppSeedEdit
            ."<div class='msdSeedText' style='padding:0px'>[[sSeedText]]</div>"
        ."</div>";
 
-    function Draw( $uidSeller )
+    function Draw( $uidSeller, $kSp )
     {
         $s = "";
         $sForm = $sList = "";
@@ -54,6 +54,7 @@ class MSDAppSeedEdit
 
         $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
         $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
+// do this via MSDLib because MSDApp isn't supposed to know about MSDCore
         $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
 
         $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
@@ -65,7 +66,8 @@ class MSDAppSeedEdit
 //                                                   ."AND PE2.k='species' "
 //                                                   ."AND PE3.k='variety' ",
 //                                                   array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
-        if( ($kfrcP = $oMSDCore->SeedCursorOpen( "uid_seller='$uidSeller'" )) ) {
+        $speciesCond = $kSp ? ("AND PE2.v='".$oMSDCore->GetKlugeSpeciesNameFromKey($kSp)."'") : "";
+        if( ($kfrcP = $oMSDCore->SeedCursorOpen( "uid_seller='$uidSeller'".$speciesCond )) ) {
             $category = "";
             while( $oMSDCore->SeedCursorFetch( $kfrcP ) ) { // $kfrcP->CursorFetch() ) {
                 $kP = $kfrcP->Key();
@@ -118,6 +120,21 @@ class MSDAppSeedEdit
             ."</div></div>";
 
         $s .= "<script>$('.msd-list').css({position:'relative',top:'0px'});</script>";
+
+        $s .= <<<MSDSPECIESTITLE
+<script>
+    $(document).ready( function() {
+        /* When you click on a species name in the msd-list, we highlight it and fetch the variety list.
+         */
+        $(".msd-list-species-title").click( function() {
+            // highlight the species title (and reset any previous highlight)
+            $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
+            $(this).css({ color: "#373" } );
+            location.replace( "${_SERVER['PHP_SELF']}?selectSpecies="+$(this).attr('kSpecies') );
+        });
+    });
+</script>
+MSDSPECIESTITLE;
 
 //$s .= $this->oC->oSB->DrawProductNewForm( 'base-product' );
 //$s .= $this->oC->oSB->DrawProductNewForm( 'membership' );
