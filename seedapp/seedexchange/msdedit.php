@@ -387,7 +387,7 @@ function SeedEditSubmit( kSeed )
           + msdSeedContainerCurr.find('select, textarea, input').serialize();
     console.log(p);
 
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", p );
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL, p );
     console.log(oRet);
 
     if( oRet['bOk'] ) {
@@ -409,7 +409,7 @@ function SeedEditSkip( container )
 
     SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
 
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--ToggleSkip&kS="+kSeed );
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleSkip&kS="+kSeed );
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( container, oRet );
     }
@@ -422,7 +422,7 @@ function SeedEditDelete( container )
 
     SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
 
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL+"basketJX.php", "cmd=msdSeed--ToggleDelete&kS="+kSeed );
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleDelete&kS="+kSeed );
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( container, oRet );
     }
@@ -505,14 +505,14 @@ basketScript;
          *
          * raSeeds           : All the seed information is drawn to the UI but also stored here. This is how we get the info to
          *                     fill the edit form. When submitted, a fresh copy of the normalized data is returned and stored here.
-         * qURL              : Directory of our ajax handlers
+         * qURL              : Url of our ajax handler
          * overrideUidSeller : This is the uid of the grower whose seeds are being edited. This is passed to msdq.
          *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
          */
         $s .= "<script>
                var msdSeedEditVars = {};
                msdSeedEditVars.raSeeds = ".json_encode($raSeeds).";
-               msdSeedEditVars.qURL = '".SITEROOT_URL."app/q/';
+               msdSeedEditVars.qURL = '".Site_UrlQ('basketJX.php')."';
                msdSeedEditVars.overrideUidSeller = $uidSeller;
                </script>";
 
