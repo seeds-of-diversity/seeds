@@ -180,10 +180,6 @@ class MSDCore
 
     function SeedCursorOpen( $cond )
     {
-//$this->oSBDB->kfdb->SetDebug(2);
-// could just do $kfrcP = $this->oDB->GetKFRC( "P", "product_type='seeds' ".($cond ? "AND $cond " : "") if sorting is not required
-
-// since the PE columns are just brought in for sorting, it makes sense for them to be left-joined so we don't lose products that are missing one of the PE
         $kfrcP = $this->oSBDB->GetKFRC( "PxPE3", "product_type='seeds' ".($cond ? "AND $cond " : "")
                                        ."AND PE1.k='category' "
                                        ."AND PE2.k='species' "

@@ -49,60 +49,45 @@ class MSDAppSeedEdit
     {
         $s = "";
         $sForm = $sList = "";
+        $raSeeds = array();
 
-        if( !$uidSeller )  $uidSeller = $this->oSB->oApp->sess->GetUID();
-
-        $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
-        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
 // do this via MSDLib because MSDApp isn't supposed to know about MSDCore
         $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
-
-        $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
-                 .utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
-
-        $raSeeds = array();
-//        $kfrcP = $this->oC->oSB->oDB->GetKFRC( "PxPE3", "product_type='seeds' AND uid_seller='1' "
-//                                                   ."AND PE1.k='category' "
-//                                                   ."AND PE2.k='species' "
-//                                                   ."AND PE3.k='variety' ",
-//                                                   array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
-        $speciesCond = $kSp ? ("AND PE2.v='".$oMSDCore->GetKlugeSpeciesNameFromKey($kSp)."'") : "";
-        if( ($kfrcP = $oMSDCore->SeedCursorOpen( "uid_seller='$uidSeller'".$speciesCond )) ) {
-            $category = "";
-            while( $oMSDCore->SeedCursorFetch( $kfrcP ) ) { // $kfrcP->CursorFetch() ) {
-                $kP = $kfrcP->Key();
-                if( $category != $kfrcP->Value('PE1_v') ) {
-                    $category = $kfrcP->Value('PE1_v');
-                    $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
-                }
-//                $sButtonSkip   = $kfrcP->Value('eStatus') == 'INACTIVE' ? "Un-Skip" : "Skip";
-//                $sButtonDelete = $kfrcP->Value('eStatus') == 'DELETED' ? "Un-Delete" : "Delete";
-
-                $sC = $this->sContainer;
-                $sC = str_replace( '[[kP]]', $kP, $sC );
-//                $sC = str_replace( '[[sButtonSkip]]', $sButtonSkip, $sC );
-//                $sC = str_replace( '[[sButtonDelete]]', $sButtonDelete, $sC );
-
-                $sC = str_replace( '[[sSeedText]]', $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES, ['bUTF8'=>true] ), $sC );
-                $sList .= $sC;
-
-                $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP, array('bUTF8'=>true) );
+// this whole method should be in msdlib anyway
+        $oMSDLib = new MSDLib( $this->oSB->oApp );
+        if( $oMSDLib->PermOfficeW() ) {
+            if( !$uidSeller && !$kSp ) {
+                $sList = "<h3>Please choose a Grower above and/or a Species at the left</h3>";
+                goto drawScreen;
             }
+        } else {
+            if( !$uidSeller )  $uidSeller = $this->oSB->oApp->sess->GetUID();
+        }
+        if( $uidSeller ) {
+            $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
+                     .utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
+        } else {
+            $sList .= "<h3>All Growers</h3>";
         }
 
+//        $oMSDQ = new MSDQ( $this->oSB->oApp, array() );
 
-        if( $sForm ) {
-            $sForm = "<form method='post'>"
-                    ."<div>$sForm</div>"
-                    ."<div><input type='submit' value='Save' style='margin:20px 0px 0px 20px'/></div>"
-                    ."</form>";
-        }
-        $sForm = "<div class='msdSeedEditGlobalControls' style='position:fixed'>"
+        list($sContainers,$raSeeds) = $this->drawListofMSDSeedContainers( $uidSeller, $kSp );
+        $sList .= $sContainers;
+
+//        if( $sForm ) {
+//            $sForm = "<form method='post'>"
+//                    ."<div>$sForm</div>"
+//                    ."<div><input type='submit' value='Save' style='margin:20px 0px 0px 20px'/></div>"
+//                    ."</form>";
+//        }
+        if( $uidSeller ) {
+            $sForm = "<div class='msdSeedEditGlobalControls' style='position:fixed'>"
                     ."<button class='msdSeedEditButton_new'>Add New Seed</button>"
-                ."</div>";
+                    ."</div>";
+        }
 
-        $oDraw = new MSDCommonDraw( $this->oSB );
-        $msdList = $oDraw->DrawMSDList();
+drawScreen:
         $raTmplParms = array(
             'fTemplates' => array( SEEDAPP."templates/msd.html" ),
             'sFormCid'   => 'Plain',
@@ -110,6 +95,9 @@ class MSDAppSeedEdit
             'vars'       => array()
         );
         $oTmpl = SEEDTemplateMaker( $raTmplParms );
+
+        $oDraw = new MSDCommonDraw( $this->oSB );
+        $msdList = $oDraw->DrawMSDList();
 
         $s = $oTmpl->ExpandTmpl( 'msdSpeciesListScript', array() )
             .$oTmpl->ExpandTmpl( 'msdEditStyle', array() )
@@ -528,7 +516,59 @@ basketScript;
                msdSeedEditVars.overrideUidSeller = $uidSeller;
                </script>";
 
+        done:
         return( $s );
     }
 
+
+    private function drawListOfMSDSeedContainers( $uidSeller, $kSp )
+    {
+        $sList = "";
+        $raSeeds = array();
+
+        $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>true] );
+        $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$uidSeller,'kSp'=>$kSp,'eStatus'=>"ALL"] );
+        if( $rQ['bOk'] ) {
+            $raSeeds = $rQ['raOut'];
+        } else {
+            goto done;
+        }
+
+// do this via MSDLib because MSDApp isn't supposed to know about MSDCore
+        $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
+        $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
+
+        $cond = ($uidSeller ? "uid_seller='$uidSeller'" : "1=1")
+               .($kSp ? (" AND PE2.v='".addslashes($oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'") : "");
+
+//        $kfrcP = $this->oC->oSB->oDB->GetKFRC( "PxPE3", "product_type='seeds' AND uid_seller='1' "
+//                                                   ."AND PE1.k='category' "
+//                                                   ."AND PE2.k='species' "
+//                                                   ."AND PE3.k='variety' ",
+//                                                   array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
+        if( ($kfrcP = $oMSDCore->SeedCursorOpen($cond)) ) {
+            $category = "";
+            while( $oMSDCore->SeedCursorFetch( $kfrcP ) ) { // $kfrcP->CursorFetch() ) {
+                $kP = $kfrcP->Key();
+                if( $category != $kfrcP->Value('PE1_v') ) {
+                    $category = $kfrcP->Value('PE1_v');
+                    $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
+                }
+
+                $sC = $this->sContainer;
+                $sC = str_replace( '[[kP]]', $kP, $sC );
+
+                //$sP = $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES, ['bUTF8'=>true] );
+                $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kfrcP->Key(), 'eDrawMode'=>MSDQ::SEEDDRAW_EDIT.' '.MSDQ::SEEDDRAW_VIEW_SHOWSPECIES) );
+                $sP = $rQ['bOk'] ? $rQ['sOut'] : ("Missing text for seed #".$kfrP->Key().": {$rQ['sErr']}");
+                $sC = str_replace( '[[sSeedText]]', $sP, $sC );
+                $sList .= $sC;
+
+                $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP, array('bUTF8'=>true) );
+            }
+        }
+
+        done:
+        return( array( $sList, $raSeeds ) );
+    }
 }

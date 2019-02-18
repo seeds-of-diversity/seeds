@@ -228,19 +228,19 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         raParms: bUTF8 (default false)
      */
     {
-        $raS = array();
+        $raP = array();
 
         $bUTF8 = intval(@$raParms['bUTF8']);
 
         $oMSDQ = new MSDQ( $this->oSB->oApp, array('config_bUTF8'=>$bUTF8) );
-        $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', array('kS'=>$kfrP->Key()) );
+        $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', array('kProduct'=>$kfrP->Key()) );
         if( $rQ['bOk'] ) {
-            // msdSeedList-GetData returns an array( kS1=>array(), kS2=>array(),... ) because it can return multiple records.
-            // This case only fetches a single record but it is still indexed by kS
-            $raS = $rQ['raOut'][$kfrP->Key()];
+            // msdSeedList-GetData returns an array( kP1=>array(), kP2=>array(),... ) because it can return multiple records.
+            // This case only fetches a single record but it is still indexed by kProduct
+            $raP = $rQ['raOut'][$kfrP->Key()];
         }
 
-        return( $raS );
+        return( $raP );
     }
 }
 

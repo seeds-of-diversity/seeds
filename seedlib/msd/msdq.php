@@ -115,24 +115,57 @@ class MSDQ extends SEEDQ
     private function seedListGetData( $raParms )
     /*******************************************
         Return an array of standard msd seed records.
+
+        Filter by:
+            kProduct
+            kUidSeller
+            kSp
+            bAll  :  must specify to force unfiltered list
+
+        Secondary filter by:
+            eStatus  :  any combination of quoted and comma-separated 'ACTIVE','INACTIVE','DELETED' or ALL
+                        Required but independent of primary filters
      */
     {
         $bOk = false;
         $raOut = array();
         $sErr = "";
+        $bCheckEStatus = true;
 
-        if( @$raParms['bAll'] ) {
-            $cond = "";
-        } else if( ($kS = intval(@$raParms['kS'])) ) {
-            $cond = "P._key='$kS'";
-        } else if( ($uid = intval(@$raParms['uid_seller'])) ) {
-            $cond = "P.uid_seller='$uid'";
-        } else {
+        $raCond = [];
+        if( ($kProduct = intval(@$raParms['kProduct'])) ) {
+            $raCond[] = "P._key='$kProduct'";
+            $bCheckEStatus = false;                 // eStatus is irrelevant if a single product is specified
+        }
+        if( ($uid = intval(@$raParms['kUidSeller']))
+            || ($uid = intval(@$raParms['uid_seller'])) ) { // deprecated
+            $raCond[] = "P.uid_seller='$uid'";
+        }
+        if( ($kSp = intval(@$raParms['kSp'])) ) {
+            $raCond[] = "PE2.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
+        }
+
+        if( !count($raCond) && !@$raParms['bAll'] ) {       // this is why eStatus is a secondary parameter; it is required but at least one primary filter is also required
             $sErr = "seedListGetData: no input parameters";
             goto done;
         }
 
-        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( $cond )) ) {
+        // eStatus is combinations of quoted and comma-separated 'ACTIVE','INACTIVE','DELETED' or ALL
+        if( $bCheckEStatus ) {
+            if( !($eStatus = @$raParms['eStatus']) ) {
+                $sErr = "eStatus required";
+                goto done;
+            }
+            if( $eStatus != 'ALL' ) {
+                $raCond[] = "eStatus IN ($eStatus)";
+            }
+        }
+
+//$this->oApp->kfdb->SetDebug(2);
+        // PE1.k='category'
+        // PE2.k='species'
+        // PE3.k='variety'
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond) )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
             }
