@@ -526,6 +526,9 @@ basketScript;
         $sList = "";
         $raSeeds = array();
 
+        $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
+
+        // Get the list of seed offers for the given seller/species
         $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>true] );
         $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$uidSeller,'kSp'=>$kSp,'eStatus'=>"ALL"] );
         if( $rQ['bOk'] ) {
@@ -534,8 +537,25 @@ basketScript;
             goto done;
         }
 
-// do this via MSDLib because MSDApp isn't supposed to know about MSDCore
-        $oMSDCore = new MSDCore( $this->oSB->oApp, array() );
+        // Draw the list in a set of SeedEditContainers
+        $category = "";
+        foreach( $raSeeds as $kProduct => $raS ) {
+            if( $category != $raS['category'] ) {
+                $category = $raS['category'];
+                $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
+            }
+
+            $sC = $this->sContainer;
+            $sC = str_replace( '[[kP]]', $kProduct, $sC );
+
+            $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kProduct, 'eDrawMode'=>MSDQ::SEEDDRAW_EDIT.' '.MSDQ::SEEDDRAW_VIEW_SHOWSPECIES) );
+            $sP = $rQ['bOk'] ? $rQ['sOut'] : "Missing text for seed # $kProduct: {$rQ['sErr']}";
+            $sC = str_replace( '[[sSeedText]]', $sP, $sC );
+            $sList .= $sC;
+        }
+
+/*
+
         $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
 
         $cond = ($uidSeller ? "uid_seller='$uidSeller'" : "1=1")
@@ -567,6 +587,7 @@ basketScript;
                 $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP, array('bUTF8'=>true) );
             }
         }
+*/
 
         done:
         return( array( $sList, $raSeeds ) );
