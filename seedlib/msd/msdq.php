@@ -335,9 +335,13 @@ class MSDQ extends SEEDQ
                        ."<br/>$sOut</div>";
             } else {
                 $rLastUpdate = $this->oMSDCore->GetLastUpdated( "P._key='".$kfrS->Key()."'" );
-                if( substr($rLastUpdate[1],0,4) == '2019' ) {
-                    $sOut = "<div class='sed_seed_change'><b><i>".($this->oApp->lang=='FR' ? "Enregistr&eacute;" : "Saved")." ".substr($rLastUpdate[1],0,10)."</i></b>"
-                           ."<br/>$sOut</div>";
+                if( ($d = substr($rLastUpdate[1],0,10)) ) {
+                    $dUpdate = strtotime($d);
+                    $dThreshold = strtotime( date('Y-m-d')." -10 months");   // 10 months ago from right now
+                    if( $dUpdate > $dThreshold ) {
+                        $sOut = "<div class='sed_seed_change'><b><i>".($this->oApp->lang=='FR' ? "Enregistr&eacute;" : "Saved")." ".substr($rLastUpdate[1],0,10)."</i></b>"
+                               ."<br/>$sOut</div>";
+                    }
                 }
             }
         }
