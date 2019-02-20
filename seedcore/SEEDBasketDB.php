@@ -112,10 +112,12 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         $ra = $this->kfdb->QueryRA(
                 "SELECT _updated,_updated_by,_key FROM
                      (
-                     (SELECT P._updated,P._updated_by,P._key FROM seeds.SEEDBasket_Products P
+                     (SELECT P._updated as _updated,P._updated_by as _updated_by,P._key as _key
+                         FROM seeds.SEEDBasket_Products P
                          WHERE $cond1 ORDER BY 1 DESC LIMIT 1)
                      UNION
-                     (SELECT PE._updated,PE._updated_by,P._key FROM seeds.SEEDBasket_ProdExtra PE,seeds.SEEDBasket_Products P
+                     (SELECT PE._updated as _updated,PE._updated_by as _updated_by,P._key as _key
+                         FROM seeds.SEEDBasket_ProdExtra PE,seeds.SEEDBasket_Products P
                          WHERE P._key=PE.fk_SEEDBasket_Products AND
                                $cond2 ORDER BY 1 DESC LIMIT 1)
                      ) as A

@@ -329,16 +329,16 @@ class MSDQ extends SEEDQ
         if( $eView=='EDIT' ) {
             if( $kfrS->value('eStatus') == 'DELETED' ) {
                 $sOut = "<div class='sed_seed_delete'><b><i>".($this->oApp->lang=='FR' ? "Supprim&eacute;" : "Deleted")."</i></b>"
-                    .SEEDCore_NBSP("   ")
-                    //.$sButtons2
-                    ."<br/>$sOut</div>";
+                       ."<br/>$sOut</div>";
             } else if( $kfrS->value('eStatus') == 'INACTIVE' ) {
                 $sOut = "<div class='sed_seed_skip'><b><i>".($this->oApp->lang=='FR' ? "Pass&eacute;" : "Skipped")."</i></b>"
-                    .SEEDCore_NBSP("   ")
-                    //.$sButtons2
-                    ."<br/>$sOut</div>";
-            } else if( $kfrS->value('bChanged') ) {
-                $sOut = "<div class='sed_seed_change'>$sOut</div>";
+                       ."<br/>$sOut</div>";
+            } else {
+                $rLastUpdate = $this->oMSDCore->GetLastUpdated( "P._key='".$kfrS->Key()."'" );
+                if( substr($rLastUpdate[1],0,4) == '2019' ) {
+                    $sOut = "<div class='sed_seed_change'><b><i>".($this->oApp->lang=='FR' ? "Enregistr&eacute;" : "Saved")." ".substr($rLastUpdate[1],0,10)."</i></b>"
+                           ."<br/>$sOut</div>";
+                }
             }
         }
 

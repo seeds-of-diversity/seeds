@@ -472,4 +472,6 @@ class MSDCore
         }
         return( $name );
     }
+
+    function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
 }
