@@ -82,6 +82,48 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         // Something should purge the prodExtra rows when you hard-delete a product though.
     }
 
+
+    function ProductLastUpdated( $cond, $raParms = array() )
+    /*******************************************************
+        Return P._key, _updated, _updated_by of the most recent update to a product.
+        _key is always product key
+        _updated* is either the product record or a prodextra record, whichever is newer
+
+        Note that product._updated can be older than prodextra._updated
+
+        e.g cond=>"P._key='123'"        returns the most recent of P._updated or related PE._updated for the given P
+            cond=>"P.uid_seller='456'   returns the most recently updated product of that seller, whether _updated from P or PE
+            cond=>"P.uid_seller='456' and P.product_type='widget'
+
+        raParms:
+            iStatus = filter _status (default 0; -1 means no filter)
+     */
+    {
+        if( !$cond )  $cond = "1=1";
+
+        $iStatus = intval(@$raParms['iStatus']);
+        if( $iStatus == -1 ) {
+            $cond1 = $cond2 = $cond;
+        } else {
+            $cond1 = $cond." AND P._status='$iStatus'";
+            $cond2 = $cond." AND P._status='$iStatus' AND PE._status='$iStatus'";
+        }
+
+        $ra = $this->kfdb->QueryRA(
+                "SELECT _updated,_updated_by,_key FROM
+                     (
+                     (SELECT P._updated,P._updated_by,P._key FROM seeds.SEEDBasket_Products P
+                         WHERE $cond1 ORDER BY 1 DESC LIMIT 1)
+                     UNION
+                     (SELECT PE._updated,PE._updated_by,P._key FROM seeds.SEEDBasket_ProdExtra PE,seeds.SEEDBasket_Products P
+                         WHERE P._key=PE.fk_SEEDBasket_Products AND
+                               $cond2 ORDER BY 1 DESC LIMIT 1)
+                     ) as A
+                 ORDER BY 1 DESC LIMIT 1" );
+
+        return( array(@$ra['_key'], @$ra['_updated'], @$ra['_updated_by']) );
+    }
+
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {
         /* raKfrel['B']    base relation for SEEDBasket_Baskets
