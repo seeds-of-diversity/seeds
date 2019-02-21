@@ -2,7 +2,7 @@
 
 /* Member Seed Directory Q Layer
  *
- * Copyright (c) 2018 Seeds of Diversity
+ * Copyright (c) 2018-2019 Seeds of Diversity
  */
 
 include_once( SEEDLIB."msd/msdcore.php" );
@@ -22,6 +22,8 @@ class MSDQ extends SEEDQ
         parent::__construct( $oApp, $raConfig );
         $this->oMSDCore = new MSDCore( $oApp, array('currYear'=>@$raConfig['config_currYear']) );
 
+        // If MSDOffice is editing a seed list by species (multiple growers) this is -1.
+        // That means don't change the uid_seller. You can't add items in that mode, for the same reason.
         $this->kUidSeller = (($k = intval(@$raConfig['config_OverrideUidSeller'])) && $this->oMSDCore->PermOfficeW())
                             ? $k : $oApp->sess->GetUID();
     }
@@ -76,6 +78,12 @@ class MSDQ extends SEEDQ
                  *
                  * output: bOk, sErr, raOut=validated and stored seed record, sOut=revised html seedDraw
                  */
+                if( ($this->kUidSeller == 0 || $this->kUidSeller == -1) && !$kSeed ) {
+                    // -1 is only possible with MSDOffice. It means don't override uid_seller, not allowed for Add
+                    $rQ['sErr'] = "Cannot add a seed item in species-edit mode";
+                    goto done;
+                }
+
                 list($rQ['bOk'],$rQ['sErr']) = $this->seedUpdate( $kfrS, $raParms );
                 if( $rQ['bOk'] ) {
                     // extract seed data from the kfr in a standardized way
@@ -198,11 +206,15 @@ class MSDQ extends SEEDQ
         }
 
         // force defaults
-        $kfrS->SetValue( 'uid_seller', $this->kUidSeller );     // especially this one because a) it's included in GetSetKeys so vulnerable to tampering, b) MSDCore assumes GetUID()
         $kfrS->SetValue( 'product_type', "seeds" );
         $kfrS->SetValue( 'quant_type', "ITEM-1" );
         if( !$kfrS->Value('year_1st_listed') ) {
             $kfrS->SetValue( 'year_1st_listed', $this->oMSDCore->GetCurrYear() );
+        }
+        // If MSDOffice is editing a seed list by species (multiple growers) uidSeller is -1.
+        // That means don't change the uid_seller. You can't add items in that mode anyway, for the same reason.
+        if( $this->kUidSeller && $this->kUidSeller != -1 ) {
+            $kfrS->SetValue( 'uid_seller', $this->kUidSeller );
         }
 
         /* item_price can be anything you want, but if you give a plain number render it as %0.2d
