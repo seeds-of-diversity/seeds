@@ -12,7 +12,7 @@ class MSDCore
     In general, this should only be used by seedlib-level code. App-level code should use MSDQ instead of this.
  */
 {
-    private $oApp;
+    public  $oApp;
     private $raConfig;
     private $oSBDB;
     private $currYear;
