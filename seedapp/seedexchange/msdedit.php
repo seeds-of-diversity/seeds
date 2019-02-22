@@ -507,13 +507,15 @@ basketScript;
          *                     fill the edit form. When submitted, a fresh copy of the normalized data is returned and stored here.
          * qURL              : Url of our ajax handler
          * overrideUidSeller : This is the uid of the grower whose seeds are being edited. This is passed to msdq.
+         *                     "-1" means an MSDOffice writer is editing a list by species (multiple growers) so msdSeed--update should not change
+         *                     the uidSeller. In this mode new items cannot be added anyway (because we can't specify the uidSeller).
          *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
          */
         $s .= "<script>
                var msdSeedEditVars = {};
                msdSeedEditVars.raSeeds = ".json_encode($raSeeds).";
                msdSeedEditVars.qURL = '".Site_UrlQ('basketJX.php')."';
-               msdSeedEditVars.overrideUidSeller = $uidSeller;
+               msdSeedEditVars.overrideUidSeller = ".($uidSeller ?: -1).";
                </script>";
 
         done:
