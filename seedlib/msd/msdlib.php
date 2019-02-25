@@ -43,7 +43,7 @@ class MSDLib
 
         $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_Products P,seeds.SEEDBasket_ProdExtra PE "
                                    ."SET PE.v=UPPER(TRIM(v)) "
-                                   ."WHERE P.product_type='seeds' AND PE.k='species'" );
+                                   ."WHERE P.product_type='seeds' AND P._key=PE.fk_SEEDBasket_Products AND PE.k='species'" );
 
         /* Update offer counts in grower table (should happen after every edit)
          */
