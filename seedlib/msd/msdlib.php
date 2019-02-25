@@ -31,6 +31,7 @@ class MSDLib
 
     function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
 
+    function KFRelGxM() { return( $this->oMSDCore->KfrelGxM() ); }
 
     function AdminNormalizeStuff()
     {
@@ -70,5 +71,71 @@ class MSDLib
 
         done:
         return( $s );
+    }
+
+    function DrawGrowerBlock( KeyFrameRecord $kfrGxM, $bFull = true )
+    {
+        $s = $kfrGxM->Expand( "<strong>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
+             .($kfrGxM->value('organic') ? $this->S('Organic') : "")."</strong>"
+             ."<br/>";
+
+        if( $bFull ) {
+            $s .= $kfrGxM->ExpandIfNotEmpty( 'company', "<strong>[[]]</strong>><br/>" )
+                 .$kfrGxM->Expand( "[[M_address]], [[M_city]] [[M_province]] [[M_postcode]]<br/>" );
+
+            $s1 = "";
+            if( !$kfrGxM->value('unlisted_email') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_email', "[[]]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" );
+            if( !$kfrGxM->value('unlisted_phone') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_phone', "[[]]" );
+            if( $s1 )  $s .= $s1."<br/>";
+
+            $s .= $kfrGxM->ExpandIfNotEmpty( 'cutoff', "No requests after: [[]]<br/>" );
+
+            $s1 = $kfrGxM->ExpandIfNotEmpty( 'frostfree', "[[]] frost free days. " )
+                 .$kfrGxM->ExpandIfNotEmpty( 'soiltype',  "Soil: [[]]. " )
+                 .$kfrGxM->ExpandIfNotEmpty( 'zone',      "Zone: [[]]. " );
+            if( $s1 )  $s .= $s1."<br/>";
+
+            $ra = array();
+            foreach( array('nFlower' => array('flower','flowers'),
+                           'nFruit'  => array('fruit','fruits'),
+                           'nGrain'  => array('grain','grains'),
+                           'nHerb'   => array('herb','herbs'),
+                           'nTree'   => array('tree/shrub','trees/shrubs'),
+                           'nVeg'    => array('vegetable','vegetables'),
+                           'nMisc'   => array('misc','misc')
+                           ) as $k => $raV ) {
+                if( $kfrGxM->value($k) == 1 )  $ra[] = "1 ".$raV[0];
+                if( $kfrGxM->value($k) >  1 )  $ra[] = $kfrGxM->value($k)." ".$raV[1];
+            }
+            $s .= $kfrGxM->value('nTotal')." listings: ".implode( ", ", $ra ).".<br/>";
+
+            if( ($sPM = $this->drawPaymentMethod($kfrGxM)) ) {
+                $s .= "<em>Payment method: $sPM</em><br/>";
+            }
+
+            $s .= $kfrGxM->ExpandIfNotEmpty( 'notes', "Notes: [[]]<br/>" );
+        }
+
+        return( $s );
+    }
+
+    private function drawPaymentMethod( $kfrGxM )
+    {
+        $ra = array();
+        if( $kfrGxM->value('pay_cash') )        $ra[] = "Cash";
+        if( $kfrGxM->value('pay_cheque') )      $ra[] = "Cheque";
+        if( $kfrGxM->value('pay_stamps') )      $ra[] = "Stamps";
+        if( $kfrGxM->value('pay_ct') )          $ra[] = "Canadian-Tire";
+        if( $kfrGxM->value('pay_mo') )          $ra[] = "Money order";
+        if( !$kfrGxM->IsEmpty('pay_other') )    $ra[] = $kfrGxM->value('pay_other');
+
+        return( implode( ", ", $ra ) );
+    }
+
+    private function S( $sTranslate )
+    {
+        if( $sTranslate == 'Organic' ) return( $this->oApp->lang=='EN' ? $sTranslate : "Biologique" );
+
+        return( $sTranslate );
     }
 }

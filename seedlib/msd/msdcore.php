@@ -474,4 +474,34 @@ class MSDCore
     }
 
     function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
+
+
+    function KFRelGxM()
+    {
+        $defGxM =
+            array( "Tables"=>array( 'G' => array( "Table" => 'seeds.sed_curr_growers',
+                                                  "Type" => "Base",
+                                                  "Fields" => "Auto" ),
+                                    'M' => array( "Table"=> 'seeds2.mbr_contacts',
+                                                  "Type" => "Join",
+                                                  "JoinOn" => "(G.mbr_id=M._key)",
+                                                  "Fields" => array( array("col"=>"firstname",       "type"=>"S"),
+                                                                     array("col"=>"lastname",        "type"=>"S"),
+                                                                     array("col"=>"firstname2",      "type"=>"S"),
+                                                                     array("col"=>"lastname2",       "type"=>"S"),
+                                                                     array("col"=>"company",         "type"=>"S"),
+                                                                     array("col"=>"dept",            "type"=>"S"),
+                                                                     array("col"=>"address",         "type"=>"S"),
+                                                                     array("col"=>"city",            "type"=>"S"),
+                                                                     array("col"=>"province",        "type"=>"S"),
+                                                                     array("col"=>"postcode",        "type"=>"S"),
+                                                                     array("col"=>"country",         "type"=>"S"),
+                                                                     array("col"=>"phone",           "type"=>"S"),
+                                                                     array("col"=>"email",           "type"=>"S"),
+                                                                     array("col"=>"lang",            "type"=>"S"),
+                                                                     array("col"=>"expires",         "type"=>"S") ) ),
+                                            ) );
+        return( new KeyFrame_Relation( $this->oApp->kfdb, $defGxM, $this->oApp->sess->GetUID(), ['logfile'=>$this->oApp->logdir."msd.log"] ) );
+    }
+
 }
