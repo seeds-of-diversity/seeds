@@ -315,8 +315,10 @@ class MSDQ extends SEEDQ
 
         /* item_price can be whatever you want. If it is numeric it is forced to %.2f format.
          * A literal zero becomes 0.00, which suppresses the Price label.
+         * We don't show prices of $3.50 in PRINT mode.
          */
-        if( ($price = $kfrS->Value('item_price')) != '0.00' ) {
+        $price = $kfrS->Value('item_price');
+        if( $price != '0.00' && !($eView=='PRINT' && $price == '3.50') ) {
              $sOut .= " ".($this->oApp->lang=='FR' ? "Prix:" : "Price:")." "
                      .(is_numeric($price) ? SEEDCore_Dollar( $price, $this->oApp->lang ) : $price);
         }

@@ -14,6 +14,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
     const DETAIL_VIEW_WITH_SPECIES = 'VIEW_REQUESTABLE VIEW_SHOWSPECIES';
     const DETAIL_VIEW_NO_SPECIES   = 'VIEW_REQUESTABLE';
     const DETAIL_EDIT_WITH_SPECIES = 'EDIT VIEW_SHOWSPECIES';
+    const DETAIL_PRINT_NO_SPECIES  = 'PRINT';
 
     private $raProdExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'quantity', 'origin', 'description' );
 

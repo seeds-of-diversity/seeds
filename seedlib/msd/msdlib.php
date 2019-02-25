@@ -31,6 +31,8 @@ class MSDLib
 
     function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
 
+    function TranslateSpecies2( $sSp ) { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
+
     function KFRelGxM() { return( $this->oMSDCore->KfrelGxM() ); }
 
     function AdminNormalizeStuff()
@@ -39,8 +41,14 @@ class MSDLib
 
         if( !$this->PermAdmin() ) goto done;
 
+        $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_Products P,seeds.SEEDBasket_ProdExtra PE "
+                                   ."SET PE.v=UPPER(TRIM(v)) "
+                                   ."WHERE P.product_type='seeds' AND PE.k='species'" );
+
+        /* Update offer counts in grower table (should happen after every edit)
+         */
+        $i = 0;
         if( ($dbc = $this->oMSDCore->oApp->kfdb->CursorOpen( "SELECT mbr_id FROM seeds.sed_curr_growers" )) ) {
-            $i = 0;
             while( $ra = $this->oMSDCore->oApp->kfdb->CursorFetch($dbc) ) {
                 $sCond = "mbr_id='{$ra['mbr_id']}' AND _status='0' AND NOT bSkip AND NOT bDelete";
 
@@ -64,10 +72,10 @@ class MSDLib
                        ."WHERE mbr_id='{$ra['mbr_id']}'");
                 ++$i;
             }
-            $s = "<p>Removed NULLs, trimmed and upper-cased strings. Updated offer counts for $i growers.</p>";
             $this->oMSDCore->oApp->kfdb->CursorClose($dbc);
         }
 
+        $s = "<p>Removed NULLs, trimmed and upper-cased strings. Updated offer counts for $i growers.</p>";
 
         done:
         return( $s );

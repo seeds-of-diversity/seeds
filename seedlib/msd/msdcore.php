@@ -217,6 +217,11 @@ class MSDCore
                     : $sSpecies );
     }
 
+    function TranslateSpecies2( $sSpecies )
+    {
+        return( @$this->raSpecies[$sSpecies]['FR'] );
+    }
+
     function TranslateSpeciesList( $raSpecies )
     /******************************************
         Given a list of species names, translate to current language and sort

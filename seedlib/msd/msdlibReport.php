@@ -29,24 +29,10 @@ class MSDLibReport
 
             case 'JanSeeds':
                 header( "Content-type: text/html; charset=ISO-8859-1");
-                $s = "Seeds report";
+                $s .= $this->styleReport()
+                     .$this->janSeeds();
                 break;
 
-            case 'jan_g':
-                header( "Content-type: text/html; charset=ISO-8859-1");
-                echo sed_style_report();
-                echo $this->sed->DrawGrowers();
-                break;
-            case 'jan_s':
-                header( "Content-type: text/html; charset=ISO-8859-1");
-                echo sed_style_report();
-
-                // use console01table to draw a bunch of drawSeed()
-                $this->sed->oSed->oConsoleTable = new SedSeedConsole01Table( $this->sed->oSed, NULL );
-                $this->sed->oSed->oConsoleTableDrawParms = array();
-
-                echo $this->sed->drawSeedsAll();
-                break;
             case 'aug_g':
                 header( "Content-type: text/html; charset=ISO-8859-1");
                 $this->Report_Aug_G();
@@ -98,6 +84,59 @@ class MSDLibReport
         return( $s );
     }
 
+    private function janSeeds()
+    {
+        $s = "";
+        $lastCat = $lastSp = "";
+
+        $oW = new SEEDApp_Worker( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp->lang );
+
+        $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
+                                   SEEDBasketProducts_SoD::$raProductTypes );
+
+        if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
+                                         "product_type='seeds' AND "
+                                        ."eStatus='ACTIVE' AND "
+                                        ."PE1.k='category' AND "
+                                        ."PE2.k='species' AND "
+                                        ."PE3.k='variety' AND PE1.v='flowers'",
+                                        array('sSortCol'=>'PE1_v,PE2_v,PE3_v') )) )
+        {
+            while( $kfrP->CursorFetch() ) {
+
+                if( ($sCat = $kfrP->Value('PE1_v')) != $lastCat ) {
+                    /* Start a new category
+                     */
+                    /*
+                    if( $this->oMSDLib->oApp->lang == 'FR' ) {
+                        foreach( $this->raCategories as $ra ) {
+                            if( $ra['db'] == $kfrS->value('category') ) {
+                                $sCat = $ra['FR'];
+                                break;
+                            }
+                        }
+                    }
+                    */
+                    $s .= "<div class='sed_category'><h2>$sCat</h2></div>";
+                    $lastCat = $sCat;
+                    $lastSp = "";   // in case this code is used in a search on a species that appears in more than one category
+                }
+                if( ($sSp = $kfrP->Value('PE2_v')) != $lastSp ) {
+                    /* Start a new species
+                     */
+                    $lastSp = $sSp;
+                    if( ($sFR = $this->oMSDLib->TranslateSpecies2( $sSp )) ) {
+                        $sSp .= " @T@ $sFR";
+                    }
+                    $s .= "<div class='sed_type'><h3>$sSp</h3></div>";
+                }
+
+                $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
+            }
+        }
+
+        return( $s );
+    }
 
     function Report_Aug_G()
     /**********************
