@@ -83,8 +83,8 @@ class MSDLib
 
     function DrawGrowerBlock( KeyFrameRecord $kfrGxM, $bFull = true )
     {
-        $s = $kfrGxM->Expand( "<strong>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
-             .($kfrGxM->value('organic') ? $this->S('Organic') : "")."</strong>"
+        $s = $kfrGxM->Expand( "<b>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
+             .($kfrGxM->value('organic') ? $this->S('Organic') : "")."</b>"
              ."<br/>";
 
         if( $bFull ) {
@@ -92,7 +92,7 @@ class MSDLib
                  .$kfrGxM->Expand( "[[M_address]], [[M_city]] [[M_province]] [[M_postcode]]<br/>" );
 
             $s1 = "";
-            if( !$kfrGxM->value('unlisted_email') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_email', "[[]]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" );
+            if( !$kfrGxM->value('unlisted_email') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_email', "<i>[[]]</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" );
             if( !$kfrGxM->value('unlisted_phone') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_phone', "[[]]" );
             if( $s1 )  $s .= $s1."<br/>";
 
@@ -118,12 +118,13 @@ class MSDLib
             $s .= $kfrGxM->value('nTotal')." listings: ".implode( ", ", $ra ).".<br/>";
 
             if( ($sPM = $this->drawPaymentMethod($kfrGxM)) ) {
-                $s .= "<em>Payment method: $sPM</em><br/>";
+                $s .= "<i>Payment method: $sPM</i><br/>";
             }
 
             $s .= $kfrGxM->ExpandIfNotEmpty( 'notes', "Notes: [[]]<br/>" );
         }
 
+        $s = "<div style='font-size:8pt;font-family:Minion Pro;padding-bottom:2pt'>$s</div>";
         return( $s );
     }
 
