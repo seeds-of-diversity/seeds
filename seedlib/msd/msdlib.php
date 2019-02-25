@@ -70,6 +70,7 @@ class MSDLib
     function AdminIntegrityTests()  { return( $this->adminTests( 'integ_' ) ); }
     function AdminWorkflowTests()   { return( $this->adminTests( 'workflow_' ) ); }
     function AdminDataTests()       { return( $this->adminTests( 'data_' ) ); }
+    function AdminContentTests()    { return( $this->adminTests( 'content_' ) ); }
 
     private function adminTests( $sPrefix )
     {
@@ -374,44 +375,82 @@ class MSDLib
             /* Check for duplicated entries (not fatal since this often happens legitimately)
              */
             'content_dup_types' =>
-                array( 'title' => "Check for duplicate Types in different Categories",
+                array( 'title' => "Check for duplicate Species in different Categories",
                        'testType' => 'rows0',
-                       'failLabel' => "Warning: Types duplicated in different Categories",
-                       'failShowRow' => "Type [[t]] is in [[c1]] and [[c2]]",
+                       'failLabel' => "Warning: Species duplicated in different Categories",
+                       'failShowRow' => "Type [[sp]] is in [[cat1]]([[kP1]]) and [[cat2]]([[kP2]])",
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT S1.type as t,S1.category as c1,S2.category as c2 "
-                              ."FROM seeds.sed_curr_seeds S1,seeds.sed_curr_seeds S2 "
-                              ."WHERE S1.type=S2.type AND S1.category<>S2.category "
-                              ."AND $sS1NoSkipDel AND $sS2NoSkipDel GROUP BY 1,2,3 ORDER BY 1,2,3",
+                           "SELECT PE1sp.v as sp,PE1cat.v as cat1,PE2cat.v as cat2,P1._key as kP1,P2._key as kP2 "
+                          ."FROM seeds.SEEDBasket_Products P1, seeds.SEEDBasket_Products P2,"
+                               ."seeds.SEEDBasket_ProdExtra PE1cat,seeds.SEEDBasket_ProdExtra PE1sp,"
+                               ."seeds.SEEDBasket_ProdExtra PE2cat,seeds.SEEDBasket_ProdExtra PE2sp "
+                          ."WHERE P1.product_type='seeds' AND P1._status='0' AND P1.eStatus='ACTIVE' AND "
+                                ."P2.product_type='seeds' AND P2._status='0' AND P2.eStatus='ACTIVE' AND "
+                                ."P1._key < P2._key AND "
+                                ."PE1cat.fk_SEEDBasket_Products=P1._key AND "
+                                ."PE1sp.fk_SEEDBasket_Products=P1._key AND "
+                                ."PE2cat.fk_SEEDBasket_Products=P2._key AND "
+                                ."PE2sp.fk_SEEDBasket_Products=P2._key AND "
+                                ."PE1cat._status='0' AND PE1sp._status='0' AND PE2cat._status='0' AND PE2sp._status='0' AND "
+                                ."PE1cat.k='category' AND PE1sp.k='species' AND "
+                                ."PE2cat.k='category' AND PE2sp.k='species' AND "
+                                ."PE1sp.v=PE2sp.v AND PE1cat.v<>PE2cat.v "
+                          ."GROUP BY 1,2,3,4,5 ORDER BY 1,2,3",
                      ),
 
             'content_dup_var_per_grower' =>
-                array( 'title' => "Check for duplicate Type/Varieties from the same grower",
+                array( 'title' => "Check for duplicate Species/Varieties from the same grower",
                        'testType' => 'rows0',
                        'failLabel' => "Warning: Varieties duplicated per grower",
-                       'failShowRow' => "[[mc]] ([[m]]) has duplicate [[t]] - [[v]] : keys [[ks1]] and [[ks2]]",
+                       'failShowRow' => "[[mc]] ([[m]]) has duplicate [[sp]] - [[var]] ([[kP1]] and [[kP2]])",
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT G.mbr_id as m,G.mbr_code as mc,S1.type as t,S1.variety as v,S1._key as ks1,S2._key as ks2 "
-                              ."FROM seeds.sed_curr_seeds S1,seeds.sed_curr_seeds S2,seeds.sed_curr_growers G "
-                              ."WHERE (G.mbr_id=S1.mbr_id) AND (S1.mbr_id=S2.mbr_id) AND "
-                              ."S1._key<S2._key AND S1.type=S2.type AND S1.variety=S2.variety "
-                              ."AND $sS1NoSkipDel AND $sS2NoSkipDel ORDER BY 2,3,4",
+                           "SELECT G.mbr_id as m,G.mbr_code as mc,PE1sp.v as sp,PE1var.v as var,P1._key as kP1,P2._key as kP2 "
+                          ."FROM seeds.sed_curr_growers G,seeds.SEEDBasket_Products P1,seeds.SEEDBasket_Products P2,"
+                               ."seeds.SEEDBasket_ProdExtra PE1sp,seeds.SEEDBasket_ProdExtra PE1var,"
+                               ."seeds.SEEDBasket_ProdExtra PE2sp,seeds.SEEDBasket_ProdExtra PE2var "
+                          ."WHERE P1.product_type='seeds' AND P1._status='0' AND P1.eStatus='ACTIVE' AND "
+                                ."P2.product_type='seeds' AND P2._status='0' AND P2.eStatus='ACTIVE' AND "
+                                ."P1._key < P2._key AND "
+                                ."P1.uid_seller=P2.uid_seller AND G.mbr_id=P1.uid_seller AND "
+                                ."PE1sp.fk_SEEDBasket_Products=P1._key AND "
+                                ."PE1var.fk_SEEDBasket_Products=P1._key AND "
+                                ."PE2sp.fk_SEEDBasket_Products=P2._key AND "
+                                ."PE2var.fk_SEEDBasket_Products=P2._key AND "
+                                ."PE1sp._status='0' AND PE1var._status='0' AND PE2sp._status='0' AND PE2var._status='0' AND "
+                                ."PE1sp.k='species' AND PE1var.k='variety' AND "
+                                ."PE2sp.k='species' AND PE2var.k='variety' AND "
+                                ."PE1sp.v=PE2sp.v AND PE1var.v=PE2var.v "
+                          ."ORDER BY 2,3,4",
                      ),
 
-            'content_dup_var_by_type' =>
-                array( 'title' => "Check for duplicate Varieties in different Types",
+            'content_dup_var_by_species' =>
+                array( 'title' => "Check for duplicate Varieties in different Species",
                        'testType' => 'rows0',
-                       'failLabel' => "Warning: Varieties duplicated in different Types",
-                       'failShowFn' => 'fnContentDupVarByType',//array($this,"fnContentDupVarByType"),     use global function until this function is a method
+                       'failLabel' => "Warning: Varieties duplicated in different Species",
+                       'failShowFn' => [$this,'fnContentDupVarBySpecies'],
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT S1.variety AS v,S1.type AS t1,S2.type AS t2 FROM seeds.sed_curr_seeds S1,seeds.sed_curr_seeds S2 "
-                          ."WHERE S1.variety=S2.variety AND S1.type<>S2.type "
-                          ."AND S1.variety NOT IN ('','COMMON','ANNUAL','MIXED','SINGLE') "
-                          ."AND S1.variety NOT LIKE '%UNKNOWN%' "
-                          ."AND $sS1NoSkipDel AND $sS2NoSkipDel ORDER BY 1,2,3",
+                           "SELECT PE1var.v as var,PE1sp.v as sp1,PE2sp.v as sp2 " //,P1._key as kP1,P2._key as kP2 "
+                          ."FROM seeds.SEEDBasket_Products P1, seeds.SEEDBasket_Products P2,"
+                               ."seeds.SEEDBasket_ProdExtra PE1sp,seeds.SEEDBasket_ProdExtra PE1var,"
+                               ."seeds.SEEDBasket_ProdExtra PE2sp,seeds.SEEDBasket_ProdExtra PE2var "
+                          ."WHERE P1.product_type='seeds' AND P1._status='0' AND P1.eStatus='ACTIVE' AND "
+                                ."P2.product_type='seeds' AND P2._status='0' AND P2.eStatus='ACTIVE' AND "
+                                ."P1._key < P2._key AND "
+                                ."PE1sp.fk_SEEDBasket_Products=P1._key AND "
+                                ."PE1var.fk_SEEDBasket_Products=P1._key AND "
+                                ."PE2sp.fk_SEEDBasket_Products=P2._key AND "
+                                ."PE2var.fk_SEEDBasket_Products=P2._key AND "
+                                ."PE1sp._status='0' AND PE1var._status='0' AND PE2sp._status='0' AND PE2var._status='0' AND "
+                                ."PE1var.k='variety' AND PE1sp.k='species' AND "
+                                ."PE2var.k='variety' AND PE2sp.k='species' AND "
+                                ."PE1var.v=PE2var.v AND PE1sp.v<>PE2sp.v AND "
+                                ."PE1var.v NOT IN ('','COMMON','ANNUAL','MIXED','SINGLE') AND "
+                                ."PE1var.v NOT LIKE '%UNKNOWN%' "
+                          ."GROUP BY 1,2,3 ORDER BY 1,2,3",
+
                      ),
 
             /* Check for growers and seeds that have been bDeleted but not actually deleted (though it actually just sets _status=1)
@@ -485,4 +524,29 @@ class MSDLib
 
         ] );
     }
+
+    /*private*/ function fnContentDupVarBySpecies( $raRows, $kTestDummy, $raParmsDummy )
+    {
+        $s = "";
+
+        $raOut = array();
+        foreach( $raRows as $ra ) {
+            if( !is_array(@$raOut[$ra['var']]) || !in_array( $ra['sp1'], $raOut[$ra['var']] ) ) {
+                $raOut[$ra['var']][] = $ra['sp1'];
+            }
+            if( !is_array($raOut[$ra['var']]) || !in_array( $ra['sp2'], $raOut[$ra['var']] ) ) {
+                $raOut[$ra['var']][] = $ra['sp2'];
+            }
+        }
+        foreach( $raOut as $cv=>$raTypes ) {
+            $sLink = ""; // "{$_SERVER['PHP_SELF']}?c01tf_main=seeds&sfSp_mode=search&sfSx_srch_val1=".urlencode($cv)
+            $s .= "<div class='row'>"
+                     ."<div class='col-sm-1'>Variety</div>"
+                     ."<div class='col-sm-2'><a href='$sLink'>$cv</a></div>"
+                     ."<div class='col-sm-9'> is in types ".implode("&nbsp;&nbsp;|&nbsp;&nbsp; ",$raTypes)."</div>"
+                 ."</div>";
+        }
+        return( $s );
+    }
+
 }
