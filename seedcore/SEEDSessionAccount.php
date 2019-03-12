@@ -311,7 +311,7 @@ class SEEDSessionAccount extends SEEDSession
                 goto done;
             }
         } else
-        if( strpos( $p, "--" ) ) {
+        if( strpos( $p, "--" ) !== false ) {
             list($perm,$suff) = explode( "--", $p, 2 );
             if( !$perm || !$suff || !$this->CanWrite( $perm ) ) {
                 $sErr = "Requires write permission";
