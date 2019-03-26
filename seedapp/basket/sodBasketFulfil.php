@@ -83,6 +83,10 @@ class SodOrderFulfil
         $kfr->SetValue( "eStatus2", 2 );
         return( $kfr->PutDBRow() );
     }
+
+    function GetMailStatus_Pending( KeyframeRecord $kfr )  { return( $kfr->Value('eStatus2') == 0 ); }
+    function GetMailStatus_Sent( KeyframeRecord $kfr )     { return( $kfr->Value('eStatus2') == 1 ); }
+    function GetMailStatus_Nothing( KeyframeRecord $kfr )  { return( $kfr->Value('eStatus2') == 2 ); }
 }
 
 
@@ -190,7 +194,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          //."<b>".@$mbr_PayStatus[$kfr->value('pay_status')]."</b><br/>"
          ."<b>".$kfr->value('eStatus')."</b>"
          .($kfr->value('eStatus')=='New' ? $this->changeToPaidButton($kfr->Key()): "")
-         .$this->officeFilled( $kfr, $raOrder );
+         .$this->mailStatus( $kfr, $raOrder );
 
 
     $s .= "<tr data-kOrder='".$kfr->Key()."'>"
@@ -198,7 +202,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
-         ."<td valign='top'>$sConciseSummary".$this->officeMailed( $kfr, $raOrder )."</td>"
+         ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder )."</td>"
          ."<td valign='top' $style>$sPayment</td>"
          ."</tr>";
 
@@ -218,45 +222,54 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
             ."<input type='hidden' name='row' value='$kOrder'/>"
             ."<input type='hidden' name='action' value='changeStatusToPaid'/>"
             ."<input type='submit' value='Change to Paid'/>"
-            ."</form>";
+            ."</form><br/>";
 
         return( $s );
     }
 
-    private function officeFilled( KeyframeRecord $kfr, $raOrder )
+
+    private function mailNothingButton( KeyframeRecord $kfr, $raOrder )
+    /******************************************************************
+        Show "Nothing to Mail" button if mail status is 0
+
+        eStatus2 : 0 = not decided
+                   1 = mailed and date recorded
+                   2 = nothing to mail
+     */
+    {
+        $s = "";
+
+        if( $this->GetMailStatus_Pending($kfr) &&
+            in_array( $this->oApp->sess->GetUID(), array( 1, 1499 /*, 10914*/ ) ) )  // dev, Bob, Christine
+        {
+            $kOrder = $kfr->Key();
+            $s .= "<div id='status2x_$kOrder' class='status2x'><button>Nothing to mail</button></div>";
+        }
+
+        return( $s );
+    }
+
+
+    private function mailStatus( KeyframeRecord $kfr, $raOrder )
     {
         $s = "";
 
         $bMailed = $kfr->Value( 'eStatus2' )==1;
         $bNothingToMail = $kfr->Value( 'eStatus2' )==2;
 
-        if( !in_array( $this->oApp->sess->GetUID(), array( 1, 1499, 10914 ) ) ) {
-            if( count($raOrder['pubs']) ) {
-                $s .= "<br/>Order ".($bMailed ? "": "not")." mailed ".$kfr->Value('dMailed');
-            }
-        } else if( !$bNothingToMail ) {
-            $s .= "<br/>Order ".($bMailed ? "": "not")." mailed ".($bMailed ? $kfr->Value('dMailed') : "");
-        }
-
-        return( "<div id='mailed".$kfr->Key()."'>$s</div>" );
-    }
-
-
-    private function officeMailed( KeyframeRecord $kfr, $raOrder )
-    {
-        $s = "";
-
-        $bFilled = $kfr->Value( 'eStatus2' ) != 0;
-
-        if( in_array( $this->oApp->sess->GetUID(), array( 1, 1499, 10914 ) ) ) {
-            if( !$bFilled ) {
+        if( in_array( $this->oApp->sess->GetUID(), array( 1, 1499, 10914 ) ) ) {    // dev, Bob, Christine
+            if( $this->GetMailStatus_Pending($kfr) ) {
                 $kOrder = $kfr->Key();
-                $s .= "<div id='status2_$kOrder' class='status2'><button>Mailed Today</button></div>&nbsp;";
-                $s .= "<div id='status2x_$kOrder' class='status2x'><button>Nothing to mail</button></div>";
+                $s .= "<div id='status2_$kOrder' class='status2'><button>Mail Today</button></div>&nbsp;";
+            } else if( $this->GetMailStatus_Sent($kfr) ) {
+                $s .= "<br/>Order mailed ".$kfr->Value('dMailed');
+            }
+        } else {
+            if( count($raOrder['pubs']) ) {
+                $s .= "<br/>Order ".($this->GetMailStatus_Sent($kfr) ? "": "not")." mailed ".$kfr->Value('dMailed');
             }
         }
 
         return( $s );
     }
-
 }
