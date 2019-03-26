@@ -108,7 +108,12 @@ class SodOrderFulfilUI extends SodOrderFulfil
         $this->pAction = SEEDInput_Str( 'action' );
 
         // Filters
-        $this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', array("", MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED) );
+        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-mailed",
+                                                                       MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED ] )) )
+        {
+            // "" defaults to either Not-accounted or Not-mailed depending on whom you are
+            $this->fltStatus = $this->oApp->sess->GetUID() == 4879 ? "Not-accounted" : "Not-mailed";
+        }
         if( !($this->fltYear = intval($oApp->sess->SmartGPC( 'fltYear', array() ))) ) {
             $this->fltYear = $this->yCurrent;
         }
@@ -129,21 +134,77 @@ class SodOrderFulfilUI extends SodOrderFulfil
         $s .= "<form action='${_SERVER['PHP_SELF']}'>"
              ."<p>Show: "
              .SEEDForm_Select2( 'fltStatus',
-                        array( "Pending / Paid" => "",
-                               "Filled"         => MBRORDER_STATUS_FILLED,
-                               "Cancelled"      => MBRORDER_STATUS_CANCELLED ),
+                        array( "Not Accounted" => "Not-accounted",
+                               "Not Mailed"    => "Not-mailed",
+                               "Filled"        => MBRORDER_STATUS_FILLED,
+                               "Cancelled"     => MBRORDER_STATUS_CANCELLED,
+                               "All"           => "All",
+                        ),
                         $this->fltStatus,
-                        array( "selectAttrs" => "onChange='submit();'" ) )
-             .SEEDCore_NBSP("",5)
-             .SEEDForm_Select2( 'fltYear',
-                        $raYearOpt,
-                        $this->fltYear,
-                        array( "selectAttrs" => "onChange='submit();'" ) )
-             .(!$this->fltStatus ? "&nbsp;&nbsp;<-- the year selector is ignored for pending orders" : "")
-             ."</p></form>";
+                        array( "selectAttrs" => "onChange='submit();'" ) );
+        if( in_array( $this->fltStatus, ["All", MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
+            $s .= SEEDCore_NBSP("",5)
+                 .SEEDForm_Select2( 'fltYear',
+                            $raYearOpt,
+                            $this->fltYear,
+                            array( "selectAttrs" => "onChange='submit();'" ) );
+        }
+        $s .= "</p></form>";
 
         return( $s );
     }
+
+    function GetFilterDetails()
+    /**************************
+        Details about the currently selected filter
+     */
+    {
+        $label = $cond = "";
+        $bSortDown = false;
+
+        switch( $this->fltStatus ) {
+            case MBRORDER_STATUS_FILLED:
+                $label = "Filled {$this->fltYear}";
+                $cond = "eStatus='{$this->fltStatus}' AND eStatus2<>'0' AND ".$this->getYearCond();
+                $bSortDown = true;
+                break;
+            case MBRORDER_STATUS_CANCELLED:
+                $label = "Cancelled {$this->fltYear}";
+                $cond = "eStatus='{$this->fltStatus}' AND ".$this->getYearCond();
+                $bSortDown = true;
+                break;
+            case "Not-accounted":
+                $label = "Non-Accounted";
+                $cond = "eStatus NOT IN ('".MBRORDER_STATUS_FILLED."','".MBRORDER_STATUS_CANCELLED."')";
+                $bSortDown = false;
+                break;
+            case "Not-mailed":
+                $label = "Non-Mailed";
+                $cond = "(eStatus2='0' AND eStatus<>'".MBRORDER_STATUS_CANCELLED."')";
+                $bSortDown = false;
+                break;
+            case "All":
+            default:
+                $label = "All {$this->fltYear}";
+                $cond = $this->getYearCond();
+                $bSortDown = true;
+                break;
+        }
+
+        return( [$label, $cond, $bSortDown] );
+    }
+
+    private function getYearCond()
+    {
+        $y = $this->fltYear;
+
+        if( !$y )  return( "1=1" );
+
+        if( $y <= 2010 )  return( "year(_created) <= '2010'" );
+
+        return( "year(_created)='$y'" );
+    }
+
 
     function DrawOrderSummaryRow( KeyframeRecord $kfr, $sConciseSummary, $raOrder )
     {
@@ -192,7 +253,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     $sPayment
         = SEEDCore_Dollar($kfr->value('pay_total'))." by ".$kfr->value('ePayType')."<br/>"
          //."<b>".@$mbr_PayStatus[$kfr->value('pay_status')]."</b><br/>"
-         ."<b>".$kfr->value('eStatus')."</b>"
+         ."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
          .($kfr->value('eStatus')=='New' ? $this->changeToPaidButton($kfr->Key()): "")
          .$this->mailStatus( $kfr, $raOrder );
 
