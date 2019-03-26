@@ -265,7 +265,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
                 $s .= "<br/>Order mailed ".$kfr->Value('dMailed');
             }
         } else {
-            if( count($raOrder['pubs']) ) {
+            if( $this->GetMailStatus_Sent($kfr) || count($raOrder['pubs']) ) {
                 $s .= "<br/>Order ".($this->GetMailStatus_Sent($kfr) ? "": "not")." mailed ".$kfr->Value('dMailed');
             }
         }
