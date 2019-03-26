@@ -210,7 +210,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         $s = "";
 
-        if( $kfr->value('eStatus') == MBRORDER_STATUS_PAID ) {
+        if( in_array( $kfr->value('eStatus'), [ MBRORDER_STATUS_PAID, MBRORDER_STATUS_FILLED ] ) ) {
             $style = "style='color:green;background-color:#efe'";
         } else {
             $style = "";
