@@ -300,7 +300,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     {
         $s = "";
 
-        if( $this->GetMailStatus_Pending($kfr) &&
+        if( $this->GetMailStatus_Pending($kfr) && $kfr->Value('eStatus') != MBRORDER_STATUS_CANCELLED &&
             in_array( $this->oApp->sess->GetUID(), array( 1, 1499 /*, 10914*/ ) ) )  // dev, Bob, Christine
         {
             $kOrder = $kfr->Key();
@@ -319,7 +319,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $bNothingToMail = $kfr->Value( 'eStatus2' )==2;
 
         if( in_array( $this->oApp->sess->GetUID(), array( 1, 1499, 10914 ) ) ) {    // dev, Bob, Christine
-            if( $this->GetMailStatus_Pending($kfr) ) {
+            if( $this->GetMailStatus_Pending($kfr) && $kfr->Value('eStatus') != MBRORDER_STATUS_CANCELLED ) {
                 $kOrder = $kfr->Key();
                 $s .= "<div id='status2_$kOrder' class='status2'><button>Mail Today</button></div>&nbsp;";
             } else if( $this->GetMailStatus_Sent($kfr) ) {
