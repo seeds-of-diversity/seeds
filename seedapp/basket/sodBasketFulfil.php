@@ -180,7 +180,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 break;
             case "Not-mailed":
                 $label = "Non-Mailed";
-                $cond = "(eStatus2='0' AND eStatus<>'".MBRORDER_STATUS_CANCELLED."')";
+                $cond = "eStatus2='0' AND eStatus NOT IN ('".MBRORDER_STATUS_NEW."','".MBRORDER_STATUS_CANCELLED."')";
                 $bSortDown = false;
                 break;
             case "All":
