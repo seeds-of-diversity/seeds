@@ -99,7 +99,13 @@ class MSDLibReport
                                         ."eStatus='ACTIVE' AND "
                                         ."PE1.k='category' AND "
                                         ."PE2.k='species' AND "
-                                        ."PE3.k='variety' AND PE1.v='flowers'",
+                                        ."PE3.k='variety'"
+// uncomment one of these to limit the query to a section
+//." AND PE1.v in ('flowers')"
+//." AND PE1.v in ('fruit','grain','herbs','misc','trees')"
+//." AND PE1.v in ('vegetables') AND PE2.v not like 'TOMATO%'"
+//." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO%'"
+                                        ,
                                         array('sSortCol'=>'PE1_v,PE2_v,PE3_v') )) )
         {
             while( $kfrP->CursorFetch() ) {
@@ -128,7 +134,7 @@ class MSDLibReport
                     if( ($sFR = $this->oMSDLib->TranslateSpecies2( $sSp )) ) {
                         $sSp .= " @T@ $sFR";
                     }
-                    $s .= "<div class='sed_type'><h3>$sSp</h3></div>";
+                    $s .= "<div class='sed_type'><h3><b>$sSp</b></h3></div>";
                 }
 
                 $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
@@ -412,8 +418,8 @@ if( !empty($_REQUEST['g']) ) $cond .= " AND G.mbr_id='".intval($_REQUEST['g'])."
             .sed_types      { }
             .sed_typesfull  { }
             .sed_type       { }
-            .sed_type h3    { font-family:helvetica,sans-serif; }
-            .sed_seed       { width:60%; }
+            .sed_type h3    { font-family:\"Minion Pro\"; font-size:11pt; }
+            .sed_seed       { width:60%; font-family:\"Minion Pro\"; font-size:8pt; }
             .sed_seed_skip  { color:gray; }
             .sed_seed_delete{ color:red; }
             .sed_seed_change{ background-color:#99DD99; }
