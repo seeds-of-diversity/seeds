@@ -113,7 +113,7 @@ class EmailMeApp
              ."<div class='mailformline'>From: ".htmlentities($this->getFrom())."</div>"     // show <{email}> on-screen instead of turning it into an html tag
              ."<div class='mailformline'>To:".$this->oForm->Text( 'to', "", ['width'=>'50%'] )." ".$this->oForm->Text( 'toKey', "", ['readonly'=>true])."</div>"
              ."<div class='mailformline'>Subject:".$this->oForm->Text( 'subject', "", ['width'=>'50%'] )."</div>"
-             ."<div class='mailformline'>".$this->oForm->TextArea( 'mailbody', ['width'=>'100%'] )."</div>"
+             ."<div class='mailformline'>".$this->oForm->TextArea( 'mailbody', ['width'=>'100%','nRows'=>20] )."</div>"
              ."<div style='float:left'><input type='submit' name='cmd' value='Update'/></div>"
              ."<div style='float:right'><input type='submit' name='cmd' value='Send'/></div>"
              ."</form>"
