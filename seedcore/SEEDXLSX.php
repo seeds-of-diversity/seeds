@@ -117,6 +117,16 @@ class SEEDXlsWrite
             $col = chr(ord($col)+1);    // Change A to B, B to C, etc
         }
     }
+
+    function SetCellStyle( $iSheet, $iRow, $sCol, $raStyle )
+    /*******************************************************
+        Set a style for the given cell
+     */
+    {
+        $oSheet = $this->oXls->setActiveSheetIndex( $iSheet );
+
+        $oSheet->getStyle("$sCol$iRow")->applyFromArray($raStyle);
+    }
 }
 
 ?>
