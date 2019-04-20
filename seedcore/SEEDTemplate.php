@@ -27,9 +27,10 @@
  *                      In all but trivial applications it probably makes sense to provide your own loader derived from SEEDTemplateLoader.
  */
 
+include_once( "SEEDTag.php" );
 include_once( SEEDROOT."vendor/autoload.php" );
 
-class SEEDTemplate
+class SEEDTemplate2
 {
     protected $oDSVars = null;
     protected $oLoader = null;
@@ -94,11 +95,11 @@ class SEEDTemplate
     function factory_Loader()
     {
         // base class uses the base loader
-        return( new SEEDTemplateLoader() );
+        return( new SEEDTemplateLoader2() );
     }
 }
 
-class SEEDTemplateLoader {
+class SEEDTemplateLoader2 {
     protected $raTmpl = array();
 
     function __construct( $raConfig )
@@ -198,7 +199,7 @@ class SEEDTemplateLoader {
 }
 
 
-class SEEDTemplateLoader_Twig extends SEEDTemplateLoader
+class SEEDTemplateLoader_Twig extends SEEDTemplateLoader2
 /****************************
     Twig wants a loader class that it can bind to and call read(), which has to be able to find the SEEDTagLoader
  */
@@ -217,7 +218,7 @@ class SEEDTemplateLoader_Twig extends SEEDTemplateLoader
     function setOptions()      {}
 }
 
-class SEEDTemplate_Generator
+class SEEDTemplate_Generator2
 /***************************
     Makes a SEEDTemplate that processes Twig and/or SEEDTag
  */
@@ -278,7 +279,7 @@ class SEEDTemplate_Generator
 
         $raST['loader']['oLoader'] = $this->oLoader;
 
-        $oTmpl = new SEEDTemplate( $raST, $this->oDSVars );    // use global datastore for all template processors
+        $oTmpl = new SEEDTemplate2( $raST, $this->oDSVars );    // use global datastore for all template processors
 
 // Kluge: to process [[include:]] the HandleTag needs SEEDTemplate
         if( $this->oSeedTag )  $this->oSeedTag->oTmpl = $oTmpl;
@@ -286,7 +287,7 @@ class SEEDTemplate_Generator
         return( $oTmpl );
     }
 
-    function ExpandSEEDTag( $s, SEEDDataStore $oDSVars, SEEDTemplateLoader $oLoader )
+    function ExpandSEEDTag( $s, SEEDDataStore $oDSVars, SEEDTemplateLoader2 $oLoader )
     {
         // oDSVars from SEEDTemplate is the shared global datastore that's also used in this object, and oSeedTag.
         // That means if the template has a [[SetVar:]] everyone will see the new value.
@@ -294,7 +295,7 @@ class SEEDTemplate_Generator
         return( $this->oSeedTag->ProcessTags($s) );
     }
 
-    function ExpandTwig( $s, SEEDDataStore $oDSVars, SEEDTemplateLoader $oLoader )
+    function ExpandTwig( $s, SEEDDataStore $oDSVars, SEEDTemplateLoader2 $oLoader )
     {
         // The SEEDDataStore passed here by SEEDTemplate::ExpandStr is the same one used by ExpandSEEDTag.
         // However, Twig is processed first to avoid SEEDTag side-effects in false Twig conditional blocks,
@@ -302,7 +303,7 @@ class SEEDTemplate_Generator
         // If you want to set {{a}} you must use {{set:a}}.
         // If you want to set [[Var:a]] you must use [[SetVar:a]].
         // It is legal to do this:
-        // {{set:a=b}} [[SetVar:a|{{a}}]]  {{a}}  [[Var:a]]
+        // {{set a=b}} [[SetVar:a|{{a}}]]  {{a}}  [[Var:a]]
         $raVars = $oDSVars->GetValuesRA();
 
         // See the code for createTemplate(). It puts the string in a Twig_Loader_Array() and uses Twig_Loader_Chain() to
@@ -313,7 +314,7 @@ class SEEDTemplate_Generator
 
     protected function factory_SEEDTag( $raParms, $oDSVars )    // typically oDSVars is the same var datastore as this class and H2o use
     {
-        return( new SEEDTemplate_SEEDTagParser( $raParms, $oDSVars ) );
+        return( new SEEDTemplate_SEEDTagParser2( $raParms, $oDSVars ) );
     }
 
     protected function factory_Twig()
@@ -333,11 +334,11 @@ class SEEDTemplate_Generator
 
     protected function factory_Loader()
     {
-        return( new SEEDTemplateLoader( $this->raConfig ) );
+        return( new SEEDTemplateLoader2( $this->raConfig ) );
     }
 }
 
-class SEEDTemplate_SEEDTagParser extends SEEDTagParser
+class SEEDTemplate_SEEDTagParser2 extends SEEDTagParser
 {
     public  $oTmpl;        // set by kluge to allow [[include:]]
 

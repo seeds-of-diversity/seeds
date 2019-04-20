@@ -7,9 +7,10 @@
  * Simplify the creation of SEEDTemplates by standardizing typical parameters to SEEDTemplate_Generator
  */
 include_once( "SEEDTemplate.php" );
+include_once( "SEEDCoreForm.php" );
 
 
-function SEEDTemplateMaker( $raConfig )
+function SEEDTemplateMaker2( $raConfig )
 /**************************************
     raConfig:
         sTemplates = string or array of strings each containing one or more named templates
@@ -55,7 +56,8 @@ function SEEDTemplateMaker( $raConfig )
         $oForm = new SEEDCoreForm( $raConfig['sFormCid'] );
     }
     if( $oForm ) {
-        $tagParms['raResolvers'][] = array( 'fn'=>array($oForm,'ResolveTag'),
+        $oFormExpand = new SEEDFormExpand( $oForm );
+        $tagParms['raResolvers'][] = array( 'fn'=>array($oFormExpand,'ResolveTag'),
                                             'raConfig'=>array('bRequireFormPrefix'=>(@$raConfig['bFormRequirePrefix']?true:false)) );
     }
 
@@ -70,7 +72,7 @@ function SEEDTemplateMaker( $raConfig )
 
     $raGen['SEEDTagParms'] = $tagParms;
     $raGen['vars'] = isset($raConfig['raVars']) ? $raConfig['raVars'] : array();
-    $o = new SEEDTemplate_Generator( $raGen );
+    $o = new SEEDTemplate_Generator2( $raGen );
     $oTmpl = $o->MakeSEEDTemplate();
 
     return( $oTmpl );
