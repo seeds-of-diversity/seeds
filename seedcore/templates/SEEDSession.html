@@ -1,0 +1,338 @@
+# SEEDSession.html
+#
+# Templates for SEEDSessionAccount_UI
+#
+# Applications that use SEEDSessionAccount can override the Account* templates below to incorporate the base templates:
+ 
+ 
+%% AccountLogin
+[[Include:SEEDSessionUser_Login]]
+%% AccountLogout
+[[Include:SEEDSessionUser_Logout]]
+
+%% AccountCreate-0
+[[Include:SEEDSessionUser_CreateAccount-0]]
+%% AccountCreate-1a
+[[Include:SEEDSessionUser_CreateAccount-1a]]
+%% AccountCreate-1aErr
+[[Include:SEEDSessionUser_CreateAccount-1aErr]]
+%% AccountCreate-1aEmail
+[[Include:SEEDSessionUser_CreateAccount-1aEmail]]
+%% AccountUpdate
+[[Include:SEEDSessionUser_AccountUpdate]]
+
+%% AccountChangePassword-0
+[[Include:SEEDSessionUser_ChangePassword-0]]
+%% AccountChangePassword-1
+[[Include:SEEDSessionUser_ChangePassword-1]]
+
+%% AccountSendPassword-0
+[[Include:SEEDSessionUser_SendPassword-0]]
+%% AccountSendPassword-1
+[[Include:SEEDSessionUser_SendPassword-1]]
+
+
+%% SSA_Local
+# Twig variables only exist in scope, so the only way to set variables in an include, embed, extends is to use SEEDTag variables
+{% if lang=='EN' %}
+    [[SetVar: ssaYourEmailAddress   |Your email address]]
+    [[SetVar: ssaYourPassword       |Your password]]
+    [[SetVar: ssaLogin              |Sign in]]
+    [[SetVar: ssaNeedAnAccount      |Don't have an account?]]
+    [[SetVar: ssaCreateAnAccount    |Create an account]]
+    [[SetVar: ssaForgotYourPassword |Forgot your password?]]
+    [[SetVar: ssaSendMyPassword     |Send me my password]]
+{% else %}
+    [[SetVar: ssaYourEmailAddress   |Votre adresse de courriel]]
+    [[SetVar: ssaYourEmailAddress   |Votre adresse de courriel]]
+    [[SetVar: ssaYourPassword       |Votre mot de passe]]
+    [[SetVar: ssaLogin              |Ouvrez une session]]
+    [[SetVar: ssaNeedAnAccount      |Vous n'avez pas un compte?]]
+    [[SetVar: ssaCreateAnAccount    |Cr&eacute;ez un compte]]
+    [[SetVar: ssaForgotYourPassword |Oubliez votre mot de passe?]]
+    [[SetVar: ssaSendMyPassword     |Envoyez-moi mon mot de passe]]
+{% endif %}
+
+%% SEEDSessionUser_Login
+{% include 'SSA_Local' %}
+{{SEEDSessionUser_loginMessage}}
+<form id="SEEDSessionUser_loginForm" method="post" action="">
+{{SEEDSessionUser_propagateRequestParms}}
+<table border='0' cellspacing='0' cellpadding='10'>
+<tr><td valign='top'>[[Var:ssaYourEmailAddress]]</td><td valign='top'>[[FormText:seedsession_uid|class:text]]</td></tr>
+<tr><td valign='top'>[[Var:ssaYourPassword]]</td><td valign='top'>[[FormText:seedsession_pwd|class:text bPassword]]</td></tr>
+<tr><td valign='top' colspan='2'>
+  <style>#SEEDSessionUser_resultMsg {color:red}</style>
+  <div id="SEEDSessionUser_resultMsg"></div>
+</td></tr>
+<tr><td valign='top'>&nbsp;</td><td valign='top'>
+  <div style='height:40px'>
+    <input type='submit' value='[[Var:ssaLogin]]' id="SEEDSessionUser_loginButton" style='display:inline-block;vertical-align:middle' />
+  </div>
+</td></tr>
+</table>
+# non-seedsession vars are propagated here
+[[Var:sHidden]]
+</form>
+
+<table border='0' cellspacing='0' cellpadding='20' style='border-top:1px solid #bbb'>
+<tr>
+  {% if bEnableCreateAccount %}
+    <td valign='top'><p style='font-size:8pt'>[[Var:ssaNeedAnAccount]]</p>
+    <form method='post' action=''>
+    [[FormHidden:sessioncmd|value:acctCreate]]
+    <input type='submit' value='[[Var:ssaCreateAnAccount]]' style='font-size:8pt'/>
+    </form>
+    </td>
+  {% endif %}
+<td valign='top'>
+  <p style='font-size:8pt'>[[Var:ssaForgotYourPassword]]</p>
+  <form method='post' action=''>
+  [[FormHidden: sessioncmd | value:sendPwd]]
+  [[FormHidden: seedsession_uid | value:[[Var:seedsession_uid]] ]]
+  <input type='submit' value='[[Var:ssaSendMyPassword]]' style='font-size:8pt'/>
+  </form>
+</td>
+</tr>
+</table>
+
+
+%% SEEDSessionUser_Logout
+<h2>Goodbye {{sUsername}}</h2>
+<p>You are logged out now.</p>
+<div>
+  [[Include:SEEDSessionUser_LinkGoToLogin]]
+</div>
+
+%% ssu-ErrMsg
+{% if errmsg %}
+  {% if IsSeedLiving %}
+    <div style='color:red;margin:5px;padding:5px;border:1px solid #f66;border-radius:2px;text-align:center'>[[Var:errmsg]]</div>
+  {% else %}
+    <div class='alert alert-danger' style='width:50%'>[[Var:errmsg]]</div>
+  {% endif %}
+{% endif %}
+
+
+%% SEEDSessionUser_CreateAccount-0
+[[Include:ssu-ErrMsg]]
+{% if lang=='EN' %}
+  <h2>Create a New Account</h2>
+  <p>To create a Seeds of Diversity web account, all you need to do is enter your email address below.</p>
+  <p>We will send you an email containing a link for you to confirm that you want to create an account.</p> 
+  <p style='margin-left:30px'><b>You will not be able to log in until you receive the email.</b></p> 
+  <p>Your email address will never be visible to other users, unless you give specific permission.</p>
+{% else %}
+  <h2>Create a New Account</h2>
+  <p>To create a Seeds of Diversity web account, all you need to do is enter your email address below.</p>
+  <p>We will send you an email containing a link for you to confirm that you want to create an account.</p> 
+  <p style='margin-left:30px'><b>You will not be able to log in until you receive the email.</b></p> 
+  <p>Your email address will never be visible to other users, unless you give specific permission.</p>
+{% endif %}
+<div style='margin:30px'>
+  <form method='post' action='[[Var:acctCreateURL]]' id="SEEDSessionUser_createAccountForm">
+  [[FormHidden: sessioncmd | value:acctCreate-1a]]
+  <div>
+    [[FormText:acctCreate_uid|class:text size:30|placeholder='[[Local:Your email address]]']]
+    <input type='submit' value='[[LocalLang:Create Account|Create Account]]'>
+  </div>
+  </form>
+  <div>
+    [[Include:SEEDSessionUser_LinkGoToLogin]]
+  </div>
+</div>
+<hr/>
+{% if lang=='EN' %}
+  <p>If you have any questions, or if you confirmation email doesn't arrive within a reasonable time, please contact [[mailto:office@seeds.ca]]</p> 
+{% else %}
+  <p>If you have any questions, or if you confirmation email doesn't arrive within a reasonable time, please contact [[mailto:office@seeds.ca]]</p> 
+{% endif %}
+
+
+<!-- 
+<form id="SEEDSessionUser_createAccountForm" method="post" action="[[Var:acctCreateURL]]" style='padding:5px'>
+<input type='hidden' name="sessioncmd" value="acctCreate-1a" />
+<div style='margin-left:20px'>
+<label>Email address</label>
+[[FormText:account_email|class:text| required="required" title="Account Email" callback="checkUserEmail" validateas="email"]]
+<br /><div style='color:red'>[[Var:errmsg]]</div>
+<input class="button" type="submit" id="SEEDSessionUser_createAccountButton" value="Register" style='display:inline-block;vertical-align:middle' />
+</form>
+-->
+
+%% SEEDSessionUser_CreateAccount-1a
+<h3>Please Check Your Email</h3>
+<p>We've sent an email to <b>[[Var:email]]</b> to confirm that you want to create an account. 
+Please check your email and click on the link in the message to complete your registration.</p>
+<p>If the message doesn't arrive within a reasonable amount of time, please contact [[mailto:office@seeds.ca]]</p> 
+
+%% SEEDSessionUser_CreateAccount-1aErr
+[[Include:ssu-ErrMsg]]
+
+
+%% SEEDSessionUser_CreateAccount-1aEmail
+<h3>Please confirm your email address for your Seeds of Diversity web account</h3>
+<p>Thank you for your interest in Seeds of Diversity's web services! All you need to do to complete your registration 
+is click the link below or copy and paste it into your web browser.</p>
+<pre>[[Var:acctCreate-1aEmailLinkURL]]?sessioncmd=acctCreate-1b&email=[[Urlencode:[[Var:email]]]]&hash=[[Var:hash]]</pre>
+<hr/>
+<p>This message has been sent to you because <b>[[Var:email]]</b> was entered to create a new account.</p>
+<p>If you have any questions about this notice, or if you are not the person who requested this email, please 
+contact Seeds of Diversity at [[mailto:office@seeds.ca]]</p>
+<p>PRIVACY NOTICE: Seeds of Diversity's web services never show your email address publicly unless you specifically give permission.</p>
+
+
+%% SEEDSessionUser_AccountUpdate
+<script type="text/javascript" src="{{SL2URL}}/s/locations.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){
+    postState = "{{user_state}}";
+    postCountry = "{{user_country}}";
+    initCountry('CA');
+
+//  var temp_a = "[SL]user_state[/SL]";
+//  var temp_a2 = "[SL]user_country[/SL]";
+//  if(!temp_a && temp_a2){
+//      initCountry(temp_a2);
+//      $("#stateSelect").val(temp_a);
+//  } else {
+//      initCountry('CA');
+//  }
+});
+</script>
+<form action="[[Var:acctUpdateURL]]" method="post" id="validateform" enctype="multipart/form-data">
+  <input type='hidden' name='sessioncmd' value='acctUpdate-1'/>
+<!--   {% if slAddressCheck=='1' %}
+    <p>Before continuing to your garden please confirm your address.</p>
+  {% else %}
+    <p>These details are only available to sellers when you order seeds from them.</p>
+  {% endif %}
+  -->
+  [[Include:ssu-ErrMsg]]
+
+  {% if IsAccountCreate %}
+      <h3>Please Choose a Password</h3>
+      <p>Welcome to your Seeds of Diversity web account. Please choose a password to complete your registration.</p>
+      <input type='hidden' name='IsAccountCreate' value='1'/>
+      <label style='display:inline'>Email</label> : {{email}}<br/><br/>
+      <input type='hidden' name='email' value='{{email}}' />
+      <input type='hidden' name='hash' value='{{hash}}' />
+      <table border='0' cellspacing='0' cellpadding='10'>
+      <tr><td valign='top'>[[LocalLang:Password|Password]]<em>*</em></td>
+          <td valign='top'>[[FormText:user_pass1|class:text bPassword|required='required' title='Password']]</td></tr>
+      <tr><td valign='top'>[[LocalLang:Please Retype Password|Please Retype Password]]<em>*</em></td>
+          <td valign='top'>[[FormText:user_pass2|class:text bPassword|required='required' title='Password']]</td></tr>
+      </table>
+  {% else %}
+      <h3>Update Your Profile</h3> 
+      <p><em>*</em>&nbsp;Indicates a required field.</p>
+      
+      <label>Email<em>*</em></label> 
+      <input type="text" name="user_email" id="user_email" required="required" title="Email" class="text" value="{{email}}"/>
+  {% endif %} 
+
+{% if 0 %}
+  <div style='height:10px;margin-bottom:10px;width:100%;border-bottom:1px dotted #ccc'/></div>
+  <label>First Name<em>*</em></label> 
+  <input type="text" name="user_firstname" id="user_firstname" required="required" title="First name" class="text" value="{{user_firstname}}"/>
+  <label>Last Name<em>*</em></label>
+  <input type="text" name="user_lastname" id="user_lastname" required="required" title="Last name" class="text" value="{{user_lastname}}"/>
+  <label>Address<em>*</em></label>
+  <input type="text" name="user_address" id="user_address" required="required" title="Address" class="text" value="{{user_address}}"/>
+  <label>City<em>*</em></label>
+  <input type="text" name="user_city" id="user_city" required="required" title="City" class="text" value="{{user_city}}"/>
+  <label>Country<em>*</em></label>
+  <select id='countrySelect' name="user_country"  required="required" title="Country" class="text" onchange='populateState()'></select>
+  <label>Prov/State<em>*</em></label>
+  <select name="user_state" id="stateSelect" required="required" title="Province" class="text">
+  </select>
+  <label>Postal/Zip<em>*</em></label>
+  <input type="text" name="user_zip" id="user_zip" required="required" title="Postal Code" class="text" value="{{user_zip}}"/>
+  <label>About You</label>
+  <textarea name="user_desc" id="user_desc">{{user_desc}}</textarea>
+  {% if slAddressCheck!='1' %}
+    <label>Profile Image</label>
+    <div id="slProductImg"><img src="{{user_sfile}}" id="imgMain" width="200px"/><!--  430px  --></div>
+    <input type="file" name="user_image[]" id="user_image"/>
+  {% endif %}
+{% endif %}  
+  <br /><br />
+#  <p><input type="button" value="Submit" id="validate"/></p>
+  <p><input type="submit" value="Save"/></p>
+</form>
+
+%% SEEDSessionUser_ChangePassword-0
+<form method='post' action=''>
+[[FormHidden: sessioncmd | value:changePwd]]
+[[Include:ssu-ErrMsg]]
+<table border='0' cellspacing='0' cellpadding='10'>
+<tr><td valign='top'>[[Local:ChangePassword_Your new password]]</td><td valign='top'>[[FormText:user_pass1|bPassword:1]]</td></tr>
+<tr><td valign='top'>[[Local:ChangePassword_Your new password again]]</td><td valign='top'>[[FormText:user_pass2|bPassword:1]]</td></tr>
+<tr><td valign='top'>&nbsp;</td>
+<td valign='top'>
+  <input type='submit' value='[[Local:ChangePassword_button]]'>
+  [[Include:SEEDSessionUser_LinkGoToLogin]]
+</td></tr></table></form>
+
+%% SEEDSessionUser_ChangePassword-1
+<h2>[[Local:ChangePassword_success]]</h2>
+[[Include:SEEDSessionUser_LinkGoToLogin]]
+
+
+%% SEEDSessionUser_SendPassword-0
+{% if lang=='EN' %}
+    <h2>We'll send your password to you by email</h2>
+    <p>Type your email address here and click 'Send me my password'. You will receive an email shortly.</p>
+{% else %}
+    <h2>We'll send your password to you by email</h2>
+    <p>Type your email address here and click 'Send me my password'. You will receive an email shortly.</p>
+{% endif %}
+<form method='post' action=''>
+[[FormHidden: sessioncmd | value:sendPwd-1]]
+<table border='0' cellspacing='0' cellpadding='10'>
+<tr><td valign='top'>[[Local:Your email address]]</td><td valign='top'>[[FormText:sendPwd_uid|class:text]]</td></tr>
+<tr><td valign='top'>&nbsp;</td>
+<td valign='top'>
+  <input type='submit' value='[[Local:Send me my password]]'>
+  [[Include:SEEDSessionUser_LinkGoToLogin]]
+</td></tr></table></form>
+
+%% SEEDSessionUser_SendPassword-1
+[[Local:SendPassword_success]]
+[[Include:SEEDSessionUser_LinkGoToLogin]]
+
+
+%% SEEDSessionUser_LinkGoToLogin
+<p style='font-size:10pt;margin-top:2em;'><a href='[[IfDef:[[Var:acctLoginURL]] | [[Siteroot_url:]]]]'>[[Local:Back to Login]]</a></p>
+
+
+%% more
+        $sBody = str_replace( "[[BackToHome]]",  "<P style='font-size:10pt;margin-top:2em;'><A HREF='{$this->sUrlHome}'>".$this->S('Back Home')."</A></P>", $sBody );
+        $sBody = str_replace( "[[Cancel]]",      "<P style='font-size:10pt;margin-top:2em;'><A HREF='{$_SERVER['PHP_SELF']}'>".$this->S('Cancel')."</A></P>", $sBody );
+
+
+%% LittleLogin
+<div class='well' style='border-color:#F07020;background-color:#ffa;padding:10px;width:80%;max-width:450px;margin:0px 0px 0px 5%;'>
+  <p>Do you have a Seeds of Diversity web account? Login here.</p>
+  <form action='' method='post' accept-charset='ISO-8859-1'>
+    <div class='container' style='max-width:300px;margin-bottom:10px'>
+      <div class='row'>
+        <div class='col-sm-6 align-right'>Email address</div>
+        <div class='col-sm-6'><input type='text' name='".$sess->GetHTTPNameUID()."' value=''/></div>
+      </div><div class='row'>
+        <div class='col-sm-6 align-right'>Password</div>
+        <div class='col-sm-6'><input type='password' name='".$sess->GetHTTPNamePWD()."' value=''/></div>
+      </div>
+    </div>
+    <input type='submit' value='Login'/>
+    <input type='hidden' name='p_nCDBodyCurrBox' value='2'/> <!--  force the UI to activate this box again -->
+  </form>
+</div>
+<p>&nbsp;</p>
+<p>Don't have a Seeds of Diversity web account? 
+  <a href='http://www.seeds.ca/login?sessioncmd=acctCreate' target='_blank'>It's easy to create one - click here</a>
+</p>
+<p>Forgot your password? 
+  <a href='http://www.seeds.ca/login?sessioncmd=sendPwd' target='_blank'>Click here to get it back</a>
+</p>
+

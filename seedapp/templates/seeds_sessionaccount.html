@@ -1,0 +1,36 @@
+# Override the Account* templates in SEEDSession.html to decorate them with SoD's logo
+
+%% AccountLogin
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_Login]] {% endblock %}
+%% AccountLogout
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_Logout]] {% endblock %}
+
+%% AccountCreate-0
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_CreateAccount-0]] {% endblock %}
+%% AccountCreate-1a
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_CreateAccount-1a]] {% endblock %}
+
+
+%% AccountUpdate
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_AccountUpdate]] {% endblock %}
+
+%% AccountChangePassword-0
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_ChangePassword-0]] {% endblock %}
+%% AccountChangePassword-1
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_ChangePassword-1]] {% endblock %}
+
+%% AccountSendPassword-0
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_SendPassword-0]] {% endblock %}
+%% AccountSendPassword-1
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_SendPassword-1]] {% endblock %}
+
+
+
+
+
+%% SessionAccountTop
+<div style='margin:20px'>
+<img src='//www.seeds.ca/i/img/logo/logoA_h-[[lower:[[Var:lang]]]]-750x.png' width='400'/><br/><br/>
+{% if sErrMsg %}<div style='width:420px' class='alert alert-danger'>[[Var:sErrMsg]]</div>{% endif %}
+{% block acctForm %}{% endblock %}
+</div>

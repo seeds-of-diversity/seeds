@@ -114,7 +114,7 @@ class Console02TabSet
         $s .= "</div>";     // console02-tabset-tabs
 
         $sControl = $sContent = "";
-        if( $this->TabSetPermission($tsid,$sTabCurr) == self::PERM_SHOW ) {
+        if( $this->TabSetPermission( $tsid, $sTabCurr ) == self::PERM_SHOW ) {
             $sControl = $this->TabSetControlDraw( $tsid, $sTabCurr );
             $sContent = $this->TabSetContentDraw( $tsid, $sTabCurr );
         }
