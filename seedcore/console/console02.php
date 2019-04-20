@@ -19,8 +19,8 @@ class Console02
  */
 {
     public  $oApp;      // Console02 and SEEDAppConsole are circularly referenced
-    private $raParms = array();
-    private $sConsoleName = ""; // from raParms['CONSOLE_NAME'] : this keeps different console apps from conflicting in the session var space
+    private $raConfig = array();
+    private $sConsoleName = ""; // from raConfig['CONSOLE_NAME'] : this keeps different console apps from conflicting in the session var space
     private $raMsg = array( 'usermsg'=>"", 'errmsg'=>"" );
     private $bBootstrap;
     private $oTabSet = null;    // Custom Console02TabSet can be specified by DrawConsole parms
@@ -32,27 +32,30 @@ class Console02
     {
         $this->oApp = $oApp;
         $this->SetConfig( $raConfig );
-        $this->bBootstrap = isset($raParms['bBootstrap']) ? $raParms['bBoostrap'] : true;
+        $this->bBootstrap = (@$raConfig['bBootstrap'] !== false);   // true if not defined
     }
 
-    function GetConfig()  { return( $this->raParms ); }
+    function GetConfig()  { return( $this->raConfig ); }
 
     function SetConfig( $raConfig )
     /******************************
        Same as the parms in the constructor
      */
     {
-        $this->raParms = array_merge( $this->raParms, $raConfig );
+        $this->raConfig = array_merge( $this->raConfig, $raConfig );
 
         /* You can reset the sConsoleName and the oSVAs using SetConfig
          */
-        $this->sConsoleName = @$this->raParms['CONSOLE_NAME'];
+        $this->sConsoleName = @$this->raConfig['CONSOLE_NAME'];
 
         /* oSVA is for the client to use, namespaced by sConsoleName.
          * oSVAInt is for the console's housekeeping - also namespaced by sConsoleName but clients should not use it
          */
         $this->oSVA = new SEEDSessionVarAccessor( $this->oApp->sess, "console02".$this->sConsoleName );
         $this->oSVAInt = new SEEDSessionVarAccessor( $this->oApp->sess, "console02i_".$this->sConsoleName );
+
+        $this->raConfig['pathToSite']  = @$this->raConfig['pathToSite']  ?: "../";
+        $this->raConfig['pathToLogin'] = @$this->raConfig['pathToLogin'] ?: ($this->raConfig['pathToSite']."login/");
     }
 
     function GetConsoleName()  { return( $this->sConsoleName ); }
@@ -100,14 +103,14 @@ class Console02
 
         /* Header and Tail
          */
-        $sHeader = (@$this->raParms['bLogo'] ? "<img src='//www.seeds.ca/i/img/logo/logoA-60x.png' width='60' height='50' style='display:inline-block'/>" : "")
-                  .("<span class='console02-header-title'>".@$this->raParms['HEADER']."</span>");
-        $sTail  = @$this->raParms['HEADER_TAIL'];
+        $sHeader = (@$this->raConfig['bLogo'] ? "<img src='//www.seeds.ca/i/img/logo/logoA-60x.png' width='60' height='50' style='display:inline-block'/>" : "")
+                  .("<span class='console02-header-title'>".@$this->raConfig['HEADER']."</span>");
+        $sTail  = @$this->raConfig['HEADER_TAIL'];
 
         /* Links to the right of the header and tail
          */
-        if( isset($this->raParms['HEADER_LINKS']) ) {
-            foreach( $this->raParms['HEADER_LINKS'] as $ra ) {
+        if( isset($this->raConfig['HEADER_LINKS']) ) {
+            foreach( $this->raConfig['HEADER_LINKS'] as $ra ) {
                 $sLinks .=
                       "<a href='${ra['href']}' class='console02-header-link'"
                      .(isset($ra['target']) ? " target='${ra['target']}'" : "")
@@ -118,8 +121,8 @@ class Console02
             $sLinks .= SEEDCore_NBSP("",20);
         }
         if( $this->oApp->sess->IsLogin() ) {
-            $sLinks .= "<a href='".SITEROOT."login/' class='console02-header-link'>Home</a>".SEEDCore_NBSP("",5)
-                      ."<a href='".SITEROOT."login/?sessioncmd=logout' class='console01-header-link'>Logout</a>";
+            $sLinks .= "<a href='{$this->raConfig['pathToLogin']}' class='console02-header-link'>Home</a>".SEEDCore_NBSP("",5)
+                      ."<a href='{$this->raConfig['pathToLogin']}?sessioncmd=logout' class='console01-header-link'>Logout</a>";
         }
 
         /* Put it all together
@@ -176,9 +179,9 @@ class Console02
                 if( $this->oTabSet ) {
                     // caller has specified their own Console02TabSet
                     $oCTS = $this->oTabSet;
-                } else if( isset($this->raParms['TABSETS']) ) {
+                } else if( isset($this->raConfig['TABSETS']) ) {
                     // use the base Console02TabSet
-                    $oCTS = new Console02TabSet( $this, $this->raParms['TABSETS'] );
+                    $oCTS = new Console02TabSet( $this, $this->raConfig['TABSETS'] );
                 }
                 if( $oCTS ) {
                     $s .= $oCTS->TabSetDraw( $tag );
@@ -208,11 +211,11 @@ class Console02
 
 class Console02Static
 {
-    static function HTMLPage( $sBody, $sHead, $lang, $raParms = array() )
-    /********************************************************************
+    static function HTMLPage( $sBody, $sHead, $lang, $raConfig = array() )
+    /*********************************************************************
         Assemble an html page
 
-        raParms:
+        raConfig:
             bBootstrap    : use bootstrap by default, =>false to disable
             bJQuery       : load JQuery by default
             sCharset      : UTF-8 by default
@@ -224,16 +227,16 @@ class Console02Static
      */
     {
         // use bootstrap and JQuery by default
-        $bBootstrap = (@$raParms['bBootstrap'] !== false);
-        $bJQuery    = (@$raParms['bJQuery'] !== false);
+        $bBootstrap = (@$raConfig['bBootstrap'] !== false);
+        $bJQuery    = (@$raConfig['bJQuery'] !== false);
 
         // by default we output header(Content-type) and use UTF-8
-        $bCTHeader = (@$raParms['bCTHeader'] !== false);
-        $sCharset  = @$raParms['sCharset'] ?: "UTF-8";
+        $bCTHeader = (@$raConfig['bCTHeader'] !== false);
+        $sCharset  = @$raConfig['sCharset'] ?: "UTF-8";
 
         // <body> can have attrs and an optional margin (use the margin with bootstrap)
-        $sBodyAttr   = (@$raParms['sBodyAttr']);
-        $bBodyMargin = (@$raParms['bBodyMargin'] == true);
+        $sBodyAttr   = (@$raConfig['sBodyAttr']);
+        $bBodyMargin = (@$raConfig['bBodyMargin'] == true);
 
         /* Content-type is always text/html because this only outputs <!DOCTYPE html> after all
          *
@@ -246,8 +249,8 @@ class Console02Static
             header( "Content-Type:text/html; charset=$sCharset" );
         }
 
-        if( @$raParms['sTitle'] ) {
-            $sHead = "<title>{$raParms['sTitle']}</title>".$sHead;
+        if( @$raConfig['sTitle'] ) {
+            $sHead = "<title>{$raConfig['sTitle']}</title>".$sHead;
         }
 
         if( $bJQuery ) {
@@ -269,16 +272,16 @@ class Console02Static
 
         /* Set the css and js for the requested console skin, and add extra css and js files too.
          */
-        if( @$raParms['consoleSkin'] == 'green' ) {
+        if( @$raConfig['consoleSkin'] == 'green' ) {
             $sHead .= "<link rel='stylesheet' type='text/css' href='".W_CORE."css/console02.css'></link>";
         }
-        if( @$raParms['raCSSFiles'] ) {
-            foreach( $raParms['raCSSFiles'] as $v ) {
+        if( @$raConfig['raCSSFiles'] ) {
+            foreach( $raConfig['raCSSFiles'] as $v ) {
                 $sHead .= "<link rel='stylesheet' type='text/css' href='$v'></link>";
             }
         }
-        if( @$raParms['raScriptFiles'] ) {
-            foreach( $raParms['raScriptFiles'] as $v ) {
+        if( @$raConfig['raScriptFiles'] ) {
+            foreach( $raConfig['raScriptFiles'] as $v ) {
                 $sHead .= "<script src='$v' type='text/javascript'></script>";
             }
         }
