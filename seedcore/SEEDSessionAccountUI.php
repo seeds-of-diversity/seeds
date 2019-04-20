@@ -539,7 +539,11 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
 
         // The trailing / really matters if this is an action='' in a <form>.
         // The http(s) is necessary because some of these links are placed in emails for confirmations
-        $sUrlLogin = (STD_isLocal ? 'http' : 'https')."://".$_SERVER['SERVER_NAME'].SITEROOT_URL."login/";
+        if( defined("STD_isLocal") ) {
+            $sUrlLogin = (STD_isLocal ? 'http' : 'https')."://".$_SERVER['SERVER_NAME'].SITEROOT_URL."login/";
+        } else {
+            $sUrlLogin = "/";
+        }
 
         switch( $urlType ) {
             case 'acctProfile':                  $s = $sUrlLogin."profile";    break;
