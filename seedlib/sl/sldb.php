@@ -128,6 +128,7 @@ class _sldb_defs
                        array( "col"=>"psp",                 "type"=>"S" ),
                        array( "col"=>"name",                "type"=>"S" ),
                        array( "col"=>"t",                   "type"=>"I" ),
+                       array( "col"=>"packetLabel",         "type"=>"S" ),
                        array( "col"=>"notes",               "type"=>"S" ) )
                 // sound_* are not here because they're only used during rebuild-index and associated manual steps
               );
@@ -147,6 +148,7 @@ class _sldb_defs
         return( array( array( "col"=>"fk_sl_pcv",           "type"=>"K" ),
                        array( "col"=>"name",                "type"=>"S" ),
                        array( "col"=>"t",                   "type"=>"I" ),
+                       array( "col"=>"packetLabel",         "type"=>"S" ),
                        array( "col"=>"notes",               "type"=>"S" ) )
         );
     }
