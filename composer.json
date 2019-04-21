@@ -11,6 +11,7 @@
         "fpdf/fpdf": "^1.8",
         "phpoffice/phpword": "dev-develop",
         "phpoffice/phpspreadsheet": "^1.4",
-          "twig/twig": "^2.0"
+          "twig/twig": "^2.0",
+          "components/jquery": "^3.3"
     }
 }
