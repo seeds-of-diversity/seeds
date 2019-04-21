@@ -91,6 +91,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
                      */
                     'raVars' => (@$raConfig['raTmplVars'] ?: array())
                                 + ['lang' => $this->oApp->lang,
+                                   'WCORE'=>W_CORE,
                                    'acctCreateURL' => $this->MakeURL('acctCreateURL'),
                                    'acctLoginURL' => $this->MakeURL('acctLoginURL') ]
         ) ) );

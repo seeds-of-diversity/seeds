@@ -29,8 +29,21 @@
 
 
 %% SessionAccountTop
+<html>
+<head>
+<script src="{{WCORE}}os/jquery/jquery.min.js"></script>
+<link rel='stylesheet' type='text/css' href='{{WCORE}}os/bootstrap3/dist/css/bootstrap.min.css'></link>
+<script src='{{WCORE}}os/bootstrap3/dist/js/bootstrap.min.js'></script>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<style>
+td {padding:10px}
+</style>
+</head>
+<body>
 <div style='margin:20px'>
 <img src='//www.seeds.ca/i/img/logo/logoA_h-[[lower:[[Var:lang]]]]-750x.png' width='400'/><br/><br/>
 {% if sErrMsg %}<div style='width:420px' class='alert alert-danger'>[[Var:sErrMsg]]</div>{% endif %}
 {% block acctForm %}{% endblock %}
 </div>
+</body>
+</html>
