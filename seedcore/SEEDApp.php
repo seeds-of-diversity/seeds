@@ -31,7 +31,7 @@ class SEEDAppBase
 
 class SEEDAppDB extends SEEDAppBase
 /**************
-    Create and hold a KeyframeDB
+    Create and hold a KeyframeDatabase
  */
 {
 //  public $lang is inherited
