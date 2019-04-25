@@ -34,6 +34,7 @@ if( strpos($url,'%') === false ) {
 echo "\nGetting $url from $filebot to $filetop in $dir/\n\n";
 
 for( $j = $filebot; $j <= $filetop; ++$j ) {
+    // --referer https://foo.com 
     $s = sprintf( "curl $url > \"$dir/%0${filepad}d.jpg\"\n", $j, $j );
     echo $s;
     exec( $s );

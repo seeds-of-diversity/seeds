@@ -1,5 +1,6 @@
-# mp4 to webm; gif tp webm - increase delay to slow it down, loop==0 is supposed to mean continuous loop
+# mp4 to webm - increase delay to slow it down, loop==0 is supposed to mean continuous loop
 convert -delay 3 -loop 0 in.mp4 out.webm
+ffmpeg -i "in.mp4" -vcodec libvpx -acodec libvorbis -crf 28 "out.webm"
 
 # do the above for all mp4
 find . -name "*.mp4" -exec convert -delay 3 -loop 0 {} {}.webm \;
