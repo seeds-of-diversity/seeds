@@ -384,7 +384,7 @@ function SEEDCore_ParseRangeStrToRA( $sRange )
             list($n1,$n2) = explode('-',$sN);
             $n1 = intval($n1);
             $n2 = intval($n2);
-            if( $n1 && $n1 <= $n2 ) {
+            if( /*$n1 &&*/ $n1 <= $n2 ) {       // no reason to restrict to non-zero
                 for( $n = $n1; $n <= $n2; ++$n ) {
                     if( !in_array( $n, $raRange ) )  $raRange[] = $n;
                 }
