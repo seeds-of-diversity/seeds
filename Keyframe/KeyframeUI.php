@@ -8,7 +8,7 @@
  */
 
 include_once( SEEDCORE."SEEDUI.php" );
-
+include_once( "KeyframeForm.php" );
 
 class KeyframeUIComponent extends SEEDUIComponent
 {
