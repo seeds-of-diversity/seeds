@@ -113,8 +113,11 @@ function SEEDCore_ArrayExpandIfNotEmpty( $ra, $k, $sTemplate, $bEnt = true )
     $v = @$ra[$k];
     return( $v ? str_replace( "[[]]", ($bEnt ? SEEDStd_HSC($v) : $v), $sTemplate ) : "" );
 }
+
 /**
  * Replace "[[]]" with $ra[0], repeat for $ra[1], etc.
+ *          [[v]] is the same as [[]]
+ *          [[k]] substitutes the key instead of the value
  */
 function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = array() )
 /***************************************************************************************
@@ -126,11 +129,13 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
 
     $i = 0;
     $iLast = count($ra) - 1;
-    foreach( $ra as $v ) {
+    foreach( $ra as $k => $v ) {
         $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
-        $s .= str_replace( "[[]]", ($bEnt ? SEEDCore_HSC($v) : $v), $tmpl );
+        $t0 = str_replace( "[[k]]", ($bEnt ? SEEDCore_HSC($k) : $k), $tmpl );
+        $t0 = str_replace( "[[v]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
+        $s .= str_replace( "[[]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
         ++$i;
     }
 
@@ -140,6 +145,8 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
 /**
  * Replace "[[k]]" with key of first array element and [[v]] with value, repeat for each row
  */
+
+// deprecated - use the regular function with [[k]] where you want the key to go
 function SEEDCore_ArrayExpandSeriesWithKey( $ra, $sTemplate, $bEnt = true, $raParms = array() )
 /**********************************************************************************************
     raParms: sTemplateFirst : use this template on the first element
@@ -155,7 +162,7 @@ function SEEDCore_ArrayExpandSeriesWithKey( $ra, $sTemplate, $bEnt = true, $raPa
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
         $t0 = str_replace( "[[k]]", ($bEnt ? SEEDCore_HSC($k) : $k), $tmpl );
-        $s  .= str_replace( "[[v]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
+        $s .= str_replace( "[[v]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
         ++$i;
     }
 
