@@ -1048,12 +1048,26 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         return( $s );
     }
 
+/*
+How to use ListDrawInteractive. There should be a better way to encapsulate a ViewSlice using what oComp already knows.
+Note that ListDrawInteractive can use ListFetchViewSlice() if $raViewRows is empty, so maybe that should just use GetViewWindow() in
+the base class. Or change GetViewWindow() to get a ViewSlice object, which is probably essentially what it already does.
+
+// GetViewWindow() uses Get_iWindowOffset() to get a ViewSlice starting at the window offset.
+// ListDrawInteractive() is smart enough to  use that slice but only if you set iViewOffset and nViewSize
+// to tell it the context of the slice.
+list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
+$raListParms['iViewOffset'] = $this->oComp->Get_iWindowOffset();
+$raListParms['nViewSize'] = $oView->GetNumRows();
+$sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
+*/
+
     function ListDrawInteractive( $raViewRows, $raParms )
     /****************************************************
         Draw a list widget for a given Window on a given View of rows in an array.
 
         $raViewRows               = a [portion of] rows of a View
-                                    if not the complete view, iViewOffset > 0
+                                    if not the complete view, specify iViewOffset and nViewSize
                                     array of array( 'k1'=>'v1', 'k2'=>'v2' )
                                     Rows are in display order, cols are not ordered (selected by raParms['cols']
 
@@ -1103,12 +1117,11 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         $oLW = new SEEDUIListWindow();
         $oLW->InitListWindow( array(
             //'iViewOffset'    => intval(@$raParms['iViewOffset']),
-            'nViewSize'     => (@$raParms['nViewSize'] ? $raParms['nViewSize'] : count($raViewRows)),
+            'nViewSize'     => @$raParms['nViewSize'] ?: count($raViewRows),
             'iWindowOffset' => $this->oComp->Get_iWindowOffset(),
             'nWindowSize'   => $this->oComp->Get_nWindowSize(),
             'iCurrOffset'   => $this->oComp->Get_iCurr()
         ) );
-
 
         $nWindowRowsAbove = $oLW->RowsAboveWindow();
         $nWindowRowsBelow = $oLW->RowsBelowWindow();
@@ -1278,7 +1291,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             default:        $sCrop = ""; break;
         }
 
-        $s = "<a ".$this->oComp->oUI->HRef($raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
+        $s = "<a ".$this->oComp->oUI->HRef( $this->oComp->Cid(), $raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
             ."<b>$label</b>"
             .($img ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
                            ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")

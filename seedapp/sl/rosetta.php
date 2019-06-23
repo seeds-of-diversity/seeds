@@ -16,17 +16,17 @@ $consoleConfig = [
     'HEADER' => "RosettaSEED",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'species'  => ['label'=>'Species'],
-                                        'cultivar' => ['label'=>'Cultivar'],
+    'TABSETS' => ['main'=> ['tabs' => [ 'cultivar' => ['label'=>'Cultivar'],
+                                        'species'  => ['label'=>'Species'],
                                       ],
-                            'perms' =>[ 'species'  => [],
-                                        'cultivar' => [],
+                            'perms' =>[ 'cultivar' => [],
+                                        'species'  => [],
                                         'ghost'   => ['A notyou'],
                                         '|'  // allows screen-login even if some tabs are ghosted
                            ],
                   ],
     ],
-    'urlLogin'=>'../login/',
+    'urlLogin' => '../login/',
 
     'consoleSkin' => 'green',
 ];
@@ -88,9 +88,16 @@ class MyConsole02TabSet extends Console02TabSet
             ."||| <input type='submit'>"
             ;
         $raListParms['cols'] = array(
-            array( 'label'=>'Species #',  'col'=>'_key' ),
-            array( 'label'=>'Name',       'col'=>'name_en' ),
-            array( 'label'=>'Bot name',   'col'=>'name_bot'  ),
+            [ "label"=>"Sp #",      "col"=>"_key",      "w"=>30 ],
+            [ "label"=>"psp",       "col"=>"psp",       "w"=>80 ],
+            [ "label"=>"Name EN",   "col"=>"name_en",   "w"=>120 ],
+            [ "label"=>"Index EN",  "col"=>"iname_en",  "w"=>120 ],
+            [ "label"=>"Name FR",   "col"=>"name_fr",   "w"=>120 ], //, "colsel" => array("filter"=>"")),
+            [ "label"=>"Index FR",  "col"=>"iname_fr",  "w"=>120 ],
+            [ "label"=>"Botanical", "col"=>"name_bot",  "w"=>120 ],
+            [ "label"=>"Family EN", "col"=>"family_en", "w"=>120 ],
+            [ "label"=>"Family FR", "col"=>"family_fr", "w"=>120 ],
+            [ "label"=>"Category",  "col"=>"category",  "w"=>60, "colsel" => array("filter"=>"") ],
         );
         //$raListParms['fnRowTranslate'] = array($this,"usersListRowTranslate");
 
@@ -103,7 +110,12 @@ class MyConsole02TabSet extends Console02TabSet
 
         $this->oComp->Start();    // call this after the widgets are registered
 
+        // GetViewWindow() uses Get_iWindowOffset() to get a ViewSlice starting at the window offset.
+        // ListDrawInteractive() is smart enough to  use that slice but only if you set iViewOffset and nViewSize
+        // to tell it the context of the slice. There's probably a better way to encapsulate a ViewSlice using what oComp already knows.
         list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
+        $raListParms['iViewOffset'] = $this->oComp->Get_iWindowOffset();
+        $raListParms['nViewSize'] = $oView->GetNumRows();
         $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
 
         $sForm = $oForm->Draw();
