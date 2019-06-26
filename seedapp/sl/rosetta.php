@@ -87,7 +87,11 @@ class MyConsole02TabSet extends Console02TabSet
             ."||| Name  || [[Text:name_en]]\n"
             ."||| <input type='submit'>"
             ;
-        $raListParms['cols'] = array(
+
+        $raListConfig = array();    // constant things for the __construct that might be needed for state computation
+        $raListParms = array();     // variables that might be computed or altered during state computation
+
+        $raListConfig['cols'] = array(
             [ "label"=>"Sp #",      "col"=>"_key",      "w"=>30 ],
             [ "label"=>"psp",       "col"=>"psp",       "w"=>80 ],
             [ "label"=>"Name EN",   "col"=>"name_en",   "w"=>120 ],
@@ -99,13 +103,13 @@ class MyConsole02TabSet extends Console02TabSet
             [ "label"=>"Family FR", "col"=>"family_fr", "w"=>120 ],
             [ "label"=>"Category",  "col"=>"category",  "w"=>60, "colsel" => array("filter"=>"") ],
         );
-        //$raListParms['fnRowTranslate'] = array($this,"usersListRowTranslate");
+        //$raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
 
 
         $this->oComp->Update();
 
 //$this->oApp->kfdb->SetDebug(2);
-        $oList = new KeyframeUIWidget_List( $this->oComp );
+        $oList = new KeyframeUIWidget_List( $this->oComp, $raListConfig );
         $oForm = new KeyframeUIWidget_Form( $this->oComp, array('sTemplate'=>$formTemplate) );
 
         $this->oComp->Start();    // call this after the widgets are registered

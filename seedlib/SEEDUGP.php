@@ -20,20 +20,21 @@ class UsersGroupsPermsUI
 
         $mode = $this->oApp->oC->oSVA->SmartGPC( 'adminUsersMode', array('Users','Groups','Permissions') );
 
-        $raListParms = array( 'bUse_key' => true );
+        $raListConfig = [ 'bUse_key' => true ]; // constants for the __construct that can be used in Start()
+        $raListParms = [];                      // variables that can be computed or altered during Start()
 
         switch( $mode ) {
             case "Users":
                 $cid = "U";
                 $kfrel = $this->oAcctDB->GetKfrel('U');
-                $raListParms['cols'] = array(
+                $raListConfig['cols'] = array(
                     array( 'label'=>'User #',  'col'=>'_key' ),
                     array( 'label'=>'Name',    'col'=>'realname' ),
                     array( 'label'=>'Email',   'col'=>'email'  ),
                     array( 'label'=>'Status',  'col'=>'eStatus'  ),
                     array( 'label'=>'Group1',  'col'=>'G_groupname'  ),
                 );
-                $raListParms['fnRowTranslate'] = array($this,"usersListRowTranslate");
+                $raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
                 // Not the same format as listcols because these actually need the column names not aliases.
                 // For groups and perms it happens to work but when _key is included in the WHERE it is ambiguous
                 $raSrchParms['filters'] = array(
@@ -48,7 +49,7 @@ class UsersGroupsPermsUI
             case "Groups":
                 $cid = "G";
                 $kfrel = $this->oAcctDB->GetKfrel('G');
-                $raListParms['cols'] = array(
+                $raListConfig['cols'] = array(
                     array( 'label'=>'k',          'col'=>'_key' ),
                     array( 'label'=>'Group Name', 'col'=>'groupname'  ),
                     array( 'label'=>'Inherited',  'col'=>'gid_inherited'  ),
@@ -59,7 +60,7 @@ class UsersGroupsPermsUI
             case "Permissions":
                 $cid = "P";
                 $kfrel = $this->oAcctDB->GetKfrel('P');
-                $raListParms['cols'] = array(
+                $raListConfig['cols'] = array(
                     array( 'label'=>'Permission', 'col'=>'perm'  ),
                     array( 'label'=>'Modes',      'col'=>'modes'  ),
                     array( 'label'=>'User',       'col'=>'U_realname'  ),
@@ -75,13 +76,15 @@ class UsersGroupsPermsUI
         $oComp->Update();
 
 //$this->oApp->kfdb->SetDebug(2);
-        $oList = new KeyframeUIWidget_List( $oComp );
+        $oList = new KeyframeUIWidget_List( $oComp, $raListConfig );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
         $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
 
         $oComp->Start();    // call this after the widgets are registered
 
         list($oView,$raWindowRows) = $oComp->GetViewWindow();
+        $raListParms['iViewOffset'] = $oComp->Get_iWindowOffset();
+        $raListParms['nViewSize'] = $oView->GetNumRows();
         $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
 
         $sSrch = $oSrch->Draw();
