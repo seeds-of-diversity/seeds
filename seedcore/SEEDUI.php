@@ -306,7 +306,7 @@ class SEEDUIComponent
     public function Set_nWindowSize( $i )   { $this->SetUIParm('nWindowSize', $i ); }
 
     public function GetUIParm( $k )         { return( $this->oUI->GetUIParm( $this->cid, $k ) ); }
-    protected function SetUIParm( $k, $v )  { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
+    public function SetUIParm( $k, $v )     { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
 
 
     protected function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
@@ -897,6 +897,26 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
     }
 
 
+    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
+    {
+        $raAdvisories = array();
+
+        if( ($i = intval($this->oComp->GetUIParm('sortup'))) && ($col = @$this->raConfig['cols'][$i-1]['col']) ) {
+            // sortup sorts the i'th column
+            $this->oComp->SetUIParm( 'sSortCol', $col );
+            $this->oComp->SetUIParm( 'bSortDown', 0 );
+        }
+        if( ($i = intval($this->oComp->GetUIParm('sortdown'))) && ($col = @$this->raConfig['cols'][$i-1]['col']) ) {
+            // sortdown sorts the i'th column
+            $this->oComp->SetUIParm( 'sSortCol', $col );
+            $this->oComp->SetUIParm( 'bSortDown', 1 );
+        }
+
+        return( $raAdvisories );
+    }
+
+
+
     function Init2_NotifyUIStateChanges( $raAdvisories )
     {
     }
@@ -1089,6 +1109,10 @@ $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
     {
         $s = "";
 
+// kluge: $this->raConfig has things that Start() needs to know. Some of those used to be in $raParms so the code below expects them
+// to be there. Look for them in in $raConfig instead, but meanwhile, merge the arrays.
+$raParms = array_merge( $this->raConfig, $raParms );
+
         // uiparms overrides raParms overrides default
         if( !$this->oComp->Get_nWindowSize() )  $this->oComp->Set_nWindowSize( @$raParms['nWindowSize'] ?: 10 );
         $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
@@ -1164,7 +1188,7 @@ $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
                        ."<a $href>".$raCol['label']
                        .($bSortingUp || $bSortingDown
                           ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>")
+                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
                           : "")
                        ."</a></th>";
             ++$c;
@@ -1294,7 +1318,7 @@ $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
         $s = "<a ".$this->oComp->oUI->HRef( $this->oComp->Cid(), $raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
             ."<b>$label</b>"
             .($img ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
+                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
             ."</a>";
         return( $s );
     }
