@@ -969,7 +969,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             sBottom       = content for the bottom table row
 
             iCurrRow      = the element of $raList that is the current row (<iOffset or >=iOffset+nSize means no current row is shown)
-                            default is -1, which is always no-row
+                            default is -1 (or more generally <0), which is always no-row
             fnRowTranslate = function to translate row array into a different row array
 
         raList:
@@ -1096,7 +1096,7 @@ $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
             nViewSize             = size of View, optional if $raViewRows contains the full view, required if raViewRows is NULL or partial
             iWindowOffset         = top View index that appears in the window, optional (default 0)
             nWindowSize           = number of rows to draw in the window (default 10)
-            iCurr                 = View index of the current row, optional (default 0)
+            iCurr                 = View index of the current row, optional (default 0) -- -1 = no current row, -2 = current row out of ViewSlice
 
             cols                  = as ListDrawBasic
             tableWidth            = as ListDrawBasic
@@ -1124,6 +1124,7 @@ $raParms = array_merge( $this->raConfig, $raParms );
              * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
              */
             if( $this->oComp->Get_kCurr() ) {  //&& !$this->oComp->Get_iCurr() ) {
+                $this->oComp->Set_iCurr( -2 );  // default result if row not found in ViewSlice
                 foreach( $raViewRows as $i => $ra ) {
                     if( @$ra['_key'] && $ra['_key'] == $this->oComp->Get_kCurr() ) {
                         $this->oComp->Set_iCurr( $i );
@@ -1132,8 +1133,9 @@ $raParms = array_merge( $this->raConfig, $raParms );
                 }
             }
             /* If kCurr is not given, Try to get the current key from the current row. By default, that will be row 0, which is fine.
+             * Note that iCurr < 0 have special meanings that are invalid for this case.
              */
-            if( !$this->oComp->Get_kCurr() && ($k = @$raViewRows[$this->oComp->Get_iCurr()]['_key']) ) {
+            if( !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 && ($k = @$raViewRows[$this->oComp->Get_iCurr()]['_key']) ) {
                 $this->oComp->Set_kCurr( $k );
             }
         }
@@ -1252,10 +1254,9 @@ $raParms = array_merge( $this->raConfig, $raParms );
 
         /* Links to activate a row as the current row when it is clicked
          */
-// ListDrawBasic can be enabled to do this, given the iWindowOffset, raSortSame**, bUseKey, bMakeLink, and the app has to use sfLui_k instead of kVi
         for( $i = 0; $i < count($raViewSlice); ++$i ) {
             $ra = $raSortSame;
-            $ra['iCurr'] = $i+$iWindowOffset;
+            $ra['iCurr'] = $i + $iWindowOffset;
             $ra['iWindowOffset'] = $iWindowOffset;
             if( $bEnableKeys && ($k = @$raViewSlice[$i]['_key']) ) {
                 $ra['kCurr'] = $k;
@@ -1272,7 +1273,7 @@ $raParms = array_merge( $this->raConfig, $raParms );
             'sFooter' => $sFooter,
             'sTop' => $sTop,
             'sBottom' => $sBottom,
-            'iCurrRow' => $this->oComp->Get_iCurr() - $iWindowOffset,
+            'iCurrRow' => ($i = $this->oComp->Get_iCurr()) >= 0 ? ($i - $iWindowOffset) : $i,   // -1 and -2 have special meaning
         );
         $s .= $this->ListDrawBasic( $raViewSlice, 0, $this->oComp->Get_nWindowSize(), $raBasicListParms );
 
@@ -1333,6 +1334,7 @@ class SEEDUIListWindow
     iWindowOffset   = 0-origin view-row number of the first displayed row
     nWindowSize     = number of rows to display in window
     iCurrOffset     = 0-origin view-row of the current row (-1 means there is no current row, but this is poorly implemented)
+                                                           (-2 means it is outside of the ViewSlice so cannot be located, also poorly implemented)
  */
 {
     private $nViewSize = 0;
@@ -1412,7 +1414,7 @@ class SEEDUIListWindow
         the row in the middle of the window, then adjust for boundaries
      */
     {
-        if( $this->iCurrOffset == -1 ) return(0);   // no current row
+        if( $this->iCurrOffset < 0 ) return(0);   // no current row
 
         $offset = SEEDCore_Bound( $this->iCurrOffset - intval($this->nWindowSize/2),
                                   0,
@@ -1443,7 +1445,8 @@ class SEEDUIListWindow
 
     function CurrRowIsOutsideWindow()
     {
-        if( $this->iCurrOffset == -1 ) return(false);   // no current row
+        if( $this->iCurrOffset == -1 ) return( false );   // no current row
+        if( $this->iCurrOffset == -2 ) return( true );    // row is outside of ViewSlice
 
         return( $this->bWindowLimited &&
                 ($this->iCurrOffset < $this->iWindowOffset || $this->iCurrOffset >= $this->iWindowOffset + $this->nWindowSize) );
