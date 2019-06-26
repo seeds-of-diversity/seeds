@@ -1062,6 +1062,15 @@ class SEEDFormExpand
             case 'formhidden':
             case 'hidden':       $s = $this->oForm->Hidden( $sFieldname, $pStdParms );        break;
 
+            case 'formkey':
+            case 'key':          $s = (method_exists( $this->oForm, "HiddenKey" ) ? $this->oForm->HiddenKey() : "")
+                                     .(method_exists( $this->oForm, "GetKey" ) ? $this->oForm->GetKey() : "");
+                                 break;
+
+            case 'formhiddenkey':
+            case 'hiddenkey':    $s = method_exists( $this->oForm, "HiddenKey" ) ? $this->oForm->HiddenKey() : "";    break;
+
+
             default:
                 $bHandled = false;
                 break;

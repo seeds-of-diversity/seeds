@@ -71,7 +71,7 @@ class UsersGroupsPermsUI
                 break;
         }
 
-        $oUI = new UGP_SEEDUI( $this->oApp, "Stegosaurus" );
+        $oUI = new UGP_SEEDUI( $this->oApp, "UGP" );
         $oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid );
         $oComp->Update();
 
@@ -231,38 +231,35 @@ class UsersGroupsPermsUI
 
     private function getUsersFormTemplate()
     {
-        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
-            ."||| User #|| [[Text:_key | readonly]]\n"
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+            ."||| User #|| [[Key: | readonly]]\n"
             ."||| Name  || [[Text:realname]]\n"
             ."||| Email || [[Text:email]]\n"
             ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
             ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid1", "groupname")."\n"
-            ."||| <input type='submit'>"
-                ;
+            ."||| <input type='submit'>";
 
         return( $s );
     }
 
     private function getGroupsFormTemplate()
     {
-        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
             ."||| Name            || [[Text:groupname]]\n"
-                ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname", TRUE)."\n"
-                    ."||| <input type='submit'>"
-                ;
+            ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname", TRUE)."\n"
+            ."||| <input type='submit'>";
 
         return( $s );
     }
 
     private function getPermsFormTemplate()
     {
-        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
             ."||| Name  || [[Text:perm]]\n"
             ."||| Mode  || [[Text:modes]]\n"
             ."||| User  || ".$this->getSelectTemplate("SEEDSession_Users", "uid", "realname", TRUE)."\n"
             ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid", "groupname", TRUE)."\n"
-            ."||| <input type='submit'>"
-                ;
+            ."||| <input type='submit'>";
 
         return( $s );
     }

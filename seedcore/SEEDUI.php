@@ -1463,7 +1463,11 @@ class SEEDUIWidget_Form extends SEEDUIWidget_Base
 
     function Draw()
     {
-        return( "OVERRIDE" );
+        $o = new SEEDFormExpand( $this->oComp->oForm );
+        $s = "<form method='post'>"
+            .$o->ExpandForm( $this->raConfig['sTemplate'] )
+            ."</form>";
+        return( $s );
     }
 }
 
