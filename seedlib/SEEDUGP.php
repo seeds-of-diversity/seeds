@@ -54,7 +54,7 @@ class UsersGroupsPermsUI
                     array( 'label'=>'Group Name', 'col'=>'groupname'  ),
                     array( 'label'=>'Inherited',  'col'=>'gid_inherited'  ),
                 );
-                $raSrchParms['filters'] = $raListParms['cols'];     // conveniently the same format
+                $raSrchParms['filters'] = $raListConfig['cols'];     // conveniently the same format
                 $formTemplate = $this->getGroupsFormTemplate();
                 break;
             case "Permissions":
@@ -66,7 +66,7 @@ class UsersGroupsPermsUI
                     array( 'label'=>'User',       'col'=>'U_realname'  ),
                     array( 'label'=>'Group',      'col'=>'G_groupname'  ),
                 );
-                $raSrchParms['filters'] = $raListParms['cols'];     // conveniently the same format
+                $raSrchParms['filters'] = $raListConfig['cols'];     // conveniently the same format
                 $formTemplate = $this->getPermsFormTemplate();
                 break;
         }
