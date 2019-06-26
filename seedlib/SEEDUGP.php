@@ -247,7 +247,7 @@ class UsersGroupsPermsUI
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
             ."||| Name            || [[Text:groupname]]\n"
             ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname", TRUE)."\n"
-            ."||| <input type='submit'>";
+            ."||| <input type='submit'> [[HiddenKey:]]";
 
         return( $s );
     }
@@ -259,7 +259,7 @@ class UsersGroupsPermsUI
             ."||| Mode  || [[Text:modes]]\n"
             ."||| User  || ".$this->getSelectTemplate("SEEDSession_Users", "uid", "realname", TRUE)."\n"
             ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid", "groupname", TRUE)."\n"
-            ."||| <input type='submit'>";
+            ."||| <input type='submit'>  [[HiddenKey:]]";
 
         return( $s );
     }
