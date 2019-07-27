@@ -306,7 +306,7 @@ class SEEDUIComponent
     public function Set_nWindowSize( $i )   { $this->SetUIParm('nWindowSize', $i ); }
 
     public function GetUIParm( $k )         { return( $this->oUI->GetUIParm( $this->cid, $k ) ); }
-    protected function SetUIParm( $k, $v )  { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
+    public function SetUIParm( $k, $v )     { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
 
 
     protected function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
@@ -897,6 +897,26 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
     }
 
 
+    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
+    {
+        $raAdvisories = array();
+
+        if( ($i = intval($this->oComp->GetUIParm('sortup'))) && ($col = @$this->raConfig['cols'][$i-1]['col']) ) {
+            // sortup sorts the i'th column
+            $this->oComp->SetUIParm( 'sSortCol', $col );
+            $this->oComp->SetUIParm( 'bSortDown', 0 );
+        }
+        if( ($i = intval($this->oComp->GetUIParm('sortdown'))) && ($col = @$this->raConfig['cols'][$i-1]['col']) ) {
+            // sortdown sorts the i'th column
+            $this->oComp->SetUIParm( 'sSortCol', $col );
+            $this->oComp->SetUIParm( 'bSortDown', 1 );
+        }
+
+        return( $raAdvisories );
+    }
+
+
+
     function Init2_NotifyUIStateChanges( $raAdvisories )
     {
     }
@@ -949,7 +969,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             sBottom       = content for the bottom table row
 
             iCurrRow      = the element of $raList that is the current row (<iOffset or >=iOffset+nSize means no current row is shown)
-                            default is -1, which is always no-row
+                            default is -1 (or more generally <0), which is always no-row
             fnRowTranslate = function to translate row array into a different row array
 
         raList:
@@ -1048,12 +1068,26 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         return( $s );
     }
 
+/*
+How to use ListDrawInteractive. There should be a better way to encapsulate a ViewSlice using what oComp already knows.
+Note that ListDrawInteractive can use ListFetchViewSlice() if $raViewRows is empty, so maybe that should just use GetViewWindow() in
+the base class. Or change GetViewWindow() to get a ViewSlice object, which is probably essentially what it already does.
+
+// GetViewWindow() uses Get_iWindowOffset() to get a ViewSlice starting at the window offset.
+// ListDrawInteractive() is smart enough to  use that slice but only if you set iViewOffset and nViewSize
+// to tell it the context of the slice.
+list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
+$raListParms['iViewOffset'] = $this->oComp->Get_iWindowOffset();
+$raListParms['nViewSize'] = $oView->GetNumRows();
+$sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
+*/
+
     function ListDrawInteractive( $raViewRows, $raParms )
     /****************************************************
         Draw a list widget for a given Window on a given View of rows in an array.
 
         $raViewRows               = a [portion of] rows of a View
-                                    if not the complete view, iViewOffset > 0
+                                    if not the complete view, specify iViewOffset and nViewSize
                                     array of array( 'k1'=>'v1', 'k2'=>'v2' )
                                     Rows are in display order, cols are not ordered (selected by raParms['cols']
 
@@ -1062,7 +1096,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             nViewSize             = size of View, optional if $raViewRows contains the full view, required if raViewRows is NULL or partial
             iWindowOffset         = top View index that appears in the window, optional (default 0)
             nWindowSize           = number of rows to draw in the window (default 10)
-            iCurr                 = View index of the current row, optional (default 0)
+            iCurr                 = View index of the current row, optional (default 0) -- -1 = no current row, -2 = current row out of ViewSlice
 
             cols                  = as ListDrawBasic
             tableWidth            = as ListDrawBasic
@@ -1075,6 +1109,10 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
     {
         $s = "";
 
+// kluge: $this->raConfig has things that Start() needs to know. Some of those used to be in $raParms so the code below expects them
+// to be there. Look for them in in $raConfig instead, but meanwhile, merge the arrays.
+$raParms = array_merge( $this->raConfig, $raParms );
+
         // uiparms overrides raParms overrides default
         if( !$this->oComp->Get_nWindowSize() )  $this->oComp->Set_nWindowSize( @$raParms['nWindowSize'] ?: 10 );
         $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
@@ -1086,6 +1124,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
              * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
              */
             if( $this->oComp->Get_kCurr() ) {  //&& !$this->oComp->Get_iCurr() ) {
+                $this->oComp->Set_iCurr( -2 );  // default result if row not found in ViewSlice
                 foreach( $raViewRows as $i => $ra ) {
                     if( @$ra['_key'] && $ra['_key'] == $this->oComp->Get_kCurr() ) {
                         $this->oComp->Set_iCurr( $i );
@@ -1094,8 +1133,9 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
                 }
             }
             /* If kCurr is not given, Try to get the current key from the current row. By default, that will be row 0, which is fine.
+             * Note that iCurr < 0 have special meanings that are invalid for this case.
              */
-            if( !$this->oComp->Get_kCurr() && ($k = @$raViewRows[$this->oComp->Get_iCurr()]['_key']) ) {
+            if( !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 && ($k = @$raViewRows[$this->oComp->Get_iCurr()]['_key']) ) {
                 $this->oComp->Set_kCurr( $k );
             }
         }
@@ -1103,12 +1143,11 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         $oLW = new SEEDUIListWindow();
         $oLW->InitListWindow( array(
             //'iViewOffset'    => intval(@$raParms['iViewOffset']),
-            'nViewSize'     => (@$raParms['nViewSize'] ? $raParms['nViewSize'] : count($raViewRows)),
+            'nViewSize'     => @$raParms['nViewSize'] ?: count($raViewRows),
             'iWindowOffset' => $this->oComp->Get_iWindowOffset(),
             'nWindowSize'   => $this->oComp->Get_nWindowSize(),
             'iCurrOffset'   => $this->oComp->Get_iCurr()
         ) );
-
 
         $nWindowRowsAbove = $oLW->RowsAboveWindow();
         $nWindowRowsBelow = $oLW->RowsBelowWindow();
@@ -1151,7 +1190,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
                        ."<a $href>".$raCol['label']
                        .($bSortingUp || $bSortingDown
                           ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>")
+                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
                           : "")
                        ."</a></th>";
             ++$c;
@@ -1215,10 +1254,9 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
 
         /* Links to activate a row as the current row when it is clicked
          */
-// ListDrawBasic can be enabled to do this, given the iWindowOffset, raSortSame**, bUseKey, bMakeLink, and the app has to use sfLui_k instead of kVi
         for( $i = 0; $i < count($raViewSlice); ++$i ) {
             $ra = $raSortSame;
-            $ra['iCurr'] = $i+$iWindowOffset;
+            $ra['iCurr'] = $i + $iWindowOffset;
             $ra['iWindowOffset'] = $iWindowOffset;
             if( $bEnableKeys && ($k = @$raViewSlice[$i]['_key']) ) {
                 $ra['kCurr'] = $k;
@@ -1235,7 +1273,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             'sFooter' => $sFooter,
             'sTop' => $sTop,
             'sBottom' => $sBottom,
-            'iCurrRow' => $this->oComp->Get_iCurr() - $iWindowOffset,
+            'iCurrRow' => ($i = $this->oComp->Get_iCurr()) >= 0 ? ($i - $iWindowOffset) : $i,   // -1 and -2 have special meaning
         );
         $s .= $this->ListDrawBasic( $raViewSlice, 0, $this->oComp->Get_nWindowSize(), $raBasicListParms );
 
@@ -1278,10 +1316,10 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             default:        $sCrop = ""; break;
         }
 
-        $s = "<a ".$this->oComp->oUI->HRef($raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
+        $s = "<a ".$this->oComp->oUI->HRef( $this->oComp->Cid(), $raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
             ."<b>$label</b>"
             .($img ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_ROOT."std/img/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
+                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
             ."</a>";
         return( $s );
     }
@@ -1296,6 +1334,7 @@ class SEEDUIListWindow
     iWindowOffset   = 0-origin view-row number of the first displayed row
     nWindowSize     = number of rows to display in window
     iCurrOffset     = 0-origin view-row of the current row (-1 means there is no current row, but this is poorly implemented)
+                                                           (-2 means it is outside of the ViewSlice so cannot be located, also poorly implemented)
  */
 {
     private $nViewSize = 0;
@@ -1375,7 +1414,7 @@ class SEEDUIListWindow
         the row in the middle of the window, then adjust for boundaries
      */
     {
-        if( $this->iCurrOffset == -1 ) return(0);   // no current row
+        if( $this->iCurrOffset < 0 ) return(0);   // no current row
 
         $offset = SEEDCore_Bound( $this->iCurrOffset - intval($this->nWindowSize/2),
                                   0,
@@ -1406,7 +1445,8 @@ class SEEDUIListWindow
 
     function CurrRowIsOutsideWindow()
     {
-        if( $this->iCurrOffset == -1 ) return(false);   // no current row
+        if( $this->iCurrOffset == -1 ) return( false );   // no current row
+        if( $this->iCurrOffset == -2 ) return( true );    // row is outside of ViewSlice
 
         return( $this->bWindowLimited &&
                 ($this->iCurrOffset < $this->iWindowOffset || $this->iCurrOffset >= $this->iWindowOffset + $this->nWindowSize) );
@@ -1423,7 +1463,11 @@ class SEEDUIWidget_Form extends SEEDUIWidget_Base
 
     function Draw()
     {
-        return( "OVERRIDE" );
+        $o = new SEEDFormExpand( $this->oComp->oForm );
+        $s = "<form method='post'>"
+            .$o->ExpandForm( $this->raConfig['sTemplate'] )
+            ."</form>";
+        return( $s );
     }
 }
 

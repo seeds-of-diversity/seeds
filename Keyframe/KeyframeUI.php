@@ -75,8 +75,7 @@ class KeyframeUIWidget_Form extends SEEDUIWidget_Form
         $s = "";
 
         if( $this->oComp->oForm->GetKey() ) {
-            $o = new SEEDFormExpand( $this->oComp->oForm );
-            $s = $o->ExpandForm( $this->raConfig['sTemplate'] );
+            $s = parent::Draw();
         }
         return( $s );
     }
