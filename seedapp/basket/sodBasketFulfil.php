@@ -334,3 +334,37 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         return( $s );
     }
 }
+
+
+class SoDOrder_MbrOrder
+{
+    private $oOrder;
+
+    function __construct( SEEDAppSessionAccount $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oOrder = new SodOrder( $oApp );
+
+        $this->oBasketDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+    }
+
+    function CreateFromMbrOrder( int $kOrder )
+    {
+        $this->oApp->kfdb->SetDebug(2);
+        if( ($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
+            var_dump($kfrMbrOrder->ValuesRA() );
+
+            $kfrB = $this->oBasketDB->GetKFR( 'B', 0 );
+            $kfrB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
+            $kfrB->SetValue( 'buyer_firstname', $kfrMbrOrder->Value( 'mail_firstname' ) );
+            $kfrB->SetValue( 'buyer_lastname',  $kfrMbrOrder->Value( 'mail_lastname' ) );
+            $kfrB->SetValue( 'buyer_company',  $kfrMbrOrder->Value( 'mail_company' ) );
+            $kfrB->SetValue( 'buyer_addr',  $kfrMbrOrder->Value( 'mail_addr' ) );
+            $kfrB->SetValue( 'buyer_city',  $kfrMbrOrder->Value( 'mail_city' ) );
+            $kfrB->SetValue( 'buyer_prov',  $kfrMbrOrder->Value( 'mail_prov' ) );
+
+            $kfrB->PutDBRow();
+        }
+
+    }
+}
