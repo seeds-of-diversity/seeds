@@ -1091,6 +1091,9 @@ $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
                                     array of array( 'k1'=>'v1', 'k2'=>'v2' )
                                     Rows are in display order, cols are not ordered (selected by raParms['cols']
 
+        $raConfig (set at constructor):
+            bUse_key              = activate the use of keys on rows: input and output kCurr uiParm, calculate iCurr/kCurr from each other
+
         $raParms:
             iViewOffset           = origin-0 row of the view that corresponds to the first element of raViewRows
             nViewSize             = size of View, optional if $raViewRows contains the full view, required if raViewRows is NULL or partial
@@ -1101,8 +1104,6 @@ $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
             cols                  = as ListDrawBasic
             tableWidth            = as ListDrawBasic
             fnRowTranslate        = as ListDrawBasic
-
-            bUse_key              = activate the use of keys on rows: input and output kCurr uiParm, calculate iCurr/kCurr from each other
 
 //          bNewAllowed           = true if the list is allowed to set links that create new records
      */
@@ -1118,7 +1119,7 @@ $raParms = array_merge( $this->raConfig, $raParms );
         $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
 
 
-        $bEnableKeys = @$raParms['bUse_key'];
+        $bEnableKeys = @$this->raConfig['bUse_key'];
         if( $bEnableKeys ) {
             /* If kCurr is given but not iCurr, search the list for the iCurr.
              * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
@@ -1463,10 +1464,33 @@ class SEEDUIWidget_Form extends SEEDUIWidget_Base
 
     function Draw()
     {
-        $o = new SEEDFormExpand( $this->oComp->oForm );
-        $s = "<form method='post'>"
-            .$o->ExpandForm( $this->raConfig['sTemplate'] )
-            ."</form>";
+        $s = "";
+
+        if( ($sTmpl = @$this->raConfig['sTemplate']) ) {
+            // the form html is given verbatim by $sTmpl
+            $s = $sTmpl;
+        } else if( ($fn = @$this->raConfig['fnTemplate']) ) {
+            // the form html is the result of $fn
+            $s = call_user_func( $fn, $this->oComp->oForm );
+        } else {
+            $o = new SEEDFormExpand( $this->oComp->oForm );
+            if( ($sTmpl = @$this->raConfig['sExpandTemplate']) ) {
+                // the form html is the expansion of $sTmpl
+                $s = $o->ExpandForm( $sTmpl );
+            } else if( ($fn = @$this->raConfig['fnExpandTemplate']) ) {
+                // the form html is the expansion of the result of $fn
+                $sTmpl = call_user_func( $fn, $this->oComp->oForm );
+                $s = $o->ExpandForm( $sTmpl );
+            }
+        }
+
+        $sFormAttrs = "";
+        if( @$raConfig['sAction'] )  $sFormAttrs .= " target='{$raConfig['sAction']}'";
+        if( @$raConfig['sTarget'] )  $sFormAttrs .= " target='{$raConfig['sTarget']}'";
+
+        $s = "<form method='".(@$raConfig['sMethod']?:"post")."' $sFormAttrs>"
+            .$s."</form>";
+
         return( $s );
     }
 }
