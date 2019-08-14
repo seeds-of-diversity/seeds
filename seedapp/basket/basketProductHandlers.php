@@ -50,7 +50,7 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
 
         $s .= $oFormP->HiddenKey()
              .$oFormX->ExpandForm(
-                     "|||BOOTSTRAP_TABLE(class='col-sm-4',class='col-sm-8')\n"
+                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
                     ."||| Seller        || [[text:uid_seller|readonly]]\n"
                     ."||| Product type  || [[text:product_type|readonly]]\n"
                     ."||| Quantity type || [[text:quant_type|readonly]]\n"
@@ -211,7 +211,7 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
         $s .= $oFormP->HiddenKey()
              ."<table>"
              .$oFormX->ExpandForm(
-                     "|||BOOTSTRAP_TABLE(4,8)"
+                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')"
                     ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
