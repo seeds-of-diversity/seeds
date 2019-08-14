@@ -79,17 +79,31 @@ class MyConsole02TabSet extends Console02TabSet
         return( "<div style='padding:15px'>$sSrch</div>" );
     }
 
+    function foo( $oForm )
+    {
+        $sStats = "";
+        $s = "|||TABLE( || class='slAdminForm' width='100%' border='0')"
+            ."||| *psp*       || [[text:psp|size=30]]      || *Name EN*  || [[text:name_en|size=30]]  || *Name FR*  || [[text:name_fr|size=30]]"
+            ."||| *Botanical* || [[text:name_bot|size=30]] || *Index EN* || [[text:iname_en|size=30]] || *Index FR* || [[text:iname_fr|size=30]]"
+            ."||| *Category*  || [[text:category]] || *Family EN*|| [[text:family_en|size=30]]|| *Family FR*|| [[text:family_fr|size=30]]"
+            ."||| *Notes*     || {colspan='3'} ".$oForm->TextArea( "notes", array('width'=>'100%') )
+            ."<td colspan='2'>foo".$sStats."&nbsp;</td>"
+            ."|||ENDTABLE"
+            ."<INPUT type='submit' value='Save'>";
+            return( $s );
+    }
+
     function TabSet_main_species_ContentDraw()
     {
         $formTemplate =
-             "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+             "|||BOOTSTRAP_TABLE(class='col-md-6' | class='col-md-6')\n"
             ."||| User #|| [[Text:_key | readonly]]\n"
             ."||| Name  || [[Text:name_en]]\n"
             ."||| <input type='submit'>"
             ;
 
-        $raListConfig = array();    // constant things for the __construct that might be needed for state computation
-        $raListParms = array();     // variables that might be computed or altered during state computation
+        $raListConfig = [ 'bUse_key' => true ];  // constant things for the __construct that might be needed for state computation
+        $raListParms = array();                  // variables that might be computed or altered during state computation
 
         $raListConfig['cols'] = array(
             [ "label"=>"Sp #",      "col"=>"_key",      "w"=>30 ],
@@ -110,7 +124,8 @@ class MyConsole02TabSet extends Console02TabSet
 
 //$this->oApp->kfdb->SetDebug(2);
         $oList = new KeyframeUIWidget_List( $this->oComp, $raListConfig );
-        $oForm = new KeyframeUIWidget_Form( $this->oComp, array('sTemplate'=>$formTemplate) );
+        $oForm = new KeyframeUIWidget_Form( $this->oComp, ['fnExpandTemplate'=>array($this,'foo')] );
+        //$oForm = new KeyframeUIWidget_Form( $this->oComp, ['sExpandTemplate'=>$formTemplate] );
 
         $this->oComp->Start();    // call this after the widgets are registered
 
