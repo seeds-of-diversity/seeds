@@ -618,48 +618,44 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
 /****************************************************************
     A table is formatted like this:
 
-    |||table-type(table parms)
+    |||table-type(col attrs | col attrs |... || table attrs)
     ||| first || row || of || columns
-    |||{td-attrs} second ||{td-attrs} row || of || columns
+    ||| {td-attrs} second || {td-attrs} row || of || columns
  */
 {
     $ok = false;
     $s = "";
     $eTable = "";
 
-    if( substr( $sTemplate, 0, 4 ) == "||| " ) {    // starting table without a header is deprecated
-        $eTable = "table-old";
-        $raAttrs = array();
-
-    } else if( substr( $sTemplate, 0, 9 ) == "|||TABLE(" ) {
+    if( substr( $sTemplate, 0, 9 ) == "|||TABLE(" ) {
         $eTable = "table";
-        $parms = substr( $sTemplate, 20, strpos( $sTemplate, ')' ) );
-        $raAttrs = explode( ',', $parms );
+        $parms = strtok( substr( $sTemplate, 9 ), ')' );
+        $ra = explode( '||', $parms );
+        $raColAttrs = explode( '|', @$ra[0] );
+        $raTableAttrs = @$ra[1];
 
-        $sTemplate = substr( $sTemplate, strpos( $sTemplate, "||| ") );     // point to first row
+        $s .= "<table $raTableAttrs>";
+
     } else if( substr( $sTemplate, 0, 19 ) == "|||BOOTSTRAP_TABLE(" ) {
         $eTable = "bstable";
         $parms = strtok( substr( $sTemplate, 19 ), ')' );
-        $raAttrs = explode( '|', $parms );
+        $raColAttrs = explode( '|', $parms );
 
-        $sTemplate = substr( $sTemplate, strpos( $sTemplate, "||| ") );     // point to first row
     } else {
         // no table here
         goto done;
     }
 
-    if( $eTable == 'table-old' || $eTable == 'bstable' ) {
-        $raRows = explode( "||| ", substr($sTemplate,4) );  // skip the first ||| to prevent an empty first element
-    } else {
-        $raRows = explode( "\n", $sTemplate );
-    }
+    // find first row, skip first ||| to prevent empty element, and explode rows
+    $sTemplate = substr( $sTemplate, strpos($sTemplate, "||| ") + 4 );
+    $raRows = explode( "||| ", $sTemplate );
 
     foreach( $raRows as $row ) {
         $s .= $eTable == 'bstable' ? "<div class='row'>" : "<tr valign='top'>";
         $raCols = explode( "|| ", $row );
         $iCol = 0;
         foreach( $raCols as $col ) {
-            $tdattrs = @$raAttrs[$iCol++];
+            $tdattrs = @$raColAttrs[$iCol++];
             $col = trim($col);
 
             // {attrs}
@@ -678,6 +674,8 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
         }
         $s .= $eTable == 'bstable' ? "</div>" : "</tr>";
     }
+
+    if( $eTable == 'table' )  $s .= "</table>";
 
     $ok = true;
 
