@@ -4,6 +4,9 @@
  * This should all be converted to use SEEDBasket and its fulfilment system.
  */
 
+include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
+
+
 class SodOrder
 {
     public $oApp;
@@ -339,13 +342,18 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 class SoDOrder_MbrOrder
 {
     private $oOrder;
+    private $oSB;
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oOrder = new SodOrder( $oApp );
 
-        $this->oBasketDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
+
+
+// SBC should use oApp instead
+            ['logdir'=>$oApp->logdir] );
     }
 
     function CreateFromMbrOrder( int $kOrder )
@@ -354,16 +362,35 @@ class SoDOrder_MbrOrder
         if( ($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
             var_dump($kfrMbrOrder->ValuesRA() );
 
-            $kfrB = $this->oBasketDB->GetKFR( 'B', 0 );
-            $kfrB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
-            $kfrB->SetValue( 'buyer_firstname', $kfrMbrOrder->Value( 'mail_firstname' ) );
-            $kfrB->SetValue( 'buyer_lastname',  $kfrMbrOrder->Value( 'mail_lastname' ) );
-            $kfrB->SetValue( 'buyer_company',  $kfrMbrOrder->Value( 'mail_company' ) );
-            $kfrB->SetValue( 'buyer_addr',  $kfrMbrOrder->Value( 'mail_addr' ) );
-            $kfrB->SetValue( 'buyer_city',  $kfrMbrOrder->Value( 'mail_city' ) );
-            $kfrB->SetValue( 'buyer_prov',  $kfrMbrOrder->Value( 'mail_prov' ) );
+            $oB = new SEEDBasket_Basket( $this->oSB, 0 );
 
-            $kfrB->PutDBRow();
+            $oB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
+
+            foreach( ['buyer_firstname' => 'mail_firstname',
+                      'buyer_lastname'  => 'mail_lastname',
+                      'buyer_company'   => 'mail_company',
+                      'buyer_addr'      => 'mail_addr',
+                      'buyer_city'      => 'mail_city',
+                      'buyer_prov'      => 'mail_prov',
+                      'buyer_postcode'  => 'mail_postcode',
+                      'buyer_country'   => 'mail_country',
+                      'buyer_email'     => 'mail_email',
+                      'buyer_phone'     => 'mail_phone',
+                      'buyer_lang'      => 'mail_lang',
+                      'buyer_notes'     => 'notes',
+                ] as $k=>$v )
+            {
+                $oB->SetValue( $k, $kfrMbrOrder->Value($v) );
+            }
+            $oB->PutDBRow();
+            $kB = $oB->Key();
+
+            if( ($d = floatval($kfrMbrOrder->Value('donation'))) > 0.0 ) {
+                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation'" );
+                $oBP = new SEEDBasket_BP( $this->oSB, 0 );
+                $oBP->SetPurchase( $oB, $oP, ['amount'=>$d] );
+            }
+
         }
 
     }

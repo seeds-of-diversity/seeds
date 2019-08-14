@@ -19,9 +19,17 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     }
 
 
-    function GetBasket( $kBasket )    { return( $this->GetKFR( 'B', $kBasket ) ); }
-    function GetProduct( $kProduct )  { return( $this->GetKFR( 'P', $kProduct ) ); }
-    function GetBP( $kBP )            { return( $this->GetKFR( 'BP', $kBP ) ); }
+    function GetBasketKFR( $kBasket )    { return( $this->GetKFR( 'B', $kBasket ) ); }
+    function GetProductKFR( $kProduct )  { return( $this->GetKFR( 'P', $kProduct ) ); }
+    function GetBPKFR( $kBP )            { return( $this->GetKFR( 'BP', $kBP ) ); }
+    function GetPurchaseKFR( $kBP )      { return( $this->GetKFR( 'BPxP', $kBP ) ); }
+    /*deprecated*/ function GetBasket($k)  { return($this->GetBasketKFR($k)); }
+    /*deprecated*/ function GetProduct($k) { return($this->GetProductKFR($k)); }
+    /*deprecated*/ function GetBP($k)      { return($this->GetBPKFR($k)); }
+    function GetBasketKFREmpty()         { return( $this->Kfrel('B')->CreateRecord() ); }
+    function GetProductKFREmpty()        { return( $this->Kfrel('P')->CreateRecord() ); }
+    function GetBPKFREmpty()             { return( $this->Kfrel('BP')->CreateRecord() ); }
+
 
     function GetBasketList( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
     function GetBasketKFRC( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }

@@ -11,6 +11,7 @@ include_once( SEEDCORE."SEEDBasket.php" );
 include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
 include_once( SEEDAPP."basket/basketProductHandlers.php" );     // SEEDBasketProducts_SoD
 include_once( SEEDLIB."msd/msdcore.php" );
+include_once( SEEDLIB."msd/msdlib.php" );
 
 
 class MSDCommonDraw

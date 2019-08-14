@@ -15,9 +15,7 @@ include_once( SEEDROOT."Keyframe/KeyframeForm.php" );
 
 class SEEDBasketBuyer
 /********************
-    Manage a shopping basket of diverse products
-
-EVERYTHING IN SEEDBasketCore that involves a current basket should go here instead
+    Manage shopping baskets containing diverse products
  */
 {
     private $oSB;
@@ -29,12 +27,31 @@ EVERYTHING IN SEEDBasketCore that involves a current basket should go here inste
     }
 }
 
+class SEEDBasketBuyerSession
+/***************************
+    Manage a basket in a current user session.
+    This does the same things as SEEDBasketBuyer but using the basket found in the current user session.
+
+EVERYTHING IN SEEDBasketCore that involves a current basket should go here instead
+ */
+{
+    private $oSB;
+    private $oBuyer;
+
+    function __construct( SEEDBasketCore $oSB )
+    {
+        $this->oSB = $oSB;
+        $this->oBuyer = new SEEDBasketBuyer( $oSB );
+    }
+
+
+}
 
 class SEEDBasketCore
 /*******************
     Core class for advertising and selling products, buying them, and fulfilling orders
 
-    SEEDBasketBuyer uses this to manage shopping baskets
+    SEEDBasketBuyer* uses this to manage shopping baskets
     SEEDBasketProductHandler_* uses this to create and advertise products
     SEEDBasketFulfillment uses this to fulfil orders
  */
@@ -53,7 +70,9 @@ class SEEDBasketCore
     {
         $this->oApp = $oApp;
         $this->sess = $sess;
-        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), @$raParms['logdir'] );
+        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(),
+            //get this from oApp
+            @$raParms['logdir'] );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
@@ -67,6 +86,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
         $raOut = array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"" );
 
         switch( strtolower($cmd) ) {    // don't have to strip slashes because no arbitrary commands
+// move this to SEEDBasketBuyerSession and use SEEDBasketCore::AddProductToBasket($b,$p)
             case "sb-addtobasket":
             case "addtobasket":     // deprecate
                 /* Add a product to the current basket
@@ -92,6 +112,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
 
             case "sb-removefrombasket":
             case "removefrombasket":    // deprecate
+// move this to SEEDBasketBuyerSession and use SEEDBasketCore::RemoveProductFromBasket($bp)
                 // kBP = key of purchase to remove
                 $raOut['bHandled'] = true;
 
@@ -102,6 +123,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
 
             case "sb-clearbasket":
             case "clearbasket":     // deprecate
+// move this to SEEDBasketBuyerSession and use SEEDBasketCore::ClearBasket($b)
                 $raOut['bHandled'] = true;
 
                 list($raOut['bOk'],$raOut['sOut']) = $this->clearBasket( @$raParms['klugeUTF8'] );
@@ -594,6 +616,92 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
     }
 
 
+    function FindProduct( $sCond )
+    /*****************************
+        Return a SEEDBasket_Product for the product that matches the sql condition
+            e.g. uid_seller='1' AND product_type='widget'
+        Only the first match is returned, if more than one product matches
+     */
+    {
+        $ra = $this->oDB->GetProductList( $sCond );
+        return( $ra ? $ra[0] : null );
+    }
+}
+
+
+class SEEDBasket_Basket
+/**********************
+    Implement a basket
+ */
+{
+    private $kfr;
+    private $oSB;
+
+    function __construct( SEEDBasketCore $oSB, $kB )
+    {
+        $this->oSB = $oSB;
+        $this->SetKey( $kB );
+    }
+
+    function Key()  { return( $this->kfr->Key() ); }
+
+    function SetKey( $k )
+    {
+        $this->kfr = $k ? $this->oSB->oDB->GetBasketKFR($k) : $this->oSB->oDB->GetBasketKFREmpty();
+    }
+
+    function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
+    function PutDBRow()         { $this->kfr->PutDBRow(); }
+}
+
+class SEEDBasket_Product
+/***********************
+    Implement a product
+ */
+{
+    private $kfr;
+    private $oSB;
+
+    function __construct( SEEDBasketCore $oSB, $kP )
+    {
+        $this->oSB = $oSB;
+        $this->SetKey( $kP );
+    }
+
+    function GetKey()  { return( $this->kfr->Key() ); }
+
+    function SetKey( $k )
+    {
+        $this->kfr = $k ? $this->oSB->oDB->GetProductKFR($k) : $this->oSB->oDB->GetProductKFREmpty();
+    }
+
+    function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
+    function PutDBRow()         { $this->kfr->PutDBRow(); }
+}
+
+class SEEDBasket_BP
+/******************
+    Implement a purchase of a product in a basket
+ */
+{
+    private $kfr;
+    private $oSB;
+
+    function __construct( SEEDBasketCore $oSB, $kBP )
+    {
+        $this->oSB = $oSB;
+        $this->SetKey( $kBP );
+    }
+
+    function GetKey()  { return( $this->kfr->Key() ); }
+
+    function SetKey( $k )
+    {
+        $this->kfr = $k ? $this->oSB->oDB->GetBPKFR($k) : $this->oSB->oDB->GetBPKFREmpty();
+    }
+
+    function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
+    function PutDBRow()         { $this->kfr->PutDBRow(); }
 }
 
 ?>
