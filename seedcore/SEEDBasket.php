@@ -72,7 +72,7 @@ class SEEDBasketCore
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(),
             //get this from oApp
-            @$raParms['logdir'] );
+            @$raParms['logdir'], ['db'=>@$raParms['db']] );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
@@ -165,7 +165,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
             if( ($kB = $oSVA->VarGetInt( 'kBasket' )) ) {
                 $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             } else if( ($uid = $this->sess->GetUID()) &&
-                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM seeds.SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
+                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
             {
                 $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             }

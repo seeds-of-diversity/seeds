@@ -11,10 +11,12 @@
 class SEEDBasketDB extends Keyframe_NamedRelations
 {
     public $kfdb;   // just so third parties can find this in a likely place
+    private $db;
 
-    function __construct( KeyframeDatabase $kfdb, $uid, $logdir )
+    function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig )
     {
         $this->kfdb = $kfdb;
+        $this->db = @$raConfig['db'] ?: $kfdb->GetDB();
         parent::__construct( $kfdb, $uid, $logdir );
     }
 
@@ -121,11 +123,11 @@ class SEEDBasketDB extends Keyframe_NamedRelations
                 "SELECT _updated,_updated_by,_key FROM
                      (
                      (SELECT P._updated as _updated,P._updated_by as _updated_by,P._key as _key
-                         FROM seeds.SEEDBasket_Products P
+                         FROM {$this->db}.SEEDBasket_Products P
                          WHERE $cond1 ORDER BY 1 DESC LIMIT 1)
                      UNION
                      (SELECT PE._updated as _updated,PE._updated_by as _updated_by,P._key as _key
-                         FROM seeds.SEEDBasket_ProdExtra PE,seeds.SEEDBasket_Products P
+                         FROM {$this->db}.SEEDBasket_ProdExtra PE,{$this->db}.SEEDBasket_Products P
                          WHERE P._key=PE.fk_SEEDBasket_Products AND
                                $cond2 ORDER BY 1 DESC LIMIT 1)
                      ) as A
@@ -143,52 +145,52 @@ class SEEDBasketDB extends Keyframe_NamedRelations
          * raKfrel['BPxP'] tells you about the products in a basket and allows updates to the purchases
          */
         $kdefBaskets =
-            array( "Tables" => array( "B" => array( "Table" => 'seeds.SEEDBasket_Baskets',
+            array( "Tables" => array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Baskets",
                                                     "Fields" => "Auto" ) ) );
         $kdefProducts =
-            array( "Tables" => array( "P" => array( "Table" => 'seeds.SEEDBasket_Products',
+            array( "Tables" => array( "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
                                                     "Fields" => "Auto" ) ) );
         $kdefProdExtra =
-            array( "Tables" => array( "PE" => array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+            array( "Tables" => array( "PE" => array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                                      "Fields" => "Auto" ) ) );
         $kdefPxPE =
-            array( "Tables" => array( "P"=> array( "Table" => 'seeds.SEEDBasket_Products',
+            array( "Tables" => array( "P"=> array( "Table" => "{$this->db}.SEEDBasket_Products",
                                                    "Type" => "Base",
                                                    "Fields" => "Auto" ),
-                                      "PE"=> array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                      "PE"=> array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                                     "Fields" => "Auto" ) ) );
         // Products joined with ProdExtra twice, which is only useful if at least one ProdExtra is constrained by k
         // i.e. what are all the products and their PE2.v that have PE1.v='foo'
         $kdefPxPE2 = array( "Tables" =>
-            array( "P" => array( "Table" => 'seeds.SEEDBasket_Products',
+            array( "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
                                  "Type" => "Base",
                                  "Fields" => "Auto" ),
-                   "PE1" => array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                   "PE1" => array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                    "Fields" => "Auto" ),
-                   "PE2" => array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+                   "PE2" => array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                    "Fields" => "Auto" ) ) );
         $kdefPxPE3 = $kdefPxPE2;
-        $kdefPxPE3['Tables']['PE3'] = array( "Table" => 'seeds.SEEDBasket_ProdExtra',
+        $kdefPxPE3['Tables']['PE3'] = array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                              "Fields" => "Auto" );
         $kdefBP =
-            array( "Tables" => array( "BP" => array( "Table" => 'seeds.SEEDBasket_BP',
+            array( "Tables" => array( "BP" => array( "Table" => "{$this->db}.SEEDBasket_BP",
                                                      "Fields" => "Auto" ) ) );
         // really BxBPxP but this abbreviation is not ambiguous
         $kdefBxP = array( "Tables" =>
-            array( "B" => array( "Table" => 'seeds.SEEDBasket_Baskets',
+            array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Baskets",
                                  "Type" => "Base",
                                  "Fields" => "Auto" ),
-                   "BP"=> array( "Table" => 'seeds.SEEDBasket_BP',
+                   "BP"=> array( "Table" => "{$this->db}.SEEDBasket_BP",
                                  "Fields" => "Auto" ),
-                   "P" => array( "Table" => 'seeds.SEEDBasket_Products',
+                   "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
                                  "Alias" => "P",
                                  "Type" => "Children",
                                  "Fields" => "Auto" ) ) );
         $kdefBPxP = array( "Tables" =>
-            array( "BP" => array( "Table" => 'seeds.SEEDBasket_BP',
+            array( "BP" => array( "Table" => "{$this->db}.SEEDBasket_BP",
                                   "Type" => "Base",
                                   "Fields" => "Auto" ),
-                   "P" =>  array( "Table" => 'seeds.SEEDBasket_Products',
+                   "P" =>  array( "Table" => "{$this->db}.SEEDBasket_Products",
                                   "Fields" => "Auto" ) ) );
 
         $raParms = array( 'logfile' => $logdir."SEEDBasket.log" );
