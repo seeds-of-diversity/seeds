@@ -23,14 +23,14 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
     function GetBasketKFR( $kBasket )    { return( $this->GetKFR( 'B', $kBasket ) ); }
     function GetProductKFR( $kProduct )  { return( $this->GetKFR( 'P', $kProduct ) ); }
-    function GetBPKFR( $kBP )            { return( $this->GetKFR( 'BP', $kBP ) ); }
-    function GetPurchaseKFR( $kBP )      { return( $this->GetKFR( 'BPxP', $kBP ) ); }
+    function GetPURKFR( $kPUR )            { return( $this->GetKFR( 'PUR', $kPUR ) ); }
+    function GetPurchaseKFR( $kPUR )      { return( $this->GetKFR( 'PURxP', $kPUR ) ); }
     /*deprecated*/ function GetBasket($k)  { return($this->GetBasketKFR($k)); }
     /*deprecated*/ function GetProduct($k) { return($this->GetProductKFR($k)); }
-    /*deprecated*/ function GetBP($k)      { return($this->GetBPKFR($k)); }
+    /*deprecated*/ function GetPUR($k)      { return($this->GetPURKFR($k)); }
     function GetBasketKFREmpty()         { return( $this->Kfrel('B')->CreateRecord() ); }
     function GetProductKFREmpty()        { return( $this->Kfrel('P')->CreateRecord() ); }
-    function GetBPKFREmpty()             { return( $this->Kfrel('BP')->CreateRecord() ); }
+    function GetPURKFREmpty()             { return( $this->Kfrel('PUR')->CreateRecord() ); }
 
 
     function GetBasketList( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
@@ -38,8 +38,8 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
     function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
 
-    function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('BPxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
-    function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('BPxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
+    function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('PURxP', "fk_SEEDBasket_Buyers='$kB'", $raKFParms) ); }
+    function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('PURxP', "fk_SEEDBasket_Buyers='$kB'", $raKFParms) ); }
 
     function GetProdExtraList( $kProduct )
     /*************************************
@@ -138,14 +138,14 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {
-        /* raKfrel['B']    base relation for SEEDBasket_Baskets
+        /* raKfrel['B']    base relation for SEEDBasket_Buyers
          * raKfrel['P']    base relation for SEEDBasket_Products
-         * raKfrel['BP']   base relation for SEEDBasket_BP map table
-         * raKfrel['BxP']  joins baskets and products via B x BP x P
-         * raKfrel['BPxP'] tells you about the products in a basket and allows updates to the purchases
+         * raKfrel['PUR']   base relation for SEEDBasket_PUR map table
+         * raKfrel['BxP']  joins baskets and products via B x PUR x P
+         * raKfrel['PURxP'] tells you about the products in a basket and allows updates to the purchases
          */
         $kdefBaskets =
-            array( "Tables" => array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Baskets",
+            array( "Tables" => array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Buyers",
                                                     "Fields" => "Auto" ) ) );
         $kdefProducts =
             array( "Tables" => array( "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
@@ -172,22 +172,22 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         $kdefPxPE3 = $kdefPxPE2;
         $kdefPxPE3['Tables']['PE3'] = array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                              "Fields" => "Auto" );
-        $kdefBP =
-            array( "Tables" => array( "BP" => array( "Table" => "{$this->db}.SEEDBasket_BP",
+        $kdefPUR =
+            array( "Tables" => array( "PUR" => array( "Table" => "{$this->db}.SEEDBasket_Purchases",
                                                      "Fields" => "Auto" ) ) );
-        // really BxBPxP but this abbreviation is not ambiguous
+        // really BxPURxP but this abbreviation is not ambiguous
         $kdefBxP = array( "Tables" =>
-            array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Baskets",
+            array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Buyers",
                                  "Type" => "Base",
                                  "Fields" => "Auto" ),
-                   "BP"=> array( "Table" => "{$this->db}.SEEDBasket_BP",
+                   "PUR"=> array( "Table" => "{$this->db}.SEEDBasket_Purchases",
                                  "Fields" => "Auto" ),
                    "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
                                  "Alias" => "P",
                                  "Type" => "Children",
                                  "Fields" => "Auto" ) ) );
-        $kdefBPxP = array( "Tables" =>
-            array( "BP" => array( "Table" => "{$this->db}.SEEDBasket_BP",
+        $kdefPURxP = array( "Tables" =>
+            array( "PUR" => array( "Table" => "{$this->db}.SEEDBasket_Purchases",
                                   "Type" => "Base",
                                   "Fields" => "Auto" ),
                    "P" =>  array( "Table" => "{$this->db}.SEEDBasket_Products",
@@ -201,9 +201,9 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         $raKfrel['PxPE'] = new Keyframe_Relation( $kfdb, $kdefPxPE,      $uid, $raParms );
         $raKfrel['PxPE2']= new Keyframe_Relation( $kfdb, $kdefPxPE2,     $uid, $raParms );
         $raKfrel['PxPE3']= new Keyframe_Relation( $kfdb, $kdefPxPE3,     $uid, $raParms );
-        $raKfrel['BP']   = new Keyframe_Relation( $kfdb, $kdefBP,        $uid, $raParms );
+        $raKfrel['PUR']   = new Keyframe_Relation( $kfdb, $kdefPUR,      $uid, $raParms );
         $raKfrel['BxP']  = new Keyframe_Relation( $kfdb, $kdefBxP,       $uid, $raParms );
-        $raKfrel['BPxP'] = new Keyframe_Relation( $kfdb, $kdefBPxP,      $uid, $raParms );
+        $raKfrel['PURxP'] = new Keyframe_Relation( $kfdb, $kdefPURxP,    $uid, $raParms );
 
         return( $raKfrel );
     }
@@ -212,9 +212,9 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
 
 
-define("SEEDS_DB_TABLE_SEEDBASKET_BASKETS",
+define("SEEDS_DB_TABLE_SEEDBASKET_BUYERS",
 "
-CREATE TABLE SEEDBasket_Baskets (
+CREATE TABLE SEEDBasket_Buyers (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
         _created_by INTEGER,
@@ -309,26 +309,6 @@ CREATE TABLE SEEDBasket_Products (
     item_shipping    VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '10', '10:1-9,5:10-14,0:15+'
     item_shipping_US VARCHAR(100) NOT NULL DEFAULT '',
 
-
-
-
-    mbr_type        VARCHAR(100),
-    donation        INTEGER,
-    pub_ssh_en      INTEGER,
-    pub_ssh_fr      INTEGER,
-    pub_nmd         INTEGER,
-    pub_shc         INTEGER,
-    pub_rl          INTEGER,
-
-
-    v_i1             INTEGER NOT NULL DEFAULT 0,
-    v_i2             INTEGER NOT NULL DEFAULT 0,
-    v_i3             INTEGER NOT NULL DEFAULT 0,
-
-    v_t1             TEXT,
-    v_t2             TEXT,
-    v_t3             TEXT,
-
     sExtra          TEXT,           -- e.g. urlencoded metadata about the product
 
     INDEX(uid_seller),
@@ -358,9 +338,9 @@ CREATE TABLE SEEDBasket_ProdExtra (
 "
 );
 
-define("SEEDS_DB_TABLE_SEEDBASKET_BP",
+define("SEEDS_DB_TABLE_SEEDBASKET_PURCHASES",
 "
-CREATE TABLE SEEDBasket_BP (
+CREATE TABLE SEEDBasket_Purchases (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
         _created_by INTEGER,
@@ -368,7 +348,7 @@ CREATE TABLE SEEDBasket_BP (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    fk_SEEDBasket_Baskets  INTEGER NOT NULL,
+    fk_SEEDBasket_Buyers  INTEGER NOT NULL,
     fk_SEEDBasket_Products INTEGER NOT NULL,
     n                      INTEGER NOT NULL,        -- the number of items if ITEM type
     f                      DECIMAL(7,2) NOT NULL,   -- the amount if MONEY type
@@ -378,7 +358,7 @@ CREATE TABLE SEEDBasket_BP (
     sExtra                 TEXT,                -- e.g. urlencoded metadata about the purchase
 
   --  INDEX(fk_SEEDBasket_Products),  does anyone use this?
-    INDEX(fk_SEEDBasket_Baskets)
+    INDEX(fk_SEEDBasket_Buyers)
 );
 "
 );
@@ -386,15 +366,15 @@ CREATE TABLE SEEDBasket_BP (
 
 /* Test data
 
-INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
+INSERT INTO seeds.SEEDBasket_Buyers ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
 
-INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
-INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
-INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID');
+INSERT INTO seeds.SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
+INSERT INTO seeds.SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
+INSERT INTO seeds.SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID');
 
 
  */

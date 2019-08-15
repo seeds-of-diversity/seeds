@@ -26,21 +26,23 @@ define( "SITE_LOG_ROOT", $oApp->logdir );   // SEEDBasketCore should use oApp->l
         $this->oApp->kfdb->Execute( "DROP TABLE SEEDBasket_Products" );
         $this->oApp->kfdb->Execute( "DROP TABLE SEEDBasket_ProdExtra" );
         $this->oApp->kfdb->Execute( "DROP TABLE SEEDBasket_BP" );
+        $this->oApp->kfdb->Execute( "DROP TABLE SEEDBasket_Buyers" );
+        $this->oApp->kfdb->Execute( "DROP TABLE SEEDBasket_Purchases" );
 
-        $this->oApp->kfdb->Execute( SEEDS_DB_TABLE_SEEDBASKET_BASKETS );
+        $this->oApp->kfdb->Execute( SEEDS_DB_TABLE_SEEDBASKET_BUYERS );
         $this->oApp->kfdb->Execute( SEEDS_DB_TABLE_SEEDBASKET_PRODUCTS );
         $this->oApp->kfdb->Execute( SEEDS_DB_TABLE_SEEDBASKET_PRODEXTRA );
-        $this->oApp->kfdb->Execute( SEEDS_DB_TABLE_SEEDBASKET_BP );
+        $this->oApp->kfdb->Execute( SEEDS_DB_TABLE_SEEDBASKET_PURCHASES );
 
-        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' )" );
+        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Buyers ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' )" );
 
         $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1)" );
         $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15)" );
         $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25)" );
 
-        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID')" );
-        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID')" );
-        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID')" );
+        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID')" );
+        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID')" );
+        $this->oApp->kfdb->Execute("INSERT INTO SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID')" );
 
         $this->oApp->kfdb->SetDebug(0);
     }
