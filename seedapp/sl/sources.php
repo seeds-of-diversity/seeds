@@ -20,9 +20,8 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'sources'         => ['label'=>'Sources'],
                                         'downloadupload'  => ['label'=>'Download/Upload'],
                                       ],
-                            'perms' =>[ 'sources' => [ "W SLSources", "A SL", "|" ],          // SLSources-W OR SL-A],
-                                        'downloadupload'  => [ "W SLSources", "A SL", "|" ],  // SLSources-W OR SL-A],
-                                        'ghost'   => ['A notyou'],
+                            'perms' =>[ 'sources'         => [ "W SLSources", "A SL", "|" ],  // SLSources-W OR SL-A],
+                                        'downloadupload'  => [ "W SLSources", "A SL", "|" ],
                                         '|'  // allows screen-login even if some tabs are ghosted
                            ],
                   ],
