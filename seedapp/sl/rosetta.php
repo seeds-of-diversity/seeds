@@ -26,7 +26,7 @@ $consoleConfig = [
                            ],
                   ],
     ],
-    'urlLogin' => '../login/',
+    'pathToSite' => '../../',
 
     'consoleSkin' => 'green',
 ];
