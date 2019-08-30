@@ -10,6 +10,7 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( "_sources_archive.php" );
 include_once( "_sources_download.php" );
 
 $consoleConfig = [
@@ -18,9 +19,11 @@ $consoleConfig = [
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'sources'         => ['label'=>'Sources'],
+                                        'archive'         => ['label'=>'Archive'],
                                         'downloadupload'  => ['label'=>'Download/Upload'],
                                       ],
                             'perms' =>[ 'sources'         => [ "W SLSources", "A SL", "|" ],  // SLSources-W OR SL-A],
+                                        'archive'         => [ "W SLSrcArchive", "A SL", "|" ],
                                         'downloadupload'  => [ "W SLSources", "A SL", "|" ],
                                         '|'  // allows screen-login even if some tabs are ghosted
                            ],
@@ -150,9 +153,30 @@ $sInfo = "";
         return( "<div style='padding:15px'>$s</div>" );
     }
 
+    function TabSet_main_archive_Init()
+    {
+        $this->oW = new SLSourcesAppArchive( $this->oApp, $this->TabSetGetSVA('main','archive') );
+    }
+
+    function TabSet_main_archive_ControlDraw()
+    {
+        $s = "<style>.console02-tabset-controlarea { padding:15px; }</style>"
+            ."AAA";
+
+        return( $s );
+    }
+
+    function TabSet_main_archive_ContentDraw()
+    {
+        $s = "<style>.console02-tabset-contentarea { padding:15px; }</style>"
+            .$this->oW->Draw();
+
+        return( $s );
+    }
+
     function TabSet_main_downloadupload_Init()
     {
-        $this->oW = new SLSourcesAppDownload( $this->oApp );
+        $this->oW = new SLSourcesAppDownload( $this->oApp, $this->TabSetGetSVA('main','downloadupload') );
     }
 
     function TabSet_main_downloadupload_ControlDraw()

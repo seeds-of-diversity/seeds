@@ -3,10 +3,23 @@
 class SLSourcesAppDownload
 {
     private $oApp;
+    private $oSVA;  // where to store state variables for this app
+    private $oUIPills;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
     {
         $this->oApp = $oApp;
+        $this->oSVA = $oSVA;
+
+        $raPills = array( 'companies'      => array( "Seed Companies"),
+                          'companies-test' => array( "Seed Companies Test"),
+                          'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
+                          'npgs'           => array( "USA: National Plant Germplasm System (NPGS)" ),
+                          'sound'          => array( "Sound Tests" ),
+                          'one-off-csci'   => array( "One-off CSCI loading" ),
+        );
+
+        $this->oUIPills = new SEEDUIWidgets_Pills( $raPills, 'pMode', array( 'oSVA' => $this->oSVA, 'ns' => '' ) );
     }
 
     function Draw()
@@ -21,28 +34,14 @@ class SLSourcesAppDownload
 
     private function drawMenu()
     {
-        $s = "";
-
-        $raPills = array( 'companies'      => array( "Seed Companies"),
-                          'companies-test' => array( "Seed Companies Test"),
-                          'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
-                          'npgs'           => array( "USA: National Plant Germplasm System (NPGS)" ),
-                          'sound'          => array( "Sound Tests" ),
-                          'one-off-csci'   => array( "One-off CSCI loading" ),
-        );
-
-        $oSVA = new SEEDSessionVarAccessor( $this->oApp->sess, 'SLSourcesAppDownload' );    // use the tab SVA instead
-        $oUIPills = new SEEDUIWidgets_Pills( $raPills, 'pMode', array( 'oSVA' => $oSVA, 'ns' => '' ) );
-        $s = $oUIPills->DrawPillsVertical();
-
-        return( $s );
+        return( $this->oUIPills->DrawPillsVertical() );
     }
 
     private function drawBody()
     {
         $s = "";
 
-        switch( SEEDInput_Str('pMode') ) {
+        switch( $this->oUIPills->GetCurrPill() ) {
             case 'companies':
                 break;
             case 'companies-test':
