@@ -63,8 +63,12 @@ class SLSourcesLib
         if( $prefix ) {
             foreach( ['_key','year','osp','ocv','bOrganic','notes'] as $f ) { $raTmp[$f] = $ra[$prefix.$f]; }   // 'bulk'
         }
+
+        // do this outside of ArrayExpand because the subst_key typically has html that would be html-escaped
+        $key = @$raParms['subst_key'] ?: $raTmp['_key'];
+
         $s = SEEDCore_ArrayExpand( $raTmp,
-                "<tr><td style='vertical-align:top;padding-right:5px'>[[_key]]</td>"
+                "<tr><td style='vertical-align:top;padding-right:5px'>$key</td>"
                    ."<td style='vertical-align:top;padding-right:5px'><em>[[S_name_en]]</em></td>"
                    ."<td style='vertical-align:top;padding-right:5px'>[[year]]</td>"
                    ."<td style='vertical-align:top;padding-right:5px'><strong>[[osp]] : [[ocv]]</strong> "

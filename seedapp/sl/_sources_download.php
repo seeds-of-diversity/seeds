@@ -66,8 +66,12 @@ class SLSourcesAppDownload
                  ."<table style='margin-left:30px'>";
             foreach( $raRows as $ra ) {
                 // Each row contains matches as A_*, B_*.  Draw a 2-row table showing each.
-                $s .= SLSourcesLib::DrawSRCCVRow( $ra, 'A_' );
-                $s .= SLSourcesLib::DrawSRCCVRow( $ra, 'B_' );
+
+                // subst the _keys with links to see more details
+                $l = $_SERVER['PHP_SELF']."?c02ts_main=archive&k1={$ra['A__key']}&k2={$ra['B__key']}";
+
+                $s .= SLSourcesLib::DrawSRCCVRow( $ra, 'A_', ['subst_key' => "<a href='$l'>{$ra['A__key']}</a>"] );
+                $s .= SLSourcesLib::DrawSRCCVRow( $ra, 'B_', ['subst_key' => "<a href='$l'>{$ra['B__key']}</a>"] );
                 $s .= "<tr><td colspan='5'><hr/></td></tr>";
             }
             $s .= "</table>";
