@@ -1,8 +1,8 @@
 <?php
 
-/* RosettaSEED app
+/* Seed Sources app
  *
- * Copyright (c) 2014-2019 Seeds of Diversity Canada
+ * Copyright (c) 2012-2019 Seeds of Diversity Canada
  *
  */
 
@@ -10,18 +10,21 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( "_sources_archive.php" );
+include_once( "_sources_download.php" );
 
 $consoleConfig = [
-    'CONSOLE_NAME' => "rosetta",
-    'HEADER' => "RosettaSEED",
+    'CONSOLE_NAME' => "sources",
+    'HEADER' => "Seed Sources",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'cultivar' => ['label'=>'Cultivar'],
-                                        'species'  => ['label'=>'Species'],
+    'TABSETS' => ['main'=> ['tabs' => [ 'sources'         => ['label'=>'Sources'],
+                                        'archive'         => ['label'=>'Archive'],
+                                        'downloadupload'  => ['label'=>'Download/Upload'],
                                       ],
-                            'perms' =>[ 'cultivar' => [],
-                                        'species'  => [],
-                                        'ghost'   => ['A notyou'],
+                            'perms' =>[ 'sources'         => [ "W SLSources", "A SL", "|" ],  // SLSources-W OR SL-A],
+                                        'archive'         => [ "W SLSrcArchive", "A SL", "|" ],
+                                        'downloadupload'  => [ "W SLSources", "A SL", "|" ],
                                         '|'  // allows screen-login even if some tabs are ghosted
                            ],
                   ],
@@ -33,7 +36,7 @@ $consoleConfig = [
 
 
 $oApp = new SEEDAppConsole( $config_KFDB['seeds1']
-                            + array( 'sessPermsRequired' => ['W SL'],
+                            + array( 'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                      'sessUIConfig' => ['bTmpActivate'=>true, 'bLoginNotRequired'=>false, 'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ],
                                      'consoleConfig' => $consoleConfig,
                                      'logdir' => SITE_LOG_ROOT )
@@ -47,6 +50,7 @@ class MyConsole02TabSet extends Console02TabSet
     private $oSLDB;
 
     private $oComp;
+    private $oW;    // object that does the work for the chosen tab
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -57,16 +61,16 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oSLDB = new SLDBRosetta( $this->oApp );
     }
 
-    function TabSet_main_species_Init()
+    function TabSet_main_sources_Init()
     {
-// the namespace functionality of this derived class should probably be provided in the base class instead
-        $oUI = new Rosetta_SEEDUI( $this->oApp, "Rosetta" );
+// the namespace functionality of this derived class should probably be provided in the base class instead -- this is duplicated in the new Rosetta
+        $oUI = new Rosetta_SEEDUI( $this->oApp, "Sources" );
         $kfrel = $this->oSLDB->GetKfrel('S');
         $cid = 'S';
         $this->oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid );
     }
 
-    function TabSet_main_species_ControlDraw()
+    function TabSet_main_sources_ControlDraw()
     {
         $raSrchParms['filters'] = array(
             array( 'label'=>'Species #',  'col'=>'S._key' ),
@@ -93,7 +97,7 @@ class MyConsole02TabSet extends Console02TabSet
             return( $s );
     }
 
-    function TabSet_main_species_ContentDraw()
+    function TabSet_main_sources_ContentDraw()
     {
         $formTemplate =
              "|||BOOTSTRAP_TABLE(class='col-md-6' | class='col-md-6')\n"
@@ -149,14 +153,46 @@ $sInfo = "";
         return( "<div style='padding:15px'>$s</div>" );
     }
 
-    function TabSet_main_cultivar_ControlDraw()
+    function TabSet_main_archive_Init()
     {
-        return( "<div style='padding:20px'>AAA</div>" );
+        $this->oW = new SLSourcesAppArchive( $this->oApp, $this->TabSetGetSVA('main','archive') );
     }
 
-    function TabSet_main_cultivar_ContentDraw()
+    function TabSet_main_archive_ControlDraw()
     {
-        return( "<div style='padding:20px'>BBB</div>" );
+        $s = "<style>.console02-tabset-controlarea { padding:15px; }</style>"
+            ."AAA";
+
+        return( $s );
+    }
+
+    function TabSet_main_archive_ContentDraw()
+    {
+        $s = "<style>.console02-tabset-contentarea { padding:15px; }</style>"
+            .$this->oW->Draw();
+
+        return( $s );
+    }
+
+    function TabSet_main_downloadupload_Init()
+    {
+        $this->oW = new SLSourcesAppDownload( $this->oApp, $this->TabSetGetSVA('main','downloadupload') );
+    }
+
+    function TabSet_main_downloadupload_ControlDraw()
+    {
+        $s = "<style>.console02-tabset-controlarea { padding:15px; }</style>"
+            ."AAA";
+
+        return( $s );
+    }
+
+    function TabSet_main_downloadupload_ContentDraw()
+    {
+        $s = "<style>.console02-tabset-contentarea { padding:15px; }</style>"
+            .$this->oW->Draw();
+
+        return( $s );
     }
 }
 

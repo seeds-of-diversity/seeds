@@ -255,12 +255,12 @@ class Console02Static
 
         if( $bJQuery ) {
             // prepend jQuery so it precedes any jQuery code in our header script (otherwise $ is not known)
-            $sHead = "<script src='".W_ROOT_JQUERY."'></script>".$sHead;
+            $sHead = "<script src='".W_CORE_JQUERY."'></script>".$sHead;
         }
 
         if( $bBootstrap ) {
-            $sHead .= "<link rel='stylesheet' type='text/css' href='".W_ROOT."os/bootstrap3/dist/css/bootstrap.min.css'></link>"
-                     ."<script src='".W_ROOT."os/bootstrap3/dist/js/bootstrap.min.js'></script>"
+            $sHead .= "<link rel='stylesheet' type='text/css' href='".W_CORE_URL."os/bootstrap3/dist/css/bootstrap.min.css'></link>"
+                     ."<script src='".W_CORE_URL."os/bootstrap3/dist/js/bootstrap.min.js'></script>"
                      ."<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
                      ."<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->\n"
                      ."<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->\n"
