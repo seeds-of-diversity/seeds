@@ -17,7 +17,7 @@ if( !defined("SEEDCORE") )  define( "SEEDCORE", SEEDROOT."seedcore/" );
 
 // Filesystem path to wcore.
 // This has to be visible to the browser (under the web docroot) so override if not
-if( !defined("W_CORE") )    define( "W_CORE", SEEDROOT."wcore" );
+if( !defined("W_CORE") )    define( "W_CORE", SEEDROOT."wcore/" );
 
 // URL path to wcore.
 // If W_CORE uses a relative url then this will work. Otherwise you have to override with an absolute url.
