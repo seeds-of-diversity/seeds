@@ -28,4 +28,5 @@ define("W_CORE_JQUERY_3_3_1", W_CORE_URL."os/jquery/jquery-3-3-1.min.js");  // u
 define("W_CORE_JQUERY",       W_CORE_JQUERY_3_3_1 );                        // use this if you want the latest version (it will change)
 
 
-
+// include everything that SEEDROOT gets via composer
+require_once SEEDROOT."vendor/autoload.php";
