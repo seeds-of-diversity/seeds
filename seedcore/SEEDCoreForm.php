@@ -344,35 +344,36 @@ class SEEDCoreForm extends SEEDCoreFormElements
     {
         $this->raCtrlGlobal[$k] = $v;
     }
-}
 
-/*
-    function DrawElement_FormDef( $fld, $elemParms = array() )
-    [*********************************************************
-        Draw a single form element as defined in $this->raParms['formdef'].
+
+// under-used and could be improved
+    function DrawElement_FormDef( $raFormDef, $fld, $elemParms = array() )
+    /*********************************************************************
+        Draw a single form element as defined in $raFormDef
         elemParms is passed to the specific method that draws the form element.
-
-     *]
+     */
     {
         $s = "";
 
-        if( !isset($this->raParms['formdef'][$fld] ) )  return( "" );
-        $def = &$this->raParms['formdef'][$fld];
+        if( !isset($raFormDef[$fld] ) )  return( "" );
+        $def = $raFormDef[$fld];
 
         if( isset($def['readonly']) )  $elemParms['readonly'] = $def['readonly'];
 
         $label = @$elemParms['bDrawLabel'] ? @$def['label'] : "";
 
         if( in_array( $fld, array('_sf_op_d','_sf_op_h','_sf_op_r') ) ) {
-            $s .= "<INPUT type='checkbox' name='".$this->oFormParms->sfParmOp( substr($fld,-1,1), $this->iR )."' value='1'>";
+            $s .= "<input type='checkbox' name='".$this->oFormParms->sfParmOp( substr($fld,-1,1), $this->iR )."' value='1'>";
 
-            if( $label )  $s .= "&nbsp;".$label;
+            if( $label ) {
+                $s .= "&nbsp;".$label;
+            }
         } else {
             switch( @$def['type'] ) {
                 case 'textarea':
-                    $cols = isset($def['cols']) ? $def['cols'] : 60;
-                    $rows = isset($def['rows']) ? $def['rows'] : 5;
-                    $s .= $this->TextArea( $fld, $label, $cols, $rows, $elemParms );
+                    $elemParms['nCols'] = @$def['cols'] ?: 60;
+                    $elemParms['nRows'] = @$def['rows'] ?: 5;
+                    $s .= $this->TextArea( $fld, $elemParms );
                     break;
 
                 case 'checkbox':
@@ -401,7 +402,7 @@ class SEEDCoreForm extends SEEDCoreFormElements
 
         return( $s );
     }
-*/
+}
 
 class SEEDCoreFormElements
 /*********************
