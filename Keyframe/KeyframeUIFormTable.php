@@ -46,7 +46,7 @@ class KeyframeUIFormTable extends SEEDFormTable
 
         $s .= $this->Start( $raFormDef )
              .$this->Header();
-        if( ($kfrc = $this->oForm->kfrel->CreateRecordCursor( $sCond, $raKFRCParms )) ) {
+        if( ($kfrc = $this->oForm->Kfrel()->CreateRecordCursor( $sCond, $raKFRCParms )) ) {
             while( $kfrc->CursorFetch() ) {
                 $s .= $this->RowKFR( $kfrc );
             }
