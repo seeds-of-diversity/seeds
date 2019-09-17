@@ -1340,6 +1340,20 @@ class Keyframe_NamedRelations
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordFromDBKey( $k ) : null );
     }
 
+    function GetRecordVals( $sRel, $k )
+    /**********************************
+        Get values of one record
+     */
+    {
+        $ra = [];
+
+        if( ($kfr = $this->GetKFR( $sRel, $k )) ) {
+            $ra = $kfr->ValuesRA();
+        }
+
+        return( $ra );
+    }
+
     function GetKFRCond( $sRel, $sCond, $raKFParms = array() )
     /*********************************************************
         Return a kfr with one result pre-loaded
