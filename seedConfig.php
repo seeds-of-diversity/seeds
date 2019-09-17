@@ -10,6 +10,9 @@
 // You have to define SEEDROOT. We'll make good guesses about everything else.
 if( !defined("SEEDROOT") )  die( "SEEDROOT must be defined" );
 
+// Good to know. substr is necessary because SERVER_NAME can have a port number
+define("SEED_isLocal", ((substr($_SERVER["SERVER_NAME"],0,9) == "localhost") ? true : false));
+
 // These are always under SEEDROOT
 if( !defined("SEEDAPP") )   define( "SEEDAPP", SEEDROOT."seedapp/" );
 if( !defined("SEEDLIB") )   define( "SEEDLIB", SEEDROOT."seedlib/" );
@@ -22,6 +25,11 @@ if( !defined("W_CORE") )    define( "W_CORE", SEEDROOT."wcore/" );
 // URL path to wcore.
 // If W_CORE uses a relative url then this will work. Otherwise you have to override with an absolute url.
 if( !defined("W_CORE_URL")) define( "W_CORE_URL", W_CORE );
+
+// URL path to q folder.
+// If SEEDAPP is reachable by the browser you don't have to do anything.
+// Otherwise, set Q_URL somewhere convenient and for each file in SEEDAPP/q/*.php make a file with the same name that includes SEEDAPP."q/*.php"
+if( !defined("Q_URL") )     define( "Q_URL", SEEDAPP."q/" );
 
 // Locations of components that need to be visible to the web browser
 define("W_CORE_JQUERY_3_3_1", W_CORE_URL."os/jquery/jquery-3-3-1.min.js");  // use this if you need this specific version
