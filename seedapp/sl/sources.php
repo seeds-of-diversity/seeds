@@ -10,7 +10,7 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
-include_once( "_sources_archive.php" );
+include_once( "_sources_edit.php" );
 include_once( "_sources_download.php" );
 
 $consoleConfig = [
@@ -19,11 +19,11 @@ $consoleConfig = [
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'sources'         => ['label'=>'Sources'],
-                                        'archive'         => ['label'=>'Archive'],
+                                        'edit'            => ['label'=>'Edit'],
                                         'downloadupload'  => ['label'=>'Download/Upload'],
                                       ],
                             'perms' =>[ 'sources'         => [ "W SLSources", "A SL", "|" ],  // SLSources-W OR SL-A],
-                                        'archive'         => [ "W SLSrcArchive", "A SL", "|" ],
+                                        'edit'            => [ "W SLSources", "A SL", "|" ],
                                         'downloadupload'  => [ "W SLSources", "A SL", "|" ],
                                         '|'  // allows screen-login even if some tabs are ghosted
                            ],
@@ -153,12 +153,12 @@ $sInfo = "";
         return( "<div style='padding:15px'>$s</div>" );
     }
 
-    function TabSet_main_archive_Init()
+    function TabSet_main_edit_Init()
     {
-        $this->oW = new SLSourcesAppArchive( $this->oApp, $this->TabSetGetSVA('main','archive') );
+        $this->oW = new SLSourcesAppEdit( $this->oApp, $this->TabSetGetSVA('main','edit') );
     }
 
-    function TabSet_main_archive_ControlDraw()
+    function TabSet_main_edit_ControlDraw()
     {
         $s = "<style>.console02-tabset-controlarea { padding:15px; }</style>"
             ."AAA";
@@ -166,7 +166,7 @@ $sInfo = "";
         return( $s );
     }
 
-    function TabSet_main_archive_ContentDraw()
+    function TabSet_main_edit_ContentDraw()
     {
         $s = "<style>.console02-tabset-contentarea { padding:15px; }</style>"
             .$this->oW->Draw();

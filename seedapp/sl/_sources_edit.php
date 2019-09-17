@@ -1,6 +1,6 @@
 <?php
 
-class SLSourcesAppArchive
+class SLSourcesAppEdit
 {
     private $oApp;
     private $oSVA;  // where to store state variables for this app
@@ -12,8 +12,9 @@ class SLSourcesAppArchive
         $this->oApp = $oApp;
         $this->oSVA = $oSVA;
 
-        $raPills = array( 'srccv-archive-edit'      => array( "SrcCV Archive Edit"),
-        );
+        $raPills = [ 'srccv-edit-company' => array( "SrcCV Edit Company"),
+                     'srccv-edit-archive' => array( "SrcCV Edit Archive"),
+        ];
 
         $this->oUIPills = new SEEDUIWidgets_Pills( $raPills, 'pMode', array( 'oSVA' => $this->oSVA, 'ns' => '' ) );
         $this->oSrcLib = new SLSourcesLib( $this->oApp );
@@ -39,22 +40,33 @@ class SLSourcesAppArchive
         $s = "";
 
         switch( $this->oUIPills->GetCurrPill() ) {
-            case 'srccv-archive-edit':
-                $s = $this->srccvArchiveEdit();
-                break;
+            case 'srccv-edit-company':  $s = $this->srccvEditCompany(); break;
+            case 'srccv-edit-archive':  $s = $this->srccvEditArchive(); break;
         }
 
         return( $s );
     }
 
-    private function srccvArchiveEdit()
+    private function srccvEditCompany()
     {
-        $s = "<h3>SrcCV Archive Edit</h3>";
+        $s = "<h3>SrcCV Edit Company</h3>";
 
-        $k1 = SEEDInput_Int('k1') ?: $this->oSVA->VarGet('srccv-archive-edit-k1');
-        $k2 = SEEDInput_Int('k2') ?: $this->oSVA->VarGet('srccv-archive-edit-k2');
-        $this->oSVA->VarSet('srccv-archive-edit-k1', $k1);
-        $this->oSVA->VarSet('srccv-archive-edit-k2', $k2);
+        return( $s );
+    }
+
+    private function srccvEditArchive()
+    {
+        $s = "<h3>SrcCV Edit Archive</h3>";
+
+        if( !$this->oApp->sess->TestPermRA( ['W SLSrcArchive', 'A SLSources', 'A SL', '|'] ) ) {
+            $s .= "<p>Editing the archive is not enabled</p>";
+            goto done;
+        }
+
+        $k1 = SEEDInput_Int('k1') ?: $this->oSVA->VarGet('srccv-edit-archive-k1');
+        $k2 = SEEDInput_Int('k2') ?: $this->oSVA->VarGet('srccv-edit-archive-k2');
+        $this->oSVA->VarSet('srccv-edit-archive-k1', $k1);
+        $this->oSVA->VarSet('srccv-edit-archive-k2', $k2);
 
         $oForm = new SEEDCoreForm( 'Plain' );
 
@@ -88,6 +100,7 @@ class SLSourcesAppArchive
             $s .= "<hr style='border:1px solid #aaa'/>";
         }
 
+        done:
         return( $s );
     }
 }
