@@ -195,8 +195,10 @@ class _sldb_defs
                        array("col"=>"osp",           "type"=>"S"),
                        array("col"=>"ocv",           "type"=>"S"),
                        array("col"=>"bOrganic",      "type"=>"I"),
+                       array("col"=>"bulk",          "type"=>"S"),
                        array("col"=>"notes",         "type"=>"S"),
-            )
+                       array("col"=>"year",          "type"=>"I"),
+        )
             // fk_sl_species and sound* are not here because they're only used during rebuild-index and its associated manual steps
         );
     }
@@ -383,6 +385,18 @@ class SLDBSources extends SLDBRosetta
         $raKfrel['SRCCVxSRC']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC'), $sLogfile );
         $raKfrel['SRCCVxPxS']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','P','S'), $sLogfile );
         $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC','P','S'), $sLogfile );
+
+        $raKfrel['SRCCVAxSRC']    = $this->newKfrel2( $kfdb, $uid, array('SRCCVA','SRC'), $sLogfile );
+
+        // SRC is required to exist during upload procedure, but this is useful for edge cases during uploading and integrity testing
+        $raKfrel['SRCCV_SRC'] = $this->newKfrel( $kfdb, $uid,
+                [ 'SRCCV' => [ "Table" => "seeds.sl_cv_sources",
+                               "Fields" => _sldb_defs::fldSLSourcesCV() ],
+                  'SRC' =>   [ "Table" => "seeds.sl_sources",
+                               "Fields" => _sldb_defs::fldSLSources(),
+                               "Type"  => "LeftJoin",
+                               "LeftJoinOn" => "SRCCV.fk_sl_sources=SRC._key" ] ],
+                $sLogfile );
 
         // every SrcCV must have a Src, but it might not have a PCV
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
