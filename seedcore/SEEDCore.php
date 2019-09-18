@@ -352,6 +352,26 @@ function SEEDCore_EndsWith( $haystack, $needle )
     return( substr( $haystack, -$length, $length ) === $needle );   // third parameter is for the boundary condition where $needle==''
 }
 
+function SEEDCore_ImplodeKeyValue( $ra, $sep1, $sep2 )
+/*****************************************************
+    Given ra of k1=>v1, k2=>v2, ...
+    Return k1{sep1}v1{sep2}k2{sep1}v2
+
+    e.g. sep1:'=', sep2:',', output: k1=v1,k2=v2
+ */
+{
+    $ra2 = array();
+    foreach( $ra as $k => $v ) {
+        if( is_array($v) ) {
+            // a klugey format to handle nested arrays - e.g. dumping a data structure to a log
+            $ra2[] = $k.$sep1."{".SEEDCore_ImplodeKeyValue( $v, $sep1, $sep2 )."}";
+        } else {
+            $ra2[] = $k.$sep1.$v;
+        }
+    }
+    return( implode( $sep2, $ra2 ) );
+}
+
 function SEEDCore_ParseRangeStr( $sRange )
 /*****************************************
     Parse a string containing a potentially complicated range of numbers
