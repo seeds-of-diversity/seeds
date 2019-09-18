@@ -247,14 +247,14 @@ class SLDBBase extends Keyframe_NamedRelations
         $this->tDef['PY'] = array( "Table" => "seeds.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
         $this->tDef['SY'] = array( "Table" => "seeds.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
 
-        $sLogfile = $logdir ? "$logdir/slcollection.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
         $raKfrel['C'] = $this->newKfrel( $kfdb, $uid, array( "C" => $this->tDef['C'] ), $sLogfile );
         $raKfrel['I'] = $this->newKfrel( $kfdb, $uid, array( "I" => $this->tDef['I'] ), $sLogfile );
         $raKfrel['A'] = $this->newKfrel( $kfdb, $uid, array( "A" => $this->tDef['A'] ), $sLogfile );
         $raKfrel['D'] = $this->newKfrel( $kfdb, $uid, array( "D" => $this->tDef['D'] ), $sLogfile );
         $raKfrel['G'] = $this->newKfrel( $kfdb, $uid, array( "G" => $this->tDef['G'] ), $sLogfile );
 
-        $sLogfile = $logdir ? "$logdir/slrosetta.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slrosetta.log" : "";
         $raKFrel['P'] = $this->newKfrel( $kfdb, $uid, array( "P" => $this->tDef['P'] ),  $sLogfile );
         $raKfrel['S'] = $this->newKfrel( $kfdb, $uid, array( "S" => $this->tDef['S'] ),  $sLogfile );
         $raKfrel['PY']= $this->newKfrel( $kfdb, $uid, array( "PY"=> $this->tDef['PY'] ), $sLogfile );
@@ -300,7 +300,7 @@ class SLDBRosetta extends SLDBBase
         // do this first because it sets $this->tDef
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
-        $sLogfile = $logdir ? "$logdir/slrosetta.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slrosetta.log" : "";
         $raKfrel['PxS']    = $this->newKfrel2( $kfdb, $uid, array('P','S'), $sLogfile );
         $raKfrel['PYxPxS'] = $this->newKfrel2( $kfdb, $uid, array('PY','P','S'), $sLogfile );
         $raKfrel['SYxS']   = $this->newKfrel2( $kfdb, $uid, array('SY','S'), $sLogfile );
@@ -324,7 +324,7 @@ class SLDBCollection extends SLDBRosetta
         // do this first because it sets $this->tDef
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
-        $sLogfile = $logdir ? "$logdir/slcollection.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
 
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['IxA']       = $this->newKfrel2( $kfdb, $uid, array('I','A'), $sLogfile );
@@ -376,7 +376,7 @@ class SLDBSources extends SLDBRosetta
         $this->tDef['SRCCVA'] = array( "Table" => "seeds.sl_cv_sources_archive", "Fields" => _sldb_defs::fldSLSourcesCVArchive() );
 
 
-        $sLogfile = $logdir ? "$logdir/slsources.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slsources.log" : "";
 
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['SRC']           = $this->newKfrel2( $kfdb, $uid, array('SRC'), $sLogfile );
