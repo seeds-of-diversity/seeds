@@ -27,6 +27,14 @@ class SEEDAppBase
         if( isset($raConfig['lang']) )    $this->lang = $raConfig['lang'];
         if( isset($raConfig['logdir']) )  $this->logdir = $raConfig['logdir'];
     }
+
+    function Log( $file, $s )
+    {
+        if( $this->logdir && ($fp = fopen( $this->logdir.$file, "a" )) ) {
+            fwrite( $fp, sprintf( "-- %d %s %s\n", time(), date("Y-m-d H:i:s"), $s ) );
+            fclose( $fp );
+        }
+    }
 }
 
 class SEEDAppDB extends SEEDAppBase

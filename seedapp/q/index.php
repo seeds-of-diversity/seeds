@@ -8,6 +8,7 @@
 if( !defined('SEEDROOT') ) { die( "set the seedConfig first" ); }
 
 include_once( SEEDCORE."SEEDApp.php" );
+include_once( SEEDLIB."q/Q.php" );
 
 $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
                                    'sessPermsRequired' => ['PUBLIC'],
@@ -16,17 +17,12 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
 $qcmd = SEEDInput_Str('qcmd');
 $qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
 
-/*
-$oQ = new Q( $oApp );
+$oQ = new Q( $oApp, ['bUTF8'=>true] );  // return utf8 data unless this is reversed below
+$sCharset = "utf-8";
+$rQ = $oQ->Cmd( $cmd, $_REQUEST );
 
-    // the charset returned by this query will always be utf8, unless this is reversed below
-    $oQ->bUTF8 = true;
-    $sCharset = "utf-8";
-    $rQ = $oQ->Cmd( $cmd, $raQParms );
-
-    if( !($name  = (@$raQParms['qname']))  && !($name  = (@$rQ['raMeta']['name'])) )  $name = $cmd;
-    if( !($title = (@$raQParms['qtitle'])) && !($title = (@$rQ['raMeta']['title'])) ) $title = $cmd;
-*/
+($name  = (@$raQParms['qname']))  || ($name  = (@$rQ['raMeta']['name']))  || ($name = $cmd);
+($title = (@$raQParms['qtitle'])) || ($title = (@$rQ['raMeta']['title'])) || ($title = $cmd);
 
 switch( $qfmt ) {
     case 'plain':    echo $rQ['sOut'];         break;
@@ -46,27 +42,27 @@ switch( $qfmt ) {
     */
     case 'csv':
         if( $rQ['bOk'] ) {
-            include_once( STDINC."SEEDTable.php" );
-            $sCharset = 'utf-8';
-            header( "Content-Type:text/plain; charset=$sCharset" );
-            SEEDTable_OutputCSVFromRARows( $rQ['raOut'],
-                               array( //'columns' => array_keys($rQ['raOut'][0]),  use default columns
-                                      ) );
+//            include_once( STDINC."SEEDTable.php" );
+//            $sCharset = 'utf-8';
+//            header( "Content-Type:text/plain; charset=$sCharset" );
+//            SEEDTable_OutputCSVFromRARows( $rQ['raOut'],
+//                               array( //'columns' => array_keys($rQ['raOut'][0]),  use default columns
+//                                      ) );
         }
         break;
 
     case 'xls':
         if( $rQ['bOk'] ) {
-            include_once( STDINC."SEEDTable.php" );
+//            include_once( STDINC."SEEDTable.php" );
 
             // PHPExcel sends the header( Content-Type )
             // N.B. the data has to be utf8 or PHPExcel will fail to write it
-            SEEDTable_OutputXLSFromRARows( $rQ['raOut'],
-                               array( 'columns' => array_keys($rQ['raOut'][0]),
-                                      'filename'=>"$name.xls",
-                                      'created_by'=>$sess->GetName(),
-                                      'title'=>'$title'
-                                      ) );
+//            SEEDTable_OutputXLSFromRARows( $rQ['raOut'],
+//                               array( 'columns' => array_keys($rQ['raOut'][0]),
+//                                      'filename'=>"$name.xls",
+//                                      'created_by'=>$sess->GetName(),
+//                                      'title'=>'$title'
+//                                      ) );
         }
         break;
 
@@ -94,8 +90,7 @@ switch( $qfmt ) {
         break;
 }
 
-Site_Log( "q.log", date("Y-m-d H:i:s")."\t"
-                  .$_SERVER['REMOTE_ADDR']."\t"
-                  .intval(@$rQ['bOk'])."\t"
-                  .$cmd."\t"
-                  .(@$rQ['sLog'] ? : "") );
+$oApp->Log( "q.log", $_SERVER['REMOTE_ADDR']."\t"
+                    .intval(@$rQ['bOk'])."\t"
+                    .$cmd."\t"
+                    .(@$rQ['sLog'] ? : "") );
