@@ -46,9 +46,9 @@ class Q
         }
 
         if( SEEDCore_StartsWith( $cmd, 'src' ) ) {
-//            include_once( "_QServerSourceCV.php" );
-//            $o = new QServerSourceCV( $this, ['bUTF8' => true] );
-//            $rQ = $o->Cmd( $cmd, $parms );
+            include_once( "QServerSources.php" );
+            $o = new QServerSourceCV( $this, ['bUTF8' => true] );
+            $rQ = $o->Cmd( $cmd, $parms );
         }
 
         if( SEEDCore_StartsWith( $cmd, 'collection' ) ) {
@@ -122,7 +122,7 @@ class Q
 
 class QCursor
 {
-    public $kfrc;
+    private $kfrc;
     private $fnGetNextRow;    // function to translate kfrc->values to the GetNextRow values
     private $raParms;
 
@@ -132,6 +132,8 @@ class QCursor
         $this->fnGetNextRow = $fnGetNextRow;
         $this->raParms = $raParms;
     }
+
+    function KFRC()  { return( $this->kfrc ); }
 
     function GetNextRow()
     {

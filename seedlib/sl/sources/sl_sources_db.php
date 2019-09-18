@@ -1,5 +1,6 @@
 <?php
 
+include_once( SEEDLIB."q/Q.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
 class SLSourcesDBTest
@@ -64,6 +65,32 @@ class SLSourcesLib
     {
         $this->oApp = $oApp;
         $this->oSrcDB = new SLDBSources( $oApp );
+    }
+
+    function GetSrcCVListFromSource( $kSrc )
+    {
+        $oQ = new Q( $this->oApp );
+        $rQ = $oQ->Cmd( 'srcSrcCv', ['kSrc'=>$kSrc, 'kfrcParms'=>array('sSortCol'=>'osp,ocv')] );
+
+        return( $rQ['raOut'] );
+    }
+
+    function AddSrcCV( $raParms )
+    {
+        $bOk = false;
+
+        if( !@$raParms['fk_sl_sources'] || (!@$raParms['fk_sl_species'] && !@$raParms['osp']) ) goto done;
+
+        if( ($kfr = $this->oSrcDB->GetKFRel('SRCCV')->CreateRecord()) ) {
+            foreach( ['fk_sl_sources', 'osp', 'ocv']  as $k ) {
+                $kfr->SetValue( $k, @$raParms[$k] );
+// this could do a lot of validation, other combinations of valid inputs e.g. (fk_sl_sources,fk_sl_species,ocv), etc
+            }
+            $bOk = $kfr->PutDBRow();
+        }
+
+        done:
+        return( $bOk ? $kfr->Key() : 0 );
     }
 
     static function DrawSRCCVRow( $ra, $prefix = '', $raParms = array() )
