@@ -7,17 +7,16 @@
 
 if( !defined('SEEDROOT') ) { die( "set the seedConfig first" ); }
 
+include_once( SEEDCORE."SEEDApp.php" );
 
-$db = 'seeds1';
-$perms = ['PUBLIC'];
-$oApp = new SEEDAppConsole( $config_KFDB[$db]
-                            + [ 'sessPermsRequired' => $perms,
-                                     'logdir' => SITE_LOG_ROOT,
-                                     'lang' => $lang ] );
+$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
+                                   'sessPermsRequired' => ['PUBLIC'],
+                                   'lang' => 'EN' ] );
 
 $qcmd = SEEDInput_Str('qcmd');
-$qfmt = SEEDSafeGPC_Smart( 'qfmt', array( 'json' ) );
+$qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
 
+/*
 $oQ = new Q( $oApp );
 
     // the charset returned by this query will always be utf8, unless this is reversed below
@@ -27,8 +26,7 @@ $oQ = new Q( $oApp );
 
     if( !($name  = (@$raQParms['qname']))  && !($name  = (@$rQ['raMeta']['name'])) )  $name = $cmd;
     if( !($title = (@$raQParms['qtitle'])) && !($title = (@$rQ['raMeta']['title'])) ) $title = $cmd;
-
-
+*/
 
 switch( $qfmt ) {
     case 'plain':    echo $rQ['sOut'];         break;

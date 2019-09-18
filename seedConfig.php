@@ -38,3 +38,26 @@ define("W_CORE_JQUERY",       W_CORE_JQUERY_3_3_1 );                        // u
 
 // include everything that SEEDROOT gets via composer
 require_once SEEDROOT."vendor/autoload.php";
+
+
+function SEEDConfig_NewAppConsole( $raConfig = array() )
+/*******************************************************
+    SEEDApp should encapsulate all the system context that is external to SEEDROOT.
+    This function standardizes the parameters that define the system context, and must be externally defined to create a SEEDApp.
+
+        $config_KFDB[]  array of kfdb connection defs
+        SEED_LOG_DIR    directory where log files should be written
+ */
+{
+    global $config_KFDB;
+
+    $db = @$raConfig['db'] ?: 'seeds1';
+    $lang = @$raConfig['lang'] ?: 'EN';
+    $perms = @$raConfig['sessPermsRequired'] ?: array();
+
+    $oApp = new SEEDAppConsole( $config_KFDB[$db]
+                                + [ 'sessPermsRequired' => $perms,
+                                    'logdir' => SEED_LOG_DIR,
+                                    'lang' => $lang ] );
+    return( $oApp );
+}
