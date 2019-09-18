@@ -61,17 +61,28 @@ class SLSourcesAppEditCompany
     private $kCompany = 0;  // current company selected
     private $sCompanyName = "";
 
+    private $oTmpl;
+
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
     {
         $this->oApp = $oApp;
         $this->oSVA = $oSVA;
         $this->oSrcLib = new SLSourcesLib( $this->oApp );
+
+        $raTmplParms = [
+            'fTemplates' => [ SEEDAPP."templates/sl-srccv-edit.html" ],
+            'sFormCid'   => 'Plain',
+            //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
+            'vars'       => ['W_CORE_URL'=>W_CORE_URL]      // this is not being found by ExpandTmpl's twig handler
+        ];
+        $this->oTmpl = SEEDTemplateMaker2( $raTmplParms );
     }
 
     function Main()
     {
         $s = "<h3>SrcCV Edit Company</h3>"
-            .$this->Style();
+            .$this->oTmpl->ExpandTmpl( 'srccv-edit-style', [] )
+            .$this->oTmpl->ExpandTmpl( 'srccv-edit-script', ['W_CORE_URL'=>W_CORE_URL] );  // would be nice for twig to know about vars defined in SEEDTemplateMaker
 
         $cmd = SEEDInput_Str('cmd');
 
@@ -189,19 +200,11 @@ $s .= "<script>$sUploadJS</script>";
 
     private function drawSeedEdit( $raSeeds, KeyframeForm $oFormB )
     {
-        $s = "";
+        $sTree = $this->drawSeedTree( $this->kCompany, $raSeeds, $oFormB ); // to be safe with order of side-effects, do this here before GetRowNum
 
-        $s .= "<form method='post' action=''>"
-             ."<input style='float:right' type='submit' value='Save'/>"
-             .$this->drawSeedTree( $this->kCompany, $raSeeds, $oFormB )
-// Propagate the company of FormA so it retains state when this form is saved
-//.$oFormA->Hidden('kCompany')
-             ."<input style='float:right' type='submit' value='Save'/>"
-             ."</form>";
-
-        // The New buttons in the tree create new form entries dynamically. This tells the javascript which row number to use.
-        $s .= "<script>slsrceditRowNum = ".$oFormB->GetRowNum().";</script>";
-
+        $s = $this->oTmpl->ExpandTmpl( 'srccv-edit-seededitor', ['seedTree'=>$sTree,
+                                                                 'nextRowNum'=>$oFormB->GetRowNum(),
+                                                                 'W_CORE_URL'=>W_CORE_URL ] );  // try to get this in globals
         return( $s );
     }
 
@@ -241,18 +244,6 @@ $s .= "<script>$sUploadJS</script>";
         if( count($raCV) ) {
             $s .= $this->drawSeedTreeSection( $prevSp, $raCV, $oForm );
         }
-
-        $s .= "<h4>Add New Species</h4>
-               <p>To add a species that isn't in the list above, enter it here with any cultivar name</p>
-               <div class='slsrcedit_novelgroup'>
-                 <div class='slsrcedit_novel'>
-                   <input class='slsrcedit_novelsp' name='novelsp1' value=''/>
-                   <input class='slsrcedit_novelcv' name='novelcv1' value=''/>
-                   <div class='slsrcedit_cvBtns'>
-                     <img class='slsrcedit_novelBtns_new' height='14' src='".W_ROOT."img/ctrl/new01.png'/>
-                   </div>
-                 </div>
-               </div>";
 
         return( $s );
     }
@@ -294,31 +285,14 @@ $s .= "<script>$sUploadJS</script>";
                  ."<div class='slsrcedit_cvgroup'>";
         $i = 1;
         foreach( $raCV as $r ) {
-            $cOrganic = $r['bOrganic'] ? "slsrcedit_cvorganic" : "";
-            $cStripe = "slsrcedit_stripe".($i%2);
-            $kSRCCV = $r['k'];
-            $iRow = $oForm->GetRowNum();
-            $bOrganic = $r['bOrganic'];
-            $cvEsc = SEEDCore_HSC($r['cv']);
-
-            $s .= "<div class='slsrcedit_cv $cStripe $cOrganic'
-                          kSRCCV='$kSRCCV'
-                          iRow='$iRow'
-                          bOrganic='$bOrganic'>
-                     <div class='slsrcedit_cvOrgBtn'></div>
-                     <div class='slsrcedit_cvName'>$cvEsc</div>
-                     <div class='slsrcedit_cvBtns'>
-                       <img class='slsrcedit_cvBtns_new' height='14' src='".W_CORE_URL."img/ctrl/new01.png'/>
-                       <img class='slsrcedit_cvBtns_edit' height='14' src='".W_CORE_URL."img/ctrl/edit01.png'/>
-                       <img class='slsrcedit_cvBtns_del' height='14' src='".W_CORE_URL."img/ctrl/delete01.png'/>
-                     </div>"
-                     // if any change is requested, put the sfBk here and never remove it. No problem if it's issued when other ctrls don't exist.
-                     ."<div class='slsrcedit_cvCtrlKey'></div>"
-                     // put bOrganic hidden ctrl here if it the state has changed, so it is independent of other ctrls e.g. Edit
-                     ."<div class='slsrcedit_cvCtrlOrg'></div>"
-                     // if an edit/del is requested, put sfBp and sfBd ctrls here, and replace any previous content
-                     ."<div class='slsrcedit_cvCtrls'></div>"
-                 ."</div>";
+            $s .= $this->oTmpl->ExpandTmpl( 'srccv-edit-seededitor-row',
+                                            ['W_CORE_URL'=>W_CORE_URL,  // try to get this in globals
+                                             'kSRCCV' => $r['k'],
+                                             'bOrganic' => $r['bOrganic'],
+                                             'cvName' => $r['cv'],      // escaped naturally by twig
+                                             'iStripe' => ($i%2),
+                                             'iRow'    => $oForm->GetRowNum(),
+                                            ] );
             $i++;
             $oForm->IncRowNum();
         }
@@ -326,239 +300,6 @@ $s .= "<script>$sUploadJS</script>";
         $s .= "</div></div>";
 
         done:
-        return( $s );
-    }
-
-    private function Style()
-    {
-        $s = "<style>
-              .slsrcedit_spName  { display:inline-block; width:363px; font-family:verdana,helvetica,sans serif;font-size:10pt; font-weight:bold; }
-              .slsrcedit_spBtns  { display:inline-block; margin-left:10px; }
-              .slsrcedit_cvgroup { margin:0px 0px 10px 50px; }
-              .slsrcedit_cvOrgBtn { display:inline-block; width:10px; height:10px; margin-right:3px; }
-              .slsrcedit_cvName  { display:inline-block; width:300px; font-family:verdana,helvetica,sans serif;font-size:10pt; }
-
-              /* OrgBtn and Name have different colours depending on their container's .slsrcedit_cvorganic
-               */
-              .slsrcedit_cvOrgBtn { background-color: #aaa; }
-              .slsrcedit_cvorganic
-                  .slsrcedit_cvOrgBtn { background-color: #ada; }
-              .slsrcedit_cvorganic
-                  .slsrcedit_cvName { color: green; background-color:#cec; }
-
-              .slsrcedit_cvBtns  { display:inline-block; margin-left:10px; }
-              .slsrcedit_cvCtrls { display:inline-block; width:50px; font-family:verdana,helvetica,sans serif;font-size:10pt; margin-left:10px; }
-              .slsrcedit_cvCtrlKey  { display:inline-block; }
-              .slsrcedit_cvCtrlOrg  { display:inline-block; }
-
-              .slsrcedit_stripe1 { background-color:#f4f4f4; }
-              .slsrcedit_stripe_new { background-color:#abf; }
-
-              .slsrcedit_err { border:1px solid black;color:red;padding:10px; }
-        </style>";
-
-        $s .= <<<SLSrcEditScript
-              <script>
-
-              var slsrceditRowNum = 0;
-
-              function SLSrcEdit_GetClosestDivCV( e )
-              {
-                  var div_sp = e.closest(".slsrcedit_sp");                      // from the clicked element, search up for the sp div
-                  var div_cv = e.closest(".slsrcedit_cv");                      // from the clicked element, search up for the cv div
-                  return( SLSrcEdit_GetDivCVDetails( div_sp, div_cv ) );
-              }
-
-              function SLSrcEdit_GetDivCVDetails( div_sp, div_cv )
-              {
-                  var o = { divCV        : div_cv,
-                            divCVOrg     : div_cv.find(".slsrcedit_cvOrgBtn"),  // the button that changes bOrganic; also where we keep that <hidden>
-                            divCVName    : div_cv.find(".slsrcedit_cvName"),    //   then down from there to the name
-                            divCVCtrls   : div_cv.find(".slsrcedit_cvCtrls"),   //   and the div where input controls are written (except bOrganic)
-                            divCVCtrlKey : div_cv.find(".slsrcedit_cvCtrlKey"), //   and the div where the sf key is written
-                            divCVCtrlOrg : div_cv.find(".slsrcedit_cvCtrlOrg"), //   and the div where the sf bOrganic ctrl is written
-                            kSRCCV       : div_cv.attr("kSRCCV"),               // the sl_cv_sources._key
-                            iRow         : div_cv.attr("iRow"),                 // the oForm->iR
-                            bOrganic     : div_cv.attr("bOrganic") == 1,        // the bOrganic state (changes when you click the bOrganic button)
-                            osp          : div_sp.attr("osp")                   // the osp of this cv
-                  };
-                  o['ocv'] = o['divCVName'].html();
-                  return( o );
-              }
-
-              function SLSrcEdit_SetCVKey( oDivCV )
-              {
-                  k = oDivCV['kSRCCV'];
-
-                  oDivCV['divCVCtrlKey'].html( "<input type='hidden' name='sfBk"+oDivCV['iRow']+"' value='"+k+"'/>" );
-              }
-
-              function SLSrcEdit_ToggleOrganic( oDivCV )
-              {
-                  var newVal = (oDivCV['bOrganic'] ? 0 : 1);
-
-                  if( oDivCV['bOrganic'] ) {
-                      oDivCV['divCV'].removeClass( 'slsrcedit_cvorganic' );
-                  } else {
-                      oDivCV['divCV'].addClass( 'slsrcedit_cvorganic' );
-                  }
-                  oDivCV['divCV'].attr( 'bOrganic', newVal );
-                  oDivCV['divCVCtrlOrg'].html( "<input type='hidden' name='sfBp"+oDivCV['iRow']+"_bOrganic' value='"+newVal+"' />" );
-                  SLSrcEdit_SetCVKey( oDivCV );
-              }
-
-              function SLSrcEdit_AddNewRow( oDivCV, bBelow )
-              {
-                  //oDivCV['divCVName'].css( 'color', '#000' );
-                  //oDivCV['divCVName'].css( 'text-decoration', 'none' );
-
-                  var s = slsrceditNewCV;
-                  s = s.replace( /%%i%%/g, slsrceditRowNum++ );    // global replace
-                  s = s.replace( /%%osp%%/, oDivCV['osp'] );
-
-                  var oNewCV = null;
-                  if( bBelow ) {
-                      oDivCV['divCV'].after( s );
-                      oNewCV = oDivCV['divCV'].next();
-                  } else {
-                      oDivCV['divCV'].before( s );
-                      oNewCV = oDivCV['divCV'].prev();
-                  }
-
-                  /* jQuery doesn't automatically connect handlers for new DOM elements, so connect them now.
-                   */
-
-                  // Connect the Organic button to the ToggleOrganic function.
-                  $(oNewCV.find('.slsrcedit_cvOrgBtn')).click(function() {
-                      var oDivCVNew = SLSrcEdit_GetClosestDivCV( $(this) );
-                      SLSrcEdit_ToggleOrganic( oDivCVNew );
-                  });
-                  // Connect the New button so you can make yet another new row.
-                  $(oNewCV.find('.slsrcedit_cvBtns_new')).click(function() {
-                      var oDivCVNew = SLSrcEdit_GetClosestDivCV( $(this) );
-                      SLSrcEdit_AddNewRow( oDivCVNew, true );
-                  });
-                  // Define a function for deleting the new row.
-                  $(oNewCV.find('.slsrcedit_cvBtns_delnew')).click(function() {
-                      var oDivCVNew = SLSrcEdit_GetClosestDivCV( $(this) );
-                      oDivCVNew['divCV'].remove();
-                  });
-
-              }
-
-              function SLSrcEdit_Edit( oDivCV )
-              {
-                  // Edit implies an Undo-delete
-                  oDivCV['divCVName'].css( 'color', '#000' );
-                  oDivCV['divCVName'].css( 'text-decoration', 'none' );
-
-                  oDivCV['divCVCtrls'].html( "<input type='text' name='sfBp"+oDivCV['iRow']+"_ocv' value=\""+oDivCV['ocv']+"\"/>" );
-                  SLSrcEdit_SetCVKey( oDivCV );
-              }
-
-              function SLSrcEdit_Delete( oDivCV )
-              {
-                  oDivCV['divCVName'].css( 'color', 'red' );
-                  oDivCV['divCVName'].css( 'text-decoration', 'line-through' );
-
-                  oDivCV['divCVCtrls'].html( "<input type='hidden' name='sfBd"+oDivCV['iRow']+"' value='1'/>" );
-                  SLSrcEdit_SetCVKey( oDivCV );
-              }
-
-              function SLSrcEdit_DeleteKey( kDel )
-              {
-                  var oDivCV = SLSrcEdit_GetDivCVFromKey( kDel );
-                  SLSrcEdit_Delete( oDivCV );
-              }
-              function SLSrcEdit_EditKey( kDel, sCultivar )
-              {
-                  var oDivCV = SLSrcEdit_GetDivCVFromKey( kDel );
-                  if( sCultivar ) oDivCV['ocv'] = sCultivar;
-                  SLSrcEdit_Edit( oDivCV );
-              }
-
-              function SLSrcEdit_GetDivCVFromKey( kSRCCV )
-              {
-                  var j = ".slsrcedit_cv[kSRCCV='"+kSRCCV+"']";
-                  var div_cv = $(j);
-                  var div_sp = div_cv.closest(".slsrcedit_sp");    // search up for the sp div
-                  var oDivCV = SLSrcEdit_GetDivCVDetails( div_sp, div_cv );
-                  return( oDivCV );
-              }
-
-              $(document).ready(function() {
-                  /* Click on the cultivar name to cancel all changes
-                   */
-                  $(".slsrcedit_cvName").click(function() {
-                      var oDivCV = SLSrcEdit_GetClosestDivCV( $(this) );
-
-                      oDivCV['divCVName'].css( 'color', '#000' );
-                      oDivCV['divCVName'].css( 'text-decoration', 'none' );
-
-                      oDivCV['divCVCtrls'].html( "" );
-                      oDivCV['divCVCtrlKey'].html( "" );
-                      oDivCV['divCVCtrlOrg'].html( "" );
-                  });
-
-                  /* Click the New button to create a whole divCV with an empty text input field, and an empty kSrccv
-                   */
-                  $(".slsrcedit_cvBtns_new").click(function() {
-                      var oDivCV = SLSrcEdit_GetClosestDivCV( $(this) );
-                      SLSrcEdit_AddNewRow( oDivCV, true );
-                  });
-                  /* The New button beside the species name opens a new row above the first cv
-                   */
-                  $(".slsrcedit_spBtns_new").click(function() {
-                      var div_sp = $(this).closest(".slsrcedit_sp");                      // from the clicked element, search up for the sp div
-                      var div_cv = div_sp.find(".slsrcedit_cvgroup .slsrcedit_cv:first");
-
-                      var oDivCV = SLSrcEdit_GetDivCVDetails( div_sp, div_cv );
-                      SLSrcEdit_AddNewRow( oDivCV, false );
-                  });
-
-                  /* Click the delete button to delete a cultivar
-                   */
-                  $(".slsrcedit_cvBtns_del").click(function() {
-                      var oDivCV = SLSrcEdit_GetClosestDivCV( $(this) );
-                      SLSrcEdit_Delete( oDivCV );
-                  });
-
-                  /* Click the Edit button to create a text input field, initialize with the cultivar name and kSrccv
-                   */
-                  $(".slsrcedit_cvBtns_edit").click(function() {
-                      var oDivCV = SLSrcEdit_GetClosestDivCV( $(this) );
-                      SLSrcEdit_Edit( oDivCV );
-                  });
-
-                  /* Click the Org button while in N mode to change bOrganic to true
-                   */
-                  $(".slsrcedit_cvOrgBtn").click(function() {
-                      var oDivCV = SLSrcEdit_GetClosestDivCV( $(this) );
-                      SLSrcEdit_ToggleOrganic( oDivCV );
-                  });
-
-              });
-
-
-              var wroot = "../../w/";
-              var slsrceditNewCV =
-                      "<div class='slsrcedit_cv slsrcedit_stripe_new' iRow='%%i%%' kSRCCV='0' bOrganic='0'>                \
-                           <div class='slsrcedit_cvOrgBtn'></div>                                                          \
-                           <div class='slsrcedit_cvName'>                                                                  \
-                               <input type='hidden' name='sfBp%%i%%_osp' value='%%osp%%'/>                                 \
-                               <input type='text' name='sfBp%%i%%_ocv' value=''/>                                          \
-                           </div>                                                                                          \
-                           <div class='slsrcedit_cvBtns' style='margin-left:1px'>                                          \
-                               <img class='slsrcedit_cvBtns_new'    height='14' src='"+wroot+"img/ctrl/new01.png'/>        \
-                               <img class='slsrcedit_cvBtns_delnew' height='14' src='"+wroot+"img/ctrl/delete01.png'>      \
-                           </div>                                                                                          \
-                           <div class='slsrcedit_cvCtrlKey'><input type='hidden' name='sfBk%%i%%' value='0'/></div>        \
-                           <div class='slsrcedit_cvCtrlOrg'></div>                                                         \
-                       </div>";
-
-              </script>
-SLSrcEditScript;
-
         return( $s );
     }
 }
