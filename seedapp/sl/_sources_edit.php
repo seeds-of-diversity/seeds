@@ -128,7 +128,7 @@ $s .= "<script>$sUploadJS</script>";
 
     private function drawCompanySelector()
     {
-        $oForm = new SEEDCoreFormSession( $this->oApp->sess, 'SLSourcesEdit', 'A' );
+        $oForm = new SEEDCoreFormSVA( $this->oSVA->CreateChild('-edit-company'), 'A' );
         $oForm->Update();
         $this->kCompany = $oForm->Value('kCompany');
         $this->sCompanyName = "";
@@ -327,20 +327,18 @@ class SLSourcesAppEditArchive
             goto done;
         }
 
-        $k1 = $this->oSVA->SmartGPC('srccv-edit-archive-k1');
-        $k2 = $this->oSVA->SmartGPC('srccv-edit-archive-k2');
-
-        $oForm = new SEEDCoreForm( 'Plain' );
+        $oForm = new SEEDCoreFormSVA( $this->oSVA->CreateChild('-edit-archive'), 'Plain' );
+        $oForm->Update();
 
         $s .= "<div><form>"
-             .$oForm->Text( 'k1', 'Key 1 ', ['value'=>$k1] )
-             .SEEDCore_NBSP( '     ')
-             .$oForm->Text( 'k2', 'Key 2 ', ['value'=>$k2] )
-             .SEEDCore_NBSP( '     ')
+             .$oForm->Text( 'k1', 'Key 1 ' )
+             .SEEDCore_NBSP('     ')
+             .$oForm->Text( 'k2', 'Key 2 ' )
+             .SEEDCore_NBSP('     ')
              ."<input type='submit'/>"
              ."</form></div>";
 
-        foreach( [$k1,$k2] as $k ) {
+        foreach( [$oForm->Value('k1'),$oForm->Value('k2')] as $k ) {
             if( !$k ) continue;
 
             // using SRCCVxSRC instead of SRCCV_SRC because existence of SRC should be enforced in SRCTMP and integrity tests should validate SRCCVxSRC
