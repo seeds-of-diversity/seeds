@@ -2,7 +2,7 @@
 
 /* SEEDSession
  *
- * Copyright 2006-2018 Seeds of Diversity Canada
+ * Copyright 2006-2019 Seeds of Diversity Canada
  *
  * A wrapper for PHP sessions, with variable access
  */
@@ -79,6 +79,15 @@ class SEEDSessionVarAccessor
         }
         $this->VarSet($k,$p);
         return( $p );
+    }
+
+    function CreateChild( $sNameChild )
+    /**********************************
+        Create a SEEDSessionVarAccessor whose namespace is this one + sNameChild.
+        e.g. if this is ns='myNS' and sNameChild='foobar' make a new SVA with ns='myNSfoobar'
+     */
+    {
+        return( new SEEDSessionVarAccessor( $this->sess, $this->ns.$sNameChild ) );
     }
 }
 
