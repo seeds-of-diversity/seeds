@@ -358,9 +358,9 @@ class SoDOrder_MbrOrder
 
     function CreateFromMbrOrder( int $kOrder )
     {
-        $this->oApp->kfdb->SetDebug(2);
+        //$this->oApp->kfdb->SetDebug(2);
         if( ($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
-            var_dump($kfrMbrOrder->ValuesRA() );
+            //var_dump($kfrMbrOrder->ValuesRA() );
 
             $oB = new SEEDBasket_Basket( $this->oSB, 0 );
 
