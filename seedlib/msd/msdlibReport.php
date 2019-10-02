@@ -1,10 +1,5 @@
 <?php
 
-//include_once( SEEDCORE."SEEDPerms.php" );
-include_once( SEEDCOMMON."doc/docUtil.php" );
-include_once( STDINC."DocRep/DocRepWiki.php" );
-
-
 class MSDLibReport
 {
     private $oMSDLib;
@@ -22,6 +17,9 @@ class MSDLibReport
 
         $report = SEEDInput_Smart( "doReport", array("","JanGrowers","JanSeeds","SeptGrowers","SeptSeeds") );
 
+        // only output the information for growers who don't have email addresses
+        $bNoEmail = SEEDInput_Int( 'noemail' );
+
         switch( $report ) {
             case 'JanGrowers':
                 header( "Content-type: text/html; charset=ISO-8859-1");
@@ -38,12 +36,12 @@ class MSDLibReport
             case 'SeptGrowers':
                 header( "Content-type: text/html; charset=ISO-8859-1");
                 $s .= $this->styleReport()
-                     .$this->septGrowers();
+                     .$this->septGrowers( $bNoEmail );
                 break;
 
             case 'SeptSeeds':
                 $s .= $this->styleReport()
-                     .$this->septSeeds();
+                     .$this->septSeeds( $bNoEmail );
                 break;
 
             case 'aug_gxls':
@@ -150,8 +148,8 @@ class MSDLibReport
         return( $s );
     }
 
-    private function septGrowers()
-    /*****************************
+    private function septGrowers( $bNoEmail )
+    /****************************************
         Grower information form.  This is a DocRep document with merged fields.
         When you print this from the browser, each grower form should fit on one page.
      */
@@ -161,6 +159,8 @@ class MSDLibReport
         $raG = $this->getGrowerTable();
 
         // use obsolete code to create a DocRepDB on seeds2
+        include_once( SEEDCOMMON."doc/docUtil.php" );
+        include_once( STDINC."DocRep/DocRepWiki.php" );
         $kfdb2 = SiteKFDB( 'seeds2' );
         $oDocRepDB = New_DocRepDB_WithMyPerms( $kfdb2, $this->oMSDLib->oApp->sess->GetUID(), array('bReadonly'=>true, 'db'=>'seeds2') );
         $oDocRepWiki = new DocRepWiki( $oDocRepDB, "" );
@@ -175,6 +175,9 @@ class MSDLibReport
             ."</style>";
 
         foreach( $raG as $ra ) {
+            // optionally restrict output to growers who don't have email addresses
+            if( $bNoEmail && $ra['email'] ) continue;
+
             $oDocRepWiki->SetVars( $ra );
             $sDocOutput = $oDocRepWiki->TranslateDoc( "sed_august_grower_package_page1" );
 
@@ -184,8 +187,8 @@ class MSDLibReport
         return( $s );
     }
 
-    private function septSeeds()
-    /***************************
+    private function septSeeds( $bNoEmail )
+    /**************************************
         Seed listings per grower.  When you print this from the browser, each grower should start on a new page.
 
         Parms: g=1234 - just show the given grower
@@ -201,6 +204,7 @@ class MSDLibReport
             ." H2          { font-size: 16pt; }"
             ."</style>";
 
+// TODO: replace this with MSDQ::msdlist-stats
         $cond = "_status=0 and not bDelete";
         $s .= "<H2>Listings for the ".(date("Y")+1)." Member Seed Directory</H2>"
             ."<DIV style='background-color:#f8f8f8'>"
@@ -224,6 +228,9 @@ class MSDLibReport
             while( $kfrG->CursorFetch() ) {
                 $kMbr = $kfrG->Value('mbr_id');
                 $raMbr = $this->oMSDLib->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kMbr'" );
+
+                // optionally restrict output to growers who don't have email addresses
+                if( $bNoEmail && $raMbr['email'] ) continue;
 
                 $rQ = $this->oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$kMbr, 'eStatus'=>"'ACTIVE','INACTIVE'"] );
                 if( !$rQ['bOk'] ) {
