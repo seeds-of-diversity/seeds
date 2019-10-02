@@ -31,7 +31,9 @@ class MSDLib
 
     function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
 
-    function TranslateSpecies2( $sSp ) { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
+    function TranslateCategory( $sCat ) { return( $this->oMSDCore->TranslateCategory( $sCat ) ); }
+    function TranslateSpecies( $sSp )   { return( $this->oMSDCore->TranslateSpecies( $sSp ) ); }
+    function TranslateSpecies2( $sSp )  { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
 
     function KFRelGxM() { return( $this->oMSDCore->KfrelGxM() ); }
 
