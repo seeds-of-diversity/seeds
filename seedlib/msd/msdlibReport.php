@@ -178,7 +178,7 @@ class MSDLibReport
             $oDocRepWiki->SetVars( $ra );
             $sDocOutput = $oDocRepWiki->TranslateDoc( "sed_august_grower_package_page1" );
 
-            $s .= "<style class='docPage'>".$sDocOutput."</style>";
+            $s .= "<div class='docPage'>".$sDocOutput."</div>";
         }
 
         return( $s );
