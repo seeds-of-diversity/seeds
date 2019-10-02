@@ -156,26 +156,32 @@ class MSDLibReport
         When you print this from the browser, each grower form should fit on one page.
      */
     {
+        $s = "";
+
         $raG = $this->getGrowerTable();
 
-        $oDocRepDB = New_DocRepDB_WithMyPerms( $this->sed->kfdb2, $this->sed->sess->GetUID(), array('bReadonly'=>true) );
+        // use obsolete code to create a DocRepDB on seeds2
+        $kfdb2 = SiteKFDB( 'seeds2' );
+        $oDocRepDB = New_DocRepDB_WithMyPerms( $kfdb2, $this->oMSDLib->oApp->sess->GetUID(), array('bReadonly'=>true, 'db'=>'seeds2') );
         $oDocRepWiki = new DocRepWiki( $oDocRepDB, "" );
 
-        echo "<STYLE type='text/css'>"
+        $s .= "<style type='text/css'>"
             ." .docPage    { page-break-after: always; }"
             ." .mbr        { font-family: arial; }"
             ." .mbr H3     { page-break-before: always; font-size: 13pt;}"
             ." .mbr H4     { font-size: 11pt;}"
             ." TD, .inst   { font-size: 9pt; }"
             ." H2          { font-size: 16pt; }"
-            ."</STYLE>";
+            ."</style>";
 
         foreach( $raG as $ra ) {
             $oDocRepWiki->SetVars( $ra );
             $sDocOutput = $oDocRepWiki->TranslateDoc( "sed_august_grower_package_page1" );
 
-            echo "<DIV class='docPage'>".$sDocOutput."</DIV>";
+            $s .= "<style class='docPage'>".$sDocOutput."</style>";
         }
+
+        return( $s );
     }
 
     private function septSeeds()
