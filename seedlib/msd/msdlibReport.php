@@ -8,17 +8,19 @@ include_once( STDINC."DocRep/DocRepWiki.php" );
 class MSDLibReport
 {
     private $oMSDLib;
+    private $oMSDQ;
 
-    function __construct( MSDLib $oMSDLib)
+    function __construct( MSDLib $oMSDLib )
     {
         $this->oMSDLib = $oMSDLib;
+        $this->oMSDQ = new MSDQ( $oMSDLib->oApp, ['config_currYear' => $oMSDLib->GetCurrYear()] );
     }
 
     function Report()
     {
         $s = "";
 
-        $report = SEEDInput_Smart( "doReport", array("","JanGrowers","JanSeeds","aug_g","aug_s","aug_gxls") );
+        $report = SEEDInput_Smart( "doReport", array("","JanGrowers","JanSeeds","SeptGrowers","SeptSeeds") );
 
         switch( $report ) {
             case 'JanGrowers':
@@ -33,16 +35,19 @@ class MSDLibReport
                      .$this->janSeeds();
                 break;
 
-            case 'aug_g':
+            case 'SeptGrowers':
                 header( "Content-type: text/html; charset=ISO-8859-1");
-                $this->Report_Aug_G();
+                $s .= $this->styleReport()
+                     .$this->septGrowers();
                 break;
-            case 'aug_s':
-                header( "Content-type: text/html; charset=ISO-8859-1");
-                $this->Report_Aug_S();
+
+            case 'SeptSeeds':
+                $s .= $this->styleReport()
+                     .$this->septSeeds();
                 break;
+
             case 'aug_gxls':
-                $this->Report_Aug_GXLS();
+//                $this->Report_Aug_GXLS();
                 break;
             default:
                 echo "Unknown report";
@@ -89,6 +94,7 @@ class MSDLibReport
         $s = "";
         $lastCat = $lastSp = "";
 
+// replace this with MSDQ::msdSeedList-GetData
         $oW = new SEEDApp_Worker( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp->lang );
 
         $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
@@ -144,9 +150,10 @@ class MSDLibReport
         return( $s );
     }
 
-    function Report_Aug_G()
-    /**********************
-        Grower information form.  This is a DocRep document with merged fields.  When you print this from the browser, each grower form should fit on one page.
+    private function septGrowers()
+    /*****************************
+        Grower information form.  This is a DocRep document with merged fields.
+        When you print this from the browser, each grower form should fit on one page.
      */
     {
         $raG = $this->getGrowerTable();
@@ -171,100 +178,100 @@ class MSDLibReport
         }
     }
 
-    function Report_Aug_S()
-    /**********************
+    private function septSeeds()
+    /***************************
         Seed listings per grower.  When you print this from the browser, each grower should start on a new page.
 
         Parms: g=1234 - just show the given grower
      */
     {
-        echo "<STYLE type='text/css'>"
+        $s = "";
+
+        $s .= "<style type='text/css'>"
             ." .mbr        { font-family: arial; }"
             ." .mbr H3     { page-break-before: always; font-size: 13pt;}"
             ." .mbr H4     { font-size: 11pt;}"
             ." TD, .inst   { font-size: 9pt; }"
             ." H2          { font-size: 16pt; }"
-            ."</STYLE>";
+            ."</style>";
 
         $cond = "_status=0 and not bDelete";
-        echo "<H2>Listings for the ".(date("Y")+1)." Member Seed Directory</H2>"
+        $s .= "<H2>Listings for the ".(date("Y")+1)." Member Seed Directory</H2>"
             ."<DIV style='background-color:#f8f8f8'>"
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(*) FROM sed_curr_growers where $cond" )." Growers<BR/>"
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond and not bSkip" )." Seed Listings ("
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond" )." including skips)<BR/>"
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond and not bSkip" )." Types ("
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond and not bSkip" )." Varieties ("
-            .$this->sed->kfdb->KFDB_Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_growers where $cond" )." Growers<BR/>"
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond and not bSkip" )." Seed Listings ("
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond" )." including skips)<BR/>"
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond and not bSkip" )." Types ("
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond and not bSkip" )." Varieties ("
+            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
             ."</DIV>";
 
-        $pGid = SEEDSafeGPC_GetInt("g");
+        $nGrowers = $nSeeds = 0;
 
-        $nGrowers = $nSeeds = $nSeedsPerGrower = 0;
+        /* Get list of growers. For each grower get list of seeds and print their listings.
+         */
+        $cond = "NOT G.bDelete";
+        if( ($g = SEEDInput_Int('g')) )  $cond .= " AND G.mbr_id='$g'";
 
-        $mbr_id = 0;
-        $cond = "S.mbr_id=G.mbr_id AND NOT G.bDelete AND NOT S.bDelete";
-        if( $pGid ) $cond .= " AND G.mbr_id='$pGid'";
+        if( ($kfrG = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( $cond, ["sSortCol"=>"M.country,G.mbr_code"]) ) ) {
+            while( $kfrG->CursorFetch() ) {
+                $kMbr = $kfrG->Value('mbr_id');
+                $raMbr = $this->oMSDLib->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kMbr'" );
 
-// Would like to make this a three-way join with M, get the member name below, sort this by M.country,G.mbr_code,category,type,variety
-        if( ($kfrS = $this->sed->kfrelSxG->CreateRecordCursor( $cond, array("sSortCol"=>"G.mbr_code,category,type,variety")) ) ) {
-            while( $kfrS->CursorFetch() ) {
-                ++$nSeeds;
-                ++$nSeedsPerGrower;
+                $rQ = $this->oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$kMbr, 'eStatus'=>'ALL'] );
+                if( !$rQ['bOk'] ) {
+                    $s .= "<p>Error reading MSD data for grower $kMbr</p>";
+                }
 
-                if( $mbr_id != $kfrS->value('mbr_id') ) {
-                    if( $mbr_id ) {
-                        $this->augS_footer( $nSeedsPerGrower );
-                    }
-                    $mbr_id = $kfrS->value('mbr_id');
-
-                    ++$nGrowers;
-                    $nSeedsPerGrower = 0;
-
-                    $raMbr = $this->sed->kfdb2->KFDB_QueryRA("SELECT * FROM mbr_contacts WHERE _key='$mbr_id'");
-
-                    echo "<DIV class='mbr'>"
-                        ."<H3>".$kfrS->value('G_mbr_code')." - ".$raMbr['firstname']." ".$raMbr['lastname']." ".$raMbr['company']."</H3>"
-                        ."<H4>Listings for Seeds of Diversity's ".(date("Y")+1)." Member Seed Directory</H4>"
+                $s .= "<div class='mbr'>"
+                        ."<H3>".$kfrG->value('mbr_code')." - ".$raMbr['firstname']." ".$raMbr['lastname']." ".$raMbr['company']."</H3>"
+                        ."<H4>Listings for Seeds of Diversity's ".$this->oMSDLib->GetCurrYear()." Member Seed Directory</H4>"
                         ."<UL class='inst'>"
                         ."<LI>Please make corrections in red ink.</LI>"
                         ."<LI>To permanently remove a listing, draw a large 'X' through it.</LI>"
-                        ."<LI>To temporarily remove a listing from the ".(date("Y")+1)." directory, but keep it on this list next summer, check \"Skip a Year\".</LI>"
+                        ."<LI>To temporarily remove a listing from the ".$this->oMSDLib->GetCurrYear()." directory, but keep it on this list next fall, check \"Skip a Year\".</LI>"
                         ."</UL>";
+
+                foreach( $rQ['raOut'] as $raS ) {
+                    $s .= $this->septSeedsDrawListing( $raS, $kfrG->value('mbr_code') );
                 }
-                $this->augS_drawListing( $kfrS );
+
+                $nS = count($rQ['raOut']);
+                $s .= "<p style='font-size: 7pt;'>$nS listing".($nS !== 1 ? "s" : "")."</p>"
+                     ."</div>\n";  // mbr
+
+                $nSeeds += $nS;
+                ++$nGrowers;
             }
-            $this->augS_footer( $nSeedsPerGrower );
         }
 
-        echo "<P style='page-break-before: always;'>"
+        $s .= "<P style='page-break-before: always;'>"
              .$nGrowers." growers<BR>"
              .$nSeeds." listings"
              ."</P>";
+
+         return( $s );
     }
 
-    function augS_footer( $nSeedsPerGrower )
-    /***************************************
+    private function septSeedsDrawListing( $raS, $mbrCode )
+    /******************************************************
      */
     {
-        echo "<P style='font-size: 7pt;'>$nSeedsPerGrower listing".($nSeedsPerGrower > 1 ? "s" : "")."</P>"
-            ."</DIV>\n";  // mbr
-    }
+        $raS['T-category'] = $this->oMSDLib->TranslateCategory( $raS['category'] );
+        $raS['T-species'] = $this->oMSDLib->TranslateSpecies( $raS['species'] );
 
-    function augS_drawListing( $kfrS )
-    /*********************************
-     */
-    {
-        echo "<P style='page-break-inside: avoid;'>"
+        $s = "<P style='page-break-inside: avoid;'>"
              ."<TABLE border=0 width='100%'>"
              ."<TR><TD valign='top'>"
              ."<B><INPUT type='checkbox'> Skip a year</B>";
-        if( $kfrS->value('bSkip') ) echo " (skipped last year)";
-        echo "</TD>"
-            ."<TD align='right' valign='top' style='font-size: 7pt;'>".$kfrS->value('G_mbr_code')." listed since ".$kfrS->value('year_1st_listed')."</TD></TR>"
+        if( $raS['eStatus'] == 'INACTIVE' )  $s .= " (skipped last year)";
+        $s .= "</TD>"
+            .SEEDCore_ArrayExpand( $raS,
+                "<TD align='right' valign='top' style='font-size: 7pt;'>$mbrCode listed since [[year_1st_listed]]</TD></TR>"
 
-            .$kfrS->Expand( "<TR><TD valign='top' width='50%'><B>Category:</B> [[category]]</TD>"
-                               ."<TD valign='top' width='50%'><B>Type:</B> [[type]]</TD></TR>"
+                ."<TR><TD valign='top' width='50%'><B>Category:</B> [[T-category]]</TD>"
+                               ."<TD valign='top' width='50%'><B>Type:</B> [[T-species]]</TD></TR>"
 
                            ."<TR><TD colspan=2 valign='top' width='100%'><B>Variety:</B> [[variety]]</TD></TR>"
 
@@ -278,6 +285,8 @@ class MSDLibReport
 
             ."</TABLE></P>"
             ."<HR/>";
+
+        return( $s );
     }
 
 
@@ -351,14 +360,11 @@ class MSDLibReport
     {
         $raG = array();
 
-        $cond = "G.mbr_id=M._key AND NOT G.bDelete";    // the join condition could be removed if G.fk_mbr_contacts is implemented instead, even though the tables are in different databases
-        if( !$bInclSkip ) {
-            $cond .= " AND NOT G.bSkip";
-        }
+        $cond = "NOT G.bDelete";
+        if( !$bInclSkip )                $cond .= " AND NOT G.bSkip";
+        if( ($g = SEEDInput_Int('g')) )  $cond .= " AND G.mbr_id='$g'";
 
-if( !empty($_REQUEST['g']) ) $cond .= " AND G.mbr_id='".intval($_REQUEST['g'])."'";
-
-        if( ($kfrG = $this->sed->kfrelGxC->CreateRecordCursor( $cond, array("sSortCol"=>"M.country,G.mbr_code")) ) ) {
+        if( ($kfrG = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( $cond, ["sSortCol"=>"M.country,G.mbr_code"]) ) ) {
             while( $kfrG->CursorFetch() ) {
 
                 $ra = array();
