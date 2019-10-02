@@ -219,7 +219,7 @@ class MSDLibReport
                 $kMbr = $kfrG->Value('mbr_id');
                 $raMbr = $this->oMSDLib->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kMbr'" );
 
-                $rQ = $this->oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$kMbr, 'eStatus'=>'ALL'] );
+                $rQ = $this->oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$kMbr, 'eStatus'=>"'ACTIVE','INACTIVE'"] );
                 if( !$rQ['bOk'] ) {
                     $s .= "<p>Error reading MSD data for grower $kMbr</p>";
                 }
