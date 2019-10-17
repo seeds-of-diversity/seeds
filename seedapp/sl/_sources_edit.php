@@ -133,19 +133,7 @@ $s .= "<script>$sUploadJS</script>";
         $this->kCompany = $oForm->Value('kCompany');
         $this->sCompanyName = "";
 
-        $raSrc = $this->oSrcLib->oSrcDB->GetList( 'SRC', '_key>=3', ['sSortCol'=>'name_en'] );
-        $raOpts = [ " -- Choose a Company -- " => 0 ];
-        foreach( $raSrc as $ra ) {
-            if( $this->kCompany && $this->kCompany == $ra['_key'] ) {
-                $this->sCompanyName = $ra['name_en'];
-            }
-            $raOpts[$ra['name_en']] = $ra['_key'];
-        }
-
-        $s = "<div style='padding:1em'><form method='post' action=''>"
-            .$oForm->Select( 'kCompany', $raOpts )
-            ."<input type='submit' value='Choose'/>"
-            ."</form></div>";
+        list($s,$this->sCompanyName) = $this->oSrcLib->DrawCompanySelector( $oForm, 'kCompany' );
 
         return( $s );
     }

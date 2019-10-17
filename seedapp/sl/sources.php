@@ -10,6 +10,7 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( SEEDLIB."sl/sources/sl_sources_lib.php" );
 include_once( "_sources_edit.php" );
 include_once( "_sources_download.php" );
 
