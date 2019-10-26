@@ -70,9 +70,11 @@ class SEEDUI
 
         /* Set default attrs for links and forms
          */
-        foreach( array( 'sListUrlPage'   => $_SERVER['PHP_SELF'],
+// see SEEDAppBase::PathToSelf() re the use of HSC
+// ideally this should be using PathToSelf() anyway
+        foreach( array( 'sListUrlPage'   => SEEDCore_HSC($_SERVER['PHP_SELF']),
                         'sListUrlTarget' => "_top",
-                        'sFormAction'    => $_SERVER['PHP_SELF'],
+                        'sFormAction'    => SEEDCore_HSC($_SERVER['PHP_SELF']),
                         'sFormMethod'    => "post",
                         'sFormTarget'    => "_top" )
                  as $k => $v )
@@ -1540,7 +1542,9 @@ class SEEDUIWidgets_Pills   // does not depend on SEEDWidget_Base or SEEDUICompo
             ."<ul class='nav nav-pills nav-stacked'>";
         foreach( $this->raPills as $k => $ra ) {
             $active = ($k == $this->currPill) ? "active" : "notactive";
-            $s .= "<li class='$active'><a href='{$_SERVER['PHP_SELF']}?{$this->httpKeyName}=$k'>{$ra[0]}</a></li>";
+// this should be using SEEDAppBase::PathToSelf()
+$path = SEEDCore_HSC($_SERVER['PHP_SELF']);
+            $s .= "<li class='$active'><a href='$path?{$this->httpKeyName}=$k'>{$ra[0]}</a></li>";
         }
         $s .= "</ul>";
 

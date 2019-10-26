@@ -9,14 +9,13 @@ class SLProfilesReport
 {
     private $oProfilesDB;
     private $oProfilesDefs;
-    private $lang;
+    private $oApp;
 
-    function __construct( SLProfilesDB $oProfilesDB, SLProfilesDefs $oProfilesDefs, $lang, $raParms = array() )
+    function __construct( SLProfilesDB $oProfilesDB, SLProfilesDefs $oProfilesDefs, SEEDAppBase $oApp, $raParms = array() )
     {
         $this->oProfilesDB   = $oProfilesDB;
         $this->oProfilesDefs = $oProfilesDefs;
-        $this->lang = $lang;
-
+        $this->oApp = $oApp;
     }
 
     function DrawVIRecord( $kVI, $bBasic = true )
@@ -180,7 +179,7 @@ class SLProfilesReport
 
 
 // Use SEEDUI to format the form
-        $s = "<form method='post' action='${_SERVER['PHP_SELF']}'>"
+        $s = "<form method='post' action='".$this->oApp->PathToSelf()."'>"
             ."<div style='border:1px solid #eee;padding:10px'>"
             .SEEDForm_Hidden( 'action', 'profileUpdate' )
             .$oUIComp->HiddenFormUIParms( array('kCurr','sortup','sortdown') )

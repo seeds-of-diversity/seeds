@@ -111,7 +111,7 @@ class UsersGroupsPermsUI
                         ."<div>".$sList."</div>"
                     ."</div>"
                     ."<div class='col-md-6'>"
-                        ."<div style='margin-bottom:5px'><a href='".$_SERVER['PHP_SELF']."?sfUk=0'><button>New</button></a>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
+                        ."<div style='margin-bottom:5px'><a href='".$this->oApp->PathToSelf()."?sfUk=0'><button>New</button></a>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
                         ."<div style='width:90%;padding:20px;border:2px solid #999'>".$sForm."</div>"
                     ."</div>"
                 ."</div>"
@@ -154,7 +154,7 @@ class UsersGroupsPermsUI
         // group add/remove
         $oFormB = new SEEDCoreForm( "B" );
         $sG .= "<div>"
-              ."<form action='{$_SERVER['PHP_SELF']}' method='post'>"
+              ."<form action='".$this->oApp->PathToSelf()."' method='post'>"
               //.$this->oComp->EncodeHiddenFormParms()
               //.SEEDForm_Hidden( 'uid', $kUser )
               //.SEEDForm_Hidden( 'form', "UsersXGroups" )
@@ -185,7 +185,7 @@ class UsersGroupsPermsUI
 /*
             // Metadata Add/Remove
             $s .= "<BR/>"
-                 ."<FORM action='{$_SERVER['PHP_SELF']}' method='post'>"
+                 ."<FORM action='".$this->oApp->PathToSelf()."' method='post'>"
                  .$this->oComp->EncodeHiddenFormParms()
                  .SEEDForm_Hidden( 'uid', $kUser )
                  .SEEDForm_Hidden( 'form', "UsersMetadata" )
