@@ -6,6 +6,9 @@
  * Copyright 2014-2019 Seeds of Diversity Canada
  *
  * Manage 3-d tabular data as sheets, rows, columns
+ *
+ * SEEDTableSheets      - data class that manages a 3-d table
+ * SEEDTableSheetsFile  - reads/writes XLSX and CSV files
  */
 
 class SEEDTableSheets
@@ -139,3 +142,167 @@ class SEEDTableSheets
         return( $s );
     }
 }
+
+
+class SEEDTableSheetsFile
+/************************
+    Read/write SEEDTableSheets from/to files
+ */
+{
+    private $raConfig;
+
+    function __construct( $raConfig = array() )
+    {
+        $this->raConfig = $raConfig;
+    }
+
+    function LoadFromFile( $filename, $raParms = array() )
+    /*****************************************************
+        Read a file and return a SEEDTableSheets
+
+        $raParms:
+            fmt          = xls (default) | csv
+            charset-file = utf-8 (default) | cp1252                                  ; not used for xls because it has to be utf-8
+            sheets       = array of the sheets to load (by name or 1-origin number)  ; default all
+     */
+    {
+        $ok = false;
+        $sErr = "";
+
+        $raParms = $this->normalizeParms($raParms);
+
+        $oSheets = new SEEDTableSheets();
+
+        if( @$raParms['fmt'] == 'csv' ) {
+            list($ok,$sErr) = $this->loadFromCSV( $oSheets, $filename, $raParms );
+        } else {
+            list($ok,$sErr) = $this->loadFromXLSX( $oSheets, $filename, $raParms );
+        }
+var_dump("A");
+        if( !$ok )  $oSheets = null;
+
+        return( array($oSheets,$sErr) );
+    }
+
+    function WriteToFile( $oSheets, $filename, $raParms = array() )
+    /**************************************************************
+        Write the given SEEDTableSheets to a file
+
+        $raParms:
+            fmt          = xls (default) | csv
+            charset-file = utf-8 (default) | cp1252                                   ; not used for xls because it has to be utf-8
+            sheets       = array of the sheets to write (by name or 1-origin number)  ; default all for xls, 1 for csv
+     */
+    {
+        $ok = false;
+        $sErr = "";
+
+        $raParms = $this->normalizeParms($raParms);
+
+        if( @$raParms['fmt'] == 'csv' ) {
+            list($ok,$sErr) = $this->writeToCSV( $oSheets, $filename, $raParms );
+        } else {
+            list($ok,$sErr) = $this->writeToXLSX( $oSheets, $filename, $raParms );
+        }
+
+        return( array($ok,$sErr) );
+    }
+
+    function normalizeParms( $raParms )
+    {
+        $raParms['fmt'] = SEEDCore_ArraySmartVal( $raParms, 'fmt', ['xls','csv'] );
+        switch( $raParms['fmt'] ) {
+            case 'xls':
+                $raParms['charset-file'] = 'utf-8';
+                break;
+            case 'csv':
+                $raParms['charset-file'] = SEEDCore_ArraySmartVal( $raParms, 'charset', ['utf-8','cp1252'] );
+                $raParms['sheets'] = @$raParms['sheets'] ? array($raParms['sheets'][0]) : array(1);
+                break;
+        }
+
+        return( $raParms );
+    }
+
+    function loadFromCSV( $oSheets, $filename, $raParms )
+    {
+        $ok = false;
+        $sErr = "";
+
+
+        return( array($ok,$sErr) );
+    }
+
+    function writeToCSV( $oSheets, $filename, $raParms )
+    {
+        $ok = false;
+        $sErr = "";
+
+
+        return( array($ok,$sErr) );
+    }
+
+    function loadFromXLSX( $oSheets, $filename, $raParms )
+    {
+        $ok = false;
+        $sErr = "";
+
+
+        return( array($ok,$sErr) );
+    }
+
+    function writeToXLSX( $oSheets, $filename, $raParms )
+    {
+        $ok = false;
+        $sErr = "";
+
+
+        return( array($ok,$sErr) );
+    }
+}
+
+
+function SEEDTableSheets_LoadFromFile( $filename, $raParms = array() )
+/*********************************************************************
+    Read a spreadsheet file, return an array of rows
+
+    raSEEDTableSheetsFileParms     = the parms for SEEDTableSheetsFile()
+    raSEEDTableSheetsLoadParms = the parms for SEEDTableSheetsFile::LoadFromFile()
+ */
+{
+    $bOk = false;
+    $sErr = "";
+    $raRows = array();
+
+    $oFile = new SEEDTableSheetsFile( @$raParms['raSEEDTableSheetsFileParms'] );
+
+    list($oSheets,$sErr) = $oFile->LoadFromFile( $filename, @$raParms['raSEEDTableSheetsLoadParms'] );
+
+    return( [ $oSheets, $sErr ] );
+}
+
+
+function SEEDTableSheets_LoadFromUploadedFile( $fileIndex, $raParms )
+/********************************************************************
+    Read a spreadsheet file that was uploaded as $FILE[$fileIndex]
+ */
+{
+    $oSheets = null;
+    $sErr = "";
+
+    $f = @$_FILES[$fileIndex];
+    if( $f && !@$f['error'] ) {
+        list($oSheets,$sErr) = SEEDTableSheets_LoadFromFile( $f['tmp_name'], $raParms );
+    } else {
+        $sErr = "The upload was not successful. ";
+        if( $f['size'] == 0 ) {
+            $sErr .= "No file was uploaded.  Please try again.";
+        } else if( !isset($f['error']) ) {
+            $sErr .= "No error was recorded.  Please tell Bob.";
+        } else {
+            $sErr .= "Please tell Bob that error # ${f['error']} was reported.";
+        }
+    }
+    return( [$oSheets,$sErr] );
+}
+

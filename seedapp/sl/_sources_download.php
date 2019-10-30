@@ -1,8 +1,9 @@
 <?php
 
+include_once( SEEDCORE."SEEDTableSheets.php" );
+include_once( SEEDCORE."console/console02ui.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_db.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_cv_upload.php" );
-include_once( SEEDCORE."console/console02ui.php" );
 
 class SLSourcesAppDownload
 {
@@ -158,23 +159,24 @@ class SLSourcesAppDownload
         switch( SEEDInput_Str('upfile-format') ) {
             case 'xls':
             default:
-                $raSEEDTableLoadParms['bCSV'] = false;
+                $raSEEDTableLoadParms['fmt'] = 'xlsx';
                 $raSEEDTableLoadParms['charset-file'] = "utf-8";    // not actually used because xls is always utf-8
                 break;
             case 'csv-utf8':
-                $raSEEDTableLoadParms['bCSV'] = true;
+                $raSEEDTableLoadParms['fmt'] = 'csv';
                 $raSEEDTableLoadParms['charset-file'] = "utf-8";
                 break;
             case 'csv-win1252':
-                $raSEEDTableLoadParms['bCSV'] = true;
+                $raSEEDTableLoadParms['fmt'] = 'csv';
                 $raSEEDTableLoadParms['charset-file'] = "Windows-1252";
                 break;
         }
 
-        list($ok,$raRows,$sErrMsg) = SEEDTable_LoadFromUploadedFile( 'upfile', [ 'raSEEDTableDef'=> $this->companyTableDef,
-                                                                                 'raSEEDTableLoadParms' => $raSEEDTableLoadParms ] );
-        if( !$ok ) {
-            $this->oApp->oC->ErrMsg( $sErrMsg );
+        list($oSheets,$sErrMsg) = SEEDTableSheets_LoadFromUploadedFile( 'upfile',
+                                        [ 'raSEEDTableSheetsFileParms'=> ['tabledef' => $this->companyTableDef],
+                                          'raSEEDTableSheetsLoadParms' => $raSEEDTableLoadParms ] );
+        if( !$oSheets ) {
+            $this->oApp->oC->AddErrMsg( $sErrMsg );
             goto done;
         }
         $s .= "<p>File uploaded successfully.</p>";
