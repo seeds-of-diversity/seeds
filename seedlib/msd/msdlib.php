@@ -83,6 +83,54 @@ class MSDLib
         return( $s );
     }
 
+    function AdminCopyToArchive( $year )
+    /***********************************
+        Delete all archive records for $year.
+        Copy current active growers and seeds to archive and give them $year.
+     */
+    {
+        $ok = true;
+        $s = "";
+
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sed_growers WHERE year='$year'" );
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sed_seeds WHERE year='$year'" );
+
+        /* Archive growers
+         */
+        $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,notes, _created,_created_by,_updated,_updated_by";
+        $sql = "INSERT INTO seeds.sed_growers (_key,_status, year, $fields )"
+              ."SELECT NULL,0, '$year', $fields "
+              ."FROM seeds.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
+        if( $this->oApp->kfdb->Execute($sql) ) {
+            $s .= "<h4 style='color:green'>Growers Successfully Archived</h4>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>";
+        } else {
+            $s .= "<h4 style='color:red'>Archiving Growers Failed</h4>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>"
+                 ."<p style='margin-left:30px'><pre>".$this->oApp->kfdb->GetErrMsg()."</pre></p>";
+            $ok = false;
+        }
+
+
+        /* Archive seeds
+         */
+        $fields = "mbr_id,category,type,variety,bot_name,days_maturity,quantity,origin,year_1st_listed,description";
+        $sql = "INSERT INTO seeds.sed_seeds (_key,_created,_created_by,_updated,_updated_by,_status, '$year', $fields )"
+              ."SELECT NULL,NOW(),".$this->oApp->sess->GetUID().",NOW(),".$this->oApp->sess->GetUID().",0, $fields "
+              ."FROM seeds.sed_curr_seeds WHERE _status=0 AND NOT bSkip AND NOT bDelete";
+        if( $this->oApp->kfdb->Execute($sql) ) {
+            $s .= "<h4 style='color:green'>Seeds Successfully Archived</h3>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>";
+        } else {
+            $s .= "<h4 style='color:red'>Archiving Seeds Failed</h4>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>"
+                 ."<p style='margin-left:30px'><pre>".$this->oApp->kfdb->GetErrMsg()."</pre></p>";
+            $ok = false;
+        }
+
+        return( array( $ok, $s ) );
+    }
+
     function DrawGrowerBlock( KeyFrameRecord $kfrGxM, $bFull = true )
     {
         $s = $kfrGxM->Expand( "<b>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
