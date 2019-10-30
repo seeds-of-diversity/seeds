@@ -462,7 +462,7 @@ class SEEDCoreFormElements
     {
         if( is_string($raParms) ) {
             // a common mistake to put a string in the second argument
-            if( STD_isLocal ) {
+            if( SEED_isLocal ) {
                 die( "Hidden arg $raParms should be an array" );
             } else {
                 // try to solve this

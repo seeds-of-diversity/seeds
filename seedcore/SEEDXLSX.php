@@ -2,12 +2,24 @@
 
 /* SEEDXLSX
  *
- * Copyright (c) 2018 Seeds of Diversity Canada
+ * Copyright (c) 2014-2019 Seeds of Diversity Canada
  *
  * Read and write spreadsheet files
  */
 
 require_once SEEDROOT.'/vendor/autoload.php';   // PhpOffice/PhpSpreadsheet
+
+class SEEDXlsRead
+{
+    private $oXLS;
+
+    function __construct()
+    {
+
+    }
+
+
+}
 
 
 class SEEDXlsWrite
@@ -15,9 +27,9 @@ class SEEDXlsWrite
     private $oXls;
     private $filename;
 
-    function __construct( $raParms = array() )
+    function __construct( $raConfig = array() )
     {
-        $nSheets = @$raParms['nSheets'] ?: 1;
+        $nSheets = @$raConfig['nSheets'] ?: 1;
 
         // Initialize the spreadsheet with the right number of sheets (one is created by default)
         $this->oXls = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -26,15 +38,15 @@ class SEEDXlsWrite
         }
 
         // Set document properties
-        $this->oXls->getProperties()->setCreator(@$raParms['creator'])
-            ->setLastModifiedBy(@$raParms['author'])
-            ->setTitle(@$raParms['title'])
-            ->setSubject(@$raParms['subject'])
-            ->setDescription(@$raParms['description'])
-            ->setKeywords(@$raParms['keywords'])
-            ->setCategory(@$raParms['category']);
+        $this->oXls->getProperties()->setCreator(@$raConfig['creator'])
+            ->setLastModifiedBy(@$raConfig['author'])
+            ->setTitle(@$raConfig['title'])
+            ->setSubject(@$raConfig['subject'])
+            ->setDescription(@$raConfig['description'])
+            ->setKeywords(@$raConfig['keywords'])
+            ->setCategory(@$raConfig['category']);
 
-        $this->filename = @$raParms['filename'] ?: "spreadsheet.xlsx";
+        $this->filename = @$raConfig['filename'] ?: "spreadsheet.xlsx";
     }
 
     function OutputSpreadsheet()
@@ -94,6 +106,7 @@ class SEEDXlsWrite
         Sheet numbers are origin-0, rows are origin-1
      */
     {
+// replace this all with WriteRow($iSheet, '1', $raCols)
         $oSheet = $this->oXls->setActiveSheetIndex( $iSheet );
 
         // Set the headers in row 1
@@ -128,5 +141,3 @@ class SEEDXlsWrite
         $oSheet->getStyle("$sCol$iRow")->applyFromArray($raStyle);
     }
 }
-
-?>
