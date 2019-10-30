@@ -304,7 +304,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $s = "";
 
         if( $this->GetMailStatus_Pending($kfr) && $kfr->Value('eStatus') != MBRORDER_STATUS_CANCELLED &&
-            in_array( $this->oApp->sess->GetUID(), array( 1, 1499 /*, 10914*/ ) ) )  // dev, Bob, Christine
+            in_array( $this->oApp->sess->GetUID(), array( 1, 1499, 10914 ) ) )  // dev, Bob, Christine
         {
             $kOrder = $kfr->Key();
             $s .= "<div id='status2x_$kOrder' class='status2x'><button>Nothing to mail</button></div>";
@@ -358,9 +358,9 @@ class SoDOrder_MbrOrder
 
     function CreateFromMbrOrder( int $kOrder )
     {
-        $this->oApp->kfdb->SetDebug(2);
+        //$this->oApp->kfdb->SetDebug(2);
         if( ($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
-            var_dump($kfrMbrOrder->ValuesRA() );
+            //var_dump($kfrMbrOrder->ValuesRA() );
 
             $oB = new SEEDBasket_Basket( $this->oSB, 0 );
 

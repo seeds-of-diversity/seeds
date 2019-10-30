@@ -2,7 +2,7 @@
 
 /* SEEDApp
  *
- * Copyright (c) 2017-2018 Seeds of Diversity Canada
+ * Copyright (c) 2017-2019 Seeds of Diversity Canada
  *
  * Common classes and functions useful across Seed Apps
  */
@@ -16,16 +16,19 @@ include_once( SEEDCORE."console/console02.php" );
 
 class SEEDAppBase
 /****************
-    Properties that an application should know about
+    Properties that every application should know about
  */
 {
     public $lang = 'EN';
     public $logdir = '';    // directory where this application writes log files
 
+    private $fnPathToSelf = null;
+
     function __construct( $raConfig )
     {
-        if( isset($raConfig['lang']) )    $this->lang = $raConfig['lang'];
-        if( isset($raConfig['logdir']) )  $this->logdir = $raConfig['logdir'];
+        if( isset($raConfig['lang']) )          $this->lang = $raConfig['lang'];
+        if( isset($raConfig['logdir']) )        $this->logdir = $raConfig['logdir'];
+        if( isset($raConfig['fnPathToSelf']) )  $this->fnPathToSelf = $raConfig['fnPathToSelf'];
     }
 
     function Log( $file, $s )
@@ -34,6 +37,23 @@ class SEEDAppBase
             fwrite( $fp, sprintf( "-- %d %s %s\n", time(), date("Y-m-d H:i:s"), $s ) );
             fclose( $fp );
         }
+    }
+
+    function PathToSelf()
+    /********************
+        Return the path that will make a link or form go to the current page.
+
+        Note <form action=""> is not desirable because it defaults to the current browser address including any GET parms that are currently there
+     */
+    {
+        if( $this->fnPathToSelf ) {
+            $s = call_user_func( $this->fnPathToSelf );
+        } else {
+            // PHP_SELF is unsafe because page requests can look like seeds.ca/foo/index.php/"><script>alert(1);</script><span class="
+            // Use htmlspecialchars to make injected JS non-parseable
+            $s = SEEDCore_HSC($_SERVER['PHP_SELF']);
+        }
+        return( $s );
     }
 }
 
