@@ -134,7 +134,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
         }
         $raYearOpt["2010 and before"] = 2010;
 
-        $s .= "<form action='${_SERVER['PHP_SELF']}'>"
+        $s .= "<form action='".$this->oApp->PathToSelf()."'>"
              ."<p>Show: "
              .SEEDForm_Select2( 'fltStatus',
                         array( "Not Accounted" => "Not-accounted",
@@ -227,7 +227,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     $kMbr = @$ra['mbrid'] ?: 0;
 
     $sOrderNum
-        = $kfr->Expand( "<a href='".$_SERVER['PHP_SELF']."?row=[[_key]]'>[[_key]]</a>"
+        = $kfr->Expand( "<a href='?row=[[_key]]'>[[_key]]</a>"
                        ."<div style='float:right; padding-right:15px'>".substr($kfr->value('_created'),0,10)."</div>"
                        ."<br/><br/>"
                        ."<div><form action='http://seeds.ca/office/mbr/mbr_labels.php' target='MbrLabels' method='get'>"

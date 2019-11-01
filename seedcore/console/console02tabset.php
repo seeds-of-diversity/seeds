@@ -95,14 +95,14 @@ class Console02TabSet
                 $label = $raTab['label'];
                 $raLinkParms = $this->TabSetExtraLinkParms( $tsid, $tabname, array('bCurrent'=>true) );
                 $raLinkParms[$this->tsLinkPrefix.$tsid] = $tabname;
-                $label = "<a href='{$_SERVER['PHP_SELF']}?".SEEDCore_ParmsRA2URL($raLinkParms)."' style='color:inherit;text-decoration:none'>{$raTab['label']}</a>";
+                $label = "<a href='?".SEEDCore_ParmsRA2URL($raLinkParms)."' style='color:inherit;text-decoration:none'>{$raTab['label']}</a>";
 
             } else if( $eAllowed == self::PERM_SHOW ) {
                 // This is an available non-current tab. Put a link in it.
                 $class = 'console02-tabset-tab-link';
                 $raLinkParms = $this->TabSetExtraLinkParms( $tsid, $tabname, array('bCurrent'=>false) );
                 $raLinkParms[$this->tsLinkPrefix.$tsid] = $tabname;
-                $label = "<a href='{$_SERVER['PHP_SELF']}?".SEEDCore_ParmsRA2URL($raLinkParms)."' style='color:inherit;text-decoration:none'>{$raTab['label']}</a>";
+                $label = "<a href='?".SEEDCore_ParmsRA2URL($raLinkParms)."' style='color:inherit;text-decoration:none'>{$raTab['label']}</a>";
 
             } else {
                 // This is a ghost tab. It has no link so nothing happens if you click on it.

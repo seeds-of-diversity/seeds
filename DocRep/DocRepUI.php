@@ -76,7 +76,7 @@ class DocRepUI
     {
         $kDoc = $oDoc->GetKey();
 
-        $s = "<a href='${_SERVER['PHP_SELF']}?k=$kDoc'><nobr>"
+        $s = "<a href='?k=$kDoc'><nobr>"
             .( $raTitleParms['bSelectedDoc'] ? "<span class='DocRepTree_titleSelected'>" : "" )
             .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
             .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )

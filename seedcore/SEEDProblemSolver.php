@@ -222,7 +222,7 @@ class SEEDProblemSolver
         $s = "";
 
         if( @$def['remedySql'] || @$def['remedyFn'] ) {
-            $s .= "<a href='{$_SERVER['PHP_SELF']}?spsSolve".(($eMode=='Confirm') ? "Confirmed" : "")."=$k'>"
+            $s .= "<a href='?spsSolve".(($eMode=='Confirm') ? "Confirmed" : "")."=$k'>"
                  ."Solve this problem</a> : <i>".SEEDCore_HSC($def['remedySql'])."</i>";
             if( @$def['remedySql'] && @$this->raParms['bShowSql'] ) {
                 $s .= "<div style='color:gray;font-size:7pt;margin-left:20px;margin-bottom:10px'>"

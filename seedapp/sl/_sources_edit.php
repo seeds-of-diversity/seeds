@@ -159,7 +159,7 @@ $s .= "<script>$sUploadJS</script>";
         // only allow upload of one company at a time
         if( $this->kCompany ) {
             $sUpload = "<p>Upload a spreadsheet of {$this->sCompanyName}</p>"
-                      ."<form style='width:100%;text-align:left' action='{$_SERVER['PHP_SELF']}' method='post' enctype='multipart/form-data'>"
+                      ."<form style='width:100%;text-align:left' action='".$this->oApp->PathToSelf()."' method='post' enctype='multipart/form-data'>"
                       ."<div style='margin:0px auto;width:60%'>"
                       ."<input type='hidden' name='MAX_FILE_SIZE' value='10000000' />"
                       ."<input type='hidden' name='cmd' value='upload' />"

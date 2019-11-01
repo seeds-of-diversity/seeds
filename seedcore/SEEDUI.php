@@ -1542,9 +1542,7 @@ class SEEDUIWidgets_Pills   // does not depend on SEEDWidget_Base or SEEDUICompo
             ."<ul class='nav nav-pills nav-stacked'>";
         foreach( $this->raPills as $k => $ra ) {
             $active = ($k == $this->currPill) ? "active" : "notactive";
-// this should be using SEEDAppBase::PathToSelf()
-$path = SEEDCore_HSC($_SERVER['PHP_SELF']);
-            $s .= "<li class='$active'><a href='$path?{$this->httpKeyName}=$k'>{$ra[0]}</a></li>";
+            $s .= "<li class='$active'><a href='?{$this->httpKeyName}=$k'>{$ra[0]}</a></li>";
         }
         $s .= "</ul>";
 
