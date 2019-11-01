@@ -111,13 +111,44 @@ class MSDLib
             $ok = false;
         }
 
+        /* Archive seeds
+         *
+         * Copy active seeds to the archive using INSERT...SELECT...
+         * Use custom kfrel to fetch all ACTIVE seeds and their prodExtra fields, one per row per seed.
+         * Override the fields in the SELECT so they match the fields in the INSERT.  All that matters is that they're in the same order.
+         */
+        $raSelectFields = [
+             // create new _key in archive with the same create/update information as the seeds
+             // (note this does not capture _updated/by from the PE fields so timestamps of latest changes to descriptions etc will not be reflected in the archive)
+             'VERBATIM_newkey' => 'NULL',
+             '_created' => 'P._created',
+             '_created_by' => 'P._created_by',
+             '_updated' => 'P._updated',
+             '_updated_by' => 'P._updated_by',
+
+             'mbr_id'=>'P.uid_seller',
+             'category' => 'PE_category.v',
+             'species' => 'PE_species.v',
+             'variety' => 'PE_variety.v',
+             'bot_name' => 'PE_bot_name.v',
+             'days_maturity' => 'PE_days_maturity.v',
+             'days_maturity_seed' => 'PE_days_maturity_seed.v',
+             'quantity' => 'PE_quantity.v',
+             'origin' => 'PE_origin.v',
+             'eOffer' => 'PE_eOffer.v',
+             'year_1st_listed' => 'PE_year_1st_listed.v',
+             'description' => 'PE_description.v',
+             'VERBATIM_year' => "'$year'"
+        ];
+        $sSelectSql = $this->oMSDCore->GetSeedSql( "eStatus='ACTIVE'", ['raFieldsOverride'=> $raSelectFields] );
+
+        $sInsertFields = "mbr_id,category,type,variety,bot_name,days_maturity,days_maturity_seed,quantity,origin,eOffer,year_1st_listed,description,year";
+
 
         /* Archive seeds
          */
-        $fields = "mbr_id,category,type,variety,bot_name,days_maturity,quantity,origin,year_1st_listed,description";
-        $sql = "INSERT INTO seeds.sed_seeds (_key,_created,_created_by,_updated,_updated_by,_status, '$year', $fields )"
-              ."SELECT NULL,NOW(),".$this->oApp->sess->GetUID().",NOW(),".$this->oApp->sess->GetUID().",0, $fields "
-              ."FROM seeds.sed_curr_seeds WHERE _status=0 AND NOT bSkip AND NOT bDelete";
+        $sql = "INSERT INTO seeds.sed_seeds (_key,_created,_created_by,_updated,_updated_by, $sInsertFields ) $sSelectSql";
+
         if( $this->oApp->kfdb->Execute($sql) ) {
             $s .= "<h4 style='color:green'>Seeds Successfully Archived</h3>"
                  ."<p style='margin-left:30px'><pre>$sql</pre></p>";
