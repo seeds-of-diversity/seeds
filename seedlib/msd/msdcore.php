@@ -21,7 +21,11 @@ class MSDCore
     {
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
-        $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+
+        $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
+                                // create these kfrels in oSBDB
+                                $raConfig + ['raCustomProductKfrelDefs' =>
+                                                ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')] ] );
         $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
     }
 
@@ -123,6 +127,16 @@ class MSDCore
         $raOut['_key'] = $kfrS->Key();
 
         return( $raOut );
+    }
+
+    function GetSeedKFRC( $sCond, $raKFRParms = array() )
+    {
+        return( $this->oSBDB->GetKFRC( 'PxPEMSD', $sCond, $raKFRParms ) );   // use custom SBDB kfrel
+    }
+
+    function GetSeedSql( $sCond, $raKFRParms = array() )
+    {
+        return( $this->oSBDB->GetKfrel('PxPEMSD')->GetSQL( $sCond, $raKFRParms ) );   // use custom SBDB kfrel
     }
 
     function PutSeedKfr( KeyframeRecord $kfrS )

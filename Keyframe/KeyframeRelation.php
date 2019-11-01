@@ -275,6 +275,15 @@ class KeyFrame_Relation
      * Create KeyframeRecords
      */
 
+    function GetSQL( $cond = "", $parms = array() )
+    /**********************************************
+        Get the SQL that's used by CreateRecordCursor and GetRecordFromDB.
+        This is for applications that want to work directly with SQL e.g. INSERT INTO xyz SELECT...a_relation_conveniently_defined_by_a_kfrel
+     */
+    {
+        return( $this->makeSelect( $cond, $parms ) );
+    }
+
     function CreateRecord()
     /**********************
         Return an empty KeyframeRecord

@@ -2,7 +2,7 @@
 
 /* SEEDBasketDB.php
  *
- * Copyright (c) 2016-2018 Seeds of Diversity Canada
+ * Copyright (c) 2016-2019 Seeds of Diversity Canada
  *
  * DB layer for shopping baskets
  */
@@ -11,10 +11,13 @@
 class SEEDBasketDB extends Keyframe_NamedRelations
 {
     public $kfdb;   // just so third parties can find this in a likely place
+    private $raCustomProductKfrelDefs = array();
 
-    function __construct( KeyframeDatabase $kfdb, $uid, $logdir )
+    function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig = array() )
     {
         $this->kfdb = $kfdb;
+        $this->raCustomProductKfrelDefs = @$raConfig['raCustomProductKfrelDefs'] ?: array();
+
         parent::__construct( $kfdb, $uid, $logdir );
     }
 
@@ -202,6 +205,21 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         $raKfrel['BP']   = new Keyframe_Relation( $kfdb, $kdefBP,        $uid, $raParms );
         $raKfrel['BxP']  = new Keyframe_Relation( $kfdb, $kdefBxP,       $uid, $raParms );
         $raKfrel['BPxP'] = new Keyframe_Relation( $kfdb, $kdefBPxP,      $uid, $raParms );
+
+
+        /* Given an array of kfrel names => [PE keys], make named kfrels that left join Products with each PE
+           i.e. [name1 => ['a','b'] ]  creates kfrel called name1 that does P_PEa_PEb where PEa.k='a' and PEb.k='b'
+         */
+        foreach( $this->raCustomProductKfrelDefs as $kfName => $raPE ) {
+            $kdef = $kdefProducts;
+            foreach( $raPE as $k ) {
+                $kdef['Tables']['PE_'.$k] = [ "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                              "Type" => 'LeftJoin',
+                                              "JoinOn" => "PE_{$k}.fk_SEEDBasket_Products=P._key AND PE_{$k}.k='$k'",
+                                              "Fields" => "Auto" ];
+            }
+            $raKfrel[$kfName] = new Keyframe_Relation( $kfdb, $kdef, $uid, $raParms );
+        }
 
         return( $raKfrel );
     }
