@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2018 Seeds of Diversity Canada
+ * Copyright (c) 2006-2019 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
@@ -567,6 +567,7 @@ class KeyFrame_Relation
          *
          * raFieldsOverride takes precedence over all computed select fields.
          *     array( alias=>fld, ... ) generates {fld as alias},...
+         *            'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'" generates 1,'foo'     keys start with VERBATIM but should have different arbitrary suffixes because they're keys
          *
          * If raGroup is defined, use it to create the select fields.
          *     array( alias=>fld, ... ) uses {fld} as grouping cols and {fld as alias} as select fields
@@ -578,8 +579,8 @@ class KeyFrame_Relation
         $sFieldsClause = "";
         if( isset($parms['raFieldsOverride']) ) {
             foreach( $parms['raFieldsOverride'] as $alias=>$fld ) {
-                $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                 ."$fld as $alias";
+                $sFieldsClause .= ($sFieldsClause ? "," : "");
+                $sFieldsClause .= SEEDCore_StartsWith($alias,'VERBATIM') ? $fld : "$fld as $alias";
             }
         } else if( $sGroupCols ) {
             // colalias1,colalias2,... are the group cols and all of the select cols.
