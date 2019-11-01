@@ -131,11 +131,13 @@ class MSDCore
 
     function GetSeedKFRC( $sCond, $raKFRParms = array() )
     {
+        $sCond .= ($sCond ? " AND " : "")."P.product_type='seeds'";
         return( $this->oSBDB->GetKFRC( 'PxPEMSD', $sCond, $raKFRParms ) );   // use custom SBDB kfrel
     }
 
     function GetSeedSql( $sCond, $raKFRParms = array() )
     {
+        $sCond .= ($sCond ? " AND " : "")."P.product_type='seeds'";
         return( $this->oSBDB->GetKfrel('PxPEMSD')->GetSQL( $sCond, $raKFRParms ) );   // use custom SBDB kfrel
     }
 
