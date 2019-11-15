@@ -19,7 +19,7 @@ $qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
 
 $oQ = new Q( $oApp, ['bUTF8'=>true] );  // return utf8 data unless this is reversed below
 $sCharset = "utf-8";
-$rQ = $oQ->Cmd( $cmd, $_REQUEST );
+$rQ = $oQ->Cmd( $qcmd, $_REQUEST );
 
 ($name  = (@$raQParms['qname']))  || ($name  = (@$rQ['raMeta']['name']))  || ($name = $cmd);
 ($title = (@$raQParms['qtitle'])) || ($title = (@$rQ['raMeta']['title'])) || ($title = $cmd);
