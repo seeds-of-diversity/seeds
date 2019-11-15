@@ -700,6 +700,24 @@ class SEEDBasket_BP
         $this->kfr = $k ? $this->oSB->oDB->GetBPKFR($k) : $this->oSB->oDB->GetBPKFREmpty();
     }
 
+    function StorePurchase( SEEDBasket_Basket $oB, SEEDBasket_Product $oP, $raParms )
+    {
+        $this->kfr->SetValue( 'fk_SEEDBasket_Baskets', $oB->GetKey() );
+        $this->kfr->SetValue( 'fk_SEEDBasket_Products', $oP->GetKey() );
+
+        $raFld = ['n', 'f', 'eStatus', 'bAccountingDone'];
+        foreach( $raParms as $k => $v ) {
+            if( in_array( $k, $raFld ) ) {
+                $this->kfr->SetValue( $k, $v );
+            } else {
+                $this->kfr->UrlParmSet( 'sExtra', $k, $v );
+            }
+        }
+        $this->kfr->PutDBRow();
+
+        return( $this->kfr->Key() );
+    }
+
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 }

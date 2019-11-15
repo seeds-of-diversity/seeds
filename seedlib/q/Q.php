@@ -32,41 +32,57 @@ class Q
             $rQ['raMeta']['title'] = "Test";
             $rQ['raMeta']['name'] = "qtest";
         }
+        else
 
         if( SEEDCore_StartsWith( $cmd, 'desc' ) ) {
 //            include_once( "_QServerDesc.php" );
 //            $o = new QServerDesc( $this );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
+        else
 
         if( SEEDCore_StartsWith( $cmd, 'rosetta' ) ) {
 //            include_once( "_QServerPCV.php" );
 //            $o = new QServerPCV( $this );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
+        else
 
         if( SEEDCore_StartsWith( $cmd, 'src' ) ) {
             include_once( "QServerSources.php" );
             $o = new QServerSourceCV( $this, ['bUTF8' => true] );
             $rQ = $o->Cmd( $cmd, $parms );
         }
+        else
 
         if( SEEDCore_StartsWith( $cmd, 'collection' ) ) {
 //            include_once( "_QServerCollection.php" );
 //            $o = new QServerCollection( $this, [] );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
+        else
 
         if( SEEDCore_StartsWith( $cmd, 'collreport' ) ) {
 //            include_once( "_QServerCollectionReport.php" );
 //            $o = new QServerCollectionReport( $this, [] );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
+        else
 
         if( SEEDCore_StartsWith( $cmd, 'mbr' ) ) {
 //            include_once( SEEDLIB."mbr/QServerMbr.php" );
 //            $o = new QServerMbr( $this->oApp, array() );
 //            $rQ = $o->Cmd( $cmd, $parms );
+        }
+        else
+
+        if( SEEDCore_StartsWith( $cmd, 'basket' ) ) {
+            include_once( "QServerBasket.php" );
+            $o = new QServerBasket( $this, [] );
+            $rQ = $o->Cmd( $cmd, $parms );
+        }
+        else {
+            $rQ['sErr'] = "Unknown cmd";
         }
 
         return( $rQ );
