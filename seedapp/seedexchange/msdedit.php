@@ -194,13 +194,11 @@ $s .= <<<basketScript
 <script>
 var msdSeedEditVars = { qUrl:"", raSeeds:[], overrideUidSeller:0 };
 var msdSeedContainerCurr = null;                // the current msdSeedContainer
-var msdSeedContainerCurrFormOpen = false;       // true when the form is open (generally all other inputs are disabled)
-var msdSeedContainerCurrFormOpenIsNew = false;  // true when an open form is a new entry (so Cancel will .remove() it)
 
 $(document).ready( function() {
     // on click of an msdSeedText or an Edit button, open the edit form
 /*
-    $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( $(this).closest(".msdSeedContainer") ); });
+    $(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { msdSEL.SeedEditFormOpen( $(this).closest(".msdSeedContainer") ); });
 
     // skip and delete buttons
     $(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   $(this).closest(".msdSeedContainer") ); });
@@ -211,67 +209,184 @@ $(document).ready( function() {
     $(".msdSeedEditButton_new").click( function(e)    { SeedEditNew(); });
 });
 
+class SEEDEditList
+/*****************
+    Show a list of items and allow them to expand to forms one at a time.
+    Derivation supplies the static text and the form for each item.
+ */
+{
+    constructor()
+    {
+        this.bFormIsOpen = false;
+        this.bFormIsNew = false;        // if an open form is new, Cancel will .remove() it
+    }
+
+    IsFormOpen()
+    {
+        return( this.bFormIsOpen );
+    }
+
+    IsFormOpenAndNew()
+    {
+        return( this.bFormIsNew );
+    }
+
+    SeedEditFormOpen( jItem )
+    /************************
+        Open the edit form for a clicked item.
+        Input is the jquery object of the seededit_item.
+     */
+    {
+        /* Other functions use UseItem() to get the id of a selected item but that returns 0 if a form is open to indicate that the selection can't be made.
+         * However if the selected item is New, its id is also 0. Use IsFormOpen and IsFormOpenAndNew to tell the difference.
+         */
+
+        // Don't allow a new form to be opened if one is already open.
+        if( this.IsFormOpen() ) return;
+
+        let kItem = this.UseItem( jItem );
+
+        // if UseItem returns 0 it either means an invalid item or this is a New item
+        if( !kItem && !this.IsFormOpenAndNew() ) return;
+
+        if( !this.SeedEditFormOpen_IsOpenable( jItem, kItem ) )  return;
+
+        this.SelectItem( jItem, true );
+
+        // Create a form and put it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
+        let jFormDiv = $("<div class='msdSeedEdit seededit-form seededit-form-new'><form>$msdSeedEditForm</form></div>");
+        msdSeedContainerCurr.append(jFormDiv);
+
+        jFormDiv.find("form").submit( function(e) { e.preventDefault(); SeedEditSubmit(kItem); } );
+        jFormDiv.find(".msdSeedEditCancel").click( function(e) { e.preventDefault(); SeedEditFormCancel(); } );
+
+        this.SeedEditFormOpen_InitForm( jFormDiv, kItem );
+
+        jFormDiv.fadeIn(500);
+    }
+
+
+    UseItem( item )
+    /**************
+        When an item is clicked or selected, return its item id, unless there is a form open (because other items are supposed to act disabled then).
+     */
+    {
+        let k = 0;
+
+        if( this.IsFormOpen() ) {
+            console.log("Cannot open multiple forms");
+        } else {
+            k = SeedEditGetKProduct( item );
+        }
+        return( k );
+    }
+
+    SelectItem( jItem, bOpenForm )
+    /*****************************
+        Set the current item and the status of the form
+     */
+    {
+        if( this.IsFormOpen() ) return( false );
+
+        msdSeedContainerCurr = jItem;
+        this.bFormIsOpen = bOpenForm;
+
+        // clear previous edit indicators
+        $(".msdSeedContainer").css({border:"1px solid #e3e3e3"});
+        $(".msdSeedMsg").html("");
+
+        // show the current container is selected
+        msdSeedContainerCurr.css({border:"1px solid blue"});
+
+        return( true );
+    }
+
+    SeedEditFormOpen_IsOpenable( jItem, kItem )
+    {
+        // override to say whether the selected item is allowed to open a form
+        return( true );
+    }
+
+    SeedEditFormOpen_InitForm( jFormDiv, kItem )
+    {
+        // override to initialize the given form
+    }
+}
+
+class MSDSeedEditList extends SEEDEditList
+{
+    SeedEditFormOpen_IsOpenable( jItem, kItem )
+    {
+        // ignore click on deleted records
+        if( kItem && msdSeedEditVars.raSeeds[kItem]['eStatus'] == 'DELETED' )  return( false );
+        return( true );
+    }
+
+    SeedEditFormOpen_InitForm( jFormDiv, kItem )
+    {
+        // show the correct side-text for the selected eOffer, and set a function to do that when eOffer changes
+        this.setEOfferText( jFormDiv );
+        jFormDiv.find('#msdSeedEdit_eOffer').change( function() { msdSEL.setEOfferText( jFormDiv ); } );    // use msdSEL because "this" is not defined in the function
+
+        if( kItem ) {
+            // eOffer==member is not explicitly stored
+            if( !msdSeedEditVars.raSeeds[kItem]['eOffer'] ) msdSeedEditVars.raSeeds[kItem]['eOffer'] = 'member';
+
+            // fill in the form with values stored in msdSeedEditVars
+            for( let i in msdSeedEditVars.raSeeds[kItem] ) {
+                jFormDiv.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kItem][i]);
+            }
+        } else {
+            // this is a new form - set defaults
+
+        }
+
+        // disable all control buttons while the form is open
+        $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
+        $(".msdSeedEditGlobalControls  button").attr("disabled","disabled");
+    }
+
+    setEOfferText( jFormDiv )
+    {
+        switch( jFormDiv.find("#msdSeedEdit_eOffer").val() ) {
+            default:
+            case 'member':
+                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "Only members of Seeds of Diversity will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to members." );
+                break;
+            case 'grower-member':
+                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "Only members of Seeds of Diversity <b>who also list seeds in this directory</b> will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to members." );
+                break;
+            case 'public':
+                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "Anyone who visits the online Seed Directory will be able to request these seeds, whether or not they are a member of Seeds of Diversity. <b>Your name and contact information will be visible to the public.</b> The printed Seed Directory is still only available to members." );
+                break;
+         }
+    }
+}
+
+
+var msdSEL = new MSDSeedEditList();
+
+
+
 function SeedEditInitButtons( container )
 /****************************************
     Attach event listeners to the controls in a container. Show/hide the buttons based on eStatus.
  */
 {
     // on click of an msdSeedText or an Edit button, open the edit form
-    container.find(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { SeedEditFormOpen( container ); });
+    container.find(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { msdSEL.SeedEditFormOpen( container ); });
 
     // skip and delete buttons
     container.find(".msdSeedEditButton_skip").click( function(e)   { SeedEditSkip(   container ); });
     container.find(".msdSeedEditButton_delete").click( function(e) { SeedEditDelete( container ); });
 
-    let kSeed = SeedEditGetKProduct( container );
-    if( kSeed ) {
-        let eStatus = msdSeedEditVars.raSeeds[kSeed]['eStatus'];
+    let kItem = SeedEditGetKProduct( container );
+    if( kItem ) {
+        let eStatus = msdSeedEditVars.raSeeds[kItem]['eStatus'];
         SeedEditSetButtonLabels( container, eStatus )
     }
 }
 
-function SeedEditFormOpen( container )
-/*************************************
-    Open the edit form for a clicked seed listing.
-    Input is the msdSeedContainer of the listing.
- */
-{
-if( msdSeedContainerCurrFormOpen ) return;  // ValidateContainer returns 0 if already open, but that is ignored if a New form is currently open
-
-    let kSeed = SeedEditValidateContainer( container );
-    if( !kSeed && !msdSeedContainerCurrFormOpenIsNew ) return;
-    if( kSeed && msdSeedEditVars.raSeeds[kSeed]['eStatus'] == 'DELETED' )  return;   // ignore click on msdText if deleted record
-
-    SeedEditSelectContainer( container, true );
-
-    // Create a form and put it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
-    let msdSeedEdit = $("<div class='msdSeedEdit'><form>$msdSeedEditForm</form></div>");
-    msdSeedContainerCurr.append(msdSeedEdit);
-
-    SeedEditSelectEOffer( msdSeedEdit );
-    msdSeedEdit.find('#msdSeedEdit_eOffer').change( function() { SeedEditSelectEOffer( msdSeedEdit ); } );
-
-    if( kSeed ) {
-        // eOffer==member is not explicitly stored
-        if( !msdSeedEditVars.raSeeds[kSeed]['eOffer'] ) msdSeedEditVars.raSeeds[kSeed]['eOffer'] = 'member';
-
-        // fill in the form with values stored in msdSeedEditVars
-        for( let i in msdSeedEditVars.raSeeds[kSeed] ) {
-            msdSeedEdit.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kSeed][i]);
-        }
-    } else {
-        // this is a new form - set defaults
-
-    }
-    msdSeedEdit.fadeIn(500);
-
-    msdSeedEdit.find("form").submit( function(e) { e.preventDefault(); SeedEditSubmit(kSeed); } );
-    msdSeedEdit.find(".msdSeedEditCancel").click( function(e) { e.preventDefault(); SeedEditFormCancel(); } );
-
-    // disable all control buttons while the form is open
-    $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
-    $(".msdSeedEditGlobalControls  button").attr("disabled","disabled");
-}
 
 function SeedEditFormCancel()
 {
@@ -280,7 +395,7 @@ function SeedEditFormCancel()
 
 function SeedEditFormClose( ok )
 {
-    if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
+    if( msdSeedContainerCurr == null || !msdSEL.IsFormOpen() ) return;
 
     msdSeedEdit = msdSeedContainerCurr.find('.msdSeedEdit');
     msdSeedEdit.fadeOut(500, function() {
@@ -290,18 +405,19 @@ function SeedEditFormClose( ok )
                 msdSeedContainerCurr.find(".msdSeedMsg").html( "<div class='alert alert-success' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>Saved</div>" );
             }
 
-            if( msdSeedContainerCurrFormOpenIsNew ) {
+            if( msdSEL.IsFormOpenAndNew() ) {
                 if( ok ) {
                     // Closing after successful submit of New form
                 } else {
-                    // Closing after Cancel on New form
+                    // Closing after Cancel on New form (remove the item)
                     msdSeedContainerCurr.remove();
                     msdSeedContainerCurr = null;
+// here the current item is undefined so if you click new again it draws at the top of the page (unscrolled). Better to try to remember the previous current item and make that current here.
                 }
             }
             // allow another block to be clicked (keep msdSeedContainerCurr so a New container can be inserted after it)
-            msdSeedContainerCurrFormOpen = false;
-            msdSeedContainerCurrFormOpenIsNew = false;
+            msdSEL.bFormIsOpen = false;
+            msdSEL.bFormIsNew = false;
         } );
 
     // re-enable all control buttons
@@ -310,19 +426,6 @@ function SeedEditFormClose( ok )
 }
 
 
-function SeedEditValidateContainer( container )
-{
-    let k = 0;
-
-    // generally don't allow an msdSeedContainer to be be selected when a form is open
-    if( msdSeedContainerCurrFormOpen ) {
-        console.log("Cannot open multiple forms");
-    } else {
-        k = SeedEditGetKProduct( container );
-    }
-    return( k );
-}
-
 function SeedEditGetKProduct( container )
 {
     k = parseInt(container.attr("data-kproduct")) || 0;     // apparently this is zero if parseInt returns NaN
@@ -330,28 +433,12 @@ function SeedEditGetKProduct( container )
 }
 
 
-function SeedEditSelectContainer( container, bOpenForm )
-{
-    if( msdSeedContainerCurrFormOpen ) return( false );
-
-    msdSeedContainerCurr = container;
-    msdSeedContainerCurrFormOpen = bOpenForm;
-
-    // clear previous edit indicators
-    $(".msdSeedContainer").css({border:"1px solid #e3e3e3"});
-    $(".msdSeedMsg").html("");
-
-    // show the current container is selected
-    msdSeedContainerCurr.css({border:"1px solid blue"});
-
-    return( true );
-}
 
 /*
 function SeedEditGetContainerFromId( id )
 {
     // generally don't allow an msdSeedContainer to be be selected when a form is open
-    if( msdSeedContainerCurrFormOpen ) { console.log("Cannot open multiple forms"); return( null ); }
+    if( msdSEL.IsFormOpen() ) { console.log("Cannot open multiple forms"); return( null ); }
 
     // validate that this is an msdSeedContainer and get the kProduct
 //TODO: it would be more sensible just to verify the class (if you want) and store the kProduct in data-kProduct="k"
@@ -362,33 +449,18 @@ function SeedEditGetContainerFromId( id )
 }
 */
 
-function SeedEditSelectEOffer( msdSeedEdit )
+function SeedEditSubmit( kItem )
 {
-    switch( msdSeedEdit.find("#msdSeedEdit_eOffer").val() ) {
-        default:
-        case 'member':
-            msdSeedEdit.find('#msdSeedEdit_eOffer_instructions').html( "Only members of Seeds of Diversity will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to members." );
-            break;
-        case 'grower-member':
-            msdSeedEdit.find('#msdSeedEdit_eOffer_instructions').html( "Only members of Seeds of Diversity <b>who also list seeds in this directory</b> will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to members." );
-            break;
-        case 'public':
-            msdSeedEdit.find('#msdSeedEdit_eOffer_instructions').html( "Anyone who visits the online Seed Directory will be able to request these seeds, whether or not they are a member of Seeds of Diversity. <b>Your name and contact information will be visible to the public.</b> The printed Seed Directory is still only available to members." );
-            break;
-     }
-}
+    if( msdSeedContainerCurr == null || !msdSEL.IsFormOpen() ) return;
 
-function SeedEditSubmit( kSeed )
-{
-    if( msdSeedContainerCurr == null || !msdSeedContainerCurrFormOpen ) return;
-
-    let p = "cmd=msdSeed--Update&kS="+kSeed+"&"
+    let p = "cmd=msdSeed--Update&kS="+kItem+"&"
           + (msdSeedEditVars['overrideUidSeller'] ? ("config_OverrideUidSeller="+msdSeedEditVars['overrideUidSeller']+"&") : "")
           + msdSeedContainerCurr.find('select, textarea, input').serialize();
-    console.log(p);
 
+    //SEEDJX_bDebug = true;
+    //console.log(p);
     let oRet = SEEDJXSync( msdSeedEditVars.qURL, p );
-    console.log(oRet);
+    //console.log(oRet);
 
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( msdSeedContainerCurr, oRet );
@@ -404,12 +476,12 @@ function SeedEditSubmit( kSeed )
 
 function SeedEditSkip( container )
 {
-    let kSeed = SeedEditValidateContainer( container );
-    if( !kSeed ) return;
+    let kItem = msdSEL.UseItem( container );
+    if( !kItem ) return;
 
-    SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
+    msdSEL.SelectItem( container, false );    // make this the current container but don't open the form
 
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleSkip&kS="+kSeed );
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleSkip&kS="+kItem );
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( container, oRet );
     }
@@ -417,12 +489,12 @@ function SeedEditSkip( container )
 
 function SeedEditDelete( container )
 {
-    let kSeed = SeedEditValidateContainer( container );
-    if( !kSeed ) return;
+    let kItem = msdSEL.UseItem( container );
+    if( !kItem ) return;
 
-    SeedEditSelectContainer( container, false );    // make this the current container but don't open the form
+    msdSEL.SelectItem( container, false );    // make this the current container but don't open the form
 
-    let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleDelete&kS="+kSeed );
+    let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleDelete&kS="+kItem );
     if( oRet['bOk'] ) {
         SeedEditAfterSuccess( container, oRet );
     }
@@ -430,7 +502,7 @@ function SeedEditDelete( container )
 
 function SeedEditNew()
 {
-    if( msdSeedContainerCurrFormOpen ) return( null );
+    if( msdSEL.IsFormOpen() ) return( null );
 
     // subst the [[]] in the container template
     let sContHtml = "$msdSeedContainerTemplate";
@@ -445,8 +517,8 @@ function SeedEditNew()
     SeedEditInitButtons( container );
 
     // make it the msdSeedContainerCurr, open the form in the container, mark it as a New form so Cancel will remove() it
-    msdSeedContainerCurrFormOpenIsNew = true;
-    SeedEditFormOpen( container );
+    msdSEL.bFormIsNew = true;
+    msdSEL.SeedEditFormOpen( container );
 }
 
 function SeedEditAfterSuccess( container, rQ )
@@ -454,17 +526,17 @@ function SeedEditAfterSuccess( container, rQ )
     After a successful update, store the updated data and update the UI to match it
  */
 {
-    let kSeed = rQ['raOut']['_key'];    // for New items this will be novel information
+    let kItem = rQ['raOut']['_key'];    // for New items this will be novel information
 
     // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
-    msdSeedEditVars.raSeeds[kSeed]=rQ['raOut'];
+    msdSeedEditVars.raSeeds[kItem]=rQ['raOut'];
 
     // sOut contains the revised msdSeedText
     container.find(".msdSeedText").html( rQ['sOut'] );
 
     // set data-kproduct for New items
-    if( msdSeedContainerCurrFormOpenIsNew ) {
-        container.attr( 'data-kproduct', kSeed );
+    if( msdSEL.IsFormOpenAndNew() ) {
+        container.attr( 'data-kproduct', kItem );
     }
 
     SeedEditSetButtonLabels( container, rQ['raOut']['eStatus'] );
