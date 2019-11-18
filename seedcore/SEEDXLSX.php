@@ -4,20 +4,65 @@
  *
  * Copyright (c) 2014-2019 Seeds of Diversity Canada
  *
- * Read and write spreadsheet files
+ * Read and write spreadsheet files.
+ *
+ * This is a thin wrapper for third-party XLS libraries.
+ * For more comprehensive handling of 3D data, use SEEDTableSheetsFile (which uses this).
  */
 
 require_once SEEDROOT.'/vendor/autoload.php';   // PhpOffice/PhpSpreadsheet
 
 class SEEDXlsRead
 {
-    private $oXLS;
+    private $oXls;
 
-    function __construct()
+    function __construct( $raConfig = array() )
+    {
+    }
+
+// TODO: use \PhpOffice\PhpSpreadsheet\Reader\IReadFilter to read a file in chunks to conserve memory
+
+    function LoadFile( $filename )
+    {
+        $this->oXls = \PhpOffice\PhpSpreadsheet\IOFactory::load($inputFileName);     // static load() method
+        return( $this->oXls != null );
+    }
+
+    function GetSheetCount()  { return( $this->oXls ? $this->oXls->getSheetCount() : 0 ); }
+    function GetSheetNames()  { return( $this->oXls ? $this->oXls->getSheetNames() : [] ); }
+
+    function GetRowCount( $iSheet )
+    /******************************
+        Return the number of rows in the sheet
+
+        Sheets are origin-0
+     */
+    {
+        $oSheet = $this->oXls->getSheet( $iSheet );
+        return( $oSheet->getHighestDataRow() );
+    }
+
+    function GetColCount( $iSheet )
+    /******************************
+        Return the max number of columns in the sheet
+     */
+    {
+        $oSheet = $this->oXls->getSheet( $iSheet );
+        return( $oSheet->getHighestDataColumn() );
+    }
+
+    function GetRow( $iSheet, $iRow, $bCalculateFormulae = false )
+    /*************************************************************
+        Return an array of the row's values
+
+        Sheets are origin-0
+        Rows are origin-1
+        bCalculateFormulae = false : return formulae verbatim
+                           = true  : return the calculated result of the formulae
+     */
     {
 
     }
-
 
 }
 
