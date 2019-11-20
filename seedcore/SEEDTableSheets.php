@@ -247,7 +247,48 @@ var_dump("A");
         $ok = false;
         $sErr = "";
 
+        $oXLS = new SEEDXLSRead();
+        if( !$oXLS->LoadFile( $filename ) ) {
+            $sErr = "Could not load file $filename";
+            goto done;
+        }
 
+
+
+/*
+            include_once( W_ROOT."os/PHPExcel1.8/Classes/PHPExcel.php" );
+            include_once( W_ROOT."os/PHPExcel1.8/Classes/PHPExcel/IOFactory.php" );
+
+            if( ($objPHPExcel = PHPExcel_IOFactory::load( $sFilename )) ) {
+                $raSheets = $objPHPExcel->getAllSheets();
+                $iSheet = 1;
+                foreach( $raSheets as $sheet ) {
+                    $highestRow = $sheet->getHighestDataRow();
+                    $highestColumn = $sheet->getHighestDataColumn();
+
+                    $raRows = array();
+                    for( $row = 1; $row <= $highestRow; $row++ ) {
+                        $ra = $sheet->rangeToArray( 'A'.$row.':'.$highestColumn.$row,
+                                                    NULL, TRUE, FALSE );
+                        if( $this->raParms['charset'] != 'utf-8' ) {
+                            for( $i = 0; $i < count($ra[0]); ++$i ) {
+                                if( is_string($ra[0][$i]) ) {
+                                    $ra[0][$i] = iconv( 'utf-8', $this->raParms['charset'], $ra[0][$i] );
+                                }
+                            }
+                        }
+                        $raRows[] = $ra[0];     // $ra is an array of rows, with only one row
+                    }
+                    if( !($sheetName = $sheet->getTitle()) ) {
+                        $sheetName = "Sheet".$iSheet;
+                    }
+                    $this->raSheets[$sheetName] = $raRows;
+                    ++$iSheet;
+                }
+            }
+*/
+
+        done:
         return( array($ok,$sErr) );
     }
 
