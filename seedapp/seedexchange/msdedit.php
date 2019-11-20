@@ -118,7 +118,7 @@ drawScreen:
             // highlight the species title (and reset any previous highlight)
             $(".msd-list-species-title").css({ color: "#333" } );   // bootstrap's default text color
             $(this).css({ color: "#373" } );
-            location.replace( "${_SERVER['PHP_SELF']}?selectSpecies="+$(this).attr('kSpecies') );
+            location.replace( "?selectSpecies="+$(this).attr('kSpecies') );
         });
     });
 </script>
@@ -162,7 +162,6 @@ $msdSeedEditForm = <<<msdSeedEditForm
         <td><nobr>$<input type='text' id='msdSeedEdit_item_price' name='item_price' class='msdSeedEdit_inputText'/></nobr></td>
         <td><div class='msdSeedEdit_instruction'><b>Price</b>: We recommend $3.50 for seeds and $12.00 for roots and tubers. That is the default if you leave this field blank. Members who offer seeds (like you!) get an automatic discount of $1 per item.</div></td>
     </tr></table>
-    <input type='submit' value='Save'/> <button class='msdSeedEditCancel' type='button'>Cancel</button>
 msdSeedEditForm;
 $msdSeedEditForm = str_replace("\n","",$msdSeedEditForm);   // jquery doesn't like linefeeds in its selectors
 
@@ -175,6 +174,9 @@ $msdSeedContainerTemplate = str_replace( '[[sSeedText]]', "<h3>New Seed</h3>", $
 
 $s .= <<<basketStyle
 <style>
+.seededit-form { width:100%;display:none;margin-top:5px;padding-top:10px;border-top:1px dashed #888 }
+
+
 .msdSeedText_species { font-size:14pt; font-weight:bold; }
 .sed_seed_offer              { font-size:10pt; padding:2px; background-color:#fff; }
 .sed_seed_offer_member       { color: #484; border:2px solid #484 }
@@ -182,7 +184,6 @@ $s .= <<<basketStyle
 .sed_seed_offer_public       { color: #f80; border:2px solid #f80 }
 .sed_seed_mc     { font-weight:bold;text-align:right }
 
-.msdSeedEdit { width:100%;display:none;margin-top:5px;padding-top:10px;border-top:1px dashed #888 }
 .msdSeedEdit_inputText   { width:95%;margin:3px 0px }
 .msdSeedEdit_instruction { background-color:white;border:1px solid #aaa;margin:3px 0px 0px 30px;padding:3px }
 .msdSeedEditButtonContainer { text-align:center;margin-left:20px;width:10%;max-width:100px; }
@@ -192,7 +193,6 @@ basketStyle;
 
 $s .= <<<basketScript
 <script>
-var msdSeedEditVars = { qUrl:"", raSeeds:[], overrideUidSeller:0 };
 var msdSeedContainerCurr = null;                // the current msdSeedContainer
 
 $(document).ready( function() {
@@ -208,8 +208,10 @@ class SEEDEditList
     Derivation supplies the static text and the form for each item.
  */
 {
-    constructor()
+    constructor( raConfig )
     {
+        this.raConfig = raConfig;
+
         this.bFormIsOpen = false;
         this.bFormIsNew = false;        // if an open form is new, Cancel will .remove() it
     }
@@ -229,7 +231,6 @@ class SEEDEditList
     {
         if( this.IsFormOpen() ) return( null );
 
-        // subst the [[]] in the item template
         let sItemHtml = "$msdSeedContainerTemplate";
 
         // insert a new item in a nice place
@@ -271,13 +272,13 @@ class SEEDEditList
         this.SelectItem( jItem, true );
 
         // Create a form and put it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
-        let jFormDiv = $("<div class='msdSeedEdit seededit-form seededit-formnew'><form>$msdSeedEditForm</form></div>");
+        let jFormDiv = $( this.MakeFormHTML( { formhtml: "$msdSeedEditForm" } ) );
         msdSeedContainerCurr.append(jFormDiv);
 
         // set listeners for the Save and Cancel buttons. Use saveThis because "this" is not defined in the closures.
         let saveThis = this;
         jFormDiv.find("form").submit( function(e) { e.preventDefault(); saveThis.FormSave( kItem ); } );
-        jFormDiv.find(".msdSeedEditCancel").click( function(e) { e.preventDefault(); saveThis.FormCancel(); } );
+        jFormDiv.find(".seededit-form-button-cancel").click( function(e) { e.preventDefault(); saveThis.FormCancel(); } );
 
         this.FormOpen_InitForm( jFormDiv, kItem );
 
@@ -302,13 +303,13 @@ class SEEDEditList
     {
         if( msdSeedContainerCurr == null || !this.IsFormOpen() ) return;
 
-        let jFormDiv = msdSeedContainerCurr.find('.msdSeedEdit');
+        let jFormDiv = msdSeedContainerCurr.find('.seededit-form');
 
         this.FormClose_PreClose( jFormDiv );
 
         let saveThis = this;    // "this" is not defined in the closure
         jFormDiv.fadeOut(500, function() {
-                jFormDiv.remove();      // wait for the fadeOut to complete before removing the msdSeedEdit
+                jFormDiv.remove();      // wait for the fadeOut to complete before removing the seededit-form
                 if( ok ) {
                     // do this after fadeOut because it looks better afterward
                     msdSeedContainerCurr.find(".seededit-form-msg").html( "<div class='alert alert-success' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>Saved</div>" );
@@ -374,6 +375,24 @@ class SEEDEditList
         return( true );
     }
 
+    MakeFormHTML( raConfig )
+    /***********************
+        Build the form by defining substitutions in the form below, or override to define the whole form.
+     */
+    {
+        let f = "<div class='seededit-form'>"
+                   +"<form>"
+                       +"[formhtml]"
+                       +"<input type='submit' value='Save'/> "
+                       +"<button class='seededit-form-button-cancel' type='button'>Cancel</button>"
+                   +"</form>"    
+               +"</div>";
+
+        if( typeof raConfig['formhtml'] !== 'undefined' )  { f = f.replace( "[formhtml]", raConfig['formhtml'] ); }
+
+        return( f );
+    }
+
 
     /* Functions meant to provide derived behaviours
      */
@@ -387,10 +406,15 @@ class SEEDEditList
 
 class MSDSeedEditList extends SEEDEditList
 {
+    constructor( raConfig )
+    {
+        super( raConfig );
+    }
+
     FormOpen_IsOpenable( jItem, kItem )
     {
         // ignore click on deleted records
-        if( kItem && msdSeedEditVars.raSeeds[kItem]['eStatus'] == 'DELETED' )  return( false );
+        if( kItem && this.raConfig['raSeeds'][kItem]['eStatus'] == 'DELETED' )  return( false );
         return( true );
     }
 
@@ -398,11 +422,11 @@ class MSDSeedEditList extends SEEDEditList
     {
         if( kItem ) {
             // eOffer==member is not explicitly stored
-            if( !msdSeedEditVars.raSeeds[kItem]['eOffer'] ) msdSeedEditVars.raSeeds[kItem]['eOffer'] = 'member';
+            if( !this.raConfig['raSeeds'][kItem]['eOffer'] ) this.raConfig['raSeeds'][kItem]['eOffer'] = 'member';
 
-            // fill in the form with values stored in msdSeedEditVars
-            for( let i in msdSeedEditVars.raSeeds[kItem] ) {
-                jFormDiv.find('#msdSeedEdit_'+i).val(msdSeedEditVars.raSeeds[kItem][i]);
+            // fill in the form with values stored in raSeeds
+            for( let i in this.raConfig['raSeeds'][kItem] ) {
+                jFormDiv.find('#msdSeedEdit_'+i).val(this.raConfig['raSeeds'][kItem][i]);
             }
         } else {
             // this is a new form - set defaults
@@ -438,21 +462,21 @@ class MSDSeedEditList extends SEEDEditList
     FormSave_Action( kItem )
     {
         let p = "cmd=msdSeed--Update&kS="+kItem+"&"
-              + (msdSeedEditVars['overrideUidSeller'] ? ("config_OverrideUidSeller="+msdSeedEditVars['overrideUidSeller']+"&") : "")
+              + (this.raConfig['overrideUidSeller'] ? ("config_OverrideUidSeller="+this.raConfig['overrideUidSeller']+"&") : "")
               + msdSeedContainerCurr.find('select, textarea, input').serialize();
 
         //SEEDJX_bDebug = true;
         //console.log(p);
-        let oRet = SEEDJXSync( msdSeedEditVars.qURL, p );
+        let oRet = SEEDJXSync( this.raConfig['qUrl'], p );
         //console.log(oRet);
 
         if( oRet['bOk'] ) {
-            SeedEditAfterSuccess( msdSeedContainerCurr, oRet );
+            this.doAfterSuccess( msdSeedContainerCurr, oRet );
 
             this.FormClose( oRet['bOk'] );
         } else {
             // show the error and leave the form open
-            SeedEditAfterError( msdSeedContainerCurr, oRet );
+            this.doAfterError( msdSeedContainerCurr, oRet );
         }
 
         return( oRet['bOk'] );
@@ -480,7 +504,7 @@ class MSDSeedEditList extends SEEDEditList
 
         let kItem = this.GetItemId( jItem );
         if( kItem ) {
-            let eStatus = msdSeedEditVars.raSeeds[kItem]['eStatus'];
+            let eStatus = this.raConfig['raSeeds'][kItem]['eStatus'];
             this.setButtonLabels( jItem, eStatus )
         }
     }
@@ -515,10 +539,11 @@ class MSDSeedEditList extends SEEDEditList
         if( !kItem ) return;
 
         this.SelectItem( jItem, false );    // make this the current container but don't open the form
-
-        let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleSkip&kS="+kItem );
+        
+        //SEEDJX_bDebug = true;
+        let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleSkip&kS="+kItem );
         if( oRet['bOk'] ) {
-            SeedEditAfterSuccess( jItem, oRet );
+            this.doAfterSuccess( jItem, oRet );
         }
     }
 
@@ -529,52 +554,46 @@ class MSDSeedEditList extends SEEDEditList
 
         this.SelectItem( jItem, false );    // make this the current container but don't open the form
 
-        let oRet = SEEDJXSync( msdSeedEditVars.qURL, "cmd=msdSeed--ToggleDelete&kS="+kItem );
+        //SEEDJX_bDebug = true;
+        let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleDelete&kS="+kItem );
         if( oRet['bOk'] ) {
-            SeedEditAfterSuccess( jItem, oRet );
+            this.doAfterSuccess( jItem, oRet );
         }
     }
 
-}
-
-
-var msdSEL = new MSDSeedEditList();
-
-
-
-
-
-function SeedEditAfterSuccess( container, rQ )
-/*********************************************
-    After a successful update, store the updated data and update the UI to match it
- */
-{
-    let kItem = rQ['raOut']['_key'];    // for New items this will be novel information
-
-    // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
-    msdSeedEditVars.raSeeds[kItem]=rQ['raOut'];
-
-    // sOut contains the revised msdSeedText
-    container.find(".msdSeedText").html( rQ['sOut'] );
-
-    // set data-kproduct for New items
-    if( msdSEL.IsFormOpenAndNew() ) {
-        container.attr( 'data-kproduct', kItem );
+    doAfterSuccess( jItem, rQ )
+    /**************************
+        After a successful update, store the updated data and update the UI to match it
+     */
+    {
+        let kItem = rQ['raOut']['_key'];    // for New items this will be novel information
+    
+        // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
+        this.raConfig['raSeeds'][kItem]=rQ['raOut'];
+    
+        // sOut contains the revised msdSeedText
+        jItem.find(".msdSeedText").html( rQ['sOut'] );
+    
+        // set data-kproduct for New items
+        if( this.IsFormOpenAndNew() ) {
+            jItem.attr( 'data-kproduct', kItem );
+        }
+    
+        this.setButtonLabels( jItem, rQ['raOut']['eStatus'] );
     }
 
-    msdSEL.setButtonLabels( container, rQ['raOut']['eStatus'] );
+    doAfterError( jItem, rQ )
+    {
+        jItem.find(".seededit-form-msg").html(
+            "<div class='alert alert-danger' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>"
+            +rQ['sErr']
+            +"</div>" );
+    }
 }
-
-function SeedEditAfterError( container, rQ )
-{
-    container.find(".seededit-form-msg").html(
-                "<div class='alert alert-danger' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>"+rQ['sErr']+"</div>" );
-}
-
 </script>
 basketScript;
 
-        /* Set parameters for msdSeedEdit. These are initialized to blank, required before you click on anything.
+        /* Set parameters for msdSeedEdit.
          *
          * raSeeds           : All the seed information is drawn to the UI but also stored here. This is how we get the info to
          *                     fill the edit form. When submitted, a fresh copy of the normalized data is returned and stored here.
@@ -585,10 +604,10 @@ basketScript;
          *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
          */
         $s .= "<script>
-               var msdSeedEditVars = {};
-               msdSeedEditVars.raSeeds = ".json_encode($raSeeds).";
-               msdSeedEditVars.qURL = '".Site_UrlQ('basketJX.php')."';
-               msdSeedEditVars.overrideUidSeller = ".($uidSeller ?: -1).";
+               var msdSEL = new MSDSeedEditList( { qUrl: '".Site_UrlQ('basketJX.php')."',
+                                                   overrideUidSeller: ".($uidSeller ?: -1).",
+                                                   raSeeds: ".json_encode($raSeeds)."
+                                                 } );
                </script>";
 
         done:
