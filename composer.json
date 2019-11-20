@@ -10,7 +10,7 @@
         "google/apiclient": "^2.0",
         "fpdf/fpdf": "^1.8",
         "phpoffice/phpword": "dev-develop",
-        "phpoffice/phpspreadsheet": "^1.4",
+        "phpoffice/phpspreadsheet": "^1.5",
           "twig/twig": "1.42.2",
           "components/jquery": "^3.3"
     }
