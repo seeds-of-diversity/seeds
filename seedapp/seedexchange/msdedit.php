@@ -36,13 +36,13 @@ class MSDAppSeedEdit
     }
 
     private $sContainer =
-        "<div class='well msdSeedContainer' data-kproduct='[[kP]]' style='margin:5px'>"
+        "<div class='well seededit-item' data-kitem='[[kP]]' style='margin:5px'>"
            ."<div class='msdSeedEditButtonContainer' style='float:right'>"
                ."<button class='msdSeedEditButton_edit' style='display:none'>Edit</button><br/>"
                ."<button class='msdSeedEditButton_skip' style='display:none'>Skip</button><br/>"
                ."<button class='msdSeedEditButton_delete' style='display:none'>Delete</button></div>"
            ."<div class='seededit-form-msg'></div>"
-           ."<div class='msdSeedText' style='padding:0px'>[[sSeedText]]</div>"
+           ."<div class='seededit-text' style='padding:0px'>[[sSeedText]]</div>"
        ."</div>";
 
     function Draw( $uidSeller, $kSp )
@@ -103,7 +103,7 @@ drawScreen:
             .$oTmpl->ExpandTmpl( 'msdEditStyle', array() )
             ."<div class='container-fluid'><div class='row'>"
                 ."<div class='col-sm-2 msd-list-col'>$msdList</div>"
-                ."<div class='col-sm-8'><div class='msdSeedContainerList'>$sList</div></div>"
+                ."<div class='col-sm-8'><div class='seededit-list'>$sList</div></div>"
                 ."<div class='col-sm-2'>$sForm</div>"
             ."</div></div>";
 
@@ -174,8 +174,8 @@ $msdSeedContainerTemplate = str_replace( '[[sSeedText]]', "<h3>New Seed</h3>", $
 
 $s .= <<<basketStyle
 <style>
-.seededit-form { width:100%;display:none;margin-top:5px;padding-top:10px;border-top:1px dashed #888 }
-
+.seededit-form     { width:100%;display:none;margin-top:5px;padding-top:10px;border-top:1px dashed #888; }
+.seededit-form-msg .alert { font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block; }
 
 .msdSeedText_species { font-size:14pt; font-weight:bold; }
 .sed_seed_offer              { font-size:10pt; padding:2px; background-color:#fff; }
@@ -193,10 +193,9 @@ basketStyle;
 
 $s .= <<<basketScript
 <script>
-var msdSeedContainerCurr = null;                // the current msdSeedContainer
 
 $(document).ready( function() {
-    $(".msdSeedContainer").each( function() { msdSEL.initButtons( $(this) ); });
+    $(".seededit-item").each( function() { msdSEL.initButtons( $(this) ); });
 
 // implement new button with a list of classes on SEEDEditList constructor that will attach to FormNew
     $(".msdSeedEditButton_new").click( function(e)    { msdSEL.FormNew(); });
@@ -205,12 +204,29 @@ $(document).ready( function() {
 class SEEDEditList
 /*****************
     Show a list of items and allow them to expand to forms one at a time.
-    Derivation supplies the static text and the form for each item.
+
+    Usage: Make a list like this.
+           Create a new SEEDEditList. It hooks up listeners so the user can edit the items.
+           Derived class supplies the text, form, submit action, and additional js functionality.
+
+        <div class='seededit-list'>
+            <div class='seededit-item'>
+                <div class='seededit-form-msg'></div>           -- put this anywhere you want messages to be visible
+                <div class='seededit-text'> The item text goes here </div>
+                <div class='seededit-form'></div>               -- leave empty, seededit will fill it as needed
+            </div>
+            <div class='seededit-item'>
+            .
+            .
+            </div>
+        </div>
  */
 {
     constructor( raConfig )
     {
         this.raConfig = raConfig;
+
+        this.jItemCurr = null;          // the current seededit-item
 
         this.bFormIsOpen = false;
         this.bFormIsNew = false;        // if an open form is new, Cancel will .remove() it
@@ -235,16 +251,16 @@ class SEEDEditList
 
         // insert a new item in a nice place
         let jItem = $(sItemHtml);
-        if( msdSeedContainerCurr ) {
-            jItem.insertAfter( msdSeedContainerCurr );
+        if( this.jItemCurr ) {
+            jItem.insertAfter( this.jItemCurr );
         } else {
-            $(".msdSeedContainerList").prepend( jItem );
+            $(".seededit-list").prepend( jItem );
         }
 
 //should this happen in FormOpen_InitForm -- no this is initializing the contents in the whole item not just the form
 //msdSEL.initButtons( container );
 
-        // make it the msdSeedContainerCurr, open the form in the container, mark it as a New form so Cancel will remove() it
+        // make it the this.jItemCurr, open the form in the container, mark it as a New form so Cancel will remove() it
         this.bFormIsNew = true;
         this.FormOpen( jItem );
     }
@@ -271,9 +287,9 @@ class SEEDEditList
 
         this.SelectItem( jItem, true );
 
-        // Create a form and put it inside msdSeedContainer, after msdSeedText. It is initially non-displayed, but fadeIn shows it.
+        // Create a form and put it inside seededit-item, after seededit-text. It is initially non-displayed, but fadeIn shows it.
         let jFormDiv = $( this.MakeFormHTML( { formhtml: "$msdSeedEditForm" } ) );
-        msdSeedContainerCurr.append(jFormDiv);
+        this.jItemCurr.append(jFormDiv);
 
         // set listeners for the Save and Cancel buttons. Use saveThis because "this" is not defined in the closures.
         let saveThis = this;
@@ -288,7 +304,7 @@ class SEEDEditList
     FormSave( kItem )
 // kind of silly to pass kItem from FormOpen but check to see if there's a current item and open form. Why not just get the item id here.
     {
-        if( msdSeedContainerCurr == null || !this.IsFormOpen() ) return;
+        if( this.jItemCurr == null || !this.IsFormOpen() ) return;
 
         return( this.FormSave_Action( kItem ) );
     }
@@ -301,18 +317,19 @@ class SEEDEditList
 
     FormClose( ok )
     {
-        if( msdSeedContainerCurr == null || !this.IsFormOpen() ) return;
+        if( this.jItemCurr == null || !this.IsFormOpen() ) return;
 
-        let jFormDiv = msdSeedContainerCurr.find('.seededit-form');
+        let jFormDiv = this.jItemCurr.find('.seededit-form');
 
         this.FormClose_PreClose( jFormDiv );
 
         let saveThis = this;    // "this" is not defined in the closure
         jFormDiv.fadeOut(500, function() {
                 jFormDiv.remove();      // wait for the fadeOut to complete before removing the seededit-form
+
                 if( ok ) {
                     // do this after fadeOut because it looks better afterward
-                    msdSeedContainerCurr.find(".seededit-form-msg").html( "<div class='alert alert-success' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>Saved</div>" );
+                    saveThis.jItemCurr.find(".seededit-form-msg").html( "<div class='alert alert-success'>Saved</div>" );
                 }
 
                 if( saveThis.IsFormOpenAndNew() ) {
@@ -320,12 +337,12 @@ class SEEDEditList
                         // Closing after successful submit of New form
                     } else {
                         // Closing after Cancel on New form (remove the item)
-                        msdSeedContainerCurr.remove();
-                        msdSeedContainerCurr = null;
+                        saveThis.jItemCurr.remove();
+                        saveThis.jItemCurr = null;
 // here the current item is undefined so if you click new again it draws at the top of the page (unscrolled). Better to try to remember the previous current item and make that current here.
                     }
                 }
-                // allow another block to be clicked (keep msdSeedContainerCurr so a New container can be inserted after it)
+                // allow another block to be clicked (keep jItemCurr so a New container can be inserted after it)
                 saveThis.bFormIsOpen = false;
                 saveThis.bFormIsNew = false;
 
@@ -350,7 +367,7 @@ class SEEDEditList
 
     GetItemId( jItem )
     {
-        let k = parseInt(jItem.attr("data-kproduct")) || 0;     // apparently this is zero if parseInt returns NaN
+        let k = parseInt(jItem.attr("data-kitem")) || 0;     // apparently this is zero if parseInt returns NaN
         return( k );
     }
 
@@ -362,15 +379,15 @@ class SEEDEditList
     {
         if( this.IsFormOpen() ) return( false );
 
-        msdSeedContainerCurr = jItem;
+        this.jItemCurr = jItem;
         this.bFormIsOpen = bOpenForm;
 
         // clear previous edit indicators
-        $(".msdSeedContainer").css({border:"1px solid #e3e3e3"});
+        $(".seededit-item").css({border:"1px solid #e3e3e3"});
         $(".seededit-form-msg").html("");
 
         // show the current container is selected
-        msdSeedContainerCurr.css({border:"1px solid blue"});
+        this.jItemCurr.css({border:"1px solid blue"});
 
         return( true );
     }
@@ -385,7 +402,7 @@ class SEEDEditList
                        +"[formhtml]"
                        +"<input type='submit' value='Save'/> "
                        +"<button class='seededit-form-button-cancel' type='button'>Cancel</button>"
-                   +"</form>"    
+                   +"</form>"
                +"</div>";
 
         if( typeof raConfig['formhtml'] !== 'undefined' )  { f = f.replace( "[formhtml]", raConfig['formhtml'] ); }
@@ -463,7 +480,7 @@ class MSDSeedEditList extends SEEDEditList
     {
         let p = "cmd=msdSeed--Update&kS="+kItem+"&"
               + (this.raConfig['overrideUidSeller'] ? ("config_OverrideUidSeller="+this.raConfig['overrideUidSeller']+"&") : "")
-              + msdSeedContainerCurr.find('select, textarea, input').serialize();
+              + this.jItemCurr.find('select, textarea, input').serialize();
 
         //SEEDJX_bDebug = true;
         //console.log(p);
@@ -471,12 +488,11 @@ class MSDSeedEditList extends SEEDEditList
         //console.log(oRet);
 
         if( oRet['bOk'] ) {
-            this.doAfterSuccess( msdSeedContainerCurr, oRet );
-
+            this.doAfterSuccess( this.jItemCurr, oRet );
             this.FormClose( oRet['bOk'] );
         } else {
             // show the error and leave the form open
-            this.doAfterError( msdSeedContainerCurr, oRet );
+            this.doAfterError( this.jItemCurr, oRet );
         }
 
         return( oRet['bOk'] );
@@ -495,8 +511,8 @@ class MSDSeedEditList extends SEEDEditList
      */
     {
         let saveThis = this;
-        // on click of an msdSeedText or an Edit button, open the edit form
-        jItem.find(".msdSeedText, .msdSeedEditButton_edit").click( function(e) { saveThis.FormOpen( jItem ); });
+        // on click of a seededit-text or an Edit button, open the edit form
+        jItem.find(".seededit-text, .msdSeedEditButton_edit").click( function(e) { saveThis.FormOpen( jItem ); });
 
         // skip and delete buttons
         jItem.find(".msdSeedEditButton_skip").click( function(e)   { saveThis.doSkip(   jItem ); });
@@ -539,7 +555,7 @@ class MSDSeedEditList extends SEEDEditList
         if( !kItem ) return;
 
         this.SelectItem( jItem, false );    // make this the current container but don't open the form
-        
+
         //SEEDJX_bDebug = true;
         let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleSkip&kS="+kItem );
         if( oRet['bOk'] ) {
@@ -567,27 +583,24 @@ class MSDSeedEditList extends SEEDEditList
      */
     {
         let kItem = rQ['raOut']['_key'];    // for New items this will be novel information
-    
+
         // raOut contains the validated seed data as stored in the database - save that here so it appears if you open the form again
         this.raConfig['raSeeds'][kItem]=rQ['raOut'];
-    
-        // sOut contains the revised msdSeedText
-        jItem.find(".msdSeedText").html( rQ['sOut'] );
-    
-        // set data-kproduct for New items
+
+        // sOut contains the revised seededit-text
+        jItem.find(".seededit-text").html( rQ['sOut'] );
+
+        // set data-kitem for New items
         if( this.IsFormOpenAndNew() ) {
-            jItem.attr( 'data-kproduct', kItem );
+            jItem.attr( 'data-kitem', kItem );
         }
-    
+
         this.setButtonLabels( jItem, rQ['raOut']['eStatus'] );
     }
 
     doAfterError( jItem, rQ )
     {
-        jItem.find(".seededit-form-msg").html(
-            "<div class='alert alert-danger' style='font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block'>"
-            +rQ['sErr']
-            +"</div>" );
+        jItem.find(".seededit-form-msg").html( "<div class='alert alert-danger'>"+rQ['sErr']+"</div>" );
     }
 }
 </script>
