@@ -232,15 +232,8 @@ class SEEDEditList
         this.bFormIsNew = false;        // if an open form is new, Cancel will .remove() it
     }
 
-    IsFormOpen()
-    {
-        return( this.bFormIsOpen );
-    }
-
-    IsFormOpenAndNew()
-    {
-        return( this.bFormIsNew );
-    }
+    IsFormOpen()  { return( this.bFormIsOpen ); }
+    IsFormNew()   { return( this.bFormIsNew ); }
 
 
     FormNew()
@@ -260,7 +253,7 @@ class SEEDEditList
 //should this happen in FormOpen_InitForm -- no this is initializing the contents in the whole item not just the form
 //msdSEL.initButtons( container );
 
-        // make it the this.jItemCurr, open the form in the container, mark it as a New form so Cancel will remove() it
+        // make it the current item, open the form in the container, mark it as a New form so Cancel will remove() it
         this.bFormIsNew = true;
         this.FormOpen( jItem );
     }
@@ -271,21 +264,9 @@ class SEEDEditList
         Input is the jquery object of the seededit_item.
      */
     {
-        /* Other functions use UseItem() to get the id of a selected item but that returns 0 if a form is open to indicate that the selection can't be made.
-         * However if the selected item is New, its id is also 0. Use IsFormOpen and IsFormOpenAndNew to tell the difference.
-         */
-
-        // Don't allow a new form to be opened if one is already open.
-        if( this.IsFormOpen() ) return;
-
-        let kItem = this.UseItem( jItem );
-
-        // if UseItem returns 0 it either means an invalid item or this is a New item
-        if( !kItem && !this.IsFormOpenAndNew() ) return;
-
-        if( !this.FormOpen_IsOpenable( jItem, kItem ) )  return;
-
-        this.SelectItem( jItem, true );
+        // Make jItem the current item and open the form, unless the item is unopenable or a form is already open
+        let kItem = this.SelectItem( jItem, true );
+        if( kItem == -1 )  return;
 
         // Create a form and put it inside seededit-item, after seededit-text. It is initially non-displayed, but fadeIn shows it.
         let jFormDiv = $( this.MakeFormHTML( { formhtml: "$msdSeedEditForm" } ) );
@@ -332,7 +313,7 @@ class SEEDEditList
                     saveThis.jItemCurr.find(".seededit-form-msg").html( "<div class='alert alert-success'>Saved</div>" );
                 }
 
-                if( saveThis.IsFormOpenAndNew() ) {
+                if( saveThis.IsFormNew() ) {
                     if( ok ) {
                         // Closing after successful submit of New form
                     } else {
@@ -350,34 +331,34 @@ class SEEDEditList
             } );
     }
 
-    UseItem( jItem )
-    /***************
-        When an item is clicked or selected, return its item id, unless there is a form open (because other items are supposed to act disabled then).
-     */
-    {
-        let k = 0;
-
-        if( this.IsFormOpen() ) {
-            console.log("Cannot open multiple forms");
-        } else {
-            k = this.GetItemId( jItem );
-        }
-        return( k );
-    }
-
     GetItemId( jItem )
     {
         let k = parseInt(jItem.attr("data-kitem")) || 0;     // apparently this is zero if parseInt returns NaN
         return( k );
     }
 
+    SetItemId( jItem, kItem )
+    {
+        jItem.attr( 'data-kitem', kItem );
+    }
+
 
     SelectItem( jItem, bOpenForm )
     /*****************************
-        Set the current item and the status of the form
+        Make jItem the current item and set the status of the form.
+        Check first that a form is not already open, because you can't change selection when a form is open.
+        Return the kItem if successful (0 means success with a New form)
+               or -1 if not (a form is already open)
      */
     {
-        if( this.IsFormOpen() ) return( false );
+        if( this.IsFormOpen() ) {
+            console.log("Cannot open multiple forms");
+            return( -1 );
+        }
+
+        let kItem = this.GetItemId( jItem );
+
+        if( !this.FormOpen_IsOpenable( jItem, kItem ) )  return( -1 );
 
         this.jItemCurr = jItem;
         this.bFormIsOpen = bOpenForm;
@@ -389,7 +370,7 @@ class SEEDEditList
         // show the current container is selected
         this.jItemCurr.css({border:"1px solid blue"});
 
-        return( true );
+        return( kItem );
     }
 
     MakeFormHTML( raConfig )
@@ -551,10 +532,8 @@ class MSDSeedEditList extends SEEDEditList
 
     doSkip( jItem )
     {
-        let kItem = this.UseItem( jItem );
-        if( !kItem ) return;
-
-        this.SelectItem( jItem, false );    // make this the current container but don't open the form
+        let kItem = this.SelectItem( jItem, false );   // make this the current item but don't open the form
+        if( kItem == -1 ) return;
 
         //SEEDJX_bDebug = true;
         let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleSkip&kS="+kItem );
@@ -565,10 +544,8 @@ class MSDSeedEditList extends SEEDEditList
 
     doDelete( jItem )
     {
-        let kItem = this.UseItem( jItem );
-        if( !kItem ) return;
-
-        this.SelectItem( jItem, false );    // make this the current container but don't open the form
+        let kItem = this.SelectItem( jItem, false );   // make this the current item but don't open the form
+        if( kItem == -1 ) return;
 
         //SEEDJX_bDebug = true;
         let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleDelete&kS="+kItem );
@@ -591,8 +568,8 @@ class MSDSeedEditList extends SEEDEditList
         jItem.find(".seededit-text").html( rQ['sOut'] );
 
         // set data-kitem for New items
-        if( this.IsFormOpenAndNew() ) {
-            jItem.attr( 'data-kitem', kItem );
+        if( this.IsFormNew() ) {
+            this.SetItemId( jItem, kItem );
         }
 
         this.setButtonLabels( jItem, rQ['raOut']['eStatus'] );
