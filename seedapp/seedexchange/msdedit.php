@@ -194,13 +194,6 @@ basketStyle;
 $s .= <<<basketScript
 <script>
 
-$(document).ready( function() {
-    $(".seededit-item").each( function() { msdSEL.initButtons( $(this) ); });
-
-// implement new button with a list of classes on SEEDEditList constructor that will attach to FormNew
-    $(".msdSeedEditButton_new").click( function(e)    { msdSEL.FormNew(); });
-});
-
 class SEEDEditList
 /*****************
     Show a list of items and allow them to expand to forms one at a time.
@@ -236,8 +229,12 @@ class SEEDEditList
     IsFormNew()   { return( this.bFormIsNew ); }
 
 
-    FormNew()
+    ItemNew()
+    /********
+        Create a new item, and open its form for input
+     */
     {
+        // Cannot create and select a new item if another item is open
         if( this.IsFormOpen() ) return( null );
 
         let sItemHtml = "$msdSeedContainerTemplate";
@@ -250,8 +247,7 @@ class SEEDEditList
             $(".seededit-list").prepend( jItem );
         }
 
-//should this happen in FormOpen_InitForm -- no this is initializing the contents in the whole item not just the form
-//msdSEL.initButtons( container );
+        this.ItemNew_Init( jItem );
 
         // make it the current item, open the form in the container, mark it as a New form so Cancel will remove() it
         this.bFormIsNew = true;
@@ -358,7 +354,10 @@ class SEEDEditList
 
         let kItem = this.GetItemId( jItem );
 
-        if( !this.FormOpen_IsOpenable( jItem, kItem ) )  return( -1 );
+        // only check this if opening a form because even unopenable forms can be selected (e.g. deleted MSD items can be selected so they can be Undeleted, but no form open)
+        if( bOpenForm ) {
+            if( !this.FormOpen_IsOpenable( jItem, kItem ) )  return( -1 );
+        }
 
         this.jItemCurr = jItem;
         this.bFormIsOpen = bOpenForm;
@@ -394,7 +393,7 @@ class SEEDEditList
 
     /* Functions meant to provide derived behaviours
      */
-
+    ItemNew_Init( jItem )                { /* override to initialize a new seededit-item */ }
     FormOpen_IsOpenable( jItem, kItem )  { /* override to say whether the selected item is allowed to open a form */    return( true ); }
     FormOpen_InitForm( jFormDiv, kItem ) { /* override to initialize the given form */ }
     FormClose_PreClose( jFormDiv )       { /* override for actions when a form is closed, before it fades out */ }
@@ -407,6 +406,15 @@ class MSDSeedEditList extends SEEDEditList
     constructor( raConfig )
     {
         super( raConfig );
+
+        let saveThis = this;
+        $(".seededit-item").each( function() { saveThis.initButtons( $(this) ); });
+    }
+
+    ItemNew_Init( jItem )
+    {
+        // attach event listeners to the item control buttons
+        this.initButtons( jItem );
     }
 
     FormOpen_IsOpenable( jItem, kItem )
@@ -580,6 +588,16 @@ class MSDSeedEditList extends SEEDEditList
         jItem.find(".seededit-form-msg").html( "<div class='alert alert-danger'>"+rQ['sErr']+"</div>" );
     }
 }
+
+
+
+$(document).ready( function() {
+
+    var msdSEL = new MSDSeedEditList( msdSELConfig );
+
+    $(".msdSeedEditButton_new").click( function(e)    { msdSEL.ItemNew(); });
+});
+
 </script>
 basketScript;
 
@@ -594,10 +612,10 @@ basketScript;
          *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
          */
         $s .= "<script>
-               var msdSEL = new MSDSeedEditList( { qUrl: '".Site_UrlQ('basketJX.php')."',
-                                                   overrideUidSeller: ".($uidSeller ?: -1).",
-                                                   raSeeds: ".json_encode($raSeeds)."
-                                                 } );
+               var msdSELConfig = { qUrl:              '".Site_UrlQ('basketJX.php')."',
+                                    overrideUidSeller: ".($uidSeller ?: -1).",
+                                    raSeeds:           ".json_encode($raSeeds)."
+                                  };
                </script>";
 
         done:
@@ -621,7 +639,7 @@ basketScript;
             goto done;
         }
 
-        // Draw the list in a set of SeedEditContainers
+        // Draw the list in a set of SeedEditList items
         $category = "";
         foreach( $raSeeds as $kProduct => $raS ) {
             if( $category != $raS['category'] ) {
@@ -637,41 +655,6 @@ basketScript;
             $sC = str_replace( '[[sSeedText]]', $sP, $sC );
             $sList .= $sC;
         }
-
-/*
-
-        $oProdHandler = $this->oSB->GetProductHandler( "seeds" ) or die( "Seeds ProductHandler not defined" );
-
-        $cond = ($uidSeller ? "uid_seller='$uidSeller'" : "1=1")
-               .($kSp ? (" AND PE2.v='".addslashes($oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'") : "");
-
-//        $kfrcP = $this->oC->oSB->oDB->GetKFRC( "PxPE3", "product_type='seeds' AND uid_seller='1' "
-//                                                   ."AND PE1.k='category' "
-//                                                   ."AND PE2.k='species' "
-//                                                   ."AND PE3.k='variety' ",
-//                                                   array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
-        if( ($kfrcP = $oMSDCore->SeedCursorOpen($cond)) ) {
-            $category = "";
-            while( $oMSDCore->SeedCursorFetch( $kfrcP ) ) { // $kfrcP->CursorFetch() ) {
-                $kP = $kfrcP->Key();
-                if( $category != $kfrcP->Value('PE1_v') ) {
-                    $category = $kfrcP->Value('PE1_v');
-                    $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
-                }
-
-                $sC = $this->sContainer;
-                $sC = str_replace( '[[kP]]', $kP, $sC );
-
-                //$sP = $this->oSB->DrawProduct( $kfrcP, SEEDBasketProductHandler_Seeds::DETAIL_EDIT_WITH_SPECIES, ['bUTF8'=>true] );
-                $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kfrcP->Key(), 'eDrawMode'=>MSDQ::SEEDDRAW_EDIT.' '.MSDQ::SEEDDRAW_VIEW_SHOWSPECIES) );
-                $sP = $rQ['bOk'] ? $rQ['sOut'] : ("Missing text for seed #".$kfrP->Key().": {$rQ['sErr']}");
-                $sC = str_replace( '[[sSeedText]]', $sP, $sC );
-                $sList .= $sC;
-
-                $raSeeds[$kP] = $oProdHandler->GetProductValues( $kfrcP, array('bUTF8'=>true) );
-            }
-        }
-*/
 
         done:
         return( array( $sList, $raSeeds ) );
