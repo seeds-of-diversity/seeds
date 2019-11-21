@@ -43,6 +43,7 @@ class MSDAppSeedEdit
                ."<button class='msdSeedEditButton_delete' style='display:none'>Delete</button></div>"
            ."<div class='seededit-form-msg'></div>"
            ."<div class='seededit-text' style='padding:0px'>[[sSeedText]]</div>"
+           ."<div class='seededit-form' style='display:none'></div>"
        ."</div>";
 
     function Draw( $uidSeller, $kSp )
@@ -260,15 +261,17 @@ class SEEDEditList
         let kItem = this.SelectItem( jItem, true );
         if( kItem == -1 )  return;
 
+        let jFormDiv = this.jItemCurr.find(".seededit-form");
+
         // Create a form and put it inside seededit-item, after seededit-text. It is initially non-displayed, but fadeIn shows it.
-        let jFormDiv = $( this.MakeFormHTML( { formhtml: this.raConfig['formhtml'] } ) );
-        this.jItemCurr.append(jFormDiv);
+        jFormDiv.html( this.MakeFormHTML( { formhtml: this.raConfig['formhtml'] } ) );
 
         // set listeners for the Save and Cancel buttons. Use saveThis because "this" is not defined in the closures.
         let saveThis = this;
         jFormDiv.find("form").submit( function(e) { e.preventDefault(); saveThis.FormSave( kItem ); } );
         jFormDiv.find(".seededit-form-button-cancel").click( function(e) { e.preventDefault(); saveThis.FormCancel(); } );
 
+        // connect event listeners in the new form, etc.
         this.FormOpen_InitForm( jFormDiv, kItem );
 
         jFormDiv.fadeIn(500);
@@ -298,7 +301,7 @@ class SEEDEditList
 
         let saveThis = this;    // "this" is not defined in the closure
         jFormDiv.fadeOut(500, function() {
-                jFormDiv.remove();      // wait for the fadeOut to complete before removing the seededit-form
+                jFormDiv.html("");      // clear the form after fadeOut
 
                 if( ok ) {
                     // do this after fadeOut because it looks better afterward
@@ -307,9 +310,9 @@ class SEEDEditList
 
                 if( saveThis.IsFormNew() ) {
                     if( ok ) {
-                        // Closing after successful submit of New form
+                        // Closing after successful submit of New form; leave the item intact
                     } else {
-                        // Closing after Cancel on New form (remove the item)
+                        // Closing after Cancel on New form; remove the form
                         saveThis.jItemCurr.remove();
                         saveThis.jItemCurr = null;
 // here the current item is undefined so if you click new again it draws at the top of the page (unscrolled). Better to try to remember the previous current item and make that current here.
@@ -319,7 +322,9 @@ class SEEDEditList
                 saveThis.bFormIsOpen = false;
                 saveThis.bFormIsNew = false;
 
-                saveThis.FormClose_PostClose( jFormDiv );
+                if( saveThis.jItemCurr ) {
+                    saveThis.FormClose_PostClose( saveThis.jItemCurr );
+                }
             } );
     }
 
@@ -373,13 +378,12 @@ class SEEDEditList
         Build the form by defining substitutions in the form below, or override to define the whole form.
      */
     {
-        let f = "<div class='seededit-form'>"
-                   +"<form>"
-                       +"[formhtml]"
-                       +"<input type='submit' value='Save'/> "
-                       +"<button class='seededit-form-button-cancel' type='button'>Cancel</button>"
-                   +"</form>"
-               +"</div>";
+        let f = "<form>"
+                   +"[formhtml]"
+                   +"<input type='submit' value='Save'/> "
+                   +"<button class='seededit-form-button-cancel' type='button'>Cancel</button>"
+               +"</form>";
+
 
         if( typeof raConfig['formhtml'] !== 'undefined' )  { f = f.replace( "[formhtml]", raConfig['formhtml'] ); }
 
@@ -393,7 +397,7 @@ class SEEDEditList
     FormOpen_IsOpenable( jItem, kItem )  { /* override to say whether the selected item is allowed to open a form */    return( true ); }
     FormOpen_InitForm( jFormDiv, kItem ) { /* override to initialize the given form */ }
     FormClose_PreClose( jFormDiv )       { /* override for actions when a form is closed, before it fades out */ }
-    FormClose_PostClose( jFormDiv )      { /* override for actions when a form is closed, after it fades out */ }
+    FormClose_PostClose( jItem )         { /* override for actions when a form is closed, after it fades out */ }
     FormSave_Action( kItem )             { /* override for the action when a form is saved */                           return( true ); }
 }
 
@@ -483,7 +487,10 @@ class MSDSeedEditList extends SEEDEditList
         return( oRet['bOk'] );
     }
 
-    FormClose_PostClose( jFormDiv )
+    FormClose_PostClose( jItem )
+    /***************************
+        This is called after the form is removed from the dom. The item should still be valid though.
+     */
     {
         // re-enable all control buttons for all items
         $(".msdSeedEditButtonContainer button").removeAttr("disabled");
