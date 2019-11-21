@@ -35,7 +35,7 @@ class MSDAppSeedEdit
         $this->oSB = $oSB;
     }
 
-    private $sContainer =
+    private $sItemTemplate =
         "<div class='well seededit-item' data-kitem='[[kP]]' style='margin:5px'>"
            ."<div class='msdSeedEditButtonContainer' style='float:right'>"
                ."<button class='msdSeedEditButton_edit' style='display:none'>Edit</button><br/>"
@@ -165,11 +165,9 @@ $msdSeedEditForm = <<<msdSeedEditForm
 msdSeedEditForm;
 $msdSeedEditForm = str_replace("\n","",$msdSeedEditForm);   // jquery doesn't like linefeeds in its selectors
 
-$msdSeedContainerTemplate = $this->sContainer;
-$msdSeedContainerTemplate = str_replace( '[[kP]]', "", $msdSeedContainerTemplate );
-//$msdSeedContainerTemplate = str_replace( '[[sButtonSkip]]', "Skip", $msdSeedContainerTemplate );
-//$msdSeedContainerTemplate = str_replace( '[[sButtonDelete]]', "Delete", $msdSeedContainerTemplate );
-$msdSeedContainerTemplate = str_replace( '[[sSeedText]]', "<h3>New Seed</h3>", $msdSeedContainerTemplate );
+$msdSeedEditItemTemplate = $this->sItemTemplate;
+$msdSeedEditItemTemplate = str_replace( '[[kP]]', "", $msdSeedEditItemTemplate );
+$msdSeedEditItemTemplate = str_replace( '[[sSeedText]]', "<h3>New Seed</h3>", $msdSeedEditItemTemplate );
 
 
 $s .= <<<basketStyle
@@ -237,10 +235,8 @@ class SEEDEditList
         // Cannot create and select a new item if another item is open
         if( this.IsFormOpen() ) return( null );
 
-        let sItemHtml = "$msdSeedContainerTemplate";
-
         // insert a new item in a nice place
-        let jItem = $(sItemHtml);
+        let jItem = $(this.raConfig['itemhtml']);
         if( this.jItemCurr ) {
             jItem.insertAfter( this.jItemCurr );
         } else {
@@ -265,7 +261,7 @@ class SEEDEditList
         if( kItem == -1 )  return;
 
         // Create a form and put it inside seededit-item, after seededit-text. It is initially non-displayed, but fadeIn shows it.
-        let jFormDiv = $( this.MakeFormHTML( { formhtml: "$msdSeedEditForm" } ) );
+        let jFormDiv = $( this.MakeFormHTML( { formhtml: this.raConfig['formhtml'] } ) );
         this.jItemCurr.append(jFormDiv);
 
         // set listeners for the Save and Cancel buttons. Use saveThis because "this" is not defined in the closures.
@@ -614,7 +610,9 @@ basketScript;
         $s .= "<script>
                var msdSELConfig = { qUrl:              '".Site_UrlQ('basketJX.php')."',
                                     overrideUidSeller: ".($uidSeller ?: -1).",
-                                    raSeeds:           ".json_encode($raSeeds)."
+                                    raSeeds:           ".json_encode($raSeeds).",
+                                    itemhtml:          \"$msdSeedEditItemTemplate\",
+                                    formhtml:          \"$msdSeedEditForm\"
                                   };
                </script>";
 
@@ -647,7 +645,7 @@ basketScript;
                 $sList .= "<div><h2>".@$oMSDCore->GetCategories()[$category]['EN']."</h2></div>";
             }
 
-            $sC = $this->sContainer;
+            $sC = $this->sItemTemplate;
             $sC = str_replace( '[[kP]]', $kProduct, $sC );
 
             $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kProduct, 'eDrawMode'=>MSDQ::SEEDDRAW_EDIT.' '.MSDQ::SEEDDRAW_VIEW_SHOWSPECIES) );
