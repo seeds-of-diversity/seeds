@@ -36,7 +36,7 @@ class MSDAppSeedEdit
     }
 
     private $sItemTemplate =
-        "<div class='well seededit-item' data-kitem='[[kP]]' style='margin:5px'>"
+        "<div class='well seededit-item seededit-item-msd' data-kitem='[[kP]]' style='margin:5px'>"
            ."<div class='msdSeedEditButtonContainer' style='float:right'>"
                ."<button class='msdSeedEditButton_edit' style='display:none'>Edit</button><br/>"
                ."<button class='msdSeedEditButton_skip' style='display:none'>Skip</button><br/>"
@@ -192,21 +192,21 @@ basketStyle;
 $s .= <<<basketScript
 <script>
 
-class SEEDEditList
-/*****************
+class Console02EditList
+/**********************
     Show a list of items and allow them to expand to forms one at a time.
 
-    Usage: Make a list like this.
-           Create a new SEEDEditList. It hooks up listeners so the user can edit the items.
-           Derived class supplies the text, form, submit action, and additional js functionality.
+    Usage: Make a list like below. Use seededit-item-{type} to differentiate different types of items.
+           Make a derived class for each {type} that supplies the text, form, submit action, and additional js functionality.
+           Create one instance of each derived class. It hooks up listeners to its items.
 
         <div class='seededit-list'>
-            <div class='seededit-item'>
+            <div class='seededit-item seededit-item-{type}'>
                 <div class='seededit-form-msg'></div>           -- put this anywhere you want messages to be visible
                 <div class='seededit-text'> The item text goes here </div>
                 <div class='seededit-form'></div>               -- leave empty, seededit will fill it as needed
             </div>
-            <div class='seededit-item'>
+            <div class='seededit-item seededit-item-{type}'>
             .
             .
             </div>
@@ -397,14 +397,14 @@ class SEEDEditList
     FormSave_Action( kItem )             { /* override for the action when a form is saved */                           return( true ); }
 }
 
-class MSDSeedEditList extends SEEDEditList
+class MSDSeedEditList extends Console02EditList
 {
     constructor( raConfig )
     {
         super( raConfig );
 
         let saveThis = this;
-        $(".seededit-item").each( function() { saveThis.initButtons( $(this) ); });
+        $(".seededit-item-msd").each( function() { saveThis.initButtons( $(this) ); });
     }
 
     ItemNew_Init( jItem )
@@ -608,12 +608,17 @@ basketScript;
          *                     It is ignored if you don't have MSDOffice:W perms (the current user is uidSeller in that case, regardless of this).
          */
         $s .= "<script>
-               var msdSELConfig = { qUrl:              '".Site_UrlQ('basketJX.php')."',
-                                    overrideUidSeller: ".($uidSeller ?: -1).",
-                                    raSeeds:           ".json_encode($raSeeds).",
-                                    itemhtml:          \"$msdSeedEditItemTemplate\",
-                                    formhtml:          \"$msdSeedEditForm\"
-                                  };
+               var msdSELConfig = {
+                        // base
+                        itemtype:          'msd',
+                        itemhtml:          \"$msdSeedEditItemTemplate\",
+                        formhtml:          \"$msdSeedEditForm\",
+
+                        // derived
+                        qUrl:              '".Site_UrlQ('basketJX.php')."',
+                        overrideUidSeller: ".($uidSeller ?: -1).",
+                        raSeeds:           ".json_encode($raSeeds)."
+               };
                </script>";
 
         done:
