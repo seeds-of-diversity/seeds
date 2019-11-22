@@ -62,3 +62,14 @@
         border:1px solid var(--ts-bgcolor);
         border-radius: 0px 0px 15px 15px;
 }
+
+
+/* ConsoleEditList
+ */
+.seededit-form { 
+    width:100%;display:none;margin-top:5px;padding-top:10px;border-top:1px dashed #888;
+}
+.seededit-form-msg .alert {       /* format the alert inside the form-msg to override bootstrap */
+    font-size:10pt;margin-bottom:5px;padding:3px 10px;display:inline-block;
+}
+
