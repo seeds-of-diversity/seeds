@@ -24,7 +24,8 @@ class SEEDXlsRead
 
     function LoadFile( $filename )
     {
-        $this->oXls = \PhpOffice\PhpSpreadsheet\IOFactory::load($inputFileName);     // static load() method
+        $this->oXls = \PhpOffice\PhpSpreadsheet\IOFactory::load($filename);     // static load() method
+
         return( $this->oXls != null );
     }
 
@@ -39,7 +40,7 @@ class SEEDXlsRead
      */
     {
         $oSheet = $this->oXls->getSheet( $iSheet );
-        return( $oSheet->getHighestDataRow() );
+        return( $oSheet ? $oSheet->getHighestDataRow() : 0 );
     }
 
     function GetColCount( $iSheet )
@@ -47,23 +48,85 @@ class SEEDXlsRead
         Return the max number of columns in the sheet
      */
     {
-        $oSheet = $this->oXls->getSheet( $iSheet );
-        return( $oSheet->getHighestDataColumn() );
+        $n = 0;
+
+        if( ($oSheet = $this->oXls->getSheet( $iSheet )) ) {
+            $max = $oSheet->getHighestDataColumn();     // returns an upper case letter ( cols > 26 not implemented here` )
+            $n = ord($max) - ord('A') + 1;
+        }
+        return( $n );
     }
 
-    function GetRow( $iSheet, $iRow, $bCalculateFormulae = false )
-    /*************************************************************
+    function GetAllSheets()  { return( $this->oXls->getAllSheets() ); }
+
+    function GetSheetData( $iSheet, $raParms = array() )
+    /***************************************************
+        Get a 2D array containing the sheet data. Rows and columns are keyed numerically origin-0.
+
+        Sheets are origin-0
+        bCalculateFormulae = false : return formulae verbatim
+                           = true  : return the calculated result of the formulae
+        sCharsetOutput : data in xls is always utf-8; convert if this is not utf-8 or empty
+     */
+    {
+        return( $this->getData( $iSheet, null, $raParms ) );
+    }
+
+    function GetRow( $iSheet, $iRow, $raParms = array() )
+    /****************************************************
         Return an array of the row's values
 
         Sheets are origin-0
         Rows are origin-1
         bCalculateFormulae = false : return formulae verbatim
                            = true  : return the calculated result of the formulae
+        sCharset : data is utf-8; convert if this is not utf-8 or empty
      */
     {
-
+        return( $this->getData( $iSheet, $iRow, $raParms ) );
     }
 
+    private function getData( $iSheet, $iRow, $raParms )
+    /***************************************************
+        Get 2D data for the given sheet.
+
+        $iRow == 0 : data for the whole sheet
+        $iRow > 0  : just one row
+     */
+    {
+        $ra = array();
+
+        if( !($oSheet = $this->oXls->getSheet( $iSheet )) )  goto done;
+
+        if( $iRow ) {
+            $sRange = "A$iRow:".$oSheet->getHighestDataColumn().$iRow;
+        } else {
+            $sRange = "A1:".$oSheet->getHighestDataColumn().$oSheet->getHighestDataRow();
+        }
+
+        $defaultIfCellNotExist = null;
+        $bCalculateFormulae = SEEDCore_ArraySmartVal1( $raParms, 'bCalculateFormulae', true );
+        $bFormatCells = false;
+        $bUseCellnamesForKeys = false;
+
+        $ra = $oSheet->rangeToArray( $sRange, $defaultIfCellNotExist, $bCalculateFormulae, $bFormatCells, $bUseCellnamesForKeys );
+        $ra = $this->charsetConvert( $ra, $raParms );
+
+        done:
+        return( $ra );
+    }
+
+    private function charsetConvert( $ra, $raParms )
+    {
+        if( ($sCharset = @$raParms['sCharsetOutput']) && $sCharset != 'utf-8' ) {
+            for( $i = 0; $i < count($ra[0]); ++$i ) {
+                if( is_string($ra[0][$i]) ) {
+                    $ra[0][$i] = iconv( 'utf-8', $sCharset, $ra[0][$i] );
+                }
+            }
+        }
+        return( $ra );
+    }
 }
 
 
