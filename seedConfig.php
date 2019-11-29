@@ -10,8 +10,9 @@
 // You have to define SEEDROOT. We'll make good guesses about everything else.
 if( !defined("SEEDROOT") )  die( "SEEDROOT must be defined" );
 
-// Good to know. substr is necessary because SERVER_NAME can have a port number
-define("SEED_isLocal", ((substr($_SERVER["SERVER_NAME"],0,9) == "localhost") ? true : false));
+// Good to know. substr is necessary because SERVER_NAME can have a port number.
+// Note: direct php execution (e.g. cron) doesn't set SERVER_NAME so it will always appear to be non-local
+define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"],0,9) == "localhost") ? true : false));
 
 // These are always under SEEDROOT
 if( !defined("SEEDAPP") )   define( "SEEDAPP", SEEDROOT."seedapp/" );
