@@ -155,7 +155,7 @@ class SLSourcesAppDownload
 
         /* Load the uploaded spreadsheet into an array
          */
-        $raSEEDTableLoadParms = array();
+        $raSEEDTableLoadParms = array('bBigFile'=>true);
         switch( SEEDInput_Str('upfile-format') ) {
             case 'xls':
             default:
@@ -179,6 +179,11 @@ class SLSourcesAppDownload
             $this->oApp->oC->AddErrMsg( $sErrMsg );
             goto done;
         }
+
+        $raK = $oSheets->GetSheetList();
+
+        var_dump( $raK[0], $oSheets->GetNRows($raK[0]) );
+
         $s .= "<p>File uploaded successfully.</p>";
 
         /* Copy the spreadsheet rows into a temporary table.
@@ -186,7 +191,11 @@ class SLSourcesAppDownload
          * Rows are grouped in the table by a number kUpload, which will be propagated to a confirm command so it can copy those rows to sl_cv_sources.
          */
 //$oUpload->Set( 'eReplace', $eReplace );
-        list($ok,$sOk,$sWarn,$sErr) = $oUpload->LoadToTmpTable( $raRows );
+
+
+//        list($ok,$sOk,$sWarn,$sErr) = $oUpload->LoadToTmpTable( $raRows );
+
+
 //        $s .= $this->output( $ok, $sOk, $sWarn, $sErr );
         if( !$ok ) goto done;
 
