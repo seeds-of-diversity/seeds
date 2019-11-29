@@ -20,8 +20,6 @@ class SEEDXlsRead
     {
     }
 
-// TODO: use \PhpOffice\PhpSpreadsheet\Reader\IReadFilter to read a file in chunks to conserve memory
-
     function LoadFile( $filename )
     {
         $this->oXls = \PhpOffice\PhpSpreadsheet\IOFactory::load($filename);     // static load() method
@@ -31,6 +29,11 @@ class SEEDXlsRead
 
     function GetSheetCount()  { return( $this->oXls ? $this->oXls->getSheetCount() : 0 ); }
     function GetSheetNames()  { return( $this->oXls ? $this->oXls->getSheetNames() : [] ); }
+
+    function GetSheetName( $iSheet )
+    {
+        return( ($ra = $this->GetSheetNames()) ? @$ra[$iSheet] : "" );
+    }
 
     function GetRowCount( $iSheet )
     /******************************
@@ -69,7 +72,7 @@ class SEEDXlsRead
         sCharsetOutput : data in xls is always utf-8; convert if this is not utf-8 or empty
      */
     {
-        return( $this->getData( $iSheet, null, $raParms ) );
+        return( _seedxlsread_GetData::GetData( $this->oXls, $iSheet, 0, 0, $raParms ) );
     }
 
     function GetRow( $iSheet, $iRow, $raParms = array() )
@@ -80,29 +83,38 @@ class SEEDXlsRead
         Rows are origin-1
         bCalculateFormulae = false : return formulae verbatim
                            = true  : return the calculated result of the formulae
-        sCharset : data is utf-8; convert if this is not utf-8 or empty
+        sCharsetOutput : data is utf-8; convert if this is not utf-8 or empty
      */
     {
-        return( $this->getData( $iSheet, $iRow, $raParms ) );
+        return( _seedxlsread_GetData::GetData( $this->oXls, $iSheet, $iRow, $iRow, $raParms ) );
     }
+}
 
-    private function getData( $iSheet, $iRow, $raParms )
-    /***************************************************
-        Get 2D data for the given sheet.
+class _seedxlsread_GetData
+{
+    static function GetData( $oXls, $iSheet, $iRowTop, $iRowBottom, $raParms )
+    /*************************************************************************
+        Get 2D data for the given sheet between the given rows.
 
-        $iRow == 0 : data for the whole sheet
-        $iRow > 0  : just one row
+        Sheets are origin-0
+        Rows are origin-1
+
+        $iRowTop == 0    : defaults to row 1
+        $iRowBottom == 0 : defaults to highest row containing data
+
+        bCalculateFormulae = false : return formulae verbatim
+                           = true  : return the calculated result of the formulae
+        sCharsetOutput : data is utf-8; convert if this is not utf-8 or empty
      */
     {
         $ra = array();
 
-        if( !($oSheet = $this->oXls->getSheet( $iSheet )) )  goto done;
+        if( !($oSheet = $oXls->getSheet( $iSheet )) )  goto done;
 
-        if( $iRow ) {
-            $sRange = "A$iRow:".$oSheet->getHighestDataColumn().$iRow;
-        } else {
-            $sRange = "A1:".$oSheet->getHighestDataColumn().$oSheet->getHighestDataRow();
-        }
+        if( !$iRowTop )    $iRowTop = 1;
+        if( !$iRowBottom ) $iRowBottom = $oSheet->getHighestDataRow();
+
+        $sRange = "A$iRowTop:".$oSheet->getHighestDataColumn().$iRowBottom;
 
         $defaultIfCellNotExist = null;
         $bCalculateFormulae = SEEDCore_ArraySmartVal1( $raParms, 'bCalculateFormulae', true );
@@ -110,18 +122,24 @@ class SEEDXlsRead
         $bUseCellnamesForKeys = false;
 
         $ra = $oSheet->rangeToArray( $sRange, $defaultIfCellNotExist, $bCalculateFormulae, $bFormatCells, $bUseCellnamesForKeys );
-        $ra = $this->charsetConvert( $ra, $raParms );
+        $ra = self::charsetConvert( $ra, $raParms );
 
         done:
         return( $ra );
     }
 
-    private function charsetConvert( $ra, $raParms )
+    static private function charsetConvert( $ra, $raParms )
+    /******************************************************
+        Note that this is very expensive for a large file, so you probably don't want to do it during the load here
+        (don't define sCharsetOutput with bBigFile - unless it's a modest file that doesn't need bBigFile anyway)
+     */
     {
         if( ($sCharset = @$raParms['sCharsetOutput']) && $sCharset != 'utf-8' ) {
-            for( $i = 0; $i < count($ra[0]); ++$i ) {
-                if( is_string($ra[0][$i]) ) {
-                    $ra[0][$i] = iconv( 'utf-8', $sCharset, $ra[0][$i] );
+            for( $i = 0; $i < count($ra); ++$i ) {
+                for( $j = 0; $j < count($ra[$i]); ++$j ) {
+                    if( is_string($ra[$i][$j]) ) {
+                        $ra[$i][$j] = iconv( 'utf-8', $sCharset, $ra[$i][$j] );
+                    }
                 }
             }
         }
@@ -247,5 +265,71 @@ class SEEDXlsWrite
         $oSheet = $this->oXls->setActiveSheetIndex( $iSheet );
 
         $oSheet->getStyle("$sCol$iRow")->applyFromArray($raStyle);
+    }
+}
+
+
+class _seedxlsbigfile_ChunkReadFilter implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter
+{
+    private $startRow = 0;
+    private $endRow   = 0;
+
+    //  Set the list of rows that we want to read
+    public function setRows($startRow, $chunkSize) {
+        $this->startRow = $startRow;
+        $this->endRow   = $startRow + $chunkSize;
+    }
+
+    public function readCell($column, $row, $worksheetName = '') {
+        if( $row >= $this->startRow && $row < $this->endRow ) {
+            return true;
+        }
+        return false;
+    }
+}
+
+class SEEDXlsReadBigFile
+/***********************
+    Similar to SEEDXlsRead but loads the file in chunks to conserve memory.
+    This limits how the data can be retrieved, because only a chunk is loaded at any time, so all this does is return
+    the first sheet's data in an array.
+ */
+{
+    private $oXls;
+
+    function __construct( $raConfig = array() )
+    {
+    }
+
+    function LoadFile( $filename, $raParms = array() )
+    {
+        $raData = array();
+
+        // Create a new Reader of the type defined by the file extension.
+        // Attach a ChunkReadFilter to load the file in chunks that won't exhaust memory
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filename);
+        $reader->setReadDataOnly(true);
+        $chunkFilter = new _seedxlsbigfile_ChunkReadFilter();
+        $reader->setReadFilter($chunkFilter);
+
+        $chunkSize = 4096;
+        for( $row = 1; $row <= 65536; $row += $chunkSize ) {
+            $chunkFilter->setRows( $row, $chunkSize );
+
+            // Load the next chunk and add the data in the array.
+            // When a chunk loads with no data, it returns [0 => [0 => null]]
+            $this->oXls = $reader->load($filename);
+            $d = _seedxlsread_GetData::GetData( $this->oXls, 0, $row, 0, $raParms );    // toprow=$row, bottomrow=getHighestDataRow()
+
+            if( !$d || !is_array($d) || count($d)==0 || (count($d)==1 && is_array($d[0]) && count($d[0])==1 && $d[0][0] === null) ) {
+                // this chunk returned no data
+                break;
+            }
+            $raData = array_merge( $raData, $d );
+        }
+
+        //$this->oXls = \PhpOffice\PhpSpreadsheet\IOFactory::load($filename);     // static load() method
+
+        return( $raData );
     }
 }

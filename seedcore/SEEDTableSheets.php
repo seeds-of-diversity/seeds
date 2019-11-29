@@ -182,7 +182,7 @@ class SEEDTableSheetsFile
 
         if( !$ok )  $oSheets = null;
 
-        return( array($oSheets,$sErr) );
+        return( [$oSheets,$sErr] );
     }
 
     function WriteToFile( $oSheets, $filename, $raParms = array() )
@@ -243,23 +243,35 @@ class SEEDTableSheetsFile
         return( array($ok,$sErr) );
     }
 
-    function loadFromXLSX( $oSheets, $filename, $raParms )
+    function loadFromXLSX( SEEDTableSheets $oSheets, $filename, $raParms )
     {
         $ok = false;
         $sErr = "";
 
-        $oXLS = new SEEDXlsRead();
-        if( !$oXLS->LoadFile( $filename ) ) {
-            $sErr = "Could not load file $filename";
-            goto done;
+        if( @$raParms['bBigFile'] ) {
+            // the caller thinks this is going to be a big file so get it in chunks and return the data of the first sheet
+            $oXLS = new SEEDXlsReadBigFile();
+            if( !($data = $oXLS->LoadFile( $filename, $raParms )) ) {
+                $sErr = "Could not load file $filename";
+                goto done;
+            }
+            $sSheetName = "Sheet1";
+            $ok = true;
+        } else {
+            $oXLS = new SEEDXlsRead();
+            if( !$oXLS->LoadFile( $filename ) ) {
+                $sErr = "Could not load file $filename";
+                goto done;
+            }
+            $data = $oXLS->GetSheetData( 0, $raParms );
+            $sSheetName = $oXLS->GetSheetName( 0 );
+            $ok = true;
         }
 
-        $nSheets = $oXLS->GetSheetCount();
-        $data = $oXLS->GetSheetData( 0 );
-        $oSheets->LoadSheet( 'foo', $data, $raParms );
+        $oSheets->LoadSheet( $sSheetName, $data, $raParms );
 
         done:
-        return( array($ok,$sErr) );
+        return( [$ok,$sErr] );
     }
 
     function writeToXLSX( $oSheets, $filename, $raParms )
@@ -277,8 +289,9 @@ function SEEDTableSheets_LoadFromFile( $filename, $raParms = array() )
 /*********************************************************************
     Read a spreadsheet file, return an array of rows
 
-    raSEEDTableSheetsFileParms     = the parms for SEEDTableSheetsFile()
+    raSEEDTableSheetsFileParms = the parms for SEEDTableSheetsFile()
     raSEEDTableSheetsLoadParms = the parms for SEEDTableSheetsFile::LoadFromFile()
+    bBigFile                   = use SEEDXlsReadBigFile instead of SEEDXlsRead
  */
 {
     $bOk = false;
@@ -289,7 +302,7 @@ function SEEDTableSheets_LoadFromFile( $filename, $raParms = array() )
 
     list($oSheets,$sErr) = $oFile->LoadFromFile( $filename, @$raParms['raSEEDTableSheetsLoadParms'] );
 
-    return( [ $oSheets, $sErr ] );
+    return( [$oSheets, $sErr] );
 }
 
 
