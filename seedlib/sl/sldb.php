@@ -471,6 +471,7 @@ CREATE TABLE sl_cv_sources (
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
+    bulk            VARCHAR(200) NOT NULL DEFAULT '',
     year            INTEGER NOT NULL DEFAULT 0,
     notes           VARCHAR(1000) NOT NULL DEFAULT '',  -- cycles back to the people who edit the data
 
@@ -513,6 +514,7 @@ CREATE TABLE sl_cv_sources_archive (
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
+    bulk            VARCHAR(200) NOT NULL DEFAULT '',
     year            INTEGER NOT NULL DEFAULT 0,
     notes           TEXT,
     op              CHAR NOT NULL,                  -- record the op that triggered this archive (update / year / delete)
@@ -535,6 +537,7 @@ CREATE TABLE seeds.sl_tmp_cv_sources (
     osp           varchar(200) not null default '',      -- copy of sl_cv_sources.osp
     ocv           varchar(200) not null default '',      -- copy of sl_cv_sources.ocv
     organic       tinyint not null default 0,            -- copy of sl_cv_sources.bOrganic
+    bulk          varchar(200) not null default '',
     year          integer not null default 0,
     notes         text,
 

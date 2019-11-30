@@ -50,14 +50,106 @@ class SLSourcesCVUpload
         $this->oApp->kfdb->Execute( "DELETE FROM {$this->tmpTable} WHERE ".$this->uploadCond() );
     }
 
-    function UploadToTmpTable( $filename )
-    {
+    function LoadToTmpTable( $raRows )
+    /*********************************
+        Copy data from $raRows to sl_tmp_cv_sources
 
+            $raRows must contain at least
+                'k'        => copy of sl_cv_sources._key
+                'company'  => copy of sl_sources.name_en
+                'species'  => copy of sl_cv_sources.osp
+                'cultivar' => copy of sl_cv_sources.ocv
+                'organic'  => copy of sl_cv_sources.bOrganic (allows a variety of boolean ways to say 'yes')
+                'bulk'     => copy of the bulk quantity notation
+                'notes'    => copy of the notes that people use while editing the spreadsheet
+
+            Optional columns:
+                'year'
+     */
+    {
+        $sOk = $sWarn = $sErr = "";
+        $bOk = false;
+//$this->oApp->kfdb->SetDebug(2);
+
+// There's code here to handle multiple updates simultaneously. That means you don't want to drop and recreate the table all the time.
+// Let's keep the multiple-update facility but not use it and just drop/create the table at the start of every update.
+$this->oApp->kfdb->Execute( "DROP TABLE IF EXISTS {$this->tmpTable}" );
+$this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
+
+        /* This number groups this upload's rows in the db table. It doesn't matter what the number is, as long as it's different from others in the kUpload column
+         */
+        $this->kUpload = $this->uniqueNumber();
+
+
+        /* Copy the rows to a temporary table, alerting where rows have invalid blank content
+         *     (A)  k && company && species            = existing row with possible changes
+         *     (B) !k && company && species            = new row
+         *
+         *     (C)  k && !company && !species          = this means delete row k
+         *     (D) !k && !company && !species          = ignore empty row
+         *
+         *     (E) company xor species                 = not allowed
+         */
+        $sqlRows = array();
+        $nRow = 0;
+        foreach( $raRows as $ra ) {
+            $nRow++;
+
+            $k = intval($ra['k']);
+            $company = trim(addslashes($ra['company']));
+            $species = trim(addslashes($ra['species']));
+            $cultivar = trim(addslashes($ra['cultivar']));
+            $organic = in_array( trim($ra['organic']), [1,'1','x','X','y','Y','yes','YES'] ) ? 1 : 0;
+            $bulk = trim(addslashes($ra['bulk']));
+            $notes = trim(addslashes($ra['notes']));
+            $year = intval(@$ra['year']) or ($year = date("Y"));
+
+            // (D) skip blank lines (but increment the nRow counter)
+            if( !$k && !$company && !$species )  continue;
+
+            // (E) all valid cases require both company+species or neither
+            if( empty($company) xor empty($species) ) {
+                $sWarn .= "Row ".($nRow+1)." has a blank "             // +1 because of the header row
+                         .(empty($species) ? "species" : "company").", so it will be skipped.<br/>";
+                continue;
+            }
+
+            // (A,B,C) copy to sl_tmp_cv_sources for processing
+            $sqlRows[] = "($k,'$company','$species','$cultivar',$organic,'$bulk','$notes',$year,$this->kUpload,now(),0)";
+        }
+        $nRowsAffected = 0;
+        if( count($sqlRows) ) {
+            if( !$this->oApp->kfdb->Execute( "INSERT INTO {$this->tmpTable} (k,company,osp,ocv,organic,bulk,notes,year,kUpload,_created,_status) "
+                                            ."VALUES ".implode(',', $sqlRows) ) )
+            {
+                $s1 = "Database error inserting : ".$this->oApp->kfdb->GetErrMsg();
+                $this->oApp->oC->AddErrMsg( $s1 );
+                $sErr .= $s1;
+                goto done;
+            }
+            $nRowsAffected = $this->oApp->kfdb->GetAffectedRows();
+        }
+
+        $sOk .= "Uploaded $nRowsAffected rows from the spreadsheet.<br/>";
+
+//Check for duplicates and fail if they exist
+//Ignore rows where k!=0, company='' because those are for deletion
+
+        $bOk = true;
+
+        done:
+        return( [$bOk,$sOk,$sWarn,$sErr] );
     }
 
     function ValidateTmpTable()
     /**************************
         Fill index columns, compute differences between tmp table and sl_cv_sources
+
+        Validate data
+
+            Companies must all be known and convertible to fk_sl_sources
+            No duplicate (company,species,cultivar) allowed
+            Warnings for unknown species and cultivars
      */
     {
 
@@ -98,4 +190,17 @@ class SLSourcesCVUpload
 
         return( $raReport );
     }
+
+    private function uniqueNumber()
+    /******************************
+        Make a unique number by incrementing the _key of a table that we know exists during the lifetime of an upload.
+        This could be any table with an auto-inc.
+     */
+    {
+        if( ($k = $this->oApp->kfdb->InsertAutoInc( "INSERT INTO seeds.sl_cv_sources (_key) VALUES (NULL)" )) ) {
+            $this->oApp->kfdb->Execute( "DELETE FROM seeds.sl_cv_sources WHERE _key='$k'" );
+        }
+        return( $k );
+    }
+
 }

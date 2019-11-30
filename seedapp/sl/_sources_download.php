@@ -59,26 +59,30 @@ class SLSourcesAppDownload
 
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
         switch( SEEDInput_Str('cmd') ) {
-            case 'clear_tmp':
+            case 'cmpupload_cleartmp':
                 $oUpload->ClearTmpTable();
                 break;
-            case 'company_upload':
+            case 'cmpupload_buildtmp':
+                $oUpload->ValidateTmpTable();
+                break;
+                case 'company_upload':
                 $this->companies_uploadfile( $oUpload );
                 break;
         }
 
 
         if( !$oUpload->IsTmpTableEmpty() ) {
-            $s .= "<p><a href='?cmd=clear_tmp'>Clear Temp Table</a></p>";
+            $s .= "<p><a href='?cmd=cmpupload_rebuildtmp'>Validate/Build/Rebuild Upload Table</a></p>";
+            $s .= "<p><a href='?cmd=cmpupload_cleartmp'>Clear Upload Table</a></p>";
         }
 
         /* Report on upload status
          */
         $raReport = $oUpload->ReportTmpTable();
-        $s .= "<p>Temp table has {$raReport['nRows']} rows for {$raReport['nDistinctCompanies']} companies.</p>";
+        $s .= "<p>Upload table has {$raReport['nRows']} rows for {$raReport['nDistinctCompanies']} companies.</p>";
 
         if( $raReport['nRows'] ) {
-            $s .= $this->companies_drawTmpReport();
+            $s .= $this->companies_drawTmpReport( $raReport );
         } else {
             $s .= $this->companies_drawUploadForm();
         }
@@ -89,7 +93,7 @@ class SLSourcesAppDownload
         return( $s );
     }
 
-    private function companies_drawTestReport()
+    private function companies_drawTmpReport( $raReport )
     {
         $s = "<style>"
                .".companyUploadResultsTable    { border-collapse-collapse; text-align:center }"
@@ -180,26 +184,24 @@ class SLSourcesAppDownload
             goto done;
         }
 
-        $raK = $oSheets->GetSheetList();
-
-        var_dump( $raK[0], $oSheets->GetNRows($raK[0]) );
-
         $s .= "<p>File uploaded successfully.</p>";
 
-        /* Copy the spreadsheet rows into a temporary table.
-         * Remove blank rows (company or species blank).
-         * Rows are grouped in the table by a number kUpload, which will be propagated to a confirm command so it can copy those rows to sl_cv_sources.
-         */
+        $raK = $oSheets->GetSheetList();
+        if( count($raK) ) {
+            /* Copy the spreadsheet rows into a temporary table.
+             * Remove blank rows (company or species blank).
+             * Rows are grouped in the table by a number kUpload, which will be propagated to a confirm command so it can copy those rows to sl_cv_sources.
+             */
 //$oUpload->Set( 'eReplace', $eReplace );
-
-
-//        list($ok,$sOk,$sWarn,$sErr) = $oUpload->LoadToTmpTable( $raRows );
-
+            $raRows = $oSheets->GetSheet( $raK[0] );
+            list($ok,$sOk,$sWarn,$sErr) = $oUpload->LoadToTmpTable( $raRows );
 
 //        $s .= $this->output( $ok, $sOk, $sWarn, $sErr );
-        if( !$ok ) goto done;
+            if( !$ok ) goto done;
 
 //        if( !$oUpload->kUpload ) goto done;    // shouldn't happen, but bad if it does
+
+        }
 
         $ok = true;
 
