@@ -56,17 +56,21 @@ class SLSourcesAppDownload
     private function companies()
     {
         $s = "";
+        $sLater = "";
 
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
         switch( SEEDInput_Str('cmd') ) {
             case 'cmpupload_cleartmp':
                 $oUpload->ClearTmpTable();
                 break;
-            case 'cmpupload_buildtmp':
-                $oUpload->ValidateTmpTable();
+            case 'cmpupload_rebuildtmp':
+                list($bOk,$sOk,$sErr,$sWarn) = $oUpload->ValidateTmpTable();
+                $s .= $sOk;
+                if( $sErr )  $sLater .= "<div class='alert alert-danger'>$sErr</div>";
+                if( $sWarn ) $sLater .= "<div class='alert alert-warning'>$sWarn</div>";
                 break;
-                case 'company_upload':
-                $this->companies_uploadfile( $oUpload );
+            case 'company_upload':
+                $s .= $this->companies_uploadfile( $oUpload );
                 break;
         }
 
@@ -87,8 +91,7 @@ class SLSourcesAppDownload
             $s .= $this->companies_drawUploadForm();
         }
 
-
-
+        $s .= $sLater;
 
         return( $s );
     }
