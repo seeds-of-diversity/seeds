@@ -259,36 +259,6 @@ goto foo;
             }
 
 foo:
-        /* Report on upload status
-         */
-        $raReport = $this->ReportTmpTable(); // $this->ReportPendingUpload( $this->kUpload, $this->eReplace );
-
-        /* Require all rows to have a valid company (or blank as per action C-delete).
-         */
-        $raFail = $this->oApp->kfdb->QueryRowsRA( "SELECT T.company FROM {$this->tmpTable} T WHERE ".$this->uploadCond()." AND "
-                                                 ."T.company<>'' AND T.fk_sl_sources='0' GROUP BY 1" );
-        if( count($raFail) ) {
-            $sErr .= "These companies are not known. Please add to Sources list and try again."
-                    ."<ul>".SEEDCore_ArrayExpandRows( $raFail, "<li>[[company]]</li>")."</ul>";
-            goto done;
-        }
-
-        /* Warn about species that are not indexed, unless company is blank (action C-delete).
-         */
-        if( count($raReport['raUnknownSpecies']) ) {
-            $sWarn .= "<p>These species are not known. Please add to Species list or Species Synonyms and try again.</p>"
-                     ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
-                     .SEEDCore_ArrayExpandRows( $raReport['raUnknownSpecies'], "<li>[[osp]]</li>")."</ul><br/>";
-            //goto done;
-        }
-
-        /* Warn about cultivars that are not indexed, unless company is blank (action C-delete).
-         */
-        if( count($raReport['raUnknownCultivars']) ) {
-            $sWarn .= "<p>These cultivars are not known. They will be matched by name as much as possible, but you should add them to the Cultivars list.</p>"
-                     ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
-                     .SEEDCore_ArrayExpandRows( $raReport['raUnknownCultivars'], "<li>[[osp]] : [[ocv]]</li>")."</ul>";
-        }
 
         $bOk = true;
 
@@ -302,34 +272,7 @@ foo:
      */
     {
 // TODO: this is not smart enough to take eReplace into account
-        $raReport = [
-            'nRows'              => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE ".$this->uploadCond() ),
-            'nRowsUncomputed'    => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op=''  AND ".$this->uploadCond() ),
-            'nRowsSame'          => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='-' AND ".$this->uploadCond() ),
-            'nRowsN'             => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='N' AND ".$this->uploadCond() ),
-            'nRowsU'             => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='U' AND ".$this->uploadCond() ),
-            'nRowsV'             => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='V' AND ".$this->uploadCond() ),
-            'nRowsY'             => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='Y' AND ".$this->uploadCond() ),
-            'nRowsD1'            => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='D' AND ".$this->uploadCond() ),
-            'nRowsD2'            => $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE op='X' AND ".$this->uploadCond() ),
-            'nDistinctCompanies' => $this->oApp->kfdb->Query1( "SELECT count(distinct fk_sl_sources) FROM {$this->tmpTable} T "
-                                                                  ."WHERE fk_sl_sources<>'0' AND ".$this->uploadCond() ),
-
-            // rows with unmatched companies, ignoring those where species is blank or company is blank (those are rows to be deleted)
-            'raUnknownCompanies' => $this->oApp->kfdb->QueryRowsRA(
-                    "SELECT company FROM {$this->tmpTable} T WHERE ".$this->uploadCond()
-                        ." AND fk_sl_sources='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
-            // rows with unmatched species, ignoring those where species is blank or company is blank (those are rows to be deleted)
-            'raUnknownSpecies' => $this->oApp->kfdb->QueryRowsRA(
-                    "SELECT osp FROM {$this->tmpTable} T WHERE ".$this->uploadCond()
-                        ." AND fk_sl_species='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
-            // rows with unmatched cultivars, not counting those where species was unmatched (reported above and prerequisite)
-            'raUnknownCultivars' => $this->oApp->kfdb->QueryRowsRA(
-                    "SELECT osp,ocv FROM {$this->tmpTable} T WHERE ".$this->uploadCond()
-                        ." AND fk_sl_pcv='0' AND fk_sl_species<>'0' GROUP BY 1,2 ORDER BY 1,2" ),
-        ];
-
-        return( $raReport );
+        return( SLSourceCV_Build::ReportTmpTable( $this->oApp->kfdb, $this->kUpload ) );
     }
 
     private function uniqueNumber()
