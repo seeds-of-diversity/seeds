@@ -134,11 +134,11 @@ class _seedxlsread_GetData
         (don't define sCharsetOutput with bBigFile - unless it's a modest file that doesn't need bBigFile anyway)
      */
     {
-        if( ($sCharset = @$raParms['sCharsetOutput']) && $sCharset != 'utf-8' ) {
+        if( ($sCharset = @$raParms['sCharsetOutput']) && !in_array($sCharset, ['utf8','utf-8']) ) {
             for( $i = 0; $i < count($ra); ++$i ) {
                 for( $j = 0; $j < count($ra[$i]); ++$j ) {
                     if( is_string($ra[$i][$j]) ) {
-                        $ra[$i][$j] = iconv( 'utf-8', $sCharset, $ra[$i][$j] );
+                        $ra[$i][$j] = iconv( 'utf-8', $sCharset.'//TRANSLIT', $ra[$i][$j] );
                     }
                 }
             }
