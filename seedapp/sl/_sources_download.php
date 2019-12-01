@@ -56,9 +56,11 @@ class SLSourcesAppDownload
     private function companies()
     {
         $s = "";
-        $sLater = "";
 
+        $yCurr = date("Y");
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
+        $raReport = $oUpload->CalculateUploadReport();
+
         switch( SEEDInput_Str('cmd') ) {
             case 'cmpupload_cleartmp':
                 $oUpload->ClearTmpTable();
@@ -66,88 +68,39 @@ class SLSourcesAppDownload
             case 'cmpupload_rebuildtmp':
                 list($bOk,$sOk,$sErr,$sWarn) = $oUpload->ValidateTmpTable();
                 $s .= $sOk;
-                if( $sErr )  $sLater .= "<div class='alert alert-danger'>$sErr</div>";
-                if( $sWarn ) $sLater .= "<div class='alert alert-warning'>$sWarn</div>";
                 break;
             case 'company_upload':
                 $s .= $this->companies_uploadfile( $oUpload );
                 break;
+            case 'cmpupload_archivecurr':
+                // only admin can do this, but it doesn't depend on upload state
+                if( $this->oApp->sess->GetUID() == 1499 ) {
+                    //$s .= $this->ArchiveCurrent( $yCurr );
+                }
+                break;
+            case 'cmpupload_commit':
+                // only allowed if the upload state is valid
+                if( !$raReport['raUnknownCompanies'] ) {
+                    $s .= $oUpload->Commit();
+                }
+                break;
         }
 
 
-        if( !$oUpload->IsTmpTableEmpty() ) {
+        if( $raReport['nRows'] ) {
             $s .= "<p><a href='?cmd=cmpupload_rebuildtmp'>Validate/Build/Rebuild Upload Table</a></p>";
             $s .= "<p><a href='?cmd=cmpupload_cleartmp'>Clear Upload Table</a></p>";
-        }
 
-        /* Report on upload status
-         */
-        $raReport = $oUpload->ReportTmpTable();
-        if( $raReport['nRows'] ) {
-            $s .= $this->companies_drawTmpReport( $raReport );
+            if( $this->oApp->sess->GetUID() == 1499 ) {
+                $s .= "<p><a href='?cmd=cmpupload_archivecurr'>Archive Current SrcCV as Year=$yCurr</a></p>";
+            }
+            if( !$raReport['raUnknownCompanies'] ) {
+                $s .= "<p><a href='?cmd=cmpupload_commit'>Commit the Uploaded CSCI to the Web Site</a></p>";
+            }
+
+            $s .= $oUpload->DrawUploadReport( $raReport );
         } else {
             $s .= $this->companies_drawUploadForm();
-        }
-
-        $s .= $sLater;
-
-        return( $s );
-    }
-
-    private function companies_drawTmpReport( $raReport )
-    {
-        $sErrorUnknownCompanies = $sErrorUnknownSpecies = $sErrorUnknownCultivars = "";
-        if( ($n = count($raReport['raUnknownCompanies'])) ) {
-            $sErrorUnknownCompanies = "<span style='color:red'> + $n unindexed</span>";
-        }
-        if( ($n = count($raReport['raUnknownSpecies'])) ) {
-            $sErrorUnknownSpecies = "<span style='color:red'> + $n unindexed</span>";
-        }
-        if( ($n = count($raReport['raUnknownCultivars'])) ) {
-            $sErrorUnknownCultivars = "<span style='color:red'> + $n unindexed</span>";
-        }
-
-        $s = "<style>"
-               .".companyUploadResultsTable    { border-collapse-collapse; text-align:center }"
-               .".companyUploadResultsTable th { text-align:center }"
-               .".companyUploadResultsTable td { border:1px solid #aaa; padding:3px; text-align:center }"
-               ."</style>";
-
-        $s .= "<table class='companyUploadResultsTable'><tr><th>Existing</th><th width='50%'>Upload<br/>({$raReport['nRows']} rows)</th></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nDistinctCompanies']} companies indexed $sErrorUnknownCompanies</td></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nDistinctSpKeys']} distinct species indexed $sErrorUnknownSpecies</td></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nDistinctCvKeys']} distinct cultivars indexed $sErrorUnknownCultivars</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsSame']} rows are identical including the year</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsY']} rows are exactly the same except for the year (will be archived)</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsU']} rows have changed from previous year (will be archived)</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsV']} rows have corrections for current-year (won't be archived)</td></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nRowsN']} rows are new</td></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nRowsD1']} rows are marked in the spreadsheet for deletion</td></tr>"
-               ."<tr><td>{$raReport['nRowsD2']} rows will be deleted because they are missing in the upload</td><td>&nbsp;</td></tr>"
-               ."<tr><td>&nbsp;</td><td><span style='color:red'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
-               ."</table><br/>";
-
-        /* Warn about unindexed companies
-         */
-        if( count($raReport['raUnknownCompanies']) ) {
-            $s .= "<div class='alert alert-danger'><p>These companies are not indexed. Please add to Sources list and try again.</p>"
-                    ."<ul>".SEEDCore_ArrayExpandRows( $raReport['raUnknownCompanies'], "<li>[[company]]</li>")."</ul></div>";
-        }
-
-        /* Warn about unindexed species and cultivars, unless company is blank (action C-delete).
-         */
-        if( count($raReport['raUnknownSpecies']) ) {
-            $s .= "<div class='alert alert-warning'><p>These species are not indexed. Please add to Species list or Species Synonyms and try again.</p>"
-                 ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
-                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownSpecies'], "<li>[[osp]]</li>")."</ul></div>";
-        }
-
-        /* Warn about unindexed cultivars that are not indexed, unless company is blank (action C-delete).
-         */
-        if( count($raReport['raUnknownCultivars']) ) {
-            $s .= "<div class='alert alert-warning'><p>These cultivars are not indexed. They will be matched by name as much as possible, but you should add them to the Cultivars list.</p>"
-                 ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
-                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownCultivars'], "<li>[[osp]] : [[ocv]]</li>")."</ul></div>";
         }
 
         return( $s );

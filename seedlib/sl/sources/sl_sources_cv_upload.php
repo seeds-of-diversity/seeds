@@ -41,13 +41,6 @@ class SLSourcesCVUpload
         return( $this->kUpload ? "{$alias}kUpload='{$this->kUpload}'" : "1=1" );
     }
 
-    function IsTmpTableEmpty()
-    {
-        $c = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->tmpTable} T WHERE ".$this->uploadCond() );
-
-        return( !$c );
-    }
-
     function ClearTmpTable()
     {
         $this->oApp->kfdb->Execute( "DELETE FROM {$this->tmpTable} WHERE ".$this->uploadCond(false) );
@@ -266,13 +259,86 @@ foo:
         return( [$bOk,$sOk,$sErr,$sWarn] );
     }
 
-    function ReportTmpTable()
-    /************************
+    function CalculateUploadReport()
+    /*******************************
         Report on the current build status of seeds.sl_tmp_cv_sources
      */
     {
 // TODO: this is not smart enough to take eReplace into account
         return( SLSourceCV_Build::ReportTmpTable( $this->oApp->kfdb, $this->kUpload ) );
+    }
+
+    function DrawUploadReport( $raReport = null )
+    /********************************************
+        Show a report of the status of the upload table
+     */
+    {
+        if( !$raReport ) $raReport = $this->CalculateUploadReport();
+
+        $sErrorUnknownCompanies = $sErrorUnknownSpecies = $sErrorUnknownCultivars = "";
+        if( ($n = count($raReport['raUnknownCompanies'])) ) {
+            $sErrorUnknownCompanies = "<span style='color:red'> + $n unindexed</span>";
+        }
+        if( ($n = count($raReport['raUnknownSpecies'])) ) {
+            $sErrorUnknownSpecies = "<span style='color:red'> + $n unindexed</span>";
+        }
+        if( ($n = count($raReport['raUnknownCultivars'])) ) {
+            $sErrorUnknownCultivars = "<span style='color:red'> + $n unindexed</span>";
+        }
+
+        $s = "<style>"
+               .".companyUploadResultsTable    { border-collapse-collapse; text-align:center }"
+               .".companyUploadResultsTable th { text-align:center }"
+               .".companyUploadResultsTable td { border:1px solid #aaa; padding:3px; text-align:center }"
+               ."</style>";
+
+        $s .= "<table class='companyUploadResultsTable'><tr><th>Existing</th><th width='50%'>Upload<br/>({$raReport['nRows']} rows)</th></tr>"
+               ."<tr><td>&nbsp;</td><td>{$raReport['nDistinctCompanies']} companies indexed $sErrorUnknownCompanies</td></tr>"
+               ."<tr><td>&nbsp;</td><td>{$raReport['nDistinctSpKeys']} distinct species indexed $sErrorUnknownSpecies</td></tr>"
+               ."<tr><td>&nbsp;</td><td>{$raReport['nDistinctCvKeys']} distinct cultivars indexed $sErrorUnknownCultivars</td></tr>"
+               ."<tr><td colspan='2'>{$raReport['nRowsSame']} rows are identical including the year</td></tr>"
+               ."<tr><td colspan='2'>{$raReport['nRowsY']} rows are exactly the same except for the year (will be archived)</td></tr>"
+               ."<tr><td colspan='2'>{$raReport['nRowsU']} rows have changed from previous year (will be archived)</td></tr>"
+               ."<tr><td colspan='2'>{$raReport['nRowsV']} rows have corrections for current-year (won't be archived)</td></tr>"
+               ."<tr><td>&nbsp;</td><td>{$raReport['nRowsN']} rows are new</td></tr>"
+               ."<tr><td>&nbsp;</td><td>{$raReport['nRowsD1']} rows are marked in the spreadsheet for deletion</td></tr>"
+               ."<tr><td>{$raReport['nRowsD2']} rows will be deleted because they are missing in the upload</td><td>&nbsp;</td></tr>"
+               ."<tr><td>&nbsp;</td><td><span style='color:red'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
+               ."</table><br/>";
+
+        /* Warn about unindexed companies
+         */
+        if( count($raReport['raUnknownCompanies']) ) {
+            $s .= "<div class='alert alert-danger'><p>These companies are not indexed. Please add to Sources list and try again.</p>"
+                    ."<ul>".SEEDCore_ArrayExpandRows( $raReport['raUnknownCompanies'], "<li>[[company]]</li>")."</ul></div>";
+        }
+
+        /* Warn about unindexed species and cultivars, unless company is blank (action C-delete).
+         */
+        if( count($raReport['raUnknownSpecies']) ) {
+            $s .= "<div class='alert alert-warning'><p>These species are not indexed. Please add to Species list or Species Synonyms and try again.</p>"
+                 ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
+                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownSpecies'], "<li>[[osp]]</li>")."</ul></div>";
+        }
+
+        /* Warn about unindexed cultivars that are not indexed, unless company is blank (action C-delete).
+         */
+        if( count($raReport['raUnknownCultivars']) ) {
+            $s .= "<div class='alert alert-warning'><p>These cultivars are not indexed. They will be matched by name as much as possible, but you should add them to the Cultivars list.</p>"
+                 ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
+                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownCultivars'], "<li>[[osp]] : [[ocv]]</li>")."</ul></div>";
+        }
+
+        return( $s );
+    }
+
+    private function Commit()
+    {
+        $s = "";
+
+
+
+        return( $s );
     }
 
     private function uniqueNumber()
