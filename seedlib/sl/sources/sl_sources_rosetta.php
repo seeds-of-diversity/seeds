@@ -214,6 +214,7 @@ class SLSourceCV_Build
             'nRows'              => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond" ),
             'nRowsUncomputed'    => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op=''" ),
             'nRowsSame'          => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='-'" ),
+            'nRowsSameDiffKeys'  => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='.'" ),
             'nRowsN'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='N'" ),
             'nRowsU'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='U'" ),
             'nRowsV'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='V'" ),

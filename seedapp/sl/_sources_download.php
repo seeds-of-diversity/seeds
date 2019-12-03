@@ -66,8 +66,7 @@ class SLSourcesAppDownload
                 $oUpload->ClearTmpTable();
                 break;
             case 'cmpupload_rebuildtmp':
-                list($bOk,$sOk,$sErr,$sWarn) = $oUpload->ValidateTmpTable();
-                $s .= $sOk;
+                $ok = $oUpload->ValidateTmpTable();
                 break;
             case 'company_upload':
                 $s .= $this->companies_uploadfile( $oUpload );
@@ -81,17 +80,25 @@ class SLSourcesAppDownload
             case 'cmpupload_commit':
                 // only allowed if the upload state is valid
                 if( !$raReport['raUnknownCompanies'] ) {
-                    $s .= $oUpload->Commit();
+                    list($bOk,$sOk,$sErr) = $oUpload->Commit();
+                    $s .= $sOk;
+                    $this->oApp->oC->AddErrMsg($sErr);
                 }
+                break;
+            case 'cmpupload_fixmatches':
+                $s .= $oUpload->FixMatchingRowKeys();
                 break;
         }
 
+        if( $raReport['nRowsSameDiffKeys'] ) {
+            $s .= "<p><a href='?cmd=cmpupload_fixmatches'>Copy keys from SrcCv to Upload table where data matches but keys are different</a></p>";
+        }
 
         if( $raReport['nRows'] ) {
             $s .= "<p><a href='?cmd=cmpupload_rebuildtmp'>Validate/Build/Rebuild Upload Table</a></p>";
             $s .= "<p><a href='?cmd=cmpupload_cleartmp'>Clear Upload Table</a></p>";
 
-            if( $this->oApp->sess->GetUID() == 1499 ) {
+            if( in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
                 $s .= "<p><a href='?cmd=cmpupload_archivecurr'>Archive Current SrcCV as Year=$yCurr</a></p>";
             }
             if( !$raReport['raUnknownCompanies'] ) {
