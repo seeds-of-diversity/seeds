@@ -35,15 +35,14 @@ class SLSourcesCVUpload
         $this->kUpload = $kUpload;
     }
 
-    private function uploadCond( $bUseTableAlias = true )
+    private function uploadCond( $tableAlias = 'T.' )
     {
-        $alias = $bUseTableAlias ? "T." : "";
-        return( $this->kUpload ? "{$alias}kUpload='{$this->kUpload}'" : "1=1" );
+        return( $this->kUpload ? "{$tableAlias}kUpload='{$this->kUpload}'" : "1=1" );
     }
 
     function ClearTmpTable()
     {
-        $this->oApp->kfdb->Execute( "DELETE FROM {$this->tmpTable} WHERE ".$this->uploadCond(false) );
+        $this->oApp->kfdb->Execute( "DELETE FROM {$this->tmpTable} WHERE ".$this->uploadCond('') );
     }
 
     function LoadToTmpTable( $raRows )
@@ -156,7 +155,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 //$this->oApp->kfdb->SetDebug(2);
 
 
-        $condKUpload = $this->uploadCond(true);     // uses table alias "T."
+        $condKUpload = $this->uploadCond();     // uses table alias "T."
 
         // Index company names.
         // Index species and cultivars using Rosetta
@@ -165,6 +164,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         /* Compute Operations to perform on the rows
          *
          *  N = new:     tmp.k==0
+         *  M = new2:    tmp.k<>0 but doesn't exist in sl_cv_sources; allows deleted SrcCv to be restored from spreadsheet with same keys
          *  U = update1: tmp.k<>0, tmp.fk_sl_sources<>0, some data and year changed
          *  V = update2: tmp.k<>0, tmp.fk_sl_sources<>0, some data changed but year is the same
          *  Y = year:    tmp.k<>0, tmp.fk_sl_sources<>0, only year changed
@@ -189,10 +189,14 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         $condDataBasicSameFkSp = "(C.fk_sl_species=T.fk_sl_species AND T.fk_sl_species<>'0' AND C.fk_sl_sources=T.fk_sl_sources AND C.ocv=T.ocv )";
         $condDataSame          = "($condDataBasicSame AND C.bOrganic=T.organic AND C.bulk=T.bulk AND C.notes=T.notes)";
 
+        // Clear old ops
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} SET op='',op_data=0 WHERE ".$this->uploadCond('') );
+
         // First: any rows in the tmp table whose non-blank (fk_sl_sources, osp/fk_sl_species, ocv) are identical
         // to sl_cv_sources are deemed to be matches. If their keys are different, that is a mistake in data entry.
-        // The Upload procedure should correct this (by copying the old keys to the tmp table) before re-computing the ops
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='.' "
+        // The Upload procedure should correct this (by copying the old keys to the tmp table) before re-computing the ops.
+        // Note that this is the only place where C._key is conveniently known, so it is stored in op_data for later
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='.',T.op_data=C._key "
                                    ."WHERE $condBase AND "
                                          ."($condDataBasicSame OR $condDataBasicSameFkSp) AND C.fk_sl_sources>='3' "
                                          ."AND C._key<>T.k" );
@@ -202,6 +206,10 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         // N (tmp.k==0)
         $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T SET T.op='N' WHERE $condBase AND T.k='0'" );
+
+        // M (tmp.k<>0 but doesn't exist in sl_cv_sources)
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T LEFT JOIN seeds.sl_cv_sources C ON (T.k=C._key) "
+                                    ."SET T.op='M' WHERE $condBase AND T.k<>0 AND C._key IS NULL" );
 
         // U (data and year changed)
         $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='U' "
@@ -245,13 +253,76 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         return( $bOk );
     }
 
+    function FixMatchingRowKeys()
+    /****************************
+        Sometimes the upload table can have (src,sp,cv) tuples that match rows in SrcCv but the keys are different.
+        Data entry errors or recalculation of SrcCv keys can cause this.
+        Especially if you upload and commit a spreadsheet, then upload it again, the k==0 rows will then be like updates instead of inserts.
+     */
+    {
+        // Validate stores the "matching" SrcCv._key in op_data so it doesn't have to be found again (not easy to do)
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} SET k=op_data WHERE op='.' AND ".$this->uploadCond('') );
+    }
+
     function CalculateUploadReport()
     /*******************************
         Report on the current build status of seeds.sl_tmp_cv_sources
+
+        If kUpload==0 just report on the whole table, assuming there is only one update happening and we're too disorganized to keep track anyway
      */
     {
-// TODO: this is not smart enough to take eReplace into account
-        return( SLSourceCV_Build::ReportTmpTable( $this->oApp->kfdb, $this->kUpload ) );
+        $dbtable = $this->tmpTable;
+        $kfdb = $this->oApp->kfdb;
+        $kUploadCond = $this->uploadCond('');    // don't use table prefix T.
+
+        $raReport = array(
+            'nRows'              => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond" ),
+            'nRowsUncomputed'    => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op=''" ),
+            'nRowsSame'          => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='-'" ),
+            'nRowsSameDiffKeys'  => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='.'" ),
+            'nRowsN'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='N'" ),
+            'nRowsU'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='U'" ),
+            'nRowsV'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='V'" ),
+            'nRowsY'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='Y'" ),
+            'nRowsD1'            => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='D'" ),
+            'nRowsD2'            => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='X'" ),
+            'nDistinctCompanies' => $kfdb->Query1( "SELECT count(distinct fk_sl_sources) FROM {$dbtable} WHERE $kUploadCond "
+                                                       ."AND fk_sl_sources<>'0'" ),
+            'nDistinctSpKeys'    => $kfdb->Query1( "SELECT count(distinct fk_sl_species) FROM {$dbtable} WHERE $kUploadCond "
+                                                       ."AND fk_sl_species<>'0'" ),
+            'nDistinctCvKeys'    => $kfdb->Query1( "SELECT count(distinct fk_sl_pcv) FROM {$dbtable} WHERE $kUploadCond "
+                                                       ."AND fk_sl_pcv<>'0'" ),
+
+            // rows with unmatched companies, ignoring those where species is blank or company is blank (those are rows to be deleted)
+            'raUnknownCompanies' => $kfdb->QueryRowsRA( "SELECT company FROM {$dbtable} WHERE $kUploadCond "
+                                                       ."AND fk_sl_sources='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
+            // rows with unmatched species, ignoring those where species is blank or company is blank (those are rows to be deleted)
+            'raUnknownSpecies'   => $kfdb->QueryRowsRA( "SELECT osp FROM {$dbtable} WHERE $kUploadCond "
+                                                       ."AND fk_sl_species='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
+            // rows with unmatched cultivars, not counting those where species was unmatched (reported above and prerequisite)
+            'raUnknownCultivars' => $kfdb->QueryRowsRA( "SELECT osp,ocv FROM {$dbtable} WHERE $kUploadCond "
+                                                       ."AND fk_sl_pcv='0' AND fk_sl_species<>'0' GROUP BY 1,2 ORDER BY 1,2" ),
+
+            // rows where (src,sp,cv) are duplicated
+            'raDuplicates'       => $kfdb->QueryRowsRA( "SELECT A.company as company,A.osp as osp,A.ocv as ocv,A.k as kA,B.k as kB "
+                                                       ."FROM {$dbtable} A,{$dbtable} B "
+                                                       ."WHERE ".$this->uploadCond('A.')." AND ".$this->uploadCond('B.')." "
+                                                              ."AND A.fk_sl_sources<>'0' AND B.fk_sl_sources<>'0' "
+                                                              ."AND A.fk_sl_species<>'0' AND B.fk_sl_species<>'0' "
+                                                              ."AND A._key<B._key AND A.fk_sl_sources=B.fk_sl_sources "
+                                                              ."AND A.fk_sl_species=B.fk_sl_species AND A.ocv=B.ocv" ),
+        );
+
+        return( $raReport );
+    }
+
+    function IsCommitAllowed( $raReport )
+    /************************************
+        Return true if the current upload state is stable enough for a Commit
+     */
+    {
+        return( $raReport['nRows'] && !$raReport['nRowsUncomputed'] &&
+                !count($raReport['raUnknownCompanies']) && !count($raReport['raDuplicates']) );
     }
 
     function DrawUploadReport( $raReport = null )
@@ -267,12 +338,28 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         if( !$raReport ) $raReport = $this->CalculateUploadReport();
 
-        /* if there are rows in the tmp table with identical data to SrcCv but different keys, that needs to get fixed first
+        /* Report error when rows in the tmp table have identical data to SrcCv but different keys.
+         * This has to be fixed before other things will work.
          */
         if( ($c = $raReport['nRowsSameDiffKeys']) ) {
-            $s .= "$c rows in {$this->tmpTable} have the same data as sl_cv_sources but different keys. "
-                 ."<span style='color:#888'>SELECT * FROM {$this->tmpTable} T WHERE ".$this->uploadCond()." AND T.op='.'</span>";
-            goto done;
+            $s .= "<div class='alert alert-danger'>$c rows in {$this->tmpTable} have the same data as sl_cv_sources but different keys. "
+                 ."<span style='color:#888'>SELECT * FROM {$this->tmpTable} WHERE ".$this->uploadCond('')." AND op='.'</span></div>";
+        }
+
+        /* Report error if duplicate rows in the upload table.
+         * This is more serious than it looks because it can lead to infinite validation loops where we try to fix incorrect keys on matched rows.
+         */
+        if( count($raReport['raDuplicates']) ) {
+            $s .= "<div class='alert alert-danger'><p>These entries are duplicated in the upload.</p>"
+                 ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
+                 .SEEDCore_ArrayExpandRows( $raReport['raDuplicates'], "<li>[[company]] : [[osp]] : [[ocv]] ([[kA]], [[kB]])</li>")."</ul></div>";
+        }
+
+        /* Report error if unindexed companies. Cannot commit this, and not all validation will work without this index complete.
+         */
+        if( count($raReport['raUnknownCompanies']) ) {
+            $s .= "<div class='alert alert-danger'><p>These companies are not indexed. Please add to Sources list and try again.</p>"
+                    ."<ul>".SEEDCore_ArrayExpandRows( $raReport['raUnknownCompanies'], "<li>[[company]]</li>")."</ul></div>";
         }
 
 
@@ -300,13 +387,6 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                ."<tr><td>{$raReport['nRowsD2']} rows will be deleted because they are missing in the upload</td><td>&nbsp;</td></tr>"
                ."<tr><td>&nbsp;</td><td><span style='color:red'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
                ."</table><br/>";
-
-        /* Warn about unindexed companies
-         */
-        if( count($raReport['raUnknownCompanies']) ) {
-            $s .= "<div class='alert alert-danger'><p>These companies are not indexed. Please add to Sources list and try again.</p>"
-                    ."<ul>".SEEDCore_ArrayExpandRows( $raReport['raUnknownCompanies'], "<li>[[company]]</li>")."</ul></div>";
-        }
 
         /* Warn about unindexed species and cultivars, unless company is blank (action C-delete).
          */
@@ -340,6 +420,12 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         $bOk = false;
         $sOk = $sErr = "";
 
+        $raReport = $this->CalculateUploadReport();
+
+        // Commit is only allowed if the upload state is valid
+        if( !$this->IsCommitAllowed($raReport) )  goto done;
+
+//+$this->oApp->kfdb->SetDebug(2);
         $uid = $this->oApp->sess->GetUID();
 
         // N = new rows (k==0)
@@ -348,6 +434,19 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                    ."(fk_sl_sources,fk_sl_pcv,fk_sl_species,company_name,osp,ocv,bOrganic,bulk,year,notes,_created,_updated,_created_by,_updated_by) "
                ."SELECT fk_sl_sources,fk_sl_pcv,fk_sl_species,company,osp,ocv,organic,bulk,year,notes,now(),now(),'$uid','$uid' "
                ."FROM {$this->tmpTable} WHERE op='N'" );
+        if( $ok ) {
+            $sOk .= "<div class='alert alert-success'>Committed ".$this->oApp->kfdb->GetAffectedRows()." new rows</div>";
+        } else {
+            $sErr = $this->oApp->kfdb->GetErrMsg();
+        }
+        $bOk = $ok;
+
+        // M = new rows (k<>0)
+        $ok = $this->oApp->kfdb->Execute(
+                "INSERT INTO seeds.sl_cv_sources "
+                   ."(_key,fk_sl_sources,fk_sl_pcv,fk_sl_species,company_name,osp,ocv,bOrganic,bulk,year,notes,_created,_updated,_created_by,_updated_by) "
+               ."SELECT k,fk_sl_sources,fk_sl_pcv,fk_sl_species,company,osp,ocv,organic,bulk,year,notes,now(),now(),'$uid','$uid' "
+               ."FROM {$this->tmpTable} WHERE op='M'" );
         if( $ok ) {
             $sOk .= "<div class='alert alert-success'>Committed ".$this->oApp->kfdb->GetAffectedRows()." new rows</div>";
         } else {
@@ -375,7 +474,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         if( $ok ) {
             $sOk .= "<div class='alert alert-success'>Deleted ".$this->oApp->kfdb->GetAffectedRows()." rows identified for removal</div>";
         } else {
-            $sErr = $this->oW->kfdb->GetErrMsg();
+            $sErr = $this->oApp->kfdb->GetErrMsg();
         }
         $bOk = $bOk && $ok;
 

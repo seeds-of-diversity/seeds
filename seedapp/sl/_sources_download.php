@@ -59,40 +59,36 @@ class SLSourcesAppDownload
 
         $yCurr = date("Y");
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
-        $raReport = $oUpload->CalculateUploadReport();
 
+//$this->oApp->kfdb->SetDebug(2);
         switch( SEEDInput_Str('cmd') ) {
             case 'cmpupload_cleartmp':
                 $oUpload->ClearTmpTable();
                 break;
             case 'cmpupload_rebuildtmp':
-                $ok = $oUpload->ValidateTmpTable();
+                $oUpload->ValidateTmpTable();
                 break;
             case 'company_upload':
                 $s .= $this->companies_uploadfile( $oUpload );
                 break;
             case 'cmpupload_archivecurr':
                 // only admin can do this, but it doesn't depend on upload state
-                if( $this->oApp->sess->GetUID() == 1499 ) {
+                if( in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
                     //$s .= $this->ArchiveCurrent( $yCurr );
                 }
                 break;
             case 'cmpupload_commit':
-                // only allowed if the upload state is valid
-                if( !$raReport['raUnknownCompanies'] ) {
-                    list($bOk,$sOk,$sErr) = $oUpload->Commit();
-                    $s .= $sOk;
-                    $this->oApp->oC->AddErrMsg($sErr);
-                }
+                list($bOk,$sOk,$sErr) = $oUpload->Commit();
+                $s .= $sOk;
+                $this->oApp->oC->AddErrMsg($sErr);
                 break;
             case 'cmpupload_fixmatches':
                 $s .= $oUpload->FixMatchingRowKeys();
                 break;
         }
 
-        if( $raReport['nRowsSameDiffKeys'] ) {
-            $s .= "<p><a href='?cmd=cmpupload_fixmatches'>Copy keys from SrcCv to Upload table where data matches but keys are different</a></p>";
-        }
+
+        $raReport = $oUpload->CalculateUploadReport();
 
         if( $raReport['nRows'] ) {
             $s .= "<p><a href='?cmd=cmpupload_rebuildtmp'>Validate/Build/Rebuild Upload Table</a></p>";
@@ -101,7 +97,16 @@ class SLSourcesAppDownload
             if( in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
                 $s .= "<p><a href='?cmd=cmpupload_archivecurr'>Archive Current SrcCV as Year=$yCurr</a></p>";
             }
-            if( !$raReport['raUnknownCompanies'] ) {
+
+            if( $raReport['nRowsSameDiffKeys'] ) {
+                $s .= "<p><a style='color:red' href='?cmd=cmpupload_fixmatches'>"
+                     ."Copy keys from SrcCv to Upload table where data matches but keys are different</a><br/>"
+                     ."There are {$raReport['nRowsSameDiffKeys']} rows in upload table with the same (src,sp,cv) as SrcCv but different keys.<br/>"
+                     ."This happens when new (k==0) rows are committed, which is fine, just fix it by clicking this link.<br/>"
+                     ."N.B. You have to rebuild the indexes after clicking this link.</p>";
+            }
+
+            if( $oUpload->IsCommitAllowed($raReport) ) {
                 $s .= "<p><a href='?cmd=cmpupload_commit'>Commit the Uploaded CSCI to the Web Site</a></p>";
             }
 

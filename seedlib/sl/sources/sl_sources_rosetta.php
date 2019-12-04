@@ -198,54 +198,6 @@ class SLSourceCV_Build
     {
         in_array( $dbtable, array("seeds.sl_cv_sources", "seeds.sl_cv_sources_archive", "seeds.sl_tmp_cv_sources") )  or  die( "$dbtable not allowed" );
     }
-
-    static function ReportTmpTable( KeyframeDatabase $kfdb, $kUpload )
-    /*****************************************************************
-        Report on the current build status of seeds.sl_tmp_cv_sources
-
-        If kUpload==0 just report on the whole table, assuming there is only one update happening and we're too disorganized to keep track anyway
-     */
-    {
-        $dbtable = "seeds.sl_tmp_cv_sources";   // the following code won't work on any other table anyway
-
-        $kUploadCond = self::uploadCond($kUpload);
-
-        $raReport = array(
-            'nRows'              => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond" ),
-            'nRowsUncomputed'    => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op=''" ),
-            'nRowsSame'          => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='-'" ),
-            'nRowsSameDiffKeys'  => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='.'" ),
-            'nRowsN'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='N'" ),
-            'nRowsU'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='U'" ),
-            'nRowsV'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='V'" ),
-            'nRowsY'             => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='Y'" ),
-            'nRowsD1'            => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='D'" ),
-            'nRowsD2'            => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op='X'" ),
-            'nDistinctCompanies' => $kfdb->Query1( "SELECT count(distinct fk_sl_sources) FROM {$dbtable} WHERE $kUploadCond "
-                                                       ."AND fk_sl_sources<>'0'" ),
-            'nDistinctSpKeys'    => $kfdb->Query1( "SELECT count(distinct fk_sl_species) FROM {$dbtable} WHERE $kUploadCond "
-                                                       ."AND fk_sl_species<>'0'" ),
-            'nDistinctCvKeys'    => $kfdb->Query1( "SELECT count(distinct fk_sl_pcv) FROM {$dbtable} WHERE $kUploadCond "
-                                                       ."AND fk_sl_pcv<>'0'" ),
-
-            // rows with unmatched companies, ignoring those where species is blank or company is blank (those are rows to be deleted)
-            'raUnknownCompanies' => $kfdb->QueryRowsRA( "SELECT company FROM {$dbtable} WHERE $kUploadCond "
-                                                       ."AND fk_sl_sources='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
-            // rows with unmatched species, ignoring those where species is blank or company is blank (those are rows to be deleted)
-            'raUnknownSpecies'   => $kfdb->QueryRowsRA( "SELECT osp FROM {$dbtable} WHERE $kUploadCond "
-                                                       ."AND fk_sl_species='0' AND osp<>'' AND company<>'' GROUP BY 1 ORDER BY 1" ),
-            // rows with unmatched cultivars, not counting those where species was unmatched (reported above and prerequisite)
-            'raUnknownCultivars' => $kfdb->QueryRowsRA( "SELECT osp,ocv FROM {$dbtable} WHERE $kUploadCond "
-                                                       ."AND fk_sl_pcv='0' AND fk_sl_species<>'0' GROUP BY 1,2 ORDER BY 1,2" ),
-        );
-
-        return( $raReport );
-    }
-
-    static private function uploadCond( $kUpload )
-    {
-        return( $kUpload ? "kUpload='$kUpload'" : "1=1" );
-    }
 }
 
 ?>
