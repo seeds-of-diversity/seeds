@@ -59,6 +59,7 @@ class SLSourcesAppDownload
 
         $yCurr = date("Y");
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
+        $oArchive = new SLSourcesCVArchive( $this->oApp );
 
 //$this->oApp->kfdb->SetDebug(2);
         switch( SEEDInput_Str('cmd') ) {
@@ -74,7 +75,9 @@ class SLSourcesAppDownload
             case 'cmpupload_archivecurr':
                 // only admin can do this, but it doesn't depend on upload state
                 if( in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
-                    //$s .= $this->ArchiveCurrent( $yCurr );
+                    list($ok,$sOk,$sErr) = $oArchive->CopySrcCv2Archive();
+                    $s .= $sOk;
+                    $this->oApp->oC->AddErrMsg($sErr);
                 }
                 break;
             case 'cmpupload_commit':
@@ -94,8 +97,9 @@ class SLSourcesAppDownload
             $s .= "<p><a href='?cmd=cmpupload_rebuildtmp'>Validate/Build/Rebuild Upload Table</a></p>";
             $s .= "<p><a href='?cmd=cmpupload_cleartmp'>Clear Upload Table</a></p>";
 
-            if( in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
-                $s .= "<p><a href='?cmd=cmpupload_archivecurr'>Archive Current SrcCV as Year=$yCurr</a></p>";
+            if( ($y = $oArchive->IsSrcCv2ArchiveSimple()) && in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
+                $s .= "<p><a href='?cmd=cmpupload_archivecurr'>Copy Current SrcCv to Archive (SrcCv records are all "
+                     ."of year=$y; all records of that year will be deleted from Archive first)</a></p>";
             }
 
             if( $raReport['nRowsSameDiffKeys'] ) {

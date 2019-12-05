@@ -195,7 +195,7 @@ class _sldb_defs
                        array("col"=>"osp",           "type"=>"S"),
                        array("col"=>"ocv",           "type"=>"S"),
                        array("col"=>"bOrganic",      "type"=>"I"),
-                       //array("col"=>"bulk",          "type"=>"S"),
+                       array("col"=>"bulk",          "type"=>"S"),
                        array("col"=>"notes",         "type"=>"S"),
                        array("col"=>"year",          "type"=>"I"),
         )
@@ -212,6 +212,7 @@ class _sldb_defs
                        array("col"=>"osp",               "type"=>"S"),
                        array("col"=>"ocv",               "type"=>"S"),
                        array("col"=>"bOrganic",          "type"=>"I"),
+                       array("col"=>"bulk",              "type"=>"S"),
                        array("col"=>"year",              "type"=>"S"),
                        array("col"=>"notes",             "type"=>"S"),
                        array("col"=>"op",                "type"=>"S"),

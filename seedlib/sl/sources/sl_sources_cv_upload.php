@@ -493,5 +493,128 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         }
         return( $k );
     }
+}
+
+
+class SLSourcesCVArchive
+/***********************
+    Manage the sl_cv_sources_archive table
+ */
+{
+    private $oApp;
+
+    function __construct( SEEDAppSession $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function IsSrcCv2ArchiveSimple()
+    /*******************************
+        If copying SrcCv to SrcCvArchive would be a simple replacement of exactly a single year, return that year. Otherwise false;
+     */
+    {
+        $y = false;
+
+        $raYears = $this->oApp->kfdb->QueryRowsRA( "SELECT year FROM seeds.sl_cv_sources WHERE fk_sl_sources>=3 GROUP BY 1" );
+        if( count($raYears) == 1 ) {
+            $y = $raYears[0]['year'];
+        }
+
+        return( $y );
+    }
+
+    function CopySrcCv2Archive()
+    /***************************
+        In the simple case where all SrcCv records of src>=3 have the same year, delete that year from SrcCvArchive and copy
+        all those SrcCv records to SrcCvArchive.
+     */
+    {
+        $sOk = $sErr = "";
+        $bOk = false;
+
+        if( !($y = $this->IsSrcCv2ArchiveSimple()) ) {
+            $sErr .= "Cannot archive: SrcCv records are not of a single year";
+            goto done;
+        }
+
+        // delete sl_cv_sources_archive records of year $y
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sl_cv_sources_archive WHERE year='$y'" );
+
+        $bOk = $this->oApp->kfdb->Execute(
+                "INSERT INTO seeds.sl_cv_sources_archive "
+                    ."(sl_cv_sources_key,fk_sl_sources,fk_sl_pcv,fk_sl_species,osp,ocv,bOrganic,bulk,year,notes,"
+                    ."op,"  // obsolete but requires a default value
+                    ."_created,_updated,_created_by,_updated_by) "
+               ."SELECT C._key,C.fk_sl_sources,C.fk_sl_pcv,C.fk_sl_species,C.osp,C.ocv,C.bOrganic,C.bulk,C.year,C.notes,"
+                    ."'',"
+            ."_created,_updated,_created_by,_updated_by "
+               ."FROM seeds.sl_cv_sources C "
+               ."WHERE C.fk_sl_sources >= 3 AND year='$y'" );
+        if( $bOk ) {
+            $sOk .= "<div class='alert alert-success'>Archived ".$this->oApp->kfdb->GetAffectedRows()." rows for year $y</div>";
+        } else {
+            $sErr = $this->oApp->kfdb->GetErrMsg();
+        }
+
+        done:
+        return( [$bOk,$sOk,$sErr] );
+    }
+
+    // Archive was coded to update as changes are made in the Upload process.
+    /*
+
+    function Archive()
+    [*****************
+        Archive is an accumulation of sl_cv_sources rows that have been deleted or updated from year-to year.
+        Updating a current-year row does not trigger that row to be copied.
+
+        For any rows in sl_cv_sources that are going to be A) deleted or B) updated and the year is being increased, make sure they
+        are copied to the archive table.
+     *]
+    {
+        // This assumes that rows are only copied to archive when the year column is changed or a row is deleted.
+        // If you repeat this operation during the same upload you will get duplicate rows.
+        //
+        // There could be a test here to see if the copying has already happened, but it's easier to just make a garbage collector
+        // that removes those duplicates if they ever happen.
+
+        $ok = false;
+        $sOk = $sWarn = $sErr = "";
+
+        [* Archive U = change in data and year
+         *         Y = change in year (data the same, so this records that the entry also existed in the previous year)
+         *         D = marked for deletion in the spreadsheet
+         *         X = to be deleted because it's missing in the spreadsheet
+         *]
+        $raReport = $this->ReportPendingUpload( $this->kUpload, $this->eReplace );
+
+        $sOk = "<p>Archiving</p>"
+              ."<ul>"
+              ."<li>{$raReport['nRowsU']} rows where the data and year are being updated</li>"
+              ."<li>{$raReport['nRowsY']} rows where the year is being updated (data not changed)</li>"
+              ."<li>{$raReport['nRowsD1']} rows that are marked for deletion in the spreadsheet</li>"
+              ."<li>{$raReport['nRowsD2']} rows that are missing from the spreadsheet and will be deleted</li>"
+              ."</ul>";
+
+        $uid = $this->oW->sess->GetUID();
+
+        $ok = $this->oW->kfdb->Execute(
+                "INSERT INTO seeds.sl_cv_sources_archive "
+                    ."(sl_cv_sources_key,fk_sl_sources,fk_sl_pcv,fk_sl_species,osp,ocv,bOrganic,year,notes,op,"
+                    ." _created,_updated,_created_by,_updated_by) "
+               ."SELECT C._key,C.fk_sl_sources,C.fk_sl_pcv,C.fk_sl_species,C.osp,C.ocv,C.bOrganic,C.year,C.notes,T.op,"
+                      ."now(),now(),'$uid','$uid' "
+               ."FROM seeds.sl_cv_sources C, {$this->tmpTable} T "
+               ."WHERE C._key=T.k AND kUpload='{$this->kUpload}' AND T.op IN ('U','Y','D','X')" );
+        if( !$ok ) {
+            $sErr = $this->oW->kfdb->GetErrMsg();
+        }
+
+        done:
+        return( array($ok,$sOk,$sWarn,$sErr) );
+    }
+
+
+     */
 
 }
