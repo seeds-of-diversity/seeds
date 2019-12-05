@@ -1,5 +1,6 @@
 <?php
 
+include_once( SEEDCORE."SEEDCoreFormSession.php" );
 include_once( SEEDCORE."SEEDTableSheets.php" );
 include_once( SEEDCORE."console/console02ui.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_db.php" );
