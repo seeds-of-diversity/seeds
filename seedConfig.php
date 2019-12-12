@@ -44,7 +44,7 @@ require_once SEEDROOT."vendor/autoload.php";
 function SEEDConfig_NewAppConsole( $raConfig = array() )
 /*******************************************************
     SEEDApp should encapsulate all the system context that is external to SEEDROOT.
-    This function standardizes the parameters that define the system context, and must be externally defined to create a SEEDApp.
+    This function standardizes the global parameters that define the system context, and that must be defined outside of SEEDROOT ( i.e. by code that uses seeds/ )
 
         $config_KFDB[]  array of kfdb connection defs
         SEED_LOG_DIR    directory where log files should be written
