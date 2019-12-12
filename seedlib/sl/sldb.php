@@ -195,7 +195,7 @@ class _sldb_defs
                        array("col"=>"osp",           "type"=>"S"),
                        array("col"=>"ocv",           "type"=>"S"),
                        array("col"=>"bOrganic",      "type"=>"I"),
-                       //array("col"=>"bulk",          "type"=>"S"),
+                       array("col"=>"bulk",          "type"=>"S"),
                        array("col"=>"notes",         "type"=>"S"),
                        array("col"=>"year",          "type"=>"I"),
         )
@@ -212,6 +212,7 @@ class _sldb_defs
                        array("col"=>"osp",               "type"=>"S"),
                        array("col"=>"ocv",               "type"=>"S"),
                        array("col"=>"bOrganic",          "type"=>"I"),
+                       array("col"=>"bulk",              "type"=>"S"),
                        array("col"=>"year",              "type"=>"S"),
                        array("col"=>"notes",             "type"=>"S"),
                        array("col"=>"op",                "type"=>"S"),
@@ -471,6 +472,7 @@ CREATE TABLE sl_cv_sources (
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
+    bulk            VARCHAR(200) NOT NULL DEFAULT '',
     year            INTEGER NOT NULL DEFAULT 0,
     notes           VARCHAR(1000) NOT NULL DEFAULT '',  -- cycles back to the people who edit the data
 
@@ -513,6 +515,7 @@ CREATE TABLE sl_cv_sources_archive (
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
+    bulk            VARCHAR(200) NOT NULL DEFAULT '',
     year            INTEGER NOT NULL DEFAULT 0,
     notes           TEXT,
     op              CHAR NOT NULL,                  -- record the op that triggered this archive (update / year / delete)
@@ -535,11 +538,13 @@ CREATE TABLE seeds.sl_tmp_cv_sources (
     osp           varchar(200) not null default '',      -- copy of sl_cv_sources.osp
     ocv           varchar(200) not null default '',      -- copy of sl_cv_sources.ocv
     organic       tinyint not null default 0,            -- copy of sl_cv_sources.bOrganic
+    bulk          varchar(200) not null default '',
     year          integer not null default 0,
     notes         text,
 
     -- These columns are generated when the spreadsheet is uploaded
     kUpload       integer not null,                      -- each upload has a unique number for grouping rows of that upload
+    _key          INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,  -- necessary when joining table to itself looking for duplicates
     _created      datetime,                              -- time when this row was uploaded - for garbage collection of orphaned uploads
     _status       integer not null default 0,            -- mainly so we can apply queries written for sl_cv_sources
 
@@ -547,7 +552,8 @@ CREATE TABLE seeds.sl_tmp_cv_sources (
     fk_sl_sources integer default 0,                     -- validates integrity of (company)
     fk_sl_species integer default 0,                     -- attempts to match (species) with a species identifier, but allows 0 so Rosetta can work on it
     fk_sl_pcv     integer default 0,                     -- attempts to match (fk_sl_species,cultivar), but allows 0 so Rosetta can work on it
-    op            CHAR not null default ' ',             -- ' ' = not computed yet, 'N' = new, 'U' = update, 'D' = delete1, 'X' = delete2, 'Y' = year updated, '-' = no change
+    op            CHAR not null default '',              -- '' = not computed yet, 'N' = new, 'U' = update, 'D' = delete1, 'X' = delete2, 'Y' = year updated, '-' = no change
+    op_data       integer default 0,                     -- op=='.' needs an extra piece of data
 
     -- These are obsolete, probably
     -- sp_old        varchar(200) not null default '',

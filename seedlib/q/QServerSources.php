@@ -126,6 +126,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                     'species'           => $this->oQ->QCharset( $kfrc->Value('osp') ),
                     'cultivar'          => $this->oQ->QCharset( $kfrc->Value('ocv') ),
                     'organic'           => $kfrc->Value('bOrganic'),
+                    'bulk'              => $kfrc->Value('bulk'),
                     'notes'             => $kfrc->Value('notes')
             ];
 

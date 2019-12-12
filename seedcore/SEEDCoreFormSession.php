@@ -18,8 +18,8 @@ class _seedCoreFormSessionBase extends SEEDCoreForm
 
     protected $oSVACtrlGlobal;  // derivations must create a child oSVA to hold global control parms
 
-    protected function __construct( $cid = NULL, $raConfig = array() )
-    {
+    public function __construct( $cid = NULL, $raConfig = array() )    // although php >= 7.2 allows this to be protected 7.0 wants it to match SEEDCoreForm::__construct, which is wrong
+    
     //  this needs to get the urlparms from the fields array
         parent::__construct( $cid, $raConfig );
     }

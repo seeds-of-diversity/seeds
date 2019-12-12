@@ -1,5 +1,6 @@
 <?php
 
+include_once( SEEDCORE."SEEDCoreFormSession.php" );
 include_once( SEEDCORE."SEEDTableSheets.php" );
 include_once( SEEDCORE."console/console02ui.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_db.php" );
@@ -57,56 +58,67 @@ class SLSourcesAppDownload
     {
         $s = "";
 
+        $yCurr = date("Y");
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
+        $oArchive = new SLSourcesCVArchive( $this->oApp );
+
+//$this->oApp->kfdb->SetDebug(2);
         switch( SEEDInput_Str('cmd') ) {
-            case 'clear_tmp':
+            case 'cmpupload_cleartmp':
                 $oUpload->ClearTmpTable();
                 break;
+            case 'cmpupload_rebuildtmp':
+                $oUpload->ValidateTmpTable();
+                break;
             case 'company_upload':
-                $this->companies_uploadfile( $oUpload );
+                $s .= $this->companies_uploadfile( $oUpload );
+                break;
+            case 'cmpupload_archivecurr':
+                // only admin can do this, but it doesn't depend on upload state
+                if( in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
+                    list($ok,$sOk,$sErr) = $oArchive->CopySrcCv2Archive();
+                    $s .= $sOk;
+                    $this->oApp->oC->AddErrMsg($sErr);
+                }
+                break;
+            case 'cmpupload_commit':
+                list($bOk,$sOk,$sErr) = $oUpload->Commit();
+                $s .= $sOk;
+                $this->oApp->oC->AddErrMsg($sErr);
+                break;
+            case 'cmpupload_fixmatches':
+                $s .= $oUpload->FixMatchingRowKeys();
                 break;
         }
 
 
-        if( !$oUpload->IsTmpTableEmpty() ) {
-            $s .= "<p><a href='?cmd=clear_tmp'>Clear Temp Table</a></p>";
-        }
-
-        /* Report on upload status
-         */
-        $raReport = $oUpload->ReportTmpTable();
-        $s .= "<p>Temp table has {$raReport['nRows']} rows for {$raReport['nDistinctCompanies']} companies.</p>";
+        $raReport = $oUpload->CalculateUploadReport();
 
         if( $raReport['nRows'] ) {
-            $s .= $this->companies_drawTmpReport();
+            $s .= "<p><a href='?cmd=cmpupload_rebuildtmp'>Validate/Build/Rebuild Upload Table</a></p>";
+            $s .= "<p><a href='?cmd=cmpupload_cleartmp'>Clear Upload Table</a></p>";
+
+            if( ($y = $oArchive->IsSrcCv2ArchiveSimple()) && in_array($this->oApp->sess->GetUID(), [1,1499]) ) {
+                $s .= "<p><a href='?cmd=cmpupload_archivecurr'>Copy Current SrcCv to Archive (SrcCv records are all "
+                     ."of year=$y; all records of that year will be deleted from Archive first)</a></p>";
+            }
+
+            if( $raReport['nRowsSameDiffKeys'] ) {
+                $s .= "<p><a style='color:red' href='?cmd=cmpupload_fixmatches'>"
+                     ."Copy keys from SrcCv to Upload table where data matches but keys are different</a><br/>"
+                     ."There are {$raReport['nRowsSameDiffKeys']} rows in upload table with the same (src,sp,cv) as SrcCv but different keys.<br/>"
+                     ."This happens when new (k==0) rows are committed, which is fine, just fix it by clicking this link.<br/>"
+                     ."N.B. You have to rebuild the indexes after clicking this link.</p>";
+            }
+
+            if( $oUpload->IsCommitAllowed($raReport) ) {
+                $s .= "<p><a href='?cmd=cmpupload_commit'>Commit the Uploaded CSCI to the Web Site</a></p>";
+            }
+
+            $s .= $oUpload->DrawUploadReport( $raReport );
         } else {
             $s .= $this->companies_drawUploadForm();
         }
-
-
-
-
-        return( $s );
-    }
-
-    private function companies_drawTestReport()
-    {
-        $s = "<style>"
-               .".companyUploadResultsTable    { border-collapse-collapse; text-align:center }"
-               .".companyUploadResultsTable th { text-align:center }"
-               .".companyUploadResultsTable td { border:1px solid #aaa; padding:3px; text-align:center }"
-               ."</style>";
-
-        $s .= "<table class='companyUploadResultsTable'><tr><th>Existing</th><th width='50%'>Upload</th></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsSame']} rows are identical including the year</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsY']} rows are exactly the same except for the year (will be archived)</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsU']} rows have changed from previous year (will be archived)</td></tr>"
-               ."<tr><td colspan='2'>{$raReport['nRowsV']} rows have corrections for current-year (won't be archived)</td></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nRowsN']} rows are new</td></tr>"
-               ."<tr><td>&nbsp;</td><td>{$raReport['nRowsD1']} rows are marked in the spreadsheet for deletion</td></tr>"
-               ."<tr><td>{$raReport['nRowsD2']} rows will be deleted because they are missing in the upload</td><td>&nbsp;</td></tr>"
-               ."<tr><td>&nbsp;</td><td><span style='color:red'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
-               ."</table><br/>";
 
         return( $s );
     }
@@ -155,7 +167,7 @@ class SLSourcesAppDownload
 
         /* Load the uploaded spreadsheet into an array
          */
-        $raSEEDTableLoadParms = array();
+        $raSEEDTableLoadParms = ['sCharsetOutput'=>'cp1252', 'bBigFile'=>true];
         switch( SEEDInput_Str('upfile-format') ) {
             case 'xls':
             default:
@@ -179,18 +191,25 @@ class SLSourcesAppDownload
             $this->oApp->oC->AddErrMsg( $sErrMsg );
             goto done;
         }
+
         $s .= "<p>File uploaded successfully.</p>";
 
-        /* Copy the spreadsheet rows into a temporary table.
-         * Remove blank rows (company or species blank).
-         * Rows are grouped in the table by a number kUpload, which will be propagated to a confirm command so it can copy those rows to sl_cv_sources.
-         */
+        $raK = $oSheets->GetSheetList();
+        if( count($raK) ) {
+            /* Copy the spreadsheet rows into a temporary table.
+             * Remove blank rows (company or species blank).
+             * Rows are grouped in the table by a number kUpload, which will be propagated to a confirm command so it can copy those rows to sl_cv_sources.
+             */
 //$oUpload->Set( 'eReplace', $eReplace );
-        list($ok,$sOk,$sWarn,$sErr) = $oUpload->LoadToTmpTable( $raRows );
+            $raRows = $oSheets->GetSheet( $raK[0] );
+            list($ok,$sOk,$sWarn,$sErr) = $oUpload->LoadToTmpTable( $raRows );
+
 //        $s .= $this->output( $ok, $sOk, $sWarn, $sErr );
-        if( !$ok ) goto done;
+            if( !$ok ) goto done;
 
 //        if( !$oUpload->kUpload ) goto done;    // shouldn't happen, but bad if it does
+
+        }
 
         $ok = true;
 
