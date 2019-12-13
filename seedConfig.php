@@ -54,10 +54,16 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
 
     $db = @$raConfig['db'] ?: 'seeds1';
     $lang = @$raConfig['lang'] ?: 'EN';
-    $perms = @$raConfig['sessPermsRequired'] ?: array();
+    $sessPerms = @$raConfig['sessPermsRequired'] ?: array();
+    $sessUIConfig = @$raConfig['sessUIConfig']
+                        // default sessUI requires login, uses the old method temporarily
+                        ?: ['bTmpActivate'=>true, 'bLoginNotRequired'=>false, 'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ];
+    $consoleConfig = @$raConfig['consoleConfig'] ?: array();
 
     $oApp = new SEEDAppConsole( $config_KFDB[$db]
-                                + [ 'sessPermsRequired' => $perms,
+                                + [ 'sessPermsRequired' => $sessPerms,
+                                    'sessUIConfig' => $sessUIConfig,
+                                    'consoleConfig' => $consoleConfig,
                                     'logdir' => SEED_LOG_DIR,
                                     'lang' => $lang ] );
     return( $oApp );
