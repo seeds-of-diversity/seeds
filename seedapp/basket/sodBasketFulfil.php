@@ -387,27 +387,27 @@ class SoDOrder_MbrOrder
 
             if( ($m = $kfrMbrOrder->Value('mbr_type')) ) {
                 $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='membership' AND name='$m'" );
-                $oBP = new SEEDBasket_BP( $this->oSB, 0 );
+                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                 $oBP->StorePurchase( $oB, $oP, ['n'=>1] );
             }
 
             if( ($d = floatval($kfrMbrOrder->Value('donation'))) > 0.0 ) {
                 $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='general" );
-                $oBP = new SEEDBasket_BP( $this->oSB, 0 );
+                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                 $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
             }
 
             foreach( ['nPubSSH-EN6','nPubSSH-FR6','nPubEverySeed','nPubKent2012'] as $v ) {
                 if( ($n = $kfrMbrOrder->UrlParmGet('sExtra', $v)) ) {
                     $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='$v'" );
-                    $oBP = new SEEDBasket_BP( $this->oSB, 0 );
+                    $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                     $oBP->StorePurchase( $oB, $oP, ['n'=>$n] );
                 }
             }
 
             if( ($d = floatval($kfrMbrOrder->Value('nPubEverySeed_Shipping'))) ) {
                 $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='shipping" );
-                $oBP = new SEEDBasket_BP( $this->oSB, 0 );
+                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                 $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
             }
 

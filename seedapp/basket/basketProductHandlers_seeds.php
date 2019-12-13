@@ -20,6 +20,16 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
+    function ProductFormIsAjax() { return( false ); }
+    function ProductFormDrawAjax( $kP )
+    {
+        $s = "";
+
+
+
+        return( $s );
+    }
+
     function ProductDefine0( KeyFrameForm $oFormP )
     /**********************************************
         Draw a form to edit the given product.

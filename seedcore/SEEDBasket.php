@@ -243,6 +243,17 @@ klugeUTF8 = true: return sOut and sErr in utf8
         return( method_exists( $this->sess, 'GetUID' ) ? $this->sess->GetUID() : 0 );
     }
 
+    function CreateCursor( $sType, $sCond, $raKFRC )
+    /***********************************************
+        Return a cursor for the given kind of SEEDBasket object
+
+            $sType = basket | product | purchase
+     */
+    {
+        return( new SEEDBasketCursor( $this, $sType, $sCond, $raKFRC ) );
+    }
+
+
     function DrawProductNewForm( $sProductType, $cid = 'A' )
     /*******************************************************
         Draw a new product form for a given product type
@@ -278,41 +289,48 @@ klugeUTF8 = true: return sOut and sErr in utf8
         }
         if( !($oHandler = $this->getHandler( $sPT )) )  goto done;
 
-        /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
-         * then load up the current product (or create a new one) and draw the form for it.
-         */
-        $oFormP = new KeyframeForm( $this->oDB->GetKfrel("P"), $cid,
-                                    array('DSParms'=>array('fn_DSPreStore' =>array($oHandler,'ProductDefine1'),
-                                                           'fn_DSPostStore'=>array($oHandler,'ProductDefine2PostStore') )) );
-        $oFormP->Update();
-
-        if( $kP ) {
-            $kfrP = $this->oDB->GetKfrel("P")->GetRecordFromDBKey( $kP );
+        if( $oHandler->ProductFormIsAjax() ) {
+            $s = $oHandler->ProductFormDrawAjax( $kP );
         } else {
-            if( ($kfrP = $this->oDB->GetKfrel("P")->CreateRecord()) ) {
-                $kfrP->SetValue( 'product_type', $sProductType_ifNew );
+            /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
+             * then load up the current product (or create a new one) and draw the form for it.
+             */
+            $oFormP = new KeyframeForm( $this->oDB->GetKfrel("P"), $cid,
+                                        array('DSParms'=>array('fn_DSPreStore' =>array($oHandler,'ProductDefine1'),
+                                                               'fn_DSPostStore'=>array($oHandler,'ProductDefine2PostStore') )) );
+            $oFormP->Update();
 
-                // force per-prodtype fixed values
-                if( isset(SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds']) ) {
-                    foreach( SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds'] as $k => $v ) {
-                        $kfrP->SetValue( $k, $v );
+            if( $kP ) {
+                $kfrP = $this->oDB->GetKfrel("P")->GetRecordFromDBKey( $kP );
+            } else {
+                if( ($kfrP = $this->oDB->GetKfrel("P")->CreateRecord()) ) {
+                    $kfrP->SetValue( 'product_type', $sProductType_ifNew );
+
+                    // force per-prodtype fixed values
+                    if( isset(SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds']) ) {
+                        foreach( SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds'] as $k => $v ) {
+                            $kfrP->SetValue( $k, $v );
+                        }
                     }
                 }
             }
+            if( !$kfrP ) goto done;
+
+            $oFormP->SetKFR( $kfrP );
+
+            // This part is the common form setup for all products
+            if( !$oFormP->Value('uid_seller') ) {
+                if( !($uid = $this->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
+
+                $oFormP->SetValue( 'uid_seller', $uid );
+            }
+
+            // This part is the custom form setup for the productType
+            $s = "<form>"
+                .$oHandler->ProductDefine0( $oFormP )
+                ."<input type='submit'>"
+                ."</form>";
         }
-        if( !$kfrP ) goto done;
-
-        $oFormP->SetKFR( $kfrP );
-
-        // This part is the common form setup for all products
-        if( !$oFormP->Value('uid_seller') ) {
-            if( !($uid = $this->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
-
-            $oFormP->SetValue( 'uid_seller', $uid );
-        }
-
-        // This part is the custom form setup for the productType
-        $s = $oHandler->ProductDefine0( $oFormP );
 
         done:
         return( $s );
@@ -652,6 +670,9 @@ class SEEDBasket_Basket
 
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
+
+    // intended to be mainly used by SEEDBasket internals
+    function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 }
 
 class SEEDBasket_Product
@@ -677,10 +698,19 @@ class SEEDBasket_Product
 
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
+
+    // intended to be mainly used by SEEDBasket internals
+    function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+
+    function Draw( $eDetail, $raParms )
+    {
+// DrawProduct code should live here
+        return( $this->oSB->DrawProduct( $this->kfr, $eDetail, $raParms ) );
+    }
 }
 
-class SEEDBasket_BP
-/******************
+class SEEDBasket_Purchase
+/************************
     Implement a purchase of a product in a basket
  */
 {
@@ -720,6 +750,52 @@ class SEEDBasket_BP
 
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
+
+    // intended to be mainly used by SEEDBasket internals
+    function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 }
 
-?>
+class SEEDBasketCursor
+/*********************
+     Get a sequence of baskets, products, or purchases
+ */
+{
+    private $oSB;
+    private $sType;
+    private $kfrc = null;
+
+    function __construct( SEEDBasketCore $oSB, $sType, $sCond, $raKFRC = [], $raParms = [] )
+    {
+        $this->oSB = $oSB;
+        $this->sType = $sType;
+
+        switch( $sType ) {
+            case 'basket':   $r = 'B';   break;
+            case 'product':  $r = 'P';   break;
+            case 'purchase': $r = 'BP';  break;
+            default:
+                goto done;
+        }
+        $this->kfrc = $this->oSB->oDB->GetKFRC( $r, $sCond, $raKFRC );
+
+        done:;
+    }
+
+    function IsValid() { return( $kfrc != null ); }
+
+    function GetNext()
+    {
+        $o = null;
+
+        if( $this->kfrc->CursorFetch() ) {
+            switch( $this->sType ) {
+                case 'basket':   $o = new SEEDBasket_Basket( $this->oSB, 0 );    $o->SetKFR( $this->kfrc );  break;
+                case 'product':  $o = new SEEDBasket_Product( $this->oSB, 0 );   $o->SetKFR( $this->kfrc );  break;
+                case 'purchase': $o = new SEEDBasket_Purchase( $this->oSB, 0 );  $o->SetKFR( $this->kfrc );  break;
+            }
+        }
+
+        return( $o );
+    }
+}
+

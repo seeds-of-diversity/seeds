@@ -45,6 +45,11 @@ class SEEDBasketProductHandler
         $this->oSB = $oSB;
     }
 
+    // If the product form is interactive ajax, the first method here should return true and the second should draw the form
+    function ProductFormIsAjax()         { return( false ); }
+    function ProductFormDrawAjax( $kP )  { return( "OVERRIDE ProductFormDrawAjax()" ); }
+
+
     function ProductDefine0( KeyFrameForm $oFormP )
     /**********************************************
         Draw a form to edit the given product.
