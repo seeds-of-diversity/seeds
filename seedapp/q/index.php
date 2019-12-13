@@ -12,6 +12,7 @@ include_once( SEEDLIB."q/Q.php" );
 
 $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
                                    'sessPermsRequired' => ['PUBLIC'],
+                                   'sessUIConfig' => [],                // disable login UI (requires login by default)
                                    'lang' => 'EN' ] );
 
 $qcmd = SEEDInput_Str('qcmd');
