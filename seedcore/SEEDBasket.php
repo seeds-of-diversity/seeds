@@ -253,89 +253,6 @@ klugeUTF8 = true: return sOut and sErr in utf8
         return( new SEEDBasketCursor( $this, $sType, $sCond, $raKFRC ) );
     }
 
-
-    function DrawProductNewForm( $sProductType, $cid = 'A' )
-    /*******************************************************
-        Draw a new product form for a given product type
-     */
-    {
-        return( $this->drwProductForm( 0, $sProductType, $cid ) );
-    }
-
-    function DrawProductForm( $kP, $cid = 'A' )
-    /******************************************
-        Update and draw the form for an existing product
-     */
-    {
-        return( $this->drwProductForm( $kP, "", $cid ) );
-    }
-
-    private function drwProductForm( $kP, $sProductType_ifNew, $cid )
-    /****************************************************************
-        Multiplex a New and Edit form.
-        New:  kP==0, $sProductType specified
-        Edit: kP<>0, $sProductType==""
-     */
-    {
-        $s = "";
-
-        // Catch-22: need to know the product_type to get the oHandler, but need the oHandler to get ProductDefine1 before loading the kfr.
-        // Solution: load the current record to get the oHandler, Update(), and reload the record.
-        if( $kP ) {
-            if( !($kfrP = $this->oDB->GetKfrel("P")->GetRecordFromDBKey( $kP )) ) goto done;
-            $sPT = $kfrP->Value('product_type');
-        } else {
-            $sPT = $sProductType_ifNew;
-        }
-        if( !($oHandler = $this->getHandler( $sPT )) )  goto done;
-
-        if( $oHandler->ProductFormIsAjax() ) {
-            $s = $oHandler->ProductFormDrawAjax( $kP );
-        } else {
-            /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
-             * then load up the current product (or create a new one) and draw the form for it.
-             */
-            $oFormP = new KeyframeForm( $this->oDB->GetKfrel("P"), $cid,
-                                        array('DSParms'=>array('fn_DSPreStore' =>array($oHandler,'ProductDefine1'),
-                                                               'fn_DSPostStore'=>array($oHandler,'ProductDefine2PostStore') )) );
-            $oFormP->Update();
-
-            if( $kP ) {
-                $kfrP = $this->oDB->GetKfrel("P")->GetRecordFromDBKey( $kP );
-            } else {
-                if( ($kfrP = $this->oDB->GetKfrel("P")->CreateRecord()) ) {
-                    $kfrP->SetValue( 'product_type', $sProductType_ifNew );
-
-                    // force per-prodtype fixed values
-                    if( isset(SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds']) ) {
-                        foreach( SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds'] as $k => $v ) {
-                            $kfrP->SetValue( $k, $v );
-                        }
-                    }
-                }
-            }
-            if( !$kfrP ) goto done;
-
-            $oFormP->SetKFR( $kfrP );
-
-            // This part is the common form setup for all products
-            if( !$oFormP->Value('uid_seller') ) {
-                if( !($uid = $this->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
-
-                $oFormP->SetValue( 'uid_seller', $uid );
-            }
-
-            // This part is the custom form setup for the productType
-            $s = "<form>"
-                .$oHandler->ProductDefine0( $oFormP )
-                ."<input type='submit'>"
-                ."</form>";
-        }
-
-        done:
-        return( $s );
-    }
-
     function DrawProduct( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
     {
         return( ($oHandler = $this->getHandler( $kfrP->Value('product_type') ))
@@ -702,11 +619,95 @@ class SEEDBasket_Product
     // intended to be mainly used by SEEDBasket internals
     function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 
+    function SetProductType( $sProdType )  { $this->kfr->SetValue( 'product_type', $sProdType ); }
+
     function Draw( $eDetail, $raParms )
     {
 // DrawProduct code should live here
         return( $this->oSB->DrawProduct( $this->kfr, $eDetail, $raParms ) );
     }
+
+    function DrawProductForm( $cid = 'A' )
+    /*************************************
+        Update and draw the form for the product.
+        If this is a new product you have to SetProductType() first.
+     */
+    {
+        $s = "";
+
+        if( !$this->kfr->Value('product_type') ) goto done;
+
+        if( !($oHandler = $this->oSB->GetProductHandler( $this->kfr->Value('product_type') )) )  goto done;
+
+        if( $oHandler->ProductFormIsAjax() ) {
+            $s = $oHandler->ProductFormDrawAjax( $kP );
+        } else {
+            /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
+             * then load up the current product (or create a new one) and draw the form for it.
+             */
+            $oFormP = new KeyframeForm( $this->oSB->oDB->GetKfrel("P"), $cid,
+                                        ['DSParms'=>['fn_DSPreStore' =>[$oHandler,'ProductDefine1'],
+                                                     'fn_DSPostStore'=>[$oHandler,'ProductDefine2PostStore'] ]] );
+            $oFormP->SetKFR( $this->kfr );
+
+            // This part is the common form setup for all products
+            if( !$oFormP->Value('uid_seller') ) {
+                if( !($uid = $this->oSB->GetUID_SB()) ) die( "ProductDefine0 not logged in" );
+                $oFormP->SetValue( 'uid_seller', $uid );
+            }
+
+            // This part is the custom form setup for the productType
+            $s = "<form>"
+                .$oHandler->ProductDefine0( $oFormP )
+                ."<input type='submit'>"
+                ."</form>";
+        }
+
+        done:
+        return( $s );
+    }
+}
+
+class SEEDBasket_ProductKeyframeForm extends KeyframeForm
+/***********************************
+    This attempts to solve a catch-22 when updating a product via http form parms: the form has to be
+    created per product_type but it might not always be obvious which product is being updated.
+
+    To solve this problem, this form can be created with a given product_type, or if that is not defined
+    it will sniff sf{cid}p_product_type to see what it is supposed to do.
+
+    Basically, you create this object and use it like a KeyframeForm e.g. $o->Update()
+ */
+{
+    function __construct( SEEDBasketCore $oSB, $sProductType, $cid = 'A' )
+    {
+        $raConfig = [];
+
+        // get the product type, either given or sniffed from the http parms
+        if( !$sProductType ) {
+            $oSFP = new SEEDFormParms($cid);
+            $sProductType = SEEDInput_Str( $oSFP->sfParmField('product_type') );
+        }
+
+        // get the handler for this product type and set up the parent object with the right PreStore/PostStore
+        if( $sProductType &&  ($oHandler = $oSB->GetProductHandler($sProductType)) ) {
+            $raConfig = ['DSParms' => ['fn_DSPreStore' =>[$oHandler,'ProductDefine1'],
+                                       'fn_DSPostStore'=>[$oHandler,'ProductDefine2PostStore'] ]];
+        }
+
+        parent::__construct( $oSB->oDB->GetKfrel("P"), $cid, $raConfig );
+    }
+
+    /*
+Somewhere something is supposed to enforce the forceFlds
+
+        // force per-prodtype fixed values
+        if( isset(SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds']) ) {
+            foreach( SEEDBasketProducts_SoD::$raProductTypes[$sProductType_ifNew]['forceFlds'] as $k => $v ) {
+                $kfrP->SetValue( $k, $v );
+            }
+        }
+*/
 }
 
 class SEEDBasket_Purchase
