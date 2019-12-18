@@ -222,6 +222,7 @@ class Console02Static
             bCTHeader     : output header(Content-type) by default, =>false to disable
             sTitle        : <title>
             sBodyAttr     : attrs for body tag e.g. onload
+            cssBodyMargin : put a margin on the <body> (useful for bootstrap pages that look tight with bs's default 0 margin)
             raScriptFiles : script files for the header
             raCSSFiles    : css files for the header
      */
@@ -235,8 +236,8 @@ class Console02Static
         $sCharset  = @$raConfig['sCharset'] ?: "UTF-8";
 
         // <body> can have attrs and an optional margin (use the margin with bootstrap)
-        $sBodyAttr   = (@$raConfig['sBodyAttr']);
-        $bBodyMargin = (@$raConfig['bBodyMargin'] == true);
+        $sBodyAttr   = @$raConfig['sBodyAttr'];
+        $cssBodyStyle = ($css = @$raConfig['cssBodyMargin']) ? "margin:$css" : "";
 
         /* Content-type is always text/html because this only outputs <!DOCTYPE html> after all
          *
@@ -289,7 +290,7 @@ class Console02Static
         $s = "<!DOCTYPE html>"
              ."<html lang='".($lang == 'FR' ? 'fr' : 'en')."'>"
              ."<head>".$sHead."</head>"
-             ."<body $sBodyAttr>".$sBody."</body>"
+             ."<body $sBodyAttr><div style='$cssBodyStyle'>".$sBody."</div></body>"   // div is easier than trying to parse style in sBodyAttr
              ."</html>";
 
         return( $s );
