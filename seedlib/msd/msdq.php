@@ -17,6 +17,7 @@ class MSDQ extends SEEDQ
     /******************************************************
         raConfig: config_OverrideUidSeller = the uid_seller for multi-grower app, only allowed if sess->CanWrite('MSDOffice')
                   config_currYear          = the MSD year for new listings
+                  config_bAllowCanSeedRead = override the canSeedRead check so a process can generate a grower's seed list without being logged in (e.g. bulk email generator)
      */
     {
         parent::__construct( $oApp, $raConfig );
@@ -66,6 +67,11 @@ class MSDQ extends SEEDQ
         switch( $cmd ) {
             case 'msdSeedList-GetData':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->seedListGetData( $raParms );
+                break;
+
+            case 'msdSeedList-Draw':
+                // do msdSeedList-GetData and draw the list using various display parms
+                list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->seedListDraw( $raParms );
                 break;
 
             case 'msdSeed-Draw':
@@ -135,6 +141,9 @@ class MSDQ extends SEEDQ
                         Required but independent of primary filters
      */
     {
+
+// TODO: restrict access using canReadSeed
+
         $bOk = false;
         $raOut = array();
         $sErr = "";
@@ -184,6 +193,44 @@ class MSDQ extends SEEDQ
         done:
         return( array($bOk,$raOut,$sErr) );
 
+    }
+
+    private function seedListDraw( $raParms )
+    /****************************************
+        $raParms are a union of those for seedListGetData plus eDrawMode
+     */
+    {
+        $ok = false;
+        $s = $sErr = "";
+
+// TODO: there must be some good way to this without double fetching the seed records
+
+        $rQ = $this->GetEmptyRQ();
+        list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->seedListGetData( $raParms );
+        if( !$rQ['bOk'] ) {
+            $sErr = $rQ['sErr'];
+            goto done;
+        }
+
+        $ok = true;
+
+        foreach( $rQ['raOut'] as $ra ) {
+            if( !($kfrS = $this->oMSDCore->GetSeedKfr($ra['_key'])) || !$this->canReadSeed($kfrS) ) {
+                $sErr .= "<p>Cannot read seed {$ra['_key']}</p>";
+                continue;
+            }
+            list($okTmp,$sTmp,$sErrTmp) = $this->seedDraw( $kfrS, "REVIEW VIEW_SHOWSPECIES" );
+
+            if( $okTmp ) {
+                $s .= $sTmp;
+            } else {
+                $sErr .= $sErrTmp;
+                $ok = false;
+            }
+        }
+
+        done:
+        return( [$ok,$s,$sErr] );
     }
 
     private function seedUpdate( KeyframeRecord &$kfrS, $raParms )
@@ -252,31 +299,35 @@ class MSDQ extends SEEDQ
     const SEEDDRAW_VIEW_REQUESTABLE  = 'VIEW_REQUESTABLE';  // screen view showing indicator that you can click on it
     const SEEDDRAW_VIEW_SHOWCATEGORY = 'VIEW_SHOWCATEGORY'; // add this to the above to include the category in the output block
     const SEEDDRAW_VIEW_SHOWSPECIES  = 'VIEW_SHOWSPECIES';  // add this to the above to include the species in the output block
+    const SEEDDRAW_REVIEW            = 'REVIEW';            // draw full info for the grower to review but static (currently same as EDIT anyway)
     const SEEDDRAW_EDIT              = 'EDIT';              // editor view
     const SEEDDRAW_PRINT             = 'PRINT';             // output for printing
 
     private function seedDraw( $kfrS, $eDrawMode )
     /*********************************************
-        Draw the given seed record. It has already validated with canRead().
+        Draw the given seed record. It has already validated with canReadSeed().
      */
     {
         $bOk = false;
         $sOut = $sErr = "";
 
-        /* There are four kinds of views:
+        /* There are five kinds of views:
          *     VIEW                 plain screen view
          *     VIEW_REQUESTABLE     screen view for seed that the user is allowed to request
+         *     REVIEW               full info for the grower to review but static (currently the same as EDIT anyway)
          *     EDIT                 drawn in the editor
          *     PRINT                printed directory
          */
         $eView = "VIEW";
-        foreach( array('VIEW_REQUESTABLE','EDIT','PRINT') as $e ) {
+        foreach( array('VIEW_REQUESTABLE','REVIEW','EDIT','PRINT') as $e ) {
             if( strpos( $eDrawMode, $e ) !== false ) { $eView = $e; break; }
         }
         // except the VIEW_REQUESTABLE mode is only allowed if the current user is allowed to request the seed
         if( $eView == 'VIEW_REQUESTABLE' ) {
             $eView = $this->oMSDCore->IsRequestableByUser( $kfrS ) ? 'VIEW_REQUESTABLE' : 'VIEW';
         }
+        // and REVIEW is currently identical to EDIT so they coded as EDIT below
+        if( $eView == 'REVIEW' )  $eView = 'EDIT';
 
         $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
 
@@ -375,12 +426,13 @@ class MSDQ extends SEEDQ
     private function canReadSeed( $kfrP )
     /************************************
         Anyone is allowed to see an ACTIVE seed product. Sellers can see their own non-ACTIVE seed products.
-        Office personnel can see any seed product.
+        Office personnel can see any seed product. config_bAllowCanSeedRead allows anonymous processes to see all seeds (e.g. bulk email generator)
      */
     {
         $ok = $kfrP
            && $kfrP->Value('product_type') == 'seeds'
-           && ($kfrP->Value('eStatus')=='ACTIVE' || $kfrP->Value('uid_seller')==$this->oApp->sess->GetUID() || $this->oMSDCore->PermOfficeW());
+           && ($kfrP->Value('eStatus')=='ACTIVE' || $kfrP->Value('uid_seller')==$this->oApp->sess->GetUID()
+               || $this->oMSDCore->PermOfficeW() || @$this->raConfig['config_bAllowCanSeedRead']);
 
         return( $ok );
     }

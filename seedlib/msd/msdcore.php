@@ -7,6 +7,8 @@
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
 
+include_once( SEEDCORE."SEEDBasket.php" );
+
 class MSDCore
 /************
     In general, this should only be used by seedlib-level code. App-level code should use MSDQ instead of this.
