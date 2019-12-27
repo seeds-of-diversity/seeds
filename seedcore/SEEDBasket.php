@@ -47,7 +47,7 @@ EVERYTHING IN SEEDBasketCore that involves a current basket should go here inste
 
 }
 
-class SEEDBasketCore
+class SEEDBasket_Core
 /*******************
     Core class for advertising and selling products, buying them, and fulfilling orders
 
@@ -629,7 +629,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
 }
 
 
-class SEEDBasket_Basket
+class SEEDBasket__Basket
 /**********************
     Implement a basket
  */
@@ -654,7 +654,7 @@ class SEEDBasket_Basket
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 }
 
-class SEEDBasket_Product
+class SEEDBasket__Product
 /***********************
     Implement a product
  */
@@ -679,7 +679,7 @@ class SEEDBasket_Product
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 }
 
-class SEEDBasket_BP
+class SEEDBasket__BP
 /******************
     Implement a purchase of a product in a basket
  */
