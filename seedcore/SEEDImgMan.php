@@ -70,6 +70,59 @@ class SEEDImgMan
         return( $ra );
     }
 
+    /*
+     $fileExt2Mimetype = array(
+    "bmp"   =>  "image/bmp",
+    "ico"   =>  "image/x-icon",
+    "gif"   =>  "image/gif",
+    "jpg"   =>  "image/jpeg",
+    "jpeg"  =>  "image/jpeg",
+    "tif"   =>  "image/tiff",
+    "tiff"  =>  "image/tiff",
+    "eps"   =>  "application/postscript",
+    "pdf"   =>  "application/pdf",
+    "rtf"   =>  "application/rtf",
+    "zip"   =>  "application/zip",
+    "js"    =>  "application/x-javascript",
+
+    "doc"   =>  "application/msword",
+    "dot"   =>  "application/msword",
+    "xls"   =>  "application/vnd.ms-excel",
+    "ppt"   =>  "application/vnd.ms-powerpoint",
+    "mdb"   =>  "application/x-msaccess",
+    "pub"   =>  "application/x-mspublisher",
+
+    "css"   =>  "text/css",
+    "htm"   =>  "text/html",
+    "html"  =>  "text/html",
+    "txt"   =>  "text/plain",
+
+    "mp3"   =>  "audio/mpeg",
+    "wav"   =>  "audio/x-wav",
+    "mpg"   =>  "video/mpeg",
+    "mpeg"  =>  "video/mpeg",
+    "mov"   =>  "video/quicktime",
+    "qt"    =>  "video/quicktime",
+    "avi"   =>  "video/x-msvideo",
+);
+$mimetype = @$fileExt2Mimetype[strtolower(substr( strrchr( $filename, '.' ), 1 ))];
+     */
+
+    function ShowImg( $filename )
+    {
+        if( file_exists($filename) ) {
+            $info = $this->ImgInfoByFilename($filename);
+            if( ($f = fopen( $filename, 'rb' )) ) {
+                header( "Content-Type: ".$info['mime'] );
+                header( "Content-Length: ".$info['filesize'] );
+                fpassthru( $f );
+            }
+        } else {
+            die( "No file '$filename'" );
+        }
+        exit;
+    }
+
 
     function Update()
     /****************
