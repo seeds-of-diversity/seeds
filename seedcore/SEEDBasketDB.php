@@ -2,7 +2,7 @@
 
 /* SEEDBasketDB.php
  *
- * Copyright (c) 2016-2018 Seeds of Diversity Canada
+ * Copyright (c) 2016-2019 Seeds of Diversity Canada
  *
  * DB layer for shopping baskets
  */
@@ -11,26 +11,33 @@
 class SEEDBasketDB extends Keyframe_NamedRelations
 {
     public $kfdb;   // just so third parties can find this in a likely place
+    private $raCustomProductKfrelDefs = array();
     private $db;
 
-    function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig )
+    function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig = array() )
     {
         $this->kfdb = $kfdb;
         $this->db = @$raConfig['db'] ?: $kfdb->GetDB();
+        $this->raCustomProductKfrelDefs = @$raConfig['raCustomProductKfrelDefs'] ?: array();
+
         parent::__construct( $kfdb, $uid, $logdir );
     }
 
 
     function GetBasketKFR( $kBasket )    { return( $this->GetKFR( 'B', $kBasket ) ); }
     function GetProductKFR( $kProduct )  { return( $this->GetKFR( 'P', $kProduct ) ); }
-    function GetPURKFR( $kPUR )            { return( $this->GetKFR( 'PUR', $kPUR ) ); }
-    function GetPurchaseKFR( $kPUR )      { return( $this->GetKFR( 'PURxP', $kPUR ) ); }
+    function GetPURKFR( $kPur )          { return( $this->GetKFR( 'PUR', $kPur ) ); }
+    function GetPurchaseKFR( $kPur )     { return( $this->GetKFR( 'PURxP', $kPur ) ); }
     /*deprecated*/ function GetBasket($k)  { return($this->GetBasketKFR($k)); }
     /*deprecated*/ function GetProduct($k) { return($this->GetProductKFR($k)); }
-    /*deprecated*/ function GetPUR($k)      { return($this->GetPURKFR($k)); }
+    /*deprecated*/ function GetBP($k)      { return($this->GetPURKFR($k)); }
     function GetBasketKFREmpty()         { return( $this->Kfrel('B')->CreateRecord() ); }
     function GetProductKFREmpty()        { return( $this->Kfrel('P')->CreateRecord() ); }
-    function GetPURKFREmpty()             { return( $this->Kfrel('PUR')->CreateRecord() ); }
+    function GetPURKFREmpty()            { return( $this->Kfrel('PUR')->CreateRecord() ); }
+
+    // deprecated old names
+    function GetBPKFR( $kBP )            { return( $this->GetPURKFR($kBP) ); }
+    function GetBPKFREmpty()             { return( $this->GetPURKFREmpty() ); }
 
 
     function GetBasketList( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
@@ -38,8 +45,8 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
     function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
 
-    function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('PURxP', "fk_SEEDBasket_Buyers='$kB'", $raKFParms) ); }
-    function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('PURxP', "fk_SEEDBasket_Buyers='$kB'", $raKFParms) ); }
+    function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('PURxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
+    function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('PURxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
 
     function GetProdExtraList( $kProduct )
     /*************************************
@@ -138,14 +145,14 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {
-        /* raKfrel['B']    base relation for SEEDBasket_Buyers
+        /* raKfrel['B']    base relation for SEEDBasket_Baskets
          * raKfrel['P']    base relation for SEEDBasket_Products
-         * raKfrel['PUR']   base relation for SEEDBasket_PUR map table
+         * raKfrel['PUR']  base relation for SEEDBasket_Purchase map table
          * raKfrel['BxP']  joins baskets and products via B x PUR x P
          * raKfrel['PURxP'] tells you about the products in a basket and allows updates to the purchases
          */
         $kdefBaskets =
-            array( "Tables" => array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Buyers",
+            array( "Tables" => array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Baskets",
                                                     "Fields" => "Auto" ) ) );
         $kdefProducts =
             array( "Tables" => array( "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
@@ -173,21 +180,21 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         $kdefPxPE3['Tables']['PE3'] = array( "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                              "Fields" => "Auto" );
         $kdefPUR =
-            array( "Tables" => array( "PUR" => array( "Table" => "{$this->db}.SEEDBasket_Purchases",
-                                                     "Fields" => "Auto" ) ) );
-        // really BxPURxP but this abbreviation is not ambiguous
-        $kdefBxP = array( "Tables" =>
-            array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Buyers",
+            array( "Tables" => array( "PUR" => array( "Table" => "{$this->db}.SEEDBasket_BP",
+                                                      "Fields" => "Auto" ) ) );
+
+        $kdefBxPURxP = array( "Tables" =>
+            array( "B" => array( "Table" => "{$this->db}.SEEDBasket_Baskets",
                                  "Type" => "Base",
                                  "Fields" => "Auto" ),
-                   "PUR"=> array( "Table" => "{$this->db}.SEEDBasket_Purchases",
+                   "PUR"=> array( "Table" => "{$this->db}.SEEDBasket_BP",
                                  "Fields" => "Auto" ),
                    "P" => array( "Table" => "{$this->db}.SEEDBasket_Products",
                                  "Alias" => "P",
                                  "Type" => "Children",
                                  "Fields" => "Auto" ) ) );
         $kdefPURxP = array( "Tables" =>
-            array( "PUR" => array( "Table" => "{$this->db}.SEEDBasket_Purchases",
+            array( "PUR" => array( "Table" => "{$this->db}.SEEDBasket_BP",
                                   "Type" => "Base",
                                   "Fields" => "Auto" ),
                    "P" =>  array( "Table" => "{$this->db}.SEEDBasket_Products",
@@ -202,8 +209,27 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         $raKfrel['PxPE2']= new Keyframe_Relation( $kfdb, $kdefPxPE2,     $uid, $raParms );
         $raKfrel['PxPE3']= new Keyframe_Relation( $kfdb, $kdefPxPE3,     $uid, $raParms );
         $raKfrel['PUR']   = new Keyframe_Relation( $kfdb, $kdefPUR,      $uid, $raParms );
-        $raKfrel['BxP']  = new Keyframe_Relation( $kfdb, $kdefBxP,       $uid, $raParms );
+        $raKfrel['BxPURxP']  = new Keyframe_Relation( $kfdb, $kdefBxPURxP,     $uid, $raParms );
         $raKfrel['PURxP'] = new Keyframe_Relation( $kfdb, $kdefPURxP,    $uid, $raParms );
+
+        // deprecated older names
+        $raKfrel['BP'] = $raKfrel['PUR'];
+        $raKfrel['BxP'] = $raKfrel['BxPURxP'];
+        $raKfrel['BPxP'] = $raKfrel['PURxP'];
+
+        /* Given an array of kfrel names => [PE keys], make named kfrels that left join Products with each PE
+           i.e. [name1 => ['a','b'] ]  creates kfrel called name1 that does P_PEa_PEb where PEa.k='a' and PEb.k='b'
+         */
+        foreach( $this->raCustomProductKfrelDefs as $kfName => $raPE ) {
+            $kdef = $kdefProducts;
+            foreach( $raPE as $k ) {
+                $kdef['Tables']['PE_'.$k] = [ "Table" => 'seeds.SEEDBasket_ProdExtra',
+                                              "Type" => 'LeftJoin',
+                                              "JoinOn" => "PE_{$k}.fk_SEEDBasket_Products=P._key AND PE_{$k}.k='$k'",
+                                              "Fields" => "Auto" ];
+            }
+            $raKfrel[$kfName] = new Keyframe_Relation( $kfdb, $kdef, $uid, $raParms );
+        }
 
         return( $raKfrel );
     }
@@ -212,9 +238,9 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
 
 
-define("SEEDS_DB_TABLE_SEEDBASKET_BUYERS",
+define("SEEDS_DB_TABLE_SEEDBASKET_BASKETS",
 "
-CREATE TABLE SEEDBasket_Buyers (
+CREATE TABLE SEEDBasket_Baskets (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
         _created_by INTEGER,
@@ -348,7 +374,7 @@ CREATE TABLE SEEDBasket_Purchases (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    fk_SEEDBasket_Buyers  INTEGER NOT NULL,
+    fk_SEEDBasket_Baskets  INTEGER NOT NULL,
     fk_SEEDBasket_Products INTEGER NOT NULL,
     n                      INTEGER NOT NULL,        -- the number of items if ITEM type
     f                      DECIMAL(7,2) NOT NULL,   -- the amount if MONEY type
@@ -358,7 +384,7 @@ CREATE TABLE SEEDBasket_Purchases (
     sExtra                 TEXT,                -- e.g. urlencoded metadata about the purchase
 
   --  INDEX(fk_SEEDBasket_Products),  does anyone use this?
-    INDEX(fk_SEEDBasket_Buyers)
+    INDEX(fk_SEEDBasket_Baskets)
 );
 "
 );
