@@ -78,6 +78,7 @@ class KeyframeDatabase {
     private $errmsg = "";
     private $lastQuery = "";
     private $bDebug = 0;           // 0=none, 1=echo errors, 2=echo queries
+    private $dbname = "";
 
     // host is optional because it's almost always localhost
     function __construct( $userid, $password, $host = 'localhost' ) {
@@ -88,8 +89,11 @@ class KeyframeDatabase {
         if( !($bOk = $this->oConn->_connect( $dbname )) ) {
             $this->errmsg = "Cannot connect to database $dbname : ".$this->oConn->_getConnectErrMsg();
         }
+        $this->dbname = $dbname;
         return( $bOk );
     }
+
+    function GetDB()  { return( $this->dbname ); }
 
     function Execute( $sql ) {
         $this->debugStart($sql);
