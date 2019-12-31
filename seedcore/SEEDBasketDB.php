@@ -274,7 +274,7 @@ CREATE TABLE SEEDBasket_Baskets (
     -- About the payment
     pay_eType       ENUM('PayPal','Cheque') NOT NULL DEFAULT 'PayPal',
     pay_total       DECIMAL(8,2)            NOT NULL DEFAULT 0,
-    pay_currency    ENUM('CAN','USD')       NOT NULL DEFAULT 'CAD',
+    pay_currency    ENUM('CAD','USD')       NOT NULL DEFAULT 'CAD',
 
     pay_extra       TEXT,
 
