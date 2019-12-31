@@ -134,7 +134,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
         }
         $raYearOpt["2010 and before"] = 2010;
 
-        $s .= "<form action='${_SERVER['PHP_SELF']}'>"
+        $s .= "<form action='".$this->oApp->PathToSelf()."'>"
              ."<p>Show: "
              .SEEDForm_Select2( 'fltStatus',
                         array( "Not Accounted" => "Not-accounted",
@@ -227,7 +227,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     $kMbr = @$ra['mbrid'] ?: 0;
 
     $sOrderNum
-        = $kfr->Expand( "<a href='".$_SERVER['PHP_SELF']."?row=[[_key]]'>[[_key]]</a>"
+        = $kfr->Expand( "<a href='?row=[[_key]]'>[[_key]]</a>"
                        ."<div style='float:right; padding-right:15px'>".substr($kfr->value('_created'),0,10)."</div>"
                        ."<br/><br/>"
                        ."<div><form action='http://seeds.ca/office/mbr/mbr_labels.php' target='MbrLabels' method='get'>"
@@ -304,7 +304,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $s = "";
 
         if( $this->GetMailStatus_Pending($kfr) && $kfr->Value('eStatus') != MBRORDER_STATUS_CANCELLED &&
-            in_array( $this->oApp->sess->GetUID(), array( 1, 1499 /*, 10914*/ ) ) )  // dev, Bob, Christine
+            in_array( $this->oApp->sess->GetUID(), array( 1, 1499, 10914 ) ) )  // dev, Bob, Christine
         {
             $kOrder = $kfr->Key();
             $s .= "<div id='status2x_$kOrder' class='status2x'><button>Nothing to mail</button></div>";
@@ -358,9 +358,9 @@ class SoDOrder_MbrOrder
 
     function CreateFromMbrOrder( int $kOrder )
     {
-        $this->oApp->kfdb->SetDebug(2);
+        //$this->oApp->kfdb->SetDebug(2);
         if( ($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
-            var_dump($kfrMbrOrder->ValuesRA() );
+            //var_dump($kfrMbrOrder->ValuesRA() );
 
             $oB = new SEEDBasket_Basket( $this->oSB, 0 );
 
@@ -385,10 +385,30 @@ class SoDOrder_MbrOrder
             $oB->PutDBRow();
             $kB = $oB->Key();
 
+            if( ($m = $kfrMbrOrder->Value('mbr_type')) ) {
+                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='membership' AND name='$m'" );
+                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                $oBP->StorePurchase( $oB, $oP, ['n'=>1] );
+            }
+
             if( ($d = floatval($kfrMbrOrder->Value('donation'))) > 0.0 ) {
-                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation'" );
-                $oBP = new SEEDBasket_BP( $this->oSB, 0 );
-                $oBP->SetPurchase( $oB, $oP, ['amount'=>$d] );
+                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='general" );
+                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
+            }
+
+            foreach( ['nPubSSH-EN6','nPubSSH-FR6','nPubEverySeed','nPubKent2012'] as $v ) {
+                if( ($n = $kfrMbrOrder->UrlParmGet('sExtra', $v)) ) {
+                    $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='$v'" );
+                    $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                    $oBP->StorePurchase( $oB, $oP, ['n'=>$n] );
+                }
+            }
+
+            if( ($d = floatval($kfrMbrOrder->Value('nPubEverySeed_Shipping'))) ) {
+                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='shipping" );
+                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
             }
 
         }

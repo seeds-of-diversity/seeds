@@ -31,7 +31,9 @@ class MSDLib
 
     function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
 
-    function TranslateSpecies2( $sSp ) { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
+    function TranslateCategory( $sCat ) { return( $this->oMSDCore->TranslateCategory( $sCat ) ); }
+    function TranslateSpecies( $sSp )   { return( $this->oMSDCore->TranslateSpecies( $sSp ) ); }
+    function TranslateSpecies2( $sSp )  { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
 
     function KFRelGxM() { return( $this->oMSDCore->KfrelGxM() ); }
 
@@ -79,6 +81,85 @@ class MSDLib
 
         done:
         return( $s );
+    }
+
+    function AdminCopyToArchive( $year )
+    /***********************************
+        Delete all archive records for $year.
+        Copy current active growers and seeds to archive and give them $year.
+     */
+    {
+        $ok = true;
+        $s = "";
+
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sed_growers WHERE year='$year'" );
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sed_seeds WHERE year='$year'" );
+
+        /* Archive growers
+         */
+        $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,notes, _created,_created_by,_updated,_updated_by";
+        $sql = "INSERT INTO seeds.sed_growers (_key,_status, year, $fields )"
+              ."SELECT NULL,0, '$year', $fields "
+              ."FROM seeds.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
+        if( $this->oApp->kfdb->Execute($sql) ) {
+            $s .= "<h4 style='color:green'>Growers Successfully Archived</h4>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>";
+        } else {
+            $s .= "<h4 style='color:red'>Archiving Growers Failed</h4>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>"
+                 ."<p style='margin-left:30px'><pre>".$this->oApp->kfdb->GetErrMsg()."</pre></p>";
+            $ok = false;
+        }
+
+        /* Archive seeds
+         *
+         * Copy active seeds to the archive using INSERT...SELECT...
+         * Use custom kfrel to fetch all ACTIVE seeds and their prodExtra fields, one per row per seed.
+         * Override the fields in the SELECT so they match the fields in the INSERT.  All that matters is that they're in the same order.
+         */
+        $raSelectFields = [
+             // create new _key in archive with the same create/update information as the seeds
+             // (note this does not capture _updated/by from the PE fields so timestamps of latest changes to descriptions etc will not be reflected in the archive)
+             'VERBATIM_newkey' => 'NULL',
+             '_created' => 'P._created',
+             '_created_by' => 'P._created_by',
+             '_updated' => 'P._updated',
+             '_updated_by' => 'P._updated_by',
+
+             'mbr_id'=>'P.uid_seller',
+             'category' => 'PE_category.v',
+             'species' => 'PE_species.v',
+             'variety' => 'PE_variety.v',
+             'bot_name' => 'PE_bot_name.v',
+             'days_maturity' => 'PE_days_maturity.v',
+             'days_maturity_seed' => 'PE_days_maturity_seed.v',
+             'quantity' => 'PE_quantity.v',
+             'origin' => 'PE_origin.v',
+             'eOffer' => 'PE_eOffer.v',
+             'year_1st_listed' => 'PE_year_1st_listed.v',
+             'description' => 'PE_description.v',
+             'VERBATIM_year' => "'$year'"
+        ];
+        $sSelectSql = $this->oMSDCore->GetSeedSql( "eStatus='ACTIVE'", ['raFieldsOverride'=> $raSelectFields] );
+
+        $sInsertFields = "mbr_id,category,type,variety,bot_name,days_maturity,days_maturity_seed,quantity,origin,eOffer,year_1st_listed,description,year";
+
+
+        /* Archive seeds
+         */
+        $sql = "INSERT INTO seeds.sed_seeds (_key,_created,_created_by,_updated,_updated_by, $sInsertFields ) $sSelectSql";
+
+        if( $this->oApp->kfdb->Execute($sql) ) {
+            $s .= "<h4 style='color:green'>Seeds Successfully Archived</h3>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>";
+        } else {
+            $s .= "<h4 style='color:red'>Archiving Seeds Failed</h4>"
+                 ."<p style='margin-left:30px'><pre>$sql</pre></p>"
+                 ."<p style='margin-left:30px'><pre>".$this->oApp->kfdb->GetErrMsg()."</pre></p>";
+            $ok = false;
+        }
+
+        return( array( $ok, $s ) );
     }
 
     function DrawGrowerBlock( KeyFrameRecord $kfrGxM, $bFull = true )

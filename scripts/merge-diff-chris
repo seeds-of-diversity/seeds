@@ -1,8 +1,0 @@
-if [ -z "$1" ]; then
-    exit 
-fi
-
-#cmd="svn diff -r head https://ssl.peaceworks.ca/svn/seeds/branches/chris/$1 https://ssl.peaceworks.ca/svn/seeds/trunk/$1"
-cmd="svn diff  https://ssl.peaceworks.ca/svn/seeds/branches/chris/$1  https://ssl.peaceworks.ca/svn/seeds/trunk/$1"
-echo $cmd
-$cmd

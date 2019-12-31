@@ -202,7 +202,7 @@ class SEEDFile {
     {
         $class = $bDirMark ? "SEEDFile_LD_Link_Mark" : "SEEDFile_LD_Link";
 
-        return( "<a class='$class' HREF='{$_SERVER["PHP_SELF"]}?dir=".urlencode($dir)."'>$dircomponent</a><br/>" );
+        return( "<a class='$class' href='?dir=".urlencode($dir)."'>$dircomponent</a><br/>" );
     }
 }
 

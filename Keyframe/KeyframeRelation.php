@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2018 Seeds of Diversity Canada
+ * Copyright (c) 2006-2019 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
@@ -274,6 +274,15 @@ class KeyFrame_Relation
     /*******************************************************************************************************************
      * Create KeyframeRecords
      */
+
+    function GetSQL( $cond = "", $parms = array() )
+    /**********************************************
+        Get the SQL that's used by CreateRecordCursor and GetRecordFromDB.
+        This is for applications that want to work directly with SQL e.g. INSERT INTO xyz SELECT...a_relation_conveniently_defined_by_a_kfrel
+     */
+    {
+        return( $this->makeSelect( $cond, $parms ) );
+    }
 
     function CreateRecord()
     /**********************
@@ -558,6 +567,7 @@ class KeyFrame_Relation
          *
          * raFieldsOverride takes precedence over all computed select fields.
          *     array( alias=>fld, ... ) generates {fld as alias},...
+         *            'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'" generates 1,'foo'     keys start with VERBATIM but should have different arbitrary suffixes because they're keys
          *
          * If raGroup is defined, use it to create the select fields.
          *     array( alias=>fld, ... ) uses {fld} as grouping cols and {fld as alias} as select fields
@@ -569,8 +579,8 @@ class KeyFrame_Relation
         $sFieldsClause = "";
         if( isset($parms['raFieldsOverride']) ) {
             foreach( $parms['raFieldsOverride'] as $alias=>$fld ) {
-                $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                 ."$fld as $alias";
+                $sFieldsClause .= ($sFieldsClause ? "," : "");
+                $sFieldsClause .= SEEDCore_StartsWith($alias,'VERBATIM') ? $fld : "$fld as $alias";
             }
         } else if( $sGroupCols ) {
             // colalias1,colalias2,... are the group cols and all of the select cols.
@@ -1338,6 +1348,20 @@ class Keyframe_NamedRelations
      */
     {
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordFromDBKey( $k ) : null );
+    }
+
+    function GetRecordVals( $sRel, $k )
+    /**********************************
+        Get values of one record
+     */
+    {
+        $ra = [];
+
+        if( ($kfr = $this->GetKFR( $sRel, $k )) ) {
+            $ra = $kfr->ValuesRA();
+        }
+
+        return( $ra );
     }
 
     function GetKFRCond( $sRel, $sCond, $raKFParms = array() )

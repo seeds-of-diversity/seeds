@@ -195,8 +195,10 @@ class _sldb_defs
                        array("col"=>"osp",           "type"=>"S"),
                        array("col"=>"ocv",           "type"=>"S"),
                        array("col"=>"bOrganic",      "type"=>"I"),
+                       array("col"=>"bulk",          "type"=>"S"),
                        array("col"=>"notes",         "type"=>"S"),
-            )
+                       array("col"=>"year",          "type"=>"I"),
+        )
             // fk_sl_species and sound* are not here because they're only used during rebuild-index and its associated manual steps
         );
     }
@@ -210,6 +212,7 @@ class _sldb_defs
                        array("col"=>"osp",               "type"=>"S"),
                        array("col"=>"ocv",               "type"=>"S"),
                        array("col"=>"bOrganic",          "type"=>"I"),
+                       array("col"=>"bulk",              "type"=>"S"),
                        array("col"=>"year",              "type"=>"S"),
                        array("col"=>"notes",             "type"=>"S"),
                        array("col"=>"op",                "type"=>"S"),
@@ -245,14 +248,14 @@ class SLDBBase extends Keyframe_NamedRelations
         $this->tDef['PY'] = array( "Table" => "seeds.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
         $this->tDef['SY'] = array( "Table" => "seeds.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
 
-        $sLogfile = $logdir ? "$logdir/slcollection.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
         $raKfrel['C'] = $this->newKfrel( $kfdb, $uid, array( "C" => $this->tDef['C'] ), $sLogfile );
         $raKfrel['I'] = $this->newKfrel( $kfdb, $uid, array( "I" => $this->tDef['I'] ), $sLogfile );
         $raKfrel['A'] = $this->newKfrel( $kfdb, $uid, array( "A" => $this->tDef['A'] ), $sLogfile );
         $raKfrel['D'] = $this->newKfrel( $kfdb, $uid, array( "D" => $this->tDef['D'] ), $sLogfile );
         $raKfrel['G'] = $this->newKfrel( $kfdb, $uid, array( "G" => $this->tDef['G'] ), $sLogfile );
 
-        $sLogfile = $logdir ? "$logdir/slrosetta.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slrosetta.log" : "";
         $raKFrel['P'] = $this->newKfrel( $kfdb, $uid, array( "P" => $this->tDef['P'] ),  $sLogfile );
         $raKfrel['S'] = $this->newKfrel( $kfdb, $uid, array( "S" => $this->tDef['S'] ),  $sLogfile );
         $raKfrel['PY']= $this->newKfrel( $kfdb, $uid, array( "PY"=> $this->tDef['PY'] ), $sLogfile );
@@ -298,7 +301,7 @@ class SLDBRosetta extends SLDBBase
         // do this first because it sets $this->tDef
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
-        $sLogfile = $logdir ? "$logdir/slrosetta.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slrosetta.log" : "";
         $raKfrel['PxS']    = $this->newKfrel2( $kfdb, $uid, array('P','S'), $sLogfile );
         $raKfrel['PYxPxS'] = $this->newKfrel2( $kfdb, $uid, array('PY','P','S'), $sLogfile );
         $raKfrel['SYxS']   = $this->newKfrel2( $kfdb, $uid, array('SY','S'), $sLogfile );
@@ -322,7 +325,7 @@ class SLDBCollection extends SLDBRosetta
         // do this first because it sets $this->tDef
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
-        $sLogfile = $logdir ? "$logdir/slcollection.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
 
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['IxA']       = $this->newKfrel2( $kfdb, $uid, array('I','A'), $sLogfile );
@@ -374,7 +377,7 @@ class SLDBSources extends SLDBRosetta
         $this->tDef['SRCCVA'] = array( "Table" => "seeds.sl_cv_sources_archive", "Fields" => _sldb_defs::fldSLSourcesCVArchive() );
 
 
-        $sLogfile = $logdir ? "$logdir/slsources.log" : "";
+        $sLogfile = $logdir ? "{$logdir}slsources.log" : "";
 
         // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['SRC']           = $this->newKfrel2( $kfdb, $uid, array('SRC'), $sLogfile );
@@ -383,6 +386,18 @@ class SLDBSources extends SLDBRosetta
         $raKfrel['SRCCVxSRC']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC'), $sLogfile );
         $raKfrel['SRCCVxPxS']     = $this->newKfrel2( $kfdb, $uid, array('SRCCV','P','S'), $sLogfile );
         $raKfrel['SRCCVxSRCxPxS'] = $this->newKfrel2( $kfdb, $uid, array('SRCCV','SRC','P','S'), $sLogfile );
+
+        $raKfrel['SRCCVAxSRC']    = $this->newKfrel2( $kfdb, $uid, array('SRCCVA','SRC'), $sLogfile );
+
+        // SRC is required to exist during upload procedure, but this is useful for edge cases during uploading and integrity testing
+        $raKfrel['SRCCV_SRC'] = $this->newKfrel( $kfdb, $uid,
+                [ 'SRCCV' => [ "Table" => "seeds.sl_cv_sources",
+                               "Fields" => _sldb_defs::fldSLSourcesCV() ],
+                  'SRC' =>   [ "Table" => "seeds.sl_sources",
+                               "Fields" => _sldb_defs::fldSLSources(),
+                               "Type"  => "LeftJoin",
+                               "LeftJoinOn" => "SRCCV.fk_sl_sources=SRC._key" ] ],
+                $sLogfile );
 
         // every SrcCV must have a Src, but it might not have a PCV
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
@@ -457,6 +472,7 @@ CREATE TABLE sl_cv_sources (
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
+    bulk            VARCHAR(200) NOT NULL DEFAULT '',
     year            INTEGER NOT NULL DEFAULT 0,
     notes           VARCHAR(1000) NOT NULL DEFAULT '',  -- cycles back to the people who edit the data
 
@@ -499,6 +515,7 @@ CREATE TABLE sl_cv_sources_archive (
     osp             VARCHAR(200) NOT NULL DEFAULT '',
     ocv             VARCHAR(200) NOT NULL DEFAULT '',
     bOrganic        INTEGER NOT NULL DEFAULT 0,
+    bulk            VARCHAR(200) NOT NULL DEFAULT '',
     year            INTEGER NOT NULL DEFAULT 0,
     notes           TEXT,
     op              CHAR NOT NULL,                  -- record the op that triggered this archive (update / year / delete)
@@ -521,11 +538,13 @@ CREATE TABLE seeds.sl_tmp_cv_sources (
     osp           varchar(200) not null default '',      -- copy of sl_cv_sources.osp
     ocv           varchar(200) not null default '',      -- copy of sl_cv_sources.ocv
     organic       tinyint not null default 0,            -- copy of sl_cv_sources.bOrganic
+    bulk          varchar(200) not null default '',
     year          integer not null default 0,
     notes         text,
 
     -- These columns are generated when the spreadsheet is uploaded
     kUpload       integer not null,                      -- each upload has a unique number for grouping rows of that upload
+    _key          INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,  -- necessary when joining table to itself looking for duplicates
     _created      datetime,                              -- time when this row was uploaded - for garbage collection of orphaned uploads
     _status       integer not null default 0,            -- mainly so we can apply queries written for sl_cv_sources
 
@@ -533,7 +552,8 @@ CREATE TABLE seeds.sl_tmp_cv_sources (
     fk_sl_sources integer default 0,                     -- validates integrity of (company)
     fk_sl_species integer default 0,                     -- attempts to match (species) with a species identifier, but allows 0 so Rosetta can work on it
     fk_sl_pcv     integer default 0,                     -- attempts to match (fk_sl_species,cultivar), but allows 0 so Rosetta can work on it
-    op            CHAR not null default ' ',             -- ' ' = not computed yet, 'N' = new, 'U' = update, 'D' = delete1, 'X' = delete2, 'Y' = year updated, '-' = no change
+    op            CHAR not null default '',              -- '' = not computed yet, 'N' = new, 'U' = update, 'D' = delete1, 'X' = delete2, 'Y' = year updated, '-' = no change
+    op_data       integer default 0,                     -- op=='.' needs an extra piece of data
 
     -- These are obsolete, probably
     -- sp_old        varchar(200) not null default '',

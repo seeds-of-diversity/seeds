@@ -1,5 +1,8 @@
 <?php
 
+include_once( SEEDLIB."q/Q.php" );
+include_once( SEEDLIB."sl/sldb.php" );
+
 class SLSourcesDBTest
 /********************
     Db integrity tests for sl_cv_sources* tables
@@ -36,46 +39,19 @@ class SLSourcesDBTest
                 break;
         }
         $raRows = $this->oApp->kfdb->QueryRowsRA(
-                "SELECT A._key as A__key,B._key as B__key,S.name_en as S_name_en,"
+                "SELECT A._key as A__key,B._key as B__key,SRC.name_en as SRC_name_en,"
                       ."A.osp as A_osp,B.osp as B_osp,A.fk_sl_species as A_fk_sl_species,B.fk_sl_species as B_fk_sl_species,"
                       ."A.ocv as A_ocv,B.ocv as B_ocv,A.fk_sl_pcv as A_fk_sl_pcv,B.fk_sl_pcv as B_fk_sl_pcv,"
                       ."A.bOrganic as A_bOrganic,B.bOrganic as B_bOrganic,A.year as A_year,B.year as B_year,"
                       ."A.notes as A_notes,B.notes as B_notes " // A.bulk as A_bulk,B.bulk as B_bulk
-               ."FROM $dbtable A, $dbtable B LEFT JOIN sl_sources S ON (S._key=B.fk_sl_sources) "
+               ."FROM $dbtable A, $dbtable B LEFT JOIN sl_sources SRC ON (SRC._key=B.fk_sl_sources) "
                ."WHERE A._key<B._key AND A.fk_sl_sources=B.fk_sl_sources "
                      ."AND ((A.osp<>'' AND A.osp=B.osp) OR (A.fk_sl_species<>'0' AND A.fk_sl_species=B.fk_sl_species)) "
                      ."AND ((A.ocv<>'' AND A.ocv=B.ocv) OR (A.fk_sl_pcv<>'0' AND A.fk_sl_pcv=B.fk_sl_pcv)) "
                      .(count($raCond) ? (' AND '.implode(' AND ',$raCond)) : "")
                      ."AND A.fk_sl_sources >=3 "
-               ."ORDER BY S_name_en,A_year,A_osp,A_ocv");
+               ."ORDER BY SRC_name_en,A_year,A_osp,A_ocv");
 
         return( $raRows );
     }
-}
-
-class SLSourcesLib
-{
-    static function DrawSRCCVRow( $ra, $prefix = '', $raParms = array() )
-    {
-        $raTmp = $ra;
-
-        // specify a prefix to customize the fields. e.g. prefix 'A_' will use A_year,A_osp,A_ocv,etc
-        if( $prefix ) {
-            foreach( ['_key','year','osp','ocv','bOrganic','notes'] as $f ) { $raTmp[$f] = $ra[$prefix.$f]; }   // 'bulk'
-        }
-
-        // do this outside of ArrayExpand because the subst_key typically has html that would be html-escaped
-        $key = @$raParms['subst_key'] ?: $raTmp['_key'];
-
-        $s = SEEDCore_ArrayExpand( $raTmp,
-                "<tr><td style='vertical-align:top;padding-right:5px'>$key</td>"
-                   ."<td style='vertical-align:top;padding-right:5px'><em>[[S_name_en]]</em></td>"
-                   ."<td style='vertical-align:top;padding-right:5px'>[[year]]</td>"
-                   ."<td style='vertical-align:top;padding-right:5px'><strong>[[osp]] : [[ocv]]</strong> "
-                       .($raTmp['bOrganic']?"<span style='color:green;font-size:small'>organic</span>":"")."</td>"
-                   ."<td style='vertical-align:top;padding-right:5px'>[[notes]]</td>"
-               ."</tr>" );
-        return( $s );
-    }
-
 }

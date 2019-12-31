@@ -29,18 +29,7 @@ class SEEDImgManLib
 
     function ImgInfo( $filename )   { return( $this->oIM->ImgInfoByFilename( $filename ) ); }
 
-    function ShowImg( $filename )
-    {
-        if( file_exists($filename) ) {
-            $info = $this->ImgInfo($filename);
-            if( ($f = fopen( $filename, 'rb' )) ) {
-                header( "Content-Type: ".$info['mime'] );
-                header( "Content-Length: ".$info['filesize'] );
-                fpassthru( $f );
-            }
-        }
-        exit;
-    }
+    function ShowImg( $filename )   { $this->oIM->ShowImg( $filename ); }
 
     function GetAllImgInDir( $dir )
     /******************************
