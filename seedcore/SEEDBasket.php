@@ -47,7 +47,7 @@ EVERYTHING IN SEEDBasketCore that involves a current basket should go here inste
 
 }
 
-class SEEDBasket_Core
+class SEEDBasketCore
 /*******************
     Core class for advertising and selling products, buying them, and fulfilling orders
 
@@ -564,7 +564,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
 }
 
 
-class SEEDBasket__Basket
+class SEEDBasket_Basket
 /**********************
     Implement a basket
  */
@@ -592,7 +592,7 @@ class SEEDBasket__Basket
     function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 }
 
-class SEEDBasket__Product
+class SEEDBasket_Product
 /***********************
     Implement a product
  */
@@ -711,6 +711,7 @@ Somewhere something is supposed to enforce the forceFlds
 }
 
 class SEEDBasket_Purchase
+/************************
     Implement a purchase of a product in a basket
  */
 {
@@ -798,4 +799,3 @@ class SEEDBasketCursor
         return( $o );
     }
 }
-
