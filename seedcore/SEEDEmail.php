@@ -40,6 +40,7 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
             ."Subject: $subject<br/>"
             ."-----<br/>"
             .nl2br($bodyHTML)
+            .nl2br($bodyText)
             ."</div>";
 
         $ok = true;
