@@ -12,21 +12,21 @@ class SEEDBasket_Basket{
 	/*****
 	 * Class for managing basket in session
 	 */
-	
+
 	//Basket Control
 	public const BASKET_CLOSED = false;
 	public const BASKET_OPEN = true;
-	
+
 	public const NO_BASKET = null;
 	public const NO_ID = 0;
-	
-	
+
+
 	private static $basket = self::NO_BASKET;
-	
+
 	private $data;
 	private $isOpen = self::BASKET_CLOSED;
 	private $buyer_id = self::NO_ID;
-	
+
 	private function __construct(){
 		if(!$this->is_session_started()){session_start();}
 		if(!isset($_SESSION['basket'])){
@@ -36,22 +36,22 @@ class SEEDBasket_Basket{
 		$this->buyer_id =& $_SESSION['basket']['id'];
 		$this->isOpen = self::BASKET_OPEN;
 	}
-	
+
 	public static function getBasket(){
 		if(!self::$basket){
 			self::$basket = new SEEDBasket_Basket();
 		}
 		return self::$basket;
 	}
-	
+
 	public function closeBasket(){
 		unset($_SESSION['basket']);
 		self::$basket = self::NO_BASKET;
 		$this->isOpen = self::BASKET_CLOSED;
 	}
-	
+
 	//Product Control ---------------------------------------------------------------------------------
-	
+
 	public function addProduct(SEEDBasket_Purchase $pur){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
@@ -62,50 +62,50 @@ class SEEDBasket_Basket{
 		reset($this->data);
 		return $key;
 	}
-	
+
 	public function removeProduct(SEEDBasket_Purchase $pur){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		unset($this->data[array_search($pur->encode(), $this->data)]);
 	}
-	
+
 	public function removeProductByIndex(int $index){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		unset($this->data[$index]);
 	}
-	
+
 	public function removeProductByString(String $encodedString){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		unset($this->data[array_search($encodedString, $this->data)]);
 	}
-	
+
 	public function updateProduct(int $index, SEEDBasket_Purchase $pur){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		$this->data[$index] = $pur->encode();
 	}
-	
+
 	public function updateProductByString(int $index, String $encodedString){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		$this->data[$index] = $encodedString;
 	}
-	
+
 	public function confirmPurchases(SEEDBasketCore $oSB){
 		foreach($this->getContents($oSB) as $key=>$pur){
 			$pur->confirmPurchase($oSB);
 		}
 	}
-	
+
 	//End Product Control -----------------------------------------------------------------------------
-	
+
 	public function getContents(SEEDBasketCore $oSB){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
@@ -116,21 +116,21 @@ class SEEDBasket_Basket{
 		}
 		return $ra;
 	}
-	
+
 	public function getBuyerID(){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		return $this->buyer_id;
 	}
-	
+
 	public function setBuyerID(int $id){
 		if(!$this->isOpen){
 			return self::BASKET_CLOSED;
 		}
 		$this->buyer_id = $id;
 	}
-	
+
 	private function is_session_started(){
 		if ( php_sapi_name() !== 'cli' ) {
 			if ( version_compare(phpversion(), '5.4.0', '>=') ) {
@@ -141,18 +141,18 @@ class SEEDBasket_Basket{
 		}
 		return FALSE;
 	}
-	
+
 }
 
 class SEEDBasket_Product{
 	/*****
 	 * Class containing product data
 	 */
-	 
+
 	public const ITEM_MANY = "ITEM-N";
 	public const ITEM_ONE = "ITEM-1";
 	public const MONEY = "MONEY";
-	
+
 	private $seller_id;
 	private $type;
 	private $titles = array("en" => "","fr" => "");
@@ -164,7 +164,7 @@ class SEEDBasket_Product{
 	private $item_discounts = array("CAD" => "", "USD" => "");
 	private $item_shippings = array("CAD" => "", "USD" => "");
 	private $extra;
-	
+
 	private function __construct(array $data){
 		$this->seller_id = $data['uid_seller'];
 		$this->type = $data['product_type'];
@@ -182,7 +182,7 @@ class SEEDBasket_Product{
 		$this->item_shippings['USD'] = $data['item_shipping_US'];
 		$this->extra = $data['sExtra'];
 	}
-	
+
 	public static function getProduct(SEEDBasketCore $oSB,int $key){
 		$kfrc = $oSB->oDB->GetProductList( "_key=".$key );
         if($kfrc){
@@ -192,7 +192,7 @@ class SEEDBasket_Product{
 		}
 		return null;
 	}
-	
+
 	public static function getProductList(SEEDBasketCore $oSB, String $cond = "1=1"){
 		$products = array();
 		$kfrc = $oSB->oDB->GetProductList( "1=1" );
@@ -205,58 +205,58 @@ class SEEDBasket_Product{
 		}
 		return $products;
 	}
-	
+
 	public function getSellerID(){
 		return $this->seller_id;
 	}
-	
+
 	public function getProductType(){
 		return $this->type;
 	}
-	
+
 	public function getTitle(String $lang){
 		return @$this->titles[$lang]?:$this->titles['en'];
 	}
-	
+
 	public function getImage(){
 		return $this->img;
 	}
-	
+
 	public function getMaxPurchase(){
 		return $this->quantity_max;
 	}
-	
+
 	public function getMinPurchase(){
 		return $this->quantity_min;
 	}
-	
+
 	public function getPurchaseType(){
 		return $this->quantity_type;
 	}
-	
+
 	public function getItemPrice($currency){
 		return @$this->item_prices[$currency]?:$this->item_prices['CAD'];
 	}
-	
+
 	public function getItemDiscount($currency){
 		return @$this->item_discounts[$currency]?:$this->item_discounts['CAD'];
 	}
-	
+
 	public function getItemShipping($currency){
 		return @$this->item_shippings[$currency]?:$this->item_shippings['CAD'];
 	}
-	
+
 	public function getExtra(){
 		return $this->extra;
 	}
-	
+
 }
 
 class SEEDBasket_Purchase{
 	/*****
 	 * Class containing puchase details
 	 */
-	
+
 	private const CURRENT_BUYER_ID = 0;
 	private const CURRENT_DATE = "NOW()";
 
@@ -269,12 +269,12 @@ class SEEDBasket_Purchase{
 	private $value = 0.00;
 	private $extra;
 	private $confirmed;
-	
+
 	private function __construct(SEEDBasketCore $oSB, array $data, bool $confirmed){
 		$this->loadFromRA($oSB, $data);
 		$this->confirmed = $confirmed;
 	}
-	
+
 	private function loadFromRA(SEEDBasketCore $oSB, array $data){
 		$this->buyer_id = @$data['fk_SEEDBasket_Buyers']?:self::CURRENT_BUYER_ID;
 		$this->product_id = @$data['fk_SEEDBasket_Products']?:$data['product'];
@@ -290,7 +290,7 @@ class SEEDBasket_Purchase{
 		}
 		$this->extra = @$ra['sExtra']?:"";
 	}
-	
+
 	public static function getPurchase(SEEDBasketCore $oSB, int $key){
 		$ra = $oSB->oDB->GetList("PUR", "_key=".$key);
 		if($ra){
@@ -298,21 +298,21 @@ class SEEDBasket_Purchase{
 		}
 		return null;
 	}
-	
+
 	public static function createPurchase(SEEDBasketCore $oSB, int $product_id, $amount, bool $confirmed = false){
 		return new SEEDBasket_Purchase($oSB,array('product'=>$product_id,'amount'=>$amount),$confirmed);
 	}
-	
+
 	public static function decode(SEEDBasketCore $oSB, String $encodedString):SEEDBasket_Purchase{
 		list($product_id,$amount,$confirmed) = explode("!",$encodedString);
 		return self::createPurchase($oSB, $product_id, $amount, $confirmed);
 	}
-	
+
 	public function encode():String{
 		//TODO Make less lazy
 		return $this->product_id."!".($this->value?:$this->quantity)."!".($this->confirmed?1:0);
 	}
-	
+
 	public function confirmPurchase(SEEDBasketCore $oSB){
 		/***********
 		 * Also know as save purchase
@@ -334,23 +334,23 @@ class SEEDBasket_Purchase{
 		}
 		$kfr->PutDBRow();
 	}
-	
+
 	public function isConfirmed():bool{
 		return $this->confirmed;
 	}
-	
+
 }
 
 class SEEDBasketCore{
-	
+
 	public $oApp;
 	public $oDB;
-	
+
 	private $raHandlerDefs;
     private $raHandlers = array();
     private $raParms = array();
     private $kfrBasketCurr = null;
-	
+
 	function __construct(SEEDAppConsole $oApp, $raHandlerDefs, $raParms = array() )
     {
         $this->oApp = $oApp;
@@ -360,7 +360,7 @@ class SEEDBasketCore{
         $this->raHandlerDefs = $raHandlerDefs;
         $this->raParms = $raParms;
     }
-	
+
 }
 
 define( "SITE_LOG_ROOT", $oApp->logdir );
