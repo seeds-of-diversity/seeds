@@ -335,6 +335,26 @@ CREATE TABLE SEEDBasket_Products (
     item_shipping    VARCHAR(100) NOT NULL DEFAULT '',  -- e.g. '10', '10:1-9,5:10-14,0:15+'
     item_shipping_US VARCHAR(100) NOT NULL DEFAULT '',
 
+
+
+
+    mbr_type        VARCHAR(100),
+    donation        INTEGER,
+    pub_ssh_en      INTEGER,
+    pub_ssh_fr      INTEGER,
+    pub_nmd         INTEGER,
+    pub_shc         INTEGER,
+    pub_rl          INTEGER,
+
+
+    v_i1             INTEGER NOT NULL DEFAULT 0,
+    v_i2             INTEGER NOT NULL DEFAULT 0,
+    v_i3             INTEGER NOT NULL DEFAULT 0,
+
+    v_t1             TEXT,
+    v_t2             TEXT,
+    v_t3             TEXT,
+
     sExtra          TEXT,           -- e.g. urlencoded metadata about the product
 
     INDEX(uid_seller),
@@ -364,9 +384,9 @@ CREATE TABLE SEEDBasket_ProdExtra (
 "
 );
 
-define("SEEDS_DB_TABLE_SEEDBASKET_PURCHASES",
+define("SEEDS_DB_TABLE_SEEDBASKET_BP",
 "
-CREATE TABLE SEEDBasket_Purchases (
+CREATE TABLE SEEDBasket_BP (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
         _created_by INTEGER,
@@ -392,15 +412,15 @@ CREATE TABLE SEEDBasket_Purchases (
 
 /* Test data
 
-INSERT INTO seeds.SEEDBasket_Buyers ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
+INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
 INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
 
-INSERT INTO seeds.SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
-INSERT INTO seeds.SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
-INSERT INTO seeds.SEEDBasket_Purchases (fk_SEEDBasket_Buyers,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID');
+INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
+INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
+INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID');
 
 
  */
