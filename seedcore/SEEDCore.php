@@ -135,9 +135,12 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
         $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
-        $t0 = str_replace( "[[k]]", ($bEnt ? SEEDCore_HSC($k) : $k), $tmpl );
-        $t0 = str_replace( "[[v]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
-        $s .= str_replace( "[[]]", ($bEnt ? SEEDCore_HSC($v) : $v), $t0 );
+        if( $bEnt ) { $k = SEEDCore_HSC($k); $v = SEEDCore_HSC($v); }
+        $t0 = str_replace( "[[k]]", $k, $tmpl );
+        $t0 = str_replace( "[[v]]", $v, $t0 );
+        $t0 = str_replace( "[[ku]]", urlencode($k), $t0 );
+        $t0 = str_replace( "[[vu]]", urlencode($v), $t0 );
+        $s .= str_replace( "[[]]", $v, $t0 );
         ++$i;
     }
 
