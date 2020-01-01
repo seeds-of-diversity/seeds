@@ -7,6 +7,12 @@
  * Main API point for Q commands
  */
 
+
+/* Change this so every QServer extends from SEEDQ and raConfig is passed to every QServer __construct. Every SEEDQ must have a conforming Cmd.
+   This frees each QServer from a dependency on Q which is dependent on all QServers.
+ */
+
+
 class Q
 {
     public $oApp;
@@ -73,6 +79,13 @@ class Q
 //            include_once( SEEDLIB."mbr/QServerMbr.php" );
 //            $o = new QServerMbr( $this->oApp, array() );
 //            $rQ = $o->Cmd( $cmd, $parms );
+        }
+        else
+
+        if( SEEDCore_StartsWith( $cmd, 'msd' ) ) {
+            include_once( SEEDLIB."msd/msdq.php" );
+            $o = new MSDQ( $this->oApp, $this->raConfig );
+            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
 
