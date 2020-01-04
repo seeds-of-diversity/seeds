@@ -655,8 +655,8 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
 {
     protected $sDB = "";
 
-    function __construct( KeyframeDatabase $kfdb, $uidOwnerOrAdmin = 0, $raConfig = array() )
-    /****************************************************************************************
+    function __construct( KeyframeDatabase $kfdb, int $uidOwnerOrAdmin = 0, array $raConfig = array() )
+    /**************************************************************************************************
         uidOwnerOrAdmin is the uid of the person altering UGP (either the owner of the account or an admin altering someone's account)
             It is only used for Keyframe._created/updated_by so it can be 0 if only reading
      */
@@ -1161,9 +1161,9 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
 {
     private $uidOwnerOrAdmin;   // the user who is making changes to the UGP
 
-    function __construct( KeyframeDatabase $kfdb, $uidOwnerOrAdmin, $sDB = "" )
+    function __construct( KeyframeDatabase $kfdb, int $uidOwnerOrAdmin, array $raConfig = [] )
     {
-        parent::__construct( $kfdb, $sDB, $uidOwnerOrAdmin );
+        parent::__construct( $kfdb, $uidOwnerOrAdmin, $raConfig );
         $this->uidOwnerOrAdmin = $uidOwnerOrAdmin;
     }
 
@@ -1307,7 +1307,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
 
         $kfrU = $this->GetKfrel('U')->GetRecordFromDBKey( $kUser );
         $kfrG = $this->GetKfrel('G')->GetRecordFromDBKey( $kGroup );
-        if( !$kfrU || !$kfrG ) return( false );
+        if( !$kfrU || !$kfrG )  goto done;;
 
         $raGroups = $this->GetGroupsFromUser( $kUser );
         if( in_array( $kGroup, $raGroups ) ) {
@@ -1324,6 +1324,40 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
             $ok = $kfr->PutDBRow();
         }
 
+        done:
+        return( $ok );
+    }
+
+    function RemoveUserFromGroup( $kUser, $kGroup )
+    /**********************************************
+        If the user is not in the group, return true
+        If gid1 is kGroup, set it to zero
+        If kGroup is in one of the user's UsersXGroups rows, delete that row
+
+        UsersXGroups rows are deleted permanently, not via _status, because otherwise
+        they're weird to reinstate and there's not much reason to keep them
+     */
+    {
+        $ok = false;
+
+        $kfrU = $this->GetKfrel('U')->GetRecordFromDBKey( $kUser );
+        $kfrG = $this->GetKfrel('G')->GetRecordFromDBKey( $kGroup );
+        if( !$kfrU || !$kfrG )  goto done;;
+
+        $raGroups = $this->GetGroupsFromUser( $kUser );
+        if( !in_array( $kGroup, $raGroups ) ) {
+            return( true );
+        }
+
+        if( $kfrU->Value('gid1') == $kGroup ) {
+            $kfrU->SetValue( 'gid1', 0 );
+            $ok = $kfrU->PutDBRow();
+        }
+
+        // do this even if gid1 matched because the group might be duplicated
+        $this->KFDB()->Execute( "DELETE FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' AND gid='$kGroup'" );
+
+        done:
         return( $ok );
     }
 }
