@@ -271,8 +271,10 @@ class UsersGroupsPermsUI
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
             ."||| Name  || [[Text:perm]]\n"
             ."||| Mode  || [[Text:modes]]\n"
-            ."||| User  || ".$this->getSelectTemplate("SEEDSession_Users", "uid", "realname", TRUE)."\n"
-            ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid", "groupname", TRUE)."\n"
+            ."||| User  || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfPp_uid', 'uid',
+                                    'SEEDSession_Users', 'realname', '-- No User --' )
+            ."||| Group || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfPp_gid', 'gid',
+                                    'SEEDSession_Groups', 'groupname', '-- No Group --' )
             ."||| <input type='submit'>  [[HiddenKey:]]";
 
         return( $s );
