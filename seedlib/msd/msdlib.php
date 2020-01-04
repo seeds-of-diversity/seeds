@@ -205,7 +205,6 @@ class MSDLib
             $s .= $kfrGxM->ExpandIfNotEmpty( 'notes', "Notes: [[]]<br/>" );
         }
 
-        $s = "<div style='font-size:8pt;font-family:Minion Pro;padding-bottom:2pt'>$s</div>";
         return( $s );
     }
 

@@ -528,3 +528,41 @@ class MSDCore
     }
 
 }
+
+/* Derived class of SEEDBasketCore for MSD
+ */
+class MSDBasketCore extends SEEDBasketCore
+{
+    public $bIsMember;
+
+    function __construct( $kfdb, $sess, SEEDAppConsole $oApp ) {
+        $this->bIsMbrLogin = $sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
+
+        parent::__construct( $kfdb, $sess, $oApp,
+                             //SEEDBasketProducts_SoD::$raProductTypes );
+                             array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ),
+                             array( 'fn_sellerNameFromUid' => array($this,"cb_SellerNameFromUid"),
+                                    'logdir'=>SITE_LOG_ROOT ) );
+    }
+
+    function cb_SellerNameFromUid( $uidSeller )
+    /******************************************
+        SEEDBasketCore uses this to draw the name of a seller
+     */
+    {
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds.SEEDSession_Users WHERE _key='$uidSeller'" );
+        if( !($sSeller = @$ra['realname']) ) {
+//            include_once( SEEDCOMMON."mbr/mbrSitePipe.php" );
+//            $ra = MbrSitePipeGetContactsRA2( $this->oW->kfdb, $uidSeller );
+            $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$uidSeller'" );
+            if( @$ra['firstname'] ) {
+                $sSeller = SEEDCore_ArrayExpand( $ra, "[[firstname]] [[lastname]]" );
+            } else if( @$ra['company'] ) {
+                $sSeller = SEEDCore_ArrayExpand( $ra, "[[company]]" );
+            } else {
+                $sSeller = "Seller # $uidSeller";
+            }
+        }
+        return( $sSeller );
+    }
+}
