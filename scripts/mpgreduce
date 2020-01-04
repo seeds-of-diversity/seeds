@@ -1,18 +1,36 @@
-if [ ! -n "$3" ]
+if [ ! -n "$4" ]
 then
-    echo "$0 infile outfile maxwidth"
+    echo "$0 mp4|webm infile outfile maxwidth [crf (0 for default; '' for 28)] [other args (quoted)]"
     exit
 fi
 
-
-INFILE=$1
-OUTFILE=$2
-MAXWIDTH=$3
-CRF=28
-OTHERARGS=$4
+OUTFMT=$1
+INFILE=$2
+OUTFILE=$3
+MAXWIDTH=$4
+CRF=$5
+OTHERARGS=$6
 #otherargs should be quoted when you type the command line but they're inserted into the ffmeg command non-quoted
 
-#ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -c:a copy "$OUTFILE"
-ffmpeg -hide_banner -i "$INFILE" -c:v libx264 -preset slower -crf $CRF -vf "scale='min($MAXWIDTH,iw)':-2" -codec:a aac $OTHERARGS "$OUTFILE"
+if [ "$CRF" = "0" ]; then
+    CRFARG=
+elif [ -z "$CRF" ]; then
+    CRFARG="-crf 28"
+else
+    CRFARG="-crf $CRF"
+fi
 
+# these are output args so they have to precede $OUTFILE not $INFILE (particularly the scale filter)
+STDARGS="-hide_banner -preset slower  $CRFARG  -vf \"scale='min($MAXWIDTH,iw)':-2\" "
 
+if [ "$OUTFMT" = "mp4" ]; then 
+    GO="ffmpeg -i \"$INFILE\" -c:v libx264 -codec:a aac  $STDARGS $OTHERARGS \"$OUTFILE\""
+    echo $GO
+    $GO
+elif [ "$OUTFMT" = "webm" ]; then 
+    GO="ffmpeg -i \"$INFILE\" $STDARGS $OTHERARGS \"$OUTFILE\""
+    echo $GO
+    $GO
+else
+    echo Only mp4 and webm are supported
+fi
