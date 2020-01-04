@@ -317,7 +317,10 @@ function SEEDCore_NBSP( $s, $n = 0 )
     return( $sOut );
 }
 
-function SEEDCore_Dollar( $fAmount, $lang = "EN" )      // also see SEEDLocal::Dollar()
+function SEEDCore_Dollar( $fAmount, $lang = "EN" )
+/*************************************************
+    Format a dollar amount for the given language
+ */
 {
     if( $lang == "EN" ) {
         $s = "$".sprintf("%.2f",$fAmount);
