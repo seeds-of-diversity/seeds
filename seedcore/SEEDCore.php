@@ -639,4 +639,39 @@ function SEEDCore_HumanFilesize( $filesize, $decimals = 1 )
     return( sprintf("%.{$decimals}f", floatval($filesize) / pow(1024, $factor)) . @$sz[$factor] );
 }
 
-?>
+
+function SEEDCore_RemoveDirectory( $dir, $bLeaveEmpty = false )
+/**************************************************************
+    $bLeaveEmpty = false: remove the given directory and all contents
+                 = true:  remove the given directory's contents and leave it empty
+ */
+{
+    $ok = false;
+
+    if( substr($dir,-1) == '/' )  $dir = substr($dir,0,-1);     // remove trailing slash
+
+    if( !file_exists($dir) || !is_dir($dir) || !is_readable($dir) )  goto done;
+
+    if( ($h = opendir($dir)) ) {
+        while( ($item = readdir($h)) !== false ) {
+            if( $item == '.' || $item == '..' )  continue;
+
+            $path = $dir.'/'.$item;
+            if( is_dir($path) ) {
+                SEEDCore_RemoveDirectory( $path );  // bLeaveEmpty=false to remove $path too
+            } else {
+                unlink($path);
+            }
+        }
+    }
+    closedir( $h );
+
+    if( !$bLeaveEmpty ) {
+        if( !rmdir($dir) )  goto done;
+    }
+
+    $ok = true;
+
+    done:
+    return( $ok );
+}
