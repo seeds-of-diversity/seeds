@@ -247,6 +247,7 @@ class UsersGroupsPermsUI
             ."||| User #|| [[Key: | readonly]]\n"
             ."||| Name  || [[Text:realname]]\n"
             ."||| Email || [[Text:email]]\n"
+            ."||| Password || [[if:[[value:password]]|-- cannot change here --|[[Text:password]] ]]\n"
             ."||| Status|| ".$this->getSelectTemplateFromArray( 'sfUp_eStatus', 'eStatus', ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'] )."</select>\n"
             ."||| Group || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfUp_gid1', 'gid1', 'SEEDSession_Groups', 'groupname', false )
             ."||| <input type='submit'>";
