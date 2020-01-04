@@ -11,7 +11,7 @@ class UsersGroupsPermsUI
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
-        $this->oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), array('logdir'=>$this->oApp->logdir) );
+        $this->oAcctDB = new SEEDSessionAccountDB2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), ['logdir'=>$this->oApp->logdir] );
     }
 
     function DrawUI()
@@ -19,6 +19,8 @@ class UsersGroupsPermsUI
         $s = "";
 
         $mode = $this->oApp->oC->oSVA->SmartGPC( 'adminUsersMode', array('Users','Groups','Permissions') );
+
+        $this->doCmd( $mode );
 
         $raListConfig = [ 'bUse_key' => true ]; // constants for the __construct that can be used in Start()
         $raListParms = [];                      // variables that can be computed or altered during Start()
@@ -155,20 +157,19 @@ class UsersGroupsPermsUI
         /* Groups list
          */
         $sG = "<p><b>Groups</b></p>"
-             ."<div class='ugpBox'>";
-        foreach( $raGroups as $kGroup => $sGroupname ) {
-            $sG .= "$sGroupname &nbsp;<span style='float:right'>($kGroup)</span><br/>";
-        }
-        $sG .= "</div>";
+             ."<div class='ugpBox'>"
+             .SEEDCore_ArrayExpandSeries( $raGroups, "[[v]] &nbsp;<span style='float:right'>([[k]])</span><br/>" )
+             ."</div>";
 
         // group add/remove
         $oFormB = new SEEDCoreForm( "B" );
         $sG .= "<div>"
               ."<form action='".$this->oApp->PathToSelf()."' method='post'>"
               //.$this->oComp->EncodeHiddenFormParms()
-              //.SEEDForm_Hidden( 'uid', $kUser )
-              //.SEEDForm_Hidden( 'form', "UsersXGroups" )
-              .$oFormB->Text( 'gid', '' )
+              .$oFormB->Hidden( 'uid', ['value'=>$kUser] )
+              //.$oFormB->Text( 'gid', '' )
+              .$this->makeGroupSelect( 'sfBp_gid', 'gid' )
+              ."<input type='hidden' name='ugpFunction' value='UsersXGroups'/>"     //
               ."<input type='submit' name='cmd' value='Add'/><INPUT type='submit' name='cmd' value='Remove'/>"
               ."</form></div>";
 
@@ -249,8 +250,7 @@ class UsersGroupsPermsUI
             ."||| Password || [[if:[[value:password]]|-- cannot change here --|[[Text:password]] ]]\n"
             ."||| Status|| ".$this->getSelectTemplateFromArray( 'sfUp_eStatus', 'eStatus',
                                     ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'] )."\n"
-            ."||| Group || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfUp_gid1', 'gid1',
-                                    'SEEDSession_Groups', 'groupname', '-- No Group --' )
+            ."||| Group || ".$this->makeGroupSelect( 'sfUp_gid1', 'gid1' )
             ."||| <input type='submit'>";
         return( $s );
     }
@@ -259,8 +259,7 @@ class UsersGroupsPermsUI
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
             ."||| Name            || [[Text:groupname]]\n"
-            ."||| Inherited Group || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfGp_gid_inherited', 'gid_inherited',
-                                    'SEEDSession_Groups', 'groupname', '-- No Group --' )
+            ."||| Inherited Group || ".$this->makeGroupSelect('sfGp_gid_inherited', 'gid_inherited' )
             ."||| <input type='submit'> [[HiddenKey:]]";
 
         return( $s );
@@ -271,13 +270,22 @@ class UsersGroupsPermsUI
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
             ."||| Name  || [[Text:perm]]\n"
             ."||| Mode  || [[Text:modes]]\n"
-            ."||| User  || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfPp_uid', 'uid',
-                                    'SEEDSession_Users', 'realname', '-- No User --' )
-            ."||| Group || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfPp_gid', 'gid',
-                                    'SEEDSession_Groups', 'groupname', '-- No Group --' )
+            ."||| User  || ".$this->makeUserSelect( 'sfPp_uid', 'uid' )
+            ."||| Group || ".$this->makeGroupSelect( 'sfPp_gid', 'gid' )
             ."||| <input type='submit'>  [[HiddenKey:]]";
 
         return( $s );
+    }
+
+    private function makeUserSelect( $name_sf, $name )
+    {
+        $raOpts = $this->getOptsFromTableCol( $this->oApp->kfdb, 'SEEDSession_Users', 'realname', '-- No User --' );
+        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
+    }
+    private function makeGroupSelect( $name_sf, $name )
+    {
+        $raOpts = $this->getOptsFromTableCol( $this->oApp->kfdb, 'SEEDSession_Groups', 'groupname', '-- No Group --' );
+        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
     }
 
     private function getSelectTemplateFromArray( $name_sf, $name, $raOpts )
@@ -301,6 +309,19 @@ class UsersGroupsPermsUI
         emptyLabel is the label of a '' option : omitted if false
      */
     {
+        $raOpts = $this->getOptsFromTableCol( $kfdb, $table, $tableCol, $emptyLabel );
+
+        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
+    }
+
+// this could be a general method in SEEDForm or KeyframeForm
+    private function getOptsFromTableCol( KeyframeDatabase $kfdb, $table, $tableCol, $emptyLabel = false )
+    /*****************************************************************************************************
+        Make an array of <options> from the contents of a table column and its _key.
+
+        emptyLabel is the label of a '' option : omitted if false
+     */
+    {
         $raOpts = array();
         if( $emptyLabel !== false ) {
             $raOpts[$emptyLabel] = "";
@@ -310,8 +331,10 @@ class UsersGroupsPermsUI
             $raOpts[$ra['label']] = $ra['val'];
         }
 
-        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
+        return( $raOpts );
     }
+
+
 
     private function getSelectTemplate($table, $col, $name, $bEmpty = FALSE)
     /****************************************************
@@ -402,6 +425,33 @@ class UsersGroupsPermsUI
     function permsPreStore( $kfr )
     {
         return( true );
+    }
+
+
+    private function doCmd( $mode )
+    /******************************
+        Process the custom commands on each page e.g. add user to group, remove user from group, add/remove metadata
+     */
+    {
+        $oForm = new SEEDCoreForm( "B" );
+        $oForm->Load();
+        switch( SEEDInput_Str('ugpFunction') ) {
+            case 'UsersXGroups':
+                // Initiated from Users or Groups page
+                $uid = intval($oForm->Value('uid'));
+                $gid = intval($oForm->Value('gid'));
+                if( $uid && $gid ) {
+                    switch( SEEDInput_Str('cmd') ) {
+                        case 'Add':    $this->oAcctDB->AddUserToGroup($uid, $gid);        break;
+                        case 'Remove': $this->oAcctDB->RemoveUserFromGroup($uid, $gid);   break;
+                    }
+                }
+                break;
+            case 'UsersMetadata':
+                break;
+            case 'GroupsMetadata':
+                break;
+        }
     }
 }
 
