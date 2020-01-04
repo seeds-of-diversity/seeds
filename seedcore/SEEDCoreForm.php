@@ -135,7 +135,7 @@ class SEEDCoreForm extends SEEDCoreFormElements
         $bNoStore = (isset($raParms['bNoStore']) ? $raParms['bNoStore'] : false);       // true: load old values + new parms but don't store the changes
 
         $raHttpParms = $this->_updateLoadDeserialize( $raParms );
-//echo "<BR/><PRE>"; var_dump($raHttpParms); echo "</PRE>";
+//echo "<BR/><PRE>"; var_dump($raHttpParms,$raHttpParms['rows']); echo "</PRE>";
 
         foreach( $raHttpParms['control'] as $k => $v ) {    // store the global control parms so the app can use them
             $this->CtrlGlobalSet( $k, $v );

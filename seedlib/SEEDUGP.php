@@ -27,23 +27,23 @@ class UsersGroupsPermsUI
             case "Users":
                 $cid = "U";
                 $kfrel = $this->oAcctDB->GetKfrel('U');
-                $raListConfig['cols'] = array(
-                    array( 'label'=>'User #',  'col'=>'_key' ),
-                    array( 'label'=>'Name',    'col'=>'realname' ),
-                    array( 'label'=>'Email',   'col'=>'email'  ),
-                    array( 'label'=>'Status',  'col'=>'eStatus'  ),
-                    array( 'label'=>'Group1',  'col'=>'G_groupname'  ),
-                );
+                $raListConfig['cols'] = [
+                    [ 'label'=>'User #',  'col'=>'_key' ],
+                    [ 'label'=>'Name',    'col'=>'realname' ],
+                    [ 'label'=>'Email',   'col'=>'email' ],
+                    [ 'label'=>'Status',  'col'=>'eStatus' ],
+                    [ 'label'=>'Group1',  'col'=>'G_groupname' ],
+                ];
                 $raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
                 // Not the same format as listcols because these actually need the column names not aliases.
                 // For groups and perms it happens to work but when _key is included in the WHERE it is ambiguous
-                $raSrchParms['filters'] = array(
-                    array( 'label'=>'User #',  'col'=>'U._key' ),
-                    array( 'label'=>'Name',    'col'=>'U.realname' ),
-                    array( 'label'=>'Email',   'col'=>'U.email'  ),
-                    array( 'label'=>'Status',  'col'=>'U.eStatus'  ),
-                    array( 'label'=>'Group1',  'col'=>'G.groupname'  ),
-                );
+                $raSrchParms['filters'] = [
+                    [ 'label'=>'User #',  'col'=>'U._key' ],
+                    [ 'label'=>'Name',    'col'=>'U.realname' ],
+                    [ 'label'=>'Email',   'col'=>'U.email' ],
+                    [ 'label'=>'Status',  'col'=>'U.eStatus' ],
+                    [ 'label'=>'Group1',  'col'=>'G.groupname' ],
+                ];
                 $formTemplate = $this->getUsersFormTemplate();
                 break;
             case "Groups":
@@ -78,7 +78,7 @@ class UsersGroupsPermsUI
 //$this->oApp->kfdb->SetDebug(2);
         $oList = new KeyframeUIWidget_List( $oComp, $raListConfig );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
-        $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
+        $oForm = new KeyframeUIWidget_Form( $oComp, ['sExpandTemplate'=>$formTemplate] );
 
         $oComp->Start();    // call this after the widgets are registered
 
@@ -236,8 +236,8 @@ class UsersGroupsPermsUI
             ."||| User #|| [[Key: | readonly]]\n"
             ."||| Name  || [[Text:realname]]\n"
             ."||| Email || [[Text:email]]\n"
-            ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
-            ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid1", "groupname")."\n"
+            ."||| Status|| ".$this->getSelectTemplateFromArray( 'sfUp_eStatus', 'eStatus', ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'] )."</select>\n"
+            ."||| Group || ".$this->getSelectTemplateFromTableCol( $this->oApp->kfdb, 'sfUp_gid1', 'gid1', 'SEEDSession_Groups', 'groupname', false )
             ."||| <input type='submit'>";
 
         return( $s );
@@ -265,13 +265,46 @@ class UsersGroupsPermsUI
         return( $s );
     }
 
+    private function getSelectTemplateFromArray( $name_sf, $name, $raOpts )
+    /**********************************************************************
+        Make a <select> template from a given array of options
+     */
+    {
+        $s = "<select name='$name_sf'>";
+        foreach( $raOpts as $label => $val ) {
+            $s .= "<option value='$val' [[ifeq:[[value:$name]]|$val|selected| ]]>$label</option>";
+        }
+        $s .= "</select>";
+
+        return( $s );
+    }
+
+    private function getSelectTemplateFromTableCol( KeyframeDatabase $kfdb, $name_sf, $name, $table, $tableCol, $emptyLabel = false )
+    /********************************************************************************************************************************
+        Make a <select> template from the contents of a table column and its _key.
+
+        emptyLabel is the label of a '' option : omitted if false
+     */
+    {
+        $raOpts = array();
+        if( $emptyLabel !== false ) {
+            $raOpts[$emptyLabel] = "";
+        }
+        $raVals = $kfdb->QueryRowsRA( "SELECT _key as val,$tableCol as label FROM $table" );
+        foreach( $raVals as $ra ) {
+            $raOpts[$ra['label']] = $ra['val'];
+        }
+
+        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
+    }
+
     private function getSelectTemplate($table, $col, $name, $bEmpty = FALSE)
     /****************************************************
-     * Generate a template of that defines a select element
+     * Generate a template of a <select> that defines a select element
      *
      * table - The database table to get the options from
-     * col - The database collum that the options are associated with.
-     * name - The database collum that contains the user understandable name for the option
+     * col - The database column that the options are associated with.
+     * name - The database column that contains the user understandable name for the option
      * bEmpty - If a None option with value of NULL should be included in the select
      *
      * eg. table = SEEDSession_Groups, col = gid, name = groupname
@@ -279,7 +312,7 @@ class UsersGroupsPermsUI
      */
     {
         $options = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM ".$table);
-        $s = "<select name='".$col."'>";
+        $s = "<select name='$col'>";
         if($bEmpty){
             $s .= "<option value='NULL'>None</option>";
         }
