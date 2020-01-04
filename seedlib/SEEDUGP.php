@@ -45,6 +45,7 @@ class UsersGroupsPermsUI
                     [ 'label'=>'Group1',  'col'=>'G.groupname' ],
                 ];
                 $formTemplate = $this->getUsersFormTemplate();
+                $raSEEDFormParms = ['DSParms'=>['fn_DSPreStore'=> [$this,'UserPreStore']]];
                 break;
             case "Groups":
                 $cid = "G";
@@ -56,6 +57,7 @@ class UsersGroupsPermsUI
                 );
                 $raSrchParms['filters'] = $raListConfig['cols'];     // conveniently the same format
                 $formTemplate = $this->getGroupsFormTemplate();
+                $raSEEDFormParms = []; //['DSParms'=>['fn_DSPreStore'=> [$this,'UserPreStore']]];
                 break;
             case "Permissions":
                 $cid = "P";
@@ -68,11 +70,13 @@ class UsersGroupsPermsUI
                 );
                 $raSrchParms['filters'] = $raListConfig['cols'];     // conveniently the same format
                 $formTemplate = $this->getPermsFormTemplate();
+                $raSEEDFormParms = []; //['DSParms'=>['fn_DSPreStore'=> [$this,'UserPreStore']]];
                 break;
         }
 
+
         $oUI = new UGP_SEEDUI( $this->oApp, "UGP" );
-        $oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid );
+        $oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid, ['raSEEDFormParms'=>$raSEEDFormParms] );
         $oComp->Update();
 
 //$this->oApp->kfdb->SetDebug(2);
@@ -111,7 +115,7 @@ class UsersGroupsPermsUI
                         ."<div>".$sList."</div>"
                     ."</div>"
                     ."<div class='col-md-6'>"
-                        ."<div style='margin-bottom:5px'><a href='?sfUk=0'><button>New</button></a>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
+                        ."<div style='margin-bottom:5px'><a href='?sfUui_k=0'><button>New</button></a>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
                         ."<div style='width:90%;padding:20px;border:2px solid #999'>".$sForm."</div>"
                     ."</div>"
                 ."</div>"
@@ -129,6 +133,13 @@ class UsersGroupsPermsUI
 //              ."</div>";
 
         return( $s );
+    }
+
+    function UserPreStore( $kfr )
+    {
+        if( !$kfr->value('lang') ) $kfr->SetValue('lang','E');
+
+        return( true );
     }
 
     private function drawUsersInfo( KeyframeUIComponent $oComp )

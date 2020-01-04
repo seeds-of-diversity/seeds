@@ -76,6 +76,8 @@ class KeyframeUIWidget_Form extends SEEDUIWidget_Form
 
         if( $this->oComp->oForm->GetKey() ) {
             $s = parent::Draw();
+        } else {
+            $s = parent::Draw();
         }
         return( $s );
     }
