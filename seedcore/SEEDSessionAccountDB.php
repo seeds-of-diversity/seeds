@@ -848,7 +848,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
 
         $raGroups = $this->KFDB()->QueryRowsRA1(
         // Get the user's primary group
-               "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' $sCondStatus "
+               "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' AND gid1<>0 $sCondStatus "
                ."UNION "
         // And the groups mapped to the user
                ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' $sCondStatus" );
