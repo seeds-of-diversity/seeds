@@ -20,7 +20,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
-    function ProductFormIsAjax() { return( false ); }
+    function ProductFormIsAjax() { return( true ); }
     function ProductFormDrawAjax( $kP )
     {
         $s = "";
@@ -254,5 +254,3 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $raP );
     }
 }
-
-?>

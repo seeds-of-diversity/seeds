@@ -588,8 +588,8 @@ class SEEDBasket_Basket
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 
-    // intended to be mainly used by SEEDBasket internals
-    function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
+    function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 }
 
 class SEEDBasket_Product
@@ -600,26 +600,46 @@ class SEEDBasket_Product
     private $kfr;
     private $oSB;
 
-    function __construct( SEEDBasketCore $oSB, $kP )
+    private $cache_oHandler = null;
+
+    function __construct( SEEDBasketCore $oSB, $kP, $raConfig = [] )
     {
         $this->oSB = $oSB;
         $this->SetKey( $kP );
+        if( !$kP && ($pt = @$raConfig['product_type']) ) {
+            $this->kfr->SetValue( 'product_type', $pt );
+        }
+    }
+
+    private function clearCachedProperties()
+    {
+        $this->cache_oHandler = null;
     }
 
     function GetKey()  { return( $this->kfr->Key() ); }
 
     function SetKey( $k )
     {
+        $this->clearCachedProperties();
         $this->kfr = $k ? $this->oSB->oDB->GetProductKFR($k) : $this->oSB->oDB->GetProductKFREmpty();
     }
 
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 
-    // intended to be mainly used by SEEDBasket internals
-    function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+    function FormIsAjax()
+    {
+        return( ($oHandler = $this->getProductHandler()) && $oHandler->ProductFormIsAjax() );
+    }
 
-    function SetProductType( $sProdType )  { $this->kfr->SetValue( 'product_type', $sProdType ); }
+    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
+    function _setKFR( KeyframeRecord $kfr ) { $this->clearCachedProperties(); $this->kfr = $kfr; }
+
+    private function getProductHandler()
+    {
+        if( $this->cache_oHandler )  return( $this->cache_oHandler );
+        return( $this->cache_oHandler = $this->oSB->GetProductHandler( $this->kfr->Value('product_type') ) );
+    }
 
     function Draw( $eDetail, $raParms )
     {
@@ -637,7 +657,7 @@ class SEEDBasket_Product
 
         if( !$this->kfr->Value('product_type') ) goto done;
 
-        if( !($oHandler = $this->oSB->GetProductHandler( $this->kfr->Value('product_type') )) )  goto done;
+        if( !($oHandler = $this->getProductHandler()) )  goto done;
 
         if( $oHandler->ProductFormIsAjax() ) {
             $s = $oHandler->ProductFormDrawAjax( $kP );
@@ -752,8 +772,8 @@ class SEEDBasket_Purchase
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 
-    // intended to be mainly used by SEEDBasket internals
-    function SetKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
+    function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 }
 
 class SEEDBasketCursor
@@ -790,9 +810,9 @@ class SEEDBasketCursor
 
         if( $this->kfrc->CursorFetch() ) {
             switch( $this->sType ) {
-                case 'basket':   $o = new SEEDBasket_Basket( $this->oSB, 0 );    $o->SetKFR( $this->kfrc );  break;
-                case 'product':  $o = new SEEDBasket_Product( $this->oSB, 0 );   $o->SetKFR( $this->kfrc );  break;
-                case 'purchase': $o = new SEEDBasket_Purchase( $this->oSB, 0 );  $o->SetKFR( $this->kfrc );  break;
+                case 'basket':   $o = new SEEDBasket_Basket( $this->oSB, 0 );    $o->_setKFR( $this->kfrc );  break;
+                case 'product':  $o = new SEEDBasket_Product( $this->oSB, 0 );   $o->_setKFR( $this->kfrc );  break;
+                case 'purchase': $o = new SEEDBasket_Purchase( $this->oSB, 0 );  $o->_setKFR( $this->kfrc );  break;
             }
         }
 

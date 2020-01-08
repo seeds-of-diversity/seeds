@@ -2,7 +2,7 @@
 
 /* Basket product handlers
  *
- * Copyright (c) 2016-2019 Seeds of Diversity Canada
+ * Copyright (c) 2016-2020 Seeds of Diversity Canada
  */
 
 include_once( SEEDCORE."SEEDBasket.php" );
@@ -14,26 +14,26 @@ class SEEDBasketProducts_SoD
 {
     // This is a super-set of SEEDBasketCore's raProductHandlers; it can be passed directly to that constructor
     // and also used as a look-up for other things
-    static public $raProductTypes = array(
-            'membership' => array( 'label'=>'Membership',
-                                   'classname'=>'SEEDBasketProductHandler_Membership',
-                                   'forceFlds' => array('quant_type'=>'ITEM-1') ),
-            'donation'   => array( 'label'=>'Donation',
-                                   'classname'=>'SEEDBasketProductHandler_Donation',
-                                   'forceFlds' => array('quant_type'=>'MONEY') ),
-            'book'       => array( 'label'=>'Publication',
-                                   'classname'=>'SEEDBasketProductHandler_Book',
-                                   'forceFlds' => array('quant_type'=>'ITEM-N') ),
-            'misc'       => array( 'label'=>'Miscellaneous Payment',
-                                   'classname'=>'SEEDBasketProductHandler_Misc',
-                                   'forceFlds' => array('quant_type'=>'MONEY') ),
-            'seeds'      => array( 'label'=>'Seeds',
-                                   'classname'=>'SEEDBasketProductHandler_Seeds',
-                                   'forceFlds' => array('quant_type'=>'ITEM-N') ),
-            'event'      => array( 'label'=>'Event',
-                                   'classname'=>'SEEDBasketProductHandler_Event',
-                                   'forceFlds' => array('quant_type'=>'ITEM-1') ),
-    );
+    static public $raProductTypes = [
+            'membership' => [ 'label'=>'Membership',
+                              'classname'=>'SEEDBasketProductHandler_Membership',
+                              'forceFlds' => ['quant_type'=>'ITEM-1'] ],
+            'donation'   => [ 'label'=>'Donation',
+                              'classname'=>'SEEDBasketProductHandler_Donation',
+                              'forceFlds' => ['quant_type'=>'MONEY'] ],
+            'book'       => [ 'label'=>'Publication',
+                              'classname'=>'SEEDBasketProductHandler_Book',
+                              'forceFlds' => ['quant_type'=>'ITEM-N'] ],
+            'misc'       => [ 'label'=>'Miscellaneous Payment',
+                              'classname'=>'SEEDBasketProductHandler_Misc',
+                              'forceFlds' => ['quant_type'=>'MONEY'] ],
+            'seeds'      => [ 'label'=>'Seeds',
+                              'classname'=>'SEEDBasketProductHandler_Seeds',
+                              'forceFlds' => ['quant_type'=>'ITEM-N'] ],
+            'event'      => [ 'label'=>'Event',
+                              'classname'=>'SEEDBasketProductHandler_Event',
+                              'forceFlds' => ['quant_type'=>'ITEM-1'] ],
+    ];
 }
 
 
@@ -48,13 +48,13 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
 
         $s = "<h3>Membership Definition Form</h3>";
 
-        $s .= $oFormP->HiddenKey()
-             .$oFormX->ExpandForm(
+        $s .= $oFormX->ExpandForm(
                      "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
+                    ."||| Product #     || [[key:]]"
                     ."||| Seller        || [[text:uid_seller|readonly]]\n"
                     ."||| Product type  || [[text:product_type|readonly]]\n"
                     ."||| Quantity type || [[text:quant_type|readonly]]\n"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>\n"
                     ."||| Title EN      || [[text:title_en | ]]\n"
                     ."||| Title FR      || [[text:title_fr | ]]\n"
@@ -111,19 +111,18 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler
 
         $s = "<h3>Donation Definition Form</h3>";
 
-        $s .= $oFormP->HiddenKey()
-             ."<table>"
-             .$oFormX->ExpandForm(
-                     "||| Seller        || [[text:uid_seller|readonly]]"
+        $s .= $oFormX->ExpandForm(
+                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
+                    ."||| Product #     || [[key:]]"
+                    ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
                     ."||| Title FR      || [[text:title_fr]]"
                     ."||| Name          || [[text:name]]"
-                     )
-             ."</table> ";
+                     );
 
         return( $s );
     }
@@ -139,13 +138,13 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
 
         $s = "<h3>Publications Product Form</h3>";
 
-        $s .= $oFormP->HiddenKey()
-             ."<table>"
-             .$oFormX->ExpandForm(
-                     "||| Seller        || [[text:uid_seller|readonly]]"
+        $s .= $oFormX->ExpandForm(
+                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
+                    ."||| Product #     || [[key:]]"
+                    ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
                     ."||| Title FR      || [[text:title_fr]]"
@@ -161,8 +160,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
                     ."||| Price U.S.     || [[text:item_price_US]]"
                     ."||| Discount U.S.  || [[text:item_discount_US]]"
                     ."||| Shipping U.S.  || [[text:item_shipping_US]]"
-                     )
-             ."</table> ";
+                     );
 
         return( $s );
     }
@@ -208,20 +206,18 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
 
         $s = "<h3>Misc Payment Definition Form</h3>";
 
-        $s .= $oFormP->HiddenKey()
-             ."<table>"
-             .$oFormX->ExpandForm(
+        $s .= $oFormX->ExpandForm(
                      "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')"
+                    ."||| Product #     || [[key:]]"
                     ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
                     ."||| Quantity type || [[text:quant_type|readonly]]"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', array('ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','DELETED'=>'DELETED') )
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
                     ."||| Title FR      || [[text:title_fr]]"
                     ."||| Name          || [[text:name]]"
-                     )
-             ."</table> ";
+                     );
 
         return( $s );
     }
@@ -232,5 +228,3 @@ class SEEDBasketProductHandler_Event extends SEEDBasketProductHandler
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 }
-
-?>
