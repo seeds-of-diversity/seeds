@@ -680,8 +680,16 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         Create a SELECT control using $raValues = [label1=>val1, label2=>val2,...]
 
         $raParms: selected=>(value), attrs, disabled
+                  bValsCompacted = $raValues contains [a,b,c] instead of [labelA=>a,labelB=>b,labelC=>c]
      */
     {
+        if( @$parms['bValsCompacted'] ) {
+            // $raValues has compacted form: change [a,b,c] to [a=>a,b=>b,c=>c]
+            $ra = $raValues;
+            $raValues = [];
+            foreach( $ra as $v )  $raValues[$v] = $v;
+        }
+
         $raParms = $this->parseParms( $parms );
         $p = $this->stdParms( $fld, $raParms );
         $pName = $p['name'];
