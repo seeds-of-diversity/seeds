@@ -523,13 +523,13 @@ class SEEDCoreFormElements
         if( @$this->raParms['bBootstrap'] ) {
             $raParms['classes'] = "form-control ".@$raParms['classes'];
         }
+*/
         if( ($sBSCol = @$raParms['bsCol']) ) {
             $ra = explode( ',', $sBSCol );
             if( @$ra[0] ) $sBSCol = 'col-'.$ra[0];
             if( @$ra[1] ) $sBSColLabel = 'col-'.$ra[1];
             $raParms['classes'] = 'input-block-level '.@$raParms['classes'];
         }
-*/
 
         /* Get standardized parm array
          */
@@ -546,7 +546,7 @@ class SEEDCoreFormElements
             $labelClass = (@$raParms['bBootstrap'] || $sBSColLabel) ? "class='control-label'" : "";
 
             $s .= ($sBSColLabel ? "<div class='$sBSColLabel'>" : "")
-                 ."<LABEL for='$pName' $labelClass>".SEEDCore_NBSP($label)."</LABEL>"
+                 ."<label for='$pName' $labelClass>".SEEDCore_NBSP($label)."</label>"
                  .($sBSColLabel ? "</div>" : "");
         }
 
@@ -558,68 +558,40 @@ class SEEDCoreFormElements
         return( $s );
     }
 
-
-// TODO: put cols and rows in raParms - see TextArea2
-    private function _textArea( $fld, $label = "", $cols = 60, $rows = 5, $parms = array() )
-    /******************************************************************************
-        Create a TEXTAREA
-
-        $raParms:  attrs, disabled
+    function TextArea( $fld, $parms = array() )
+    /******************************************
+        width  : std parm placed in style attr
+        height : std parm placed in style attr
+        nCols  : old-fashioned col attr, only if width not specified
+        nRows  : old fashioned row attr, only if height not specified
      */
     {
         $raParms = $this->parseParms( $parms );
-        /* Do control-specific parms management
-         */
-        // if width/height is not specified, set cols/rows based on parms or defaults
+        list($pName,$pValue,$pValueEnt,$pAttrs,$p) = $this->stdParms2( $fld, $raParms );
+
+        // width/height are handled by stdParms; if not specified, set cols/rows
         if( !@$raParms['width'] ) {
-            if( !($n = @$raParms['nCols']) )  $n = $cols;
-            $raParms['attrs'] = "cols='$n' ".@$raParms['attrs'];
+            if( !($n = @$raParms['nCols']) )  $n = 40;
+            $pAttrs = "cols='$n' ".$pAttrs;
         }
         if( !@$raParms['height'] ) {
-            if( !($n = @$raParms['nRows']) )  $n = $rows;
-            $raParms['attrs'] = "rows='$n' ".@$raParms['attrs'];
+            if( !($n = @$raParms['nRows']) )  $n = 5;
+            $pAttrs = "rows='$n' ".$pAttrs;
         }
 
-        /* Get standardized parm array
-         */
-        $p = $this->stdParms( $fld, $raParms );
-        $pName = $p['name'];
-        $pValue = $p['value'];
-        $pValueEnt = $p['valueEnt'];
-        $pAttrs = $p['attrs'];
+        $label = SEEDCore_NBSP(@$raParms['label']);
+        if( $p['readonly'] ) {
+            $s = $label." ". $pValueEnt . $this->Hidden($fld, array('value'=>$pValue));
+        } else {
+            $s = "";
+            if( $label ) {
+                $s .= "<label for='$pName'>$label</label> ";
+            }
+            $s .= "<textarea name='$pName' id='$pName' $pAttrs>$pValueEnt</textarea>";
+        }
 
-        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, array('value'=>$pValue)) );
-
-        $s = "";
-
-        if( !empty($label) )  $label = SEEDCore_NBSP($label.": ");
-
-        $s .= $label."<textarea name='$pName' id='$pName' "
-// added to attrs above
-//             .($cols ? "cols='$cols' " : "")  // use 0 if width/height are in css
-//             .($rows ? "rows='$rows' " : "")
-             ."$pAttrs>"
-             .$pValueEnt
-             ."</textarea>";
-
+        done:
         return( $s );
-    }
-
-    function TextArea( $fld, $parms = array() )
-    {
-        $raParms = $this->parseParms( $parms );
-        /* Do control-specific parms management
-         */
-// nCols, nRows
-        /* Get standardized parm array
-         */
-        $p = $this->stdParms( $fld, $raParms );
-
-if( !@$p['nRows'] ) { $p['nRows'] = 5; }
-if( !@$p['nCols'] ) { $p['nCols'] = 40; }
-        $label = SEEDCore_ArraySmartVal( $raParms, 'sLabel', array("") );
-
-        return( $this->_textArea( $fld, $label, $p['nCols'], $p['nRows'], $raParms ) );
     }
 
     /**
@@ -745,7 +717,11 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         $pValueEnt = $p['valueEnt'];
         $pAttrs = $p['attrs'];
 
-        return( "<input name='$pName' id='$pName' value='$pValueEnt' type='date' $pAttrs/>" );
+        if( !empty($label) ) {
+            $label = "<label for='$pName'>".SEEDCore_NBSP( $label )."</label>";
+        }
+
+        return( $label."<input name='$pName' id='$pName' value='$pValueEnt' type='date' $pAttrs/>" );
     }
 
     function Email( $fld, $label = "", $parms = array() )
@@ -978,6 +954,15 @@ if( !@$p['nCols'] ) { $p['nCols'] = 40; }
         }
 
         return( $p );
+    }
+
+    private function stdParms2( $fld, $raParms )
+    /*******************************************
+        Return parms in a conveniently normalized way
+     */
+    {
+        $p = $this->stdParms($fld,$raParms);
+        return( [ $p['name'], $p['value'], $p['valueEnt'], $p['attrs'], $p ] );
     }
 }
 
