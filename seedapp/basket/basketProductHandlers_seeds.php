@@ -90,7 +90,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
                             ))
                     ."||| <label>Origin</label> || [[text:origin|$txtParms]]"
                     ."||| <label>Description</label> || "
-                            .$oFormP->TextArea( 'description', "", 35, 8, array( 'attrs'=>"wrap='soft'") )
+                            .$oFormP->TextArea( 'description', ['nCols'=>35,'nRows'=>8, 'attrs'=>"wrap='soft'"] )
 
              )
              ."</TABLE>"
