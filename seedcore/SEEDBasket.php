@@ -2,7 +2,7 @@
 
 /* SEEDBasket.php
  *
- * Copyright (c) 2016-2019 Seeds of Diversity Canada
+ * Copyright (c) 2016-2020 Seeds of Diversity Canada
  *
  * Manage a shopping basket of diverse products
  */
@@ -551,6 +551,17 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
     }
 
 
+    function FindBasket( $sCond )
+    /****************************
+        Return a SEEDBasket_Basket for the product that matches the sql condition
+            e.g. uid_buyer='1' AND eStatus='Paid'
+        Only the first match is returned, if more than one product matches
+     */
+    {
+        $ra = $this->oDB->GetBasketList( $sCond );
+        return( @$ra[0]['_key'] ? new SEEDBasket_Product( $this, $ra[0]['_key'] ) : null );
+    }
+
     function FindProduct( $sCond )
     /*****************************
         Return a SEEDBasket_Product for the product that matches the sql condition
@@ -559,7 +570,7 @@ if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mb
      */
     {
         $ra = $this->oDB->GetProductList( $sCond );
-        return( $ra ? $ra[0] : null );
+        return( @$ra[0]['_key'] ? new SEEDBasket_Product( $this, $ra[0]['_key'] ) : null );
     }
 }
 
@@ -578,7 +589,8 @@ class SEEDBasket_Basket
         $this->SetKey( $kB );
     }
 
-    function Key()  { return( $this->kfr->Key() ); }
+    function Key()     { return( $this->kfr->Key() ); }
+    function GetKey()  { return( $this->kfr->Key() ); }
 
     function SetKey( $k )
     {
@@ -590,6 +602,31 @@ class SEEDBasket_Basket
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
     function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+
+    function GetProductsInBasket( $raParms )
+    /***************************************
+        Return a list of the products currently in the basket.
+
+        returnType = keys, objects (default)
+     */
+    {
+        $bReturnKeys = @$raParms['returnType'] == 'keys';
+
+        $raOut = [];
+        if( $this->kfr->Key() ) {
+            $raPur = $this->oSB->oDB->GetPurchasesList( $this->kfr->Key() );
+            foreach( $raPur as $ra ) {
+                if( ($kP = $ra['fk_SEEDBasket_Products']) ) {
+                    if( $bReturnKeys ) {
+                        $raOut[] = $kP;
+                    } else {
+                        $raOut[] = new SEEDBasket_Product( $this->oSB, $kP );
+                    }
+                }
+            }
+        }
+        return( $raOut );
+    }
 }
 
 class SEEDBasket_Product
@@ -616,6 +653,7 @@ class SEEDBasket_Product
         $this->cache_oHandler = null;
     }
 
+    function Key()     { return( $this->kfr->Key() ); }
     function GetKey()  { return( $this->kfr->Key() ); }
 
     function SetKey( $k )
@@ -626,6 +664,8 @@ class SEEDBasket_Product
 
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
+
+    function GetName()  { return( $this->kfr ? $this->kfr->Value('name') : "" ); }
 
     function FormIsAjax()
     {

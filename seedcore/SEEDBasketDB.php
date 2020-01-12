@@ -2,7 +2,7 @@
 
 /* SEEDBasketDB.php
  *
- * Copyright (c) 2016-2019 Seeds of Diversity Canada
+ * Copyright (c) 2016-2020 Seeds of Diversity Canada
  *
  * DB layer for shopping baskets
  */
@@ -41,8 +41,8 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
 
     function GetBasketList( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
-    function GetBasketKFRC( $sCond, $raKFParms = array() )  { return( $this->GetList( 'B', $sCond, $raKFParms ) ); }
-    function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
+    function GetBasketKFRC( $sCond, $raKFParms = array() )  { return( $this->GetKFRC( 'B', $sCond, $raKFParms ) ); }
+    function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetList( 'P', $sCond, $raKFParms ) ); }
     function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
 
     function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('PURxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
