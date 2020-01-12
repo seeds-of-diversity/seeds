@@ -55,6 +55,7 @@ class SodOrder
                                                     array("col"=>"eStatus",         "type"=>"S", "default"=>'New'),
                                                     array("col"=>"eStatus2",        "type"=>"I"),
                                                     array("col"=>"dMailed",         "type"=>"S"),
+                                                    array("col"=>"kBasket",         "type"=>"I"),
                                                     array("col"=>"ePayType",        "type"=>"S", "default"=>'PayPal'),
                                                     array("col"=>"sExtra",          "type"=>"S") )
         ]]];
@@ -260,6 +261,9 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          .($kfr->value('eStatus')=='New' ? $this->changeToPaidButton($kfr->Key()): "")
          .$this->mailStatus( $kfr, $raOrder );
 
+    $sFulfilment
+        = $this->buttonBuildBasket( $kfr )
+         .$this->showBasket( $kfr );
 
     $s .= "<tr data-kOrder='".$kfr->Key()."'>"
          ."<td valign='top'>$sOrderNum</td>"
@@ -268,6 +272,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top'>$sEbulletin</td>"
          ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder )."</td>"
          ."<td valign='top' $style>$sPayment</td>"
+         ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
 
          return( $s );
@@ -313,6 +318,34 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         return( $s );
     }
 
+    private function buttonBuildBasket( KeyframeRecord $kfr )
+    /********************************************************
+     */
+    {
+        $s = "";
+
+        if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
+            $kOrder = $kfr->Key();
+            $s .= "<div data-kOrder='$kOrder' class='doBuildBasket'><button>basket</button></div>";
+        }
+
+        return( $s );
+    }
+
+    private function showBasket( KeyframeRecord $kfr )
+    /*************************************************
+     */
+    {
+        $s = "";
+
+        if( !($kB = $kfr->Value('kBasket')) )  goto done;
+
+        $oOrder = new SoDOrder_MbrOrder( $this->oApp );
+        $s = $oOrder->ShowBasket( $kB );
+
+        done:
+        return( $s );
+    }
 
     private function mailStatus( KeyframeRecord $kfr, $raOrder )
     {
@@ -353,17 +386,20 @@ class SoDOrder_MbrOrder
 
 
 // SBC should use oApp instead
-            ['logdir'=>$oApp->logdir] );
+            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
     }
 
     function CreateFromMbrOrder( int $kOrder )
     {
-        //$this->oApp->kfdb->SetDebug(2);
-        if( ($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
-            //var_dump($kfrMbrOrder->ValuesRA() );
+        $this->oApp->kfdb->SetDebug(2);
+        if( !($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) )  goto done;
+        //var_dump($kfrMbrOrder->ValuesRA());
 
-            $oB = new SEEDBasket_Basket( $this->oSB, 0 );
+        $kB = $kfrMbrOrder->Value('kBasket');
+        $oB = new SEEDBasket_Basket( $this->oSB, $kB );    // look up the Basket or create an empty one
 
+        if( !$kB ) {
+            // fill new basket fields
             $oB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
 
             foreach( ['buyer_firstname' => 'mail_firstname',
@@ -385,33 +421,62 @@ class SoDOrder_MbrOrder
             $oB->PutDBRow();
             $kB = $oB->Key();
 
-            if( ($m = $kfrMbrOrder->Value('mbr_type')) ) {
-                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='membership' AND name='$m'" );
-                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
-                $oBP->StorePurchase( $oB, $oP, ['n'=>1] );
-            }
+            $kfrMbrOrder->SetValue('kBasket', $kB );
+            $kfrMbrOrder->PutDBRow();
+        }
 
-            if( ($d = floatval($kfrMbrOrder->Value('donation'))) > 0.0 ) {
-                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='general" );
+        $raProdKeys = $oB->GetProductsInBasket( ['returnType'=>'keys'] );
+
+        if( ($m = $kfrMbrOrder->Value('mbr_type')) ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='membership' AND name='$m'" )) ) {
+                if( !in_array($oP->GetKey(), $raProdKeys) ) {
+                    $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                    $oBP->StorePurchase( $oB, $oP, ['n'=>1] );
+                }
+            }
+        }
+
+/*
+        if( ($d = floatval($kfrMbrOrder->Value('donation'))) > 0.0 ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='general" )) ) {
                 $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                 $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
             }
+        }
 
-            foreach( ['nPubSSH-EN6','nPubSSH-FR6','nPubEverySeed','nPubKent2012'] as $v ) {
-                if( ($n = $kfrMbrOrder->UrlParmGet('sExtra', $v)) ) {
-                    $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='$v'" );
+        foreach( ['nPubSSH-EN6','nPubSSH-FR6','nPubEverySeed','nPubKent2012'] as $v ) {
+            if( ($n = $kfrMbrOrder->UrlParmGet('sExtra', $v)) ) {
+                if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='$v'" )) ) {
                     $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                     $oBP->StorePurchase( $oB, $oP, ['n'=>$n] );
                 }
             }
+        }
 
-            if( ($d = floatval($kfrMbrOrder->Value('nPubEverySeed_Shipping'))) ) {
-                $oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='shipping" );
+        if( ($d = floatval($kfrMbrOrder->Value('nPubEverySeed_Shipping'))) ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='shipping" )) ) {
                 $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                 $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
             }
+        }
+*/
 
+        done:
+        return;
+    }
+
+    function ShowBasket( $kB )
+    {
+        $s = "";
+
+        $oB = new SEEDBasket_Basket( $this->oSB, $kB );
+        $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
+
+        foreach( $raProd as $oProd ) {
+            $s .= $oProd->GetName()."<br/>";
         }
 
+        return( $s );
     }
+
 }
