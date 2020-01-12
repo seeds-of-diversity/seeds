@@ -204,14 +204,25 @@ class KeyframeDatabase {
                 $raOut[$ra['Field']]['null'] = ($ra['Null'] == "YES");
                 $raOut[$ra['Field']]['default'] = $ra['Default'];
 
-                $raOut[$ra['Field']]['kf_type'] =
-                    (substr($ra['Type'],0,3) == 'int' ||
-                     substr($ra['Type'],0,7) == 'tinyint' ||
-                     substr($ra['Type'],0,8) == 'smallint' ||
-                     substr($ra['Type'],0,6) == 'bigint')
-                      ? "I" : "S";
+                // set the kf_type and kf_default
+                if( substr($ra['Type'],0,3) == 'int' ||
+                    substr($ra['Type'],0,7) == 'tinyint' ||
+                    substr($ra['Type'],0,8) == 'smallint' ||
+                    substr($ra['Type'],0,6) == 'bigint' )
+                {
+                    $t = 'I';
+                    $d = 0;
+                } elseif( SEEDCore_StartsWith($ra['Type'], 'decimal') ) {
+                    $t = 'F';
+                    $d = 0.0;
+                } else {
+                    $t = 'S';
+                    $d = "";
+                }
+                $raOut[$ra['Field']]['kf_type'] = $t;
                 // When MySQL 5 shows 'NULL' as Default on the command line client, it returns an empty string in the cursor.
-                $raOut[$ra['Field']]['kf_default'] = (($ra['Default'] == 'NULL' || empty($ra['Default'])) ? ($raOut[$ra['Field']]['kf_type']=='I' ? 0 : "") : $ra['Default']);
+                $raOut[$ra['Field']]['kf_default'] =
+                    (!$ra['Default'] || $ra['Default'] == 'NULL') ? $d : $ra['Default'];
             }
             $this->CursorClose( $dbc );
         }
