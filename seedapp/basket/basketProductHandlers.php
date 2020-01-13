@@ -69,6 +69,7 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
 
     function ProductDefine1( Keyframe_DataStore $oDS )
     {
+        $oDS->SetValue( 'quant_type', 'ITEM-1' );
         return( parent::ProductDefine1( $oDS ) );
     }
 
@@ -126,6 +127,12 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler
 
         return( $s );
     }
+
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    {
+        $oDS->SetValue( 'quant_type', 'MONEY' );
+        return( parent::ProductDefine1( $oDS ) );
+    }
 }
 
 class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
@@ -163,6 +170,12 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
                      );
 
         return( $s );
+    }
+
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    {
+        $oDS->SetValue( 'quant_type', 'ITEM-N' );
+        return( parent::ProductDefine1( $oDS ) );
     }
 
     function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
@@ -220,6 +233,12 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
                      );
 
         return( $s );
+    }
+
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    {
+        $oDS->SetValue( 'quant_type', 'MONEY' );
+        return( parent::ProductDefine1( $oDS ) );
     }
 }
 
