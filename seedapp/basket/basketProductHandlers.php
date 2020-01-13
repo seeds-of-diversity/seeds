@@ -53,7 +53,7 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler
                     ."||| Product #     || [[key:]]"
                     ."||| Seller        || [[text:uid_seller|readonly]]\n"
                     ."||| Product type  || [[text:product_type|readonly]]\n"
-                    ."||| Quantity type || [[text:quant_type|readonly]]\n"
+                    ."||| Quantity type || [[text:quant_type|readonly value=ITEM-1]]\n"
                     ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>\n"
                     ."||| Title EN      || [[text:title_en | ]]\n"
@@ -116,7 +116,7 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler
                     ."||| Product #     || [[key:]]"
                     ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly]]"
+                    ."||| Quantity type || [[text:quant_type|readonly value=MONEY]]"
                     ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
@@ -143,7 +143,7 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
                     ."||| Product #     || [[key:]]"
                     ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly]]"
+                    ."||| Quantity type || [[text:quant_type|readonly value=ITEM-N]]"
                     ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
@@ -211,7 +211,7 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
                     ."||| Product #     || [[key:]]"
                     ."||| Seller        || [[text:uid_seller|readonly]]"
                     ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly]]"
+                    ."||| Quantity type || [[text:quant_type|readonly value=MONEY]]"
                     ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
                     ."<br/><br/>"
                     ."||| Title EN      || [[text:title_en]]"
