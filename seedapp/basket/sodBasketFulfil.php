@@ -391,7 +391,7 @@ class SoDOrder_MbrOrder
 
     function CreateFromMbrOrder( int $kOrder )
     {
-        $this->oApp->kfdb->SetDebug(2);
+        //$this->oApp->kfdb->SetDebug(2);
         if( !($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) )  goto done;
         //var_dump($kfrMbrOrder->ValuesRA());
 
@@ -474,6 +474,15 @@ class SoDOrder_MbrOrder
 
         foreach( $raProd as $oProd ) {
             $s .= $oProd->GetName()."<br/>";
+        }
+        $raBContents = $oB->ComputeBasketContents( false );
+        if( @$raBContents['raSellers'][1] ) {
+            $s .= "<table>";
+            $s .= "<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
+            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td valign='top'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" );
+            }
+            $s .= "</table>";
         }
 
         return( $s );

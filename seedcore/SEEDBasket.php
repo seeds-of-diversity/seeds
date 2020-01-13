@@ -293,51 +293,11 @@ klugeUTF8 = true: return sOut and sErr in utf8
     {
         $s = "";
 
-$s .= "<style>
-       .sb_basket_table { display:table }
-       .sb_basket_tr    { display:table-row }
-       .sb_basket_td    { display:table-cell; text-align:left;border-bottom:1px solid #eee;padding:3px 10px 3px 0px }
-       </style>";
-
-        if( !$this->GetCurrentBasketKFR() ) goto done;
-
-        $kBPHighlight = intval(@$raParms['kBPHighlight']);
-
-        $raSummary = $this->ComputeBasketSummary( $klugeUTF8 );
-
-        foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
-            if( isset($this->raParms['fn_sellerNameFromUid']) ) {
-                $sSeller = call_user_func( $this->raParms['fn_sellerNameFromUid'], $uidSeller );
-            } else {
-                $sSeller = "Seller $uidSeller";
-            }
-
-            $s .= "<div style='margin-top:10px;font-weight:bold'>$sSeller (total ".$this->dollar($raSeller['fTotal']).")</div>";
-
-            $s .= "<div class='sb_basket_table'>";
-            foreach( $raSeller['raItems'] as $raItem ) {
-                $sClass = ($kBPHighlight && $kBPHighlight == $raItem['kBP']) ? " sb_bp-change" : "";
-                $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
-                     ."<div class='sb_basket_td'>".$raItem['sItem']."</div>"
-                     ."<div class='sb_basket_td'>".$this->dollar($raItem['fAmount'])."</div>"
-                     ."<div class='sb_basket_td'>"
-                         // Use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
-                         // Only draw the Remove icon for items with kBP because discounts, etc, are coded with kBP==0 and those shouldn't be removable on their own
-                         .($raItem['kBP'] ? ("<img height='14' onclick='RemoveFromBasket(".$raItem['kBP'].");' src='//seeds.ca/w/img/ctrl/delete01.png'/>") : "")
-                         ."</div>"
-                     ."</div>";
-            }
-            $s .= "</div>";
+        if( $this->GetCurrentBasketKFR() && ($kBasket = $this->GetBasketKey()) ) {
+            $oB = new SEEDBasket_Basket( $this, $kBasket );
+            $s = $oB->DrawBasketContents( $raParms, $klugeUTF8 );
         }
-
-        if( !$s ) goto done;
-
-        $s .= "<div style='text-alignment:right;font-size:12pt;color:green'>Your Total: ".$this->dollar($raSummary['fTotal'])."</div>";
-
-        $s = "<div class='sb_basket-contents'>$s</div>";
-
-        done:
-        return( $s ? $s : "Your Basket is Empty" );
+        return( $s );
     }
 
     function ComputeBasketSummary( $klugeUTF8 = false )
@@ -353,99 +313,16 @@ $s .= "<style>
     {
         $raOut = array( 'fTotal'=>0.0, 'raSellers'=>array() );
 
-        if( !($kBasket = $this->GetBasketKey()) ) goto done;
-
-        if( ($kfrBPxP = $this->oDB->GetPurchasesKFRC( $kBasket )) ) {
-            while( $kfrBPxP->CursorFetch() ) {
-                $uidSeller = $kfrBPxP->Value('P_uid_seller');
-// handle volume pricing, shipping, discount
-                $fAmount = $this->getAmount( $kfrBPxP );
-                $raOut['fTotal'] += $fAmount;
-                if( !isset($raOut['raSellers'][$uidSeller]) ) {
-                    $raOut['raSellers'][$uidSeller] = array( 'fTotal'=>0.0, 'raContents'=>array() );
-                }
-
-                $oHandler = $this->getHandler( $kfrBPxP->Value('P_product_type') );
-                $sItem = $oHandler->PurchaseDraw( $kfrBPxP, ['bUTF8'=>$klugeUTF8] );
-                $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
-                $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
-
-                // derived class adjustment
-// k is non-zero if the user is a current grower member
-if( ($this->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mbr_id='".$this->GetUID_SB()."' AND NOT bSkip" )) ) {
-    if( floatval($kfrBPxP->Value('P_item_price')) == 12.00 ) {
-        $discount = -2.0;
-    } else {
-        $discount = -1.0;
-    }
-    $raOut['fTotal'] += $discount;
-    $raOut['raSellers'][$uidSeller]['fTotal'] += $discount;
-    $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>0, 'sItem'=>"Your grower member discount", 'fAmount'=>$discount );
-}
-                // add other items for shipping / discount
-
-            }
+        if( ($kBasket = $this->GetBasketKey()) ) {
+            $oB = new SEEDBasket_Basket( $this, $kBasket );
+            $raOut = $oB->ComputeBasketContents( $klugeUTF8 );
         }
 
-        done:
         return( $raOut );
     }
 
-    private function getAmount( KeyframeRecord $kfrBPxP )
-    {
-        $amount = 0.0;
-
-        switch( $kfrBPxP->Value('P_quant_type') ) {
-            case 'ITEM-1':
-                $amount = $kfrBPxP->Value('P_item_price');
-                break;
-
-            case 'ITEM-N':
-                $n = $kfrBPxP->Value('n');
-                $amount = $this->priceFromRange( $kfrBPxP->Value('P_item_price'), $n ) * $n;
-                break;
-
-            case 'MONEY':
-                $amount = $kfrBPxP->Value('f');
-                break;
-        }
-
-        return( $amount );
-    }
-
-    function priceFromRange( $sRange, $n )
-    {
-        $f = 0.00;
-
-        if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
-            // There is just a single price for all quantities
-            $f = $this->dollar( $sRange );
-        } else {
-            $raRanges = explode( ',', $sRange );
-            foreach( $raRanges as $r ) {
-                $r = trim($r);
-
-                // $r has to be price:N or price:M-N or price:M+
-                list($price,$sQRange) = explode( ":", $r );
-                if( strpos( '-', $sQRange) !== false ) {
-                    list($sQ1,$sQ2) = explode( '-', $sQRange );
-                    if( $n >= intval($sQ1) && $n <= intval($sQ2) )  $f = $price;
-                } else if( substr( $sQRange, -1, 1 ) == "+" ) {
-                    $sQ1 = $sQRange;
-                    if( $n >= intval($sQ1) )  $f = $price;
-                } else {
-                    $sQ1 = $sQRange;
-                    if( $n == intval($sQ1) ) $f = $price;
-                }
-
-                if( $f ) break;
-            }
-        }
-        return( floatval($f) );
-    }
 
     function dollar( $d )  { return( "$".sprintf("%0.2f", $d) ); }
-
 
     /**
         Command methods
@@ -626,6 +503,151 @@ class SEEDBasket_Basket
             }
         }
         return( $raOut );
+    }
+
+    function DrawBasketContents( $raParms = array(), $klugeUTF8 = false )
+    {
+        $s = "";
+
+$s .= "<style>
+       .sb_basket_table { display:table }
+       .sb_basket_tr    { display:table-row }
+       .sb_basket_td    { display:table-cell; text-align:left;border-bottom:1px solid #eee;padding:3px 10px 3px 0px }
+       </style>";
+
+        $kBPHighlight = intval(@$raParms['kBPHighlight']);
+
+        $raSummary = $this->ComputeBasketContents( $klugeUTF8 );
+
+        foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
+            if( isset($this->raParms['fn_sellerNameFromUid']) ) {
+                $sSeller = call_user_func( $this->raParms['fn_sellerNameFromUid'], $uidSeller );
+            } else {
+                $sSeller = "Seller $uidSeller";
+            }
+
+            $s .= "<div style='margin-top:10px;font-weight:bold'>$sSeller (total ".$this->oSB->dollar($raSeller['fTotal']).")</div>";
+
+            $s .= "<div class='sb_basket_table'>";
+            foreach( $raSeller['raItems'] as $raItem ) {
+                $sClass = ($kBPHighlight && $kBPHighlight == $raItem['kBP']) ? " sb_bp-change" : "";
+                $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
+                     ."<div class='sb_basket_td'>".$raItem['sItem']."</div>"
+                     ."<div class='sb_basket_td'>".$this->oSB->dollar($raItem['fAmount'])."</div>"
+                     ."<div class='sb_basket_td'>"
+                         // Use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
+                         // Only draw the Remove icon for items with kBP because discounts, etc, are coded with kBP==0 and those shouldn't be removable on their own
+                         .($raItem['kBP'] ? ("<img height='14' onclick='RemoveFromBasket(".$raItem['kBP'].");' src='//seeds.ca/w/img/ctrl/delete01.png'/>") : "")
+                         ."</div>"
+                     ."</div>";
+            }
+            $s .= "</div>";
+        }
+
+        if( !$s ) goto done;
+
+        $s .= "<div style='text-alignment:right;font-size:12pt;color:green'>Your Total: ".$this->oSB->dollar($raSummary['fTotal'])."</div>";
+
+        $s = "<div class='sb_basket-contents'>$s</div>";
+
+        done:
+        return( $s ? $s : "Your Basket is Empty" );
+    }
+
+    function ComputeBasketContents( $klugeUTF8 )
+    {
+        $raOut = [ 'fTotal'=>0.0, 'raSellers'=>[] ];
+
+        if( !($kBasket = $this->kfr->Key()) )  goto done;
+
+        if( ($kfrBPxP = $this->oSB->oDB->GetPurchasesKFRC( $kBasket )) ) {
+            while( $kfrBPxP->CursorFetch() ) {
+                $uidSeller = $kfrBPxP->Value('P_uid_seller');
+// handle volume pricing, shipping, discount
+                $fAmount = $this->getAmount( $kfrBPxP );
+                $raOut['fTotal'] += $fAmount;
+                if( !isset($raOut['raSellers'][$uidSeller]) ) {
+                    $raOut['raSellers'][$uidSeller] = [ 'fTotal'=>0.0, 'raContents'=>[] ];
+                }
+
+                $oHandler = $this->oSB->GetProductHandler( $kfrBPxP->Value('P_product_type') );
+                $sItem = $oHandler->PurchaseDraw( $kfrBPxP, ['bUTF8'=>$klugeUTF8] );
+                $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
+                $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
+
+                // derived class adjustment
+// k is non-zero if the user is a current grower member
+if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
+    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
+        if( floatval($kfrBPxP->Value('P_item_price')) == 12.00 ) {
+            $discount = -2.0;
+        } else {
+            $discount = -1.0;
+        }
+        $raOut['fTotal'] += $discount;
+        $raOut['raSellers'][$uidSeller]['fTotal'] += $discount;
+        $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>0, 'sItem'=>"Your grower member discount", 'fAmount'=>$discount );
+    }
+}
+                // add other items for shipping / discount
+
+            }
+        }
+        done:
+        return( $raOut );
+    }
+
+    private function getAmount( KeyframeRecord $kfrBPxP )
+    {
+        $amount = 0.0;
+
+        switch( $kfrBPxP->Value('P_quant_type') ) {
+            case 'ITEM-1':
+                $amount = $kfrBPxP->Value('P_item_price');
+                break;
+
+            case 'ITEM-N':
+                $n = $kfrBPxP->Value('n');
+                $amount = $this->priceFromRange( $kfrBPxP->Value('P_item_price'), $n ) * $n;
+                break;
+
+            case 'MONEY':
+                $amount = $kfrBPxP->Value('f');
+                break;
+        }
+
+        return( $amount );
+    }
+
+    function priceFromRange( $sRange, $n )
+    {
+        $f = 0.00;
+
+        if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
+            // There is just a single price for all quantities
+            $f = $this->oSB->dollar( $sRange );
+        } else {
+            $raRanges = explode( ',', $sRange );
+            foreach( $raRanges as $r ) {
+                $r = trim($r);
+
+                // $r has to be price:N or price:M-N or price:M+
+                list($price,$sQRange) = explode( ":", $r );
+                if( strpos( '-', $sQRange) !== false ) {
+                    list($sQ1,$sQ2) = explode( '-', $sQRange );
+                    if( $n >= intval($sQ1) && $n <= intval($sQ2) )  $f = $price;
+                } else if( substr( $sQRange, -1, 1 ) == "+" ) {
+                    $sQ1 = $sQRange;
+                    if( $n >= intval($sQ1) )  $f = $price;
+                } else {
+                    $sQ1 = $sQRange;
+                    if( $n == intval($sQ1) ) $f = $price;
+                }
+
+                if( $f ) break;
+            }
+        }
+        return( floatval($f) );
     }
 }
 
