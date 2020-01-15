@@ -687,7 +687,8 @@ class SEEDBasket_Product
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
 
-    function GetName()  { return( $this->kfr ? $this->kfr->Value('name') : "" ); }
+    function GetName()          { return( $this->kfr ? $this->kfr->Value('name') : "" ); }
+    function GetProductType()   { return( $this->kfr ? $this->kfr->Value('product_type') : "" ); }
 
     function FormIsAjax()
     {
