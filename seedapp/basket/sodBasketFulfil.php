@@ -265,7 +265,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         = $this->buttonBuildBasket( $kfr )
          .$this->showBasket( $kfr );
 
-    $s .= "<tr data-kOrder='".$kfr->Key()."'>"
+    $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
          ."<td valign='top'>$sOrderNum</td>"
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
@@ -326,6 +326,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
             $kOrder = $kfr->Key();
+// data-kOrder is also present in the enclosing <tr>
             $s .= "<div data-kOrder='$kOrder' class='doBuildBasket'><button>basket</button></div>";
         }
 
@@ -475,9 +476,16 @@ class SoDOrder_MbrOrder
         foreach( $raProd as $oProd ) {
             $s .= $oProd->GetName()."<br/>";
         }
+
+        // Find out if there is a membership in this order.
+        $bHasMbrProduct = false;
+        foreach( $raProd as $oProd ) {
+            if( $oProd->GetProductType() == 'membership' ) { $bHasMbrProduct = true; break; }
+        }
+
         $raBContents = $oB->ComputeBasketContents( false );
         if( @$raBContents['raSellers'][1] ) {
-            $s .= "<table>";
+            $s .= "<table ".($bHasMbrProduct ? "class='doShowMembershipForm'" : "").">";
             $s .= "<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
             foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
                 $s .= SEEDCore_ArrayExpand( $ra, "<tr><td valign='top'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" );
