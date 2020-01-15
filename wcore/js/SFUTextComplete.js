@@ -12,9 +12,17 @@
  */
 var SFU_TextCompleteVars = {};
 
-$(document).ready( function() { 
+$(document).ready( function() {
+    SFU_TextComplete_Init();
+});
+
+function SFU_TextComplete_Init()
+/*******************************
+    Called by document.ready but you have to call this again if you create a node containing a .SFU_TextComplete
+ */
+{
     // Don't set up the TextComplete if there isn't one. offset().left below causes a js error that kills other ready() functions
-    if( typeof $('.SFU_TextComplete').offset() == 'undefined' )  return;
+    if( typeof $('.SFU_TextComplete').offset() == 'undefined' ) { console.log("No .SFU_TextComplete"); return; }
 
     $('.SFU_TextComplete').click( function(e) { 
         let oTC = $(this);   // preserve $this in the closure below
@@ -71,4 +79,4 @@ $(document).ready( function() {
         // make the select control tall enough to contain all options
         select.attr({ size: nOpts }); 
     });
-});
+}
