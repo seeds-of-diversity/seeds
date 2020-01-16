@@ -234,7 +234,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
                        ."<div><form action='http://seeds.ca/office/mbr/mbr_labels.php' target='MbrLabels' method='get'>"
                            ."<input type='hidden' name='orderadd' value='[[_key]]'/><input type='submit' value='Add to Label Maker'/>"
                        ."</form></div>"
-                       ."<div class='mbrOrderShowTicket' data-kOrder='[[_key]]' data-expanded='0' style='text-align:center;font-size:14pt'><a href='#'>Show Ticket</a></div>" );
+                       ."<div class='mbrOrderShowTicket' data-kOrder='[[_key]]' data-expanded='0' style='text-align:center;font-size:14pt'><a>Show Ticket</a></div>" );
 
     $sName
         = $kfr->Expand( "[[mail_firstname]] [[mail_lastname]]<br/>[[mail_company]]<br/>" )
