@@ -42,6 +42,9 @@ class QServerMbr extends SEEDQ
         }
 
         switch( $cmd ) {
+            case 'mbr-get':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms );
+                break;
             case 'mbr-search':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrSearch( $raParms );
                 break;
@@ -51,6 +54,46 @@ class QServerMbr extends SEEDQ
 
         done:
         return( $rQ );
+    }
+
+    private $flds = [
+        'firstname', 'lastname',
+        'firstname2','lastname2',
+        'company','dept',
+        'address','city','province','postcode','country',
+        'email','phone',
+        'lang',
+        'startdate','expires','lastrenew',
+        'referral',
+        'comment',
+        'bNoSED',
+        'bNoEBull',
+        'bNoDonorAppeals'
+    ];
+
+    private function mbrGet( $raParms )
+    /**********************************
+        Return the basic information about a given contact
+
+        kMbr : contact key
+     */
+    {
+        $bOk = false;
+        $raOut = array();
+        $sErr = "";
+
+        $kMbr = intval(@$raParms['kMbr']);
+        $raM = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _status='0' AND _key='$kMbr'" );
+        if( @$raM['_key'] ) {
+            $raOut['_key'] = $raM['_key'];
+            foreach( $this->flds as $k ) {
+                $raOut[$k] = $this->QCharSet($raM[$k]);
+            }
+            $bOk = true;
+        }
+
+        done:
+        return( [$bOk, $raOut, $sErr] );
     }
 
 
@@ -99,7 +142,7 @@ class QServerMbr extends SEEDQ
         }
 
         done:
-        return( array($bOk, $raOut, $sErr) );
+        return( [$bOk, $raOut, $sErr] );
     }
 }
 
