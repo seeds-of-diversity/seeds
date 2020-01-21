@@ -2,7 +2,7 @@
 
 /* SEEDEmail
  *
- * Copyright (c) 2018 Seeds of Diversity Canada
+ * Copyright (c) 2018-2020 Seeds of Diversity Canada
  *
  * Send email
  */
@@ -16,7 +16,7 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
  */
 {
     // If this is localhost, just draw the mail on the screen because that's easier in development.
-    $bPretendToSend = (@$_SERVER["SERVER_NAME"] == "localhost");
+    $bPretendToSend = SEED_isLocal;
     // Or uncomment this to send on dev machines (you have to configure your php.ini with an smtp)
     //$bPretendToSend = false;
 
@@ -80,5 +80,3 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
     }
     return( $ok );
 }
-
-?>
