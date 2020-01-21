@@ -4,7 +4,8 @@
 /* Selector tool for choosing a contact from MbrContacts
 
    Usage:
-       let o = new MbrSelector( { idTxtSearch : 'myDummyTxt',
+       let o = new MbrSelector( { urlQ        : 'http://.../q.php',
+                                  idTxtSearch : 'myDummyTxt',
                                   idOutReport : 'myReport',
                                   idOutKey    : 'myMbrKey' } );
 
@@ -31,7 +32,7 @@ class MbrSelector extends SFU_TextComplete
                        lang    : "EN",
                        sSearch : sSearch
                      };
-        let o = SEEDJXSync( urlQ, jxData );
+        let o = SEEDJXSync( this.raConfig['urlQ'], jxData );
         if( !o || !o['bOk'] || !o['raOut'] ) {
             alert( "Sorry there is a server problem" );
         } else {
