@@ -212,6 +212,7 @@ class SEEDXlsWrite
         $c = 'A';
         foreach( $raCols as $dbfield => $label ) {
             $oSheet->setCellValue($c.'1', $label );
+//see SEEDTable for formula to calculate double-char column letters
             $c = chr(ord($c)+1);    // Change A to B, B to C, etc
         }
 
