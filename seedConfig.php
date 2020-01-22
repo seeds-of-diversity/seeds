@@ -57,6 +57,7 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
     $raP = [
         'lang'              => @$raConfig['lang'] ?: 'EN',
         'logdir'            => @$raConfig['logdir'] ?: SEED_LOG_DIR,
+        'urlQ'              => @$raConfig['urlQ'] ?: Q_URL,
         'sessPermsRequired' => @$raConfig['sessPermsRequired'] ?: [],
         'sessUIConfig'      => @$raConfig['sessUIConfig']
                                 // default sessUI requires login, uses the old method temporarily
