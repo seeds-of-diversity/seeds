@@ -779,7 +779,7 @@ class KeyframeRecord
         Store the given array as an urlparm
      */
      {
-// not implemented yet         $s = SEEDCore_ParmsRA2URL( $raParms );
+         $s = SEEDCore_ParmsRA2URL( $raParms );
          $this->SetValue( $fld, $s );
      }
 
