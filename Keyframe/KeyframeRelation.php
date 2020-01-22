@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2019 Seeds of Diversity Canada
+ * Copyright (c) 2006-2020 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
@@ -93,7 +93,7 @@ class KeyFrame_Relation
     function BaseTableFields()          { return( $this->baseTable['Fields'] ); }
     function TablesDef()                { return( $this->kfrdef['Tables'] ); }
 
-    function __construct( KeyframeDatabase $kfdb, $kfrdef, $uid, $raKfrelParms = array() )
+    function __construct( KeyframeDatabase $kfdb, $kfrdef, int $uid, $raKfrelParms = array() )
     /*************************************************************************************
      */
     {
@@ -771,7 +771,7 @@ class KeyframeRecord
         Return an array containing all values in an urlparm
      */
     {
-// not implemented yet        return( SEEDCore_ParmsURL2RA( $this->value($fld) ) );
+        return( SEEDCore_ParmsURL2RA( $this->value($fld) ) );
     }
 
     function UrlParmSetRA( $fld, $raParms )
@@ -1165,6 +1165,7 @@ class KeyframeRecordCursor extends KeyframeRecord
     {
         $ok = false;
         if( $this->IsOpen() && ($ra = $this->kfrel->KFDB()->CursorFetch( $this->dbc )) ) {
+            $this->Clear(); // clear previous record
             $this->LoadValuesFromRA( $ra );
             $ok = true;
         }
