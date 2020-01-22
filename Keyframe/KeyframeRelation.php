@@ -771,7 +771,7 @@ class KeyframeRecord
         Return an array containing all values in an urlparm
      */
     {
-// not implemented yet        return( SEEDCore_ParmsURL2RA( $this->value($fld) ) );
+        return( SEEDCore_ParmsURL2RA( $this->value($fld) ) );
     }
 
     function UrlParmSetRA( $fld, $raParms )
@@ -779,7 +779,7 @@ class KeyframeRecord
         Store the given array as an urlparm
      */
      {
-// not implemented yet         $s = SEEDCore_ParmsRA2URL( $raParms );
+         $s = SEEDCore_ParmsRA2URL( $raParms );
          $this->SetValue( $fld, $s );
      }
 
