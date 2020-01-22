@@ -47,24 +47,27 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
     This function standardizes the global parameters that define the system context, and that must be defined outside of SEEDROOT ( i.e. by code that uses seeds/ )
 
         $config_KFDB[]  array of kfdb connection defs
-        SEED_LOG_DIR    directory where log files should be written
+        SEED_LOG_DIR    directory where log files should be written (if logdir not specified)
  */
 {
     global $config_KFDB;
 
     $db = @$raConfig['db'] ?: 'seeds1';
-    $lang = @$raConfig['lang'] ?: 'EN';
-    $sessPerms = @$raConfig['sessPermsRequired'] ?: array();
-    $sessUIConfig = @$raConfig['sessUIConfig']
-                        // default sessUI requires login, uses the old method temporarily
-                        ?: ['bTmpActivate'=>true, 'bLoginNotRequired'=>false, 'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ];
-    $consoleConfig = @$raConfig['consoleConfig'] ?: array();
 
-    $oApp = new SEEDAppConsole( $config_KFDB[$db]
-                                + [ 'sessPermsRequired' => $sessPerms,
-                                    'sessUIConfig' => $sessUIConfig,
-                                    'consoleConfig' => $consoleConfig,
-                                    'logdir' => SEED_LOG_DIR,
-                                    'lang' => $lang ] );
+    $raP = [
+        'lang'              => @$raConfig['lang'] ?: 'EN',
+        'logdir'            => @$raConfig['logdir'] ?: SEED_LOG_DIR,
+        'sessPermsRequired' => @$raConfig['sessPermsRequired'] ?: [],
+        'sessUIConfig'      => @$raConfig['sessUIConfig']
+                                // default sessUI requires login, uses the old method temporarily
+                                ?: ['bTmpActivate'=>true,
+                                    'bLoginNotRequired'=>false,
+                                    'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ],
+
+        'consoleConfig'     => @$raConfig['consoleConfig'] ?: [],
+    ];
+
+    $oApp = new SEEDAppConsole( $config_KFDB[$db] + $raP );
+
     return( $oApp );
 }
