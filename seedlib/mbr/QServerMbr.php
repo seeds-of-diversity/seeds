@@ -86,6 +86,16 @@ class QServerMbr extends SEEDQ
         'country'    => ['l_en'=>'Country'],
         'email'      => ['l_en'=>'Email'],
         'phone'      => ['l_en'=>'Phone'],
+
+        'lang'       => ['l_en'=>'Language'],
+        'referral'   => ['l_en'=>'Referral'],
+        'bNoEBull'   => ['l_en'=>'No E-bulletin'],
+        'bNoDonorAppeals' => ['l_en'=>'No Donor Appeals'],
+        'expires'    => ['l_en'=>'Expires'],
+        'lastrenew'  => ['l_en'=>'Last Renewal'],
+        'startdate'  => ['l_en'=>'Start Date'],
+        'bNoSED'     => ['l_en'=>'Online MSD'],
+
     ];
 
 
