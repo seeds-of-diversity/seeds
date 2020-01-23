@@ -27,9 +27,6 @@ class QServerMbr extends SEEDQ
                 $rQ['sErr'] = "<p>You do not have permission to change mbr information.</p>";
                 goto done;
             }
-
-            goto done;  // not implemented yet
-
         } else
         if( SEEDCore_StartsWith( $cmd, 'mbr-' ) ) {
             $rQ['bHandled'] = true;
@@ -38,15 +35,33 @@ class QServerMbr extends SEEDQ
                 $rQ['sErr'] = "<p>You do not have permission to read mbr information.</p>";
                 goto done;
             }
-
         }
 
         switch( $cmd ) {
+            // Read
             case 'mbr-get':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms );
                 break;
             case 'mbr-search':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrSearch( $raParms );
+                break;
+            case 'mbr-getFlds':
+                $rQ['raOut'] = $this->raFlds;
+                $rQ['bOk'] = true;
+                break;
+
+            // Write
+            case 'mbr--put':
+//TODO: use a kfrel so we get logging
+                //$this->oApp->kfdb->SetDebug(2);
+                if( ($kMbr = intval(@$raParms['kMbr'])) ) {
+                    $ra = [];
+                    foreach( $this->raFlds as $k => $raDummy ) {
+                        if( isset($raParms[$k]) )  $ra[] = "$k='".addslashes($raParms[$k])."'";
+                    }
+                    $rQ['bOk'] = $this->oApp->kfdb->Execute(
+                                    "UPDATE seeds2.mbr_contacts SET ".implode(',', $ra)." WHERE _key='$kMbr'" );
+                }
                 break;
         }
 
@@ -55,6 +70,23 @@ class QServerMbr extends SEEDQ
         done:
         return( $rQ );
     }
+
+    private $raFlds = [
+        'firstname'  => ['l_en'=>'First name'],
+        'lastname'   => ['l_en'=>'Last name'],
+        'firstname2' => ['l_en'=>'First name 2'],
+        'lastname2'  => ['l_en'=>'Last name 2'],
+        'company'    => ['l_en'=>'Company'],
+        'dept'       => ['l_en'=>'Dept'],
+        'address'    => ['l_en'=>'Address'],
+        'city'       => ['l_en'=>'City'],
+        'province'   => ['l_en'=>'Province'],
+        'postcode'   => ['l_en'=>'Postal code'],
+        'country'    => ['l_en'=>'Country'],
+        'email'      => ['l_en'=>'Email'],
+        'phone'      => ['l_en'=>'Phone'],
+    ];
+
 
     private $flds = [
         'firstname', 'lastname',
