@@ -57,7 +57,8 @@ class QServerMbr extends SEEDQ
                 if( ($kMbr = intval(@$raParms['kMbr'])) ) {
                     $ra = [];
                     foreach( $this->raFlds as $k => $raDummy ) {
-                        if( isset($raParms[$k]) )  $ra[] = "$k='".addslashes($raParms[$k])."'";
+                        $v = $this->bUTF8 ? utf8_decode($raParms[$k]) : $raParms[$k];
+                        if( isset($raParms[$k]) )  $ra[] = "$k='".addslashes($v)."'";
                     }
                     $rQ['bOk'] = $this->oApp->kfdb->Execute(
                                     "UPDATE seeds2.mbr_contacts SET ".implode(',', $ra)." WHERE _key='$kMbr'" );
