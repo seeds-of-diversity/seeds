@@ -55,6 +55,8 @@ class SodOrder
                                                     array("col"=>"eStatus",         "type"=>"S", "default"=>'New'),
                                                     array("col"=>"eStatus2",        "type"=>"I"),
                                                     array("col"=>"dMailed",         "type"=>"S"),
+                                                    array("col"=>"bDoneAccounting", "type"=>"I"),
+                                                    array("col"=>"bDoneRecording",  "type"=>"I"),
                                                     array("col"=>"kBasket",         "type"=>"I"),
                                                     array("col"=>"ePayType",        "type"=>"S", "default"=>'PayPal'),
                                                     array("col"=>"sExtra",          "type"=>"S") )
@@ -112,11 +114,11 @@ class SodOrderFulfilUI extends SodOrderFulfil
         $this->pAction = SEEDInput_Str( 'action' );
 
         // Filters
-        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-mailed",
+        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed",
                                                                        MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED ] )) )
         {
             // "" defaults to either Not-accounted or Not-mailed depending on whom you are
-            $this->fltStatus = $this->oApp->sess->GetUID() == 4879 ? "Not-accounted" : "Not-mailed";
+            $this->fltStatus = $this->oApp->sess->GetUID() == 4879 ? "Not-accounted" : "Not-recorded";
         }
         if( !($this->fltYear = intval($oApp->sess->SmartGPC( 'fltYear', array() ))) ) {
             $this->fltYear = $this->yCurrent;
@@ -139,6 +141,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
              ."<p>Show: "
              .SEEDForm_Select2( 'fltStatus',
                         array( "Not Accounted" => "Not-accounted",
+                               "Not Recorded"  => "Not-recorded",
                                "Not Mailed"    => "Not-mailed",
                                "Filled"        => MBRORDER_STATUS_FILLED,
                                "Cancelled"     => MBRORDER_STATUS_CANCELLED,
@@ -179,7 +182,12 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 break;
             case "Not-accounted":
                 $label = "Non-Accounted";
-                $cond = "eStatus NOT IN ('".MBRORDER_STATUS_FILLED."','".MBRORDER_STATUS_CANCELLED."')";
+                $cond = "eStatus <> '".MBRORDER_STATUS_CANCELLED."' AND bDoneAccounting=0";
+                $bSortDown = false;
+                break;
+            case "Not-recorded":
+                $label = "Non-Recorded";
+                $cond = "eStatus <> '".MBRORDER_STATUS_CANCELLED."' AND bDoneRecording=0";
                 $bSortDown = false;
                 break;
             case "Not-mailed":
@@ -263,7 +271,9 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
     $sFulfilment
         = $this->buttonBuildBasket( $kfr )
-         .$this->showBasket( $kfr );
+         .$this->showBasket( $kfr )
+         .$this->doneAccountingButton( $kfr )
+         .$this->doneRecordingButton( $kfr );
 
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
          ."<td valign='top'>$sOrderNum</td>"
@@ -317,6 +327,36 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
         return( $s );
     }
+
+    private function doneAccountingButton( KeyframeRecord $kfr )
+    /***********************************************************
+     */
+    {
+        $s = "";
+
+        if( $kfr->Value('bDoneAccounting') ) {
+            $s .= "<div>Bookkeeping done</div>";
+        } else {
+            $s .= "<div class='doAccountingDone' data-kOrder='".$kfr->Key()."'><button>Click when bookkeeping done</button></div>";
+        }
+
+        return( $s );
+    }
+    private function doneRecordingButton( KeyframeRecord $kfr )
+    /**********************************************************
+     */
+    {
+        $s = "";
+
+        if( $kfr->Value('bDoneRecording') ) {
+            $s .= "<div>Database record done</div>";
+        } else {
+            $s .= "<div class='doRecordingDone' data-kOrder='".$kfr->Key()."'><button>Click when database record done</button></div>";
+        }
+
+        return( $s );
+    }
+
 
     private function buttonBuildBasket( KeyframeRecord $kfr )
     /********************************************************
