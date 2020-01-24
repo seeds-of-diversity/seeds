@@ -96,6 +96,7 @@ class QServerMbr extends SEEDQ
         'lastrenew'  => ['l_en'=>'Last Renewal'],
         'startdate'  => ['l_en'=>'Start Date'],
         'bNoSED'     => ['l_en'=>'Online MSD'],
+        'bPrintedMSD' => ['l_en'=>'Printed MSD'],
 
     ];
 
