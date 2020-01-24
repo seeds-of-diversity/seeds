@@ -72,7 +72,7 @@ class Events_event
         $location = $this->kfr->ValueEnt("location");
         $title    = $this->GetTitle( $this->kfr );
 
-        $date = $this->_getValue( "date_alt" ) ?: SEEDDateDB2Str( $this->kfr->value("date_start"), $this->lang );
+        $date = $this->_getValue( "date_alt" ) ?: SEEDDateDB2Str( $this->kfr->value("date_start"), $this->oE->oApp->lang );
 
         $s = $city;
         return( $s );
