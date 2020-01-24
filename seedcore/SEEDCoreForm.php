@@ -498,8 +498,9 @@ class SEEDCoreFormElements
             size = char width
             width = css width
             attrs = string of other attrs
-            readonly = write as plain text and encode a HIDDEN control
+            readonly = write as plain text and append a type='hidden' element
             disabled = disabled
+            bAddHidden = append a type='hidden' element; useful only with readonly/disabled
             bPassword = make it a password control
             bBootstrap = use bootstrap classes
             bsCol = bootstrapCol{,bootstrapCol}  for the text field{, and the label}  e.g. "md-4,md-2"
@@ -540,21 +541,28 @@ class SEEDCoreFormElements
         $pAttrs = $p['attrs'];
 
 
-        if( $p['readonly'] )  return( $pValueEnt . $this->Hidden($fld, array('value'=>$pValue)) );
+        if( $p['readonly'] ) {
+            $p['bAddHidden'] = true;
+            $s .= $pValueEnt;
+        } else {
+            if( !empty($label) ) {
+                $labelClass = (@$raParms['bBootstrap'] || $sBSColLabel) ? "class='control-label'" : "";
 
-        if( !empty($label) ) {
-            $labelClass = (@$raParms['bBootstrap'] || $sBSColLabel) ? "class='control-label'" : "";
+                $s .= ($sBSColLabel ? "<div class='$sBSColLabel'>" : "")
+                     ."<label for='$pName' $labelClass>".SEEDCore_NBSP($label)."</label>"
+                     .($sBSColLabel ? "</div>" : "");
+            }
 
-            $s .= ($sBSColLabel ? "<div class='$sBSColLabel'>" : "")
-                 ."<label for='$pName' $labelClass>".SEEDCore_NBSP($label)."</label>"
-                 .($sBSColLabel ? "</div>" : "");
+            $s .= ($sBSCol ? "<div class='$sBSCol'>" : "")
+                 ."<input type='".($p['bPassword'] ? "password" : "text")."' "
+                     .(!$p['bSuppressNameId'] ? "name='$pName' id='$pName' " : "")
+                     ."value='$pValueEnt' $pAttrs />"
+                 .($sBSCol ? "</div>" : "");
+
         }
-
-        $s .= ($sBSCol ? "<div class='$sBSCol'>" : "")
-             ."<input type='".($p['bPassword'] ? "password" : "text")."' "
-                 ."name='$pName' id='$pName' value='$pValueEnt' $pAttrs />"
-             .($sBSCol ? "</div>" : "");
-
+        if( $p['bAddHidden'] ) {
+            $s .= $this->Hidden($fld, ['value'=>$pValue] );
+        }
         return( $s );
     }
 
@@ -868,19 +876,22 @@ class SEEDCoreFormElements
         Call this with $fld=='' and $raStickyParms=array() to normalize raStickyParms.
         Call with per-element parms to get the combination of local+sticky parms.
 
-        name              out  the http name of the given field
-        value        in / out  force value (otherwise it is taken from the oDS or the alternate namespace)
-        valueEnt          out  the HSC of 'value'
-        sfParmType   in / out  get and encode the value in an alternate SF namespace e.g. ctrl_global, ctrl_row
-        classes      in        class(es) to put in the class attr
-        raStyles     in        style(s) to put in the style attr
-        readonly     in / out  write as plain text and encode a HIDDEN control
-        disabled     in        disabled='disabled' is added to the 'attrs'
-        attrs        in / out  attribute string to be inserted into the control element
-        raAttrs      in / out
-        width        in        css value that we put into the style attr
-        height       in        css value that we put into the style attr
-        bPassword    in / out  turn Text controls into password controls
+        name                   out  the http name of the given field
+        value             in / out  force value (otherwise it is taken from the oDS or the alternate namespace)
+        valueEnt               out  the HSC of 'value'
+        sfParmType        in / out  get and encode the value in an alternate SF namespace e.g. ctrl_global, ctrl_row
+        classes           in        class(es) to put in the class attr
+        raStyles          in        style(s) to put in the style attr
+        readonly          in / out  write as plain text and encode a HIDDEN control
+        disabled          in        disabled='disabled' is added to the 'attrs'
+        disabledAddHidden in        element disabled, name/id suppressed, hidden element appended
+        bAddHidden        in / out  indicates that a hidden element should be appended
+        bSuppressNameId   in / out  indicates that the name and id should not be encoded (e.g. because bAddHidden)
+        attrs             in / out  attribute string to be inserted into the control element
+        raAttrs           in / out
+        width             in        css value that we put into the style attr
+        height            in        css value that we put into the style attr
+        bPassword         in / out  turn Text controls into password controls
      */
     {
         $p = array();        // output array
@@ -929,9 +940,10 @@ class SEEDCoreFormElements
         $p['raStyles']  = array_merge( @$this->raStickyParms['raStyles'] ?: array(),
                                        @$raParms['raStyles'] ?: array() );
 
-        // readonly, bPassword : normalized and stored
-        $p['readonly']   = isset($raParms['readonly'])  ? ($raParms['readonly']==true)  : (@$this->raStickyParms['readonly']==true);
-        $p['bPassword']  = isset($raParms['bPassword']) ? ($raParms['bPassword']==true) : (@$this->raStickyParms['bPassword']==true);
+        // boolean settings normalized and passed to output array
+        foreach( ['readonly','bAddHidden','bPassword','bSuppressNameId'] as $v ) {
+            $p[$v] = isset($raParms[$v]) ? ($raParms[$v]==true) : (@$this->raStickyParms[$v]==true);
+        }
 
         // width, height : css values that we add to the style attr
         if( ($w = @$raParms['width']) )  { $p['raStyles']['width'] = $w; }
@@ -939,6 +951,13 @@ class SEEDCoreFormElements
 
         // disabled elements get the disabled='disabled' attr
         if( @$raParms['disabled'] )  $p['raAttrs']['disabled'] = "disabled";
+
+        // since disabled elements don't report values, this combination disables the element and appends a hidden element
+        if( @$raParms['disabledAddHidden'] ) {
+            $p['raAttrs']['disabled'] = "disabled";
+            $p['bAddHidden'] = true;
+            $p['bSuppressNameId'] = true;   // so there aren't two elements with the same name/id
+        }
 
         /* Finish by assembling the attrs, but only if this is being called by an element method
          */

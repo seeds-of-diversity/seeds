@@ -196,7 +196,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
             $ra = $this->oApp->sess->GetNonSessionHttpParms();
             unset($ra[$this->httpCmdParm]);
             foreach( $ra as $k => $v ) {
-                $sHidden .= "<input type='hidden' name='$k' value='".SEEDStd_HSC($v)."'>";
+                $sHidden .= "<input type='hidden' name='$k' value='".SEEDCore_HSC($v)."'>";
             }
         }
 
@@ -321,7 +321,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
             $raVars['hash'] = $hash;
             $raVars['acctUpdateURL'] = $this->MakeURL( 'acctCreateURL' );
         } else {
-            if( $email || $hash || !$this->sess->IsLogin() )  return( "" );
+            if( $email || $hash || !$this->oApp->sess->IsLogin() )  return( "" );
             $raVars = $this->fetchUserDataDb();
             $raVars['acctUpdateURL'] = $this->MakeURL( 'acctUpdateURL' );
         }
@@ -374,7 +374,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
                         );
             if( !($kUser = $this->oAuthDB->CreateUser( $email, $pwd1, $raP )) ||    // create the new user
                 !$this->putUserDataDb( $kUser, $raVars ) ||                         // store the metadata
-                !$this->sess->LoginAsUser( $kUser ) )                               // then login as the new user so Profile does the right thing
+                !$this->oApp->sess->LoginAsUser( $kUser ) )                         // then login as the new user so Profile does the right thing
             {
                 $s = $this->oTmpl->ExpandTmpl( "AccountCreate-1aErr",
                             array('errmsg'=>"An error occurred creating your account. Please try again, or contact <a href='mailto:office@seeds.ca'>office@seeds.ca</a>" ) );
@@ -384,9 +384,9 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
         } else {
             /* Update mode - store the metadata for the current user
              */
-            if( !$this->sess->IsLogin() )  goto done;
+            if( !$this->oApp->sess->IsLogin() )  goto done;
 
-            $this->putUserDataDb( $this->sess->GetUID(), $raVars );
+            $this->putUserDataDb( $this->oApp->sess->GetUID(), $raVars );
         }
 
         $s = $this->GotoURL( $this->MakeURL( 'acctProfileURL' ) );
@@ -397,9 +397,9 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
 
     private function logout()
     {
-        $sUsername = $this->sess->GetUID() ? $this->sess->GetName() : "";   // if not logged in, say "Goodbye" instead of "Goodbye #0"
+        $sUsername = $this->oApp->sess->GetUID() ? $this->oApp->sess->GetName() : "";   // if not logged in, say "Goodbye" instead of "Goodbye #0"
 
-        $this->sess->LogoutSession();
+        $this->oApp->sess->LogoutSession();
 
         return( $this->oTmpl->ExpandTmpl( "AccountLogout", array( 'sUsername' => $sUsername ) ) );
     }
@@ -425,7 +425,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
             goto done;
         }
 
-        $bSuccess = $this->oAuthDB->ChangeUserPassword( $this->sess->GetUID(), $pwd1 );
+        $bSuccess = $this->oAuthDB->ChangeUserPassword( $this->oApp->sess->GetUID(), $pwd1 );
 
         done:
         return( $this->oTmpl->ExpandTmpl( $bSuccess ? "AccountChangePassword-1" : "AccountChangePassword-0", $raVars ) );
@@ -504,7 +504,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
     private function fetchUserDataDb()
     {
         $raUserData = array();
-        $raMD = $this->oAuthDB->GetUserMetadata( $this->sess->GetUID(), false );
+        $raMD = $this->oAuthDB->GetUserMetadata( $this->oApp->sess->GetUID(), false );
 
         $sLivUserid = intval(@$raMD['sliv_userid']) or die( "UserMetadata:sliv_userid is not set" );
         $sLivAccid  = intval(@$raMD['sliv_accid']) or die( "UserMetadata:sliv_accid is not set" );

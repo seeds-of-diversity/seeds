@@ -27,9 +27,6 @@ class QServerMbr extends SEEDQ
                 $rQ['sErr'] = "<p>You do not have permission to change mbr information.</p>";
                 goto done;
             }
-
-            goto done;  // not implemented yet
-
         } else
         if( SEEDCore_StartsWith( $cmd, 'mbr-' ) ) {
             $rQ['bHandled'] = true;
@@ -38,15 +35,34 @@ class QServerMbr extends SEEDQ
                 $rQ['sErr'] = "<p>You do not have permission to read mbr information.</p>";
                 goto done;
             }
-
         }
 
         switch( $cmd ) {
+            // Read
             case 'mbr-get':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms );
                 break;
             case 'mbr-search':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrSearch( $raParms );
+                break;
+            case 'mbr-getFlds':
+                $rQ['raOut'] = $this->raFlds;
+                $rQ['bOk'] = true;
+                break;
+
+            // Write
+            case 'mbr--put':
+//TODO: use a kfrel so we get logging
+                //$this->oApp->kfdb->SetDebug(2);
+                if( ($kMbr = intval(@$raParms['kMbr'])) ) {
+                    $ra = [];
+                    foreach( $this->raFlds as $k => $raDummy ) {
+                        $v = $this->bUTF8 ? utf8_decode($raParms[$k]) : $raParms[$k];
+                        if( isset($raParms[$k]) )  $ra[] = "$k='".addslashes($v)."'";
+                    }
+                    $rQ['bOk'] = $this->oApp->kfdb->Execute(
+                                    "UPDATE seeds2.mbr_contacts SET ".implode(',', $ra)." WHERE _key='$kMbr'" );
+                }
                 break;
         }
 
@@ -56,20 +72,34 @@ class QServerMbr extends SEEDQ
         return( $rQ );
     }
 
-    private $flds = [
-        'firstname', 'lastname',
-        'firstname2','lastname2',
-        'company','dept',
-        'address','city','province','postcode','country',
-        'email','phone',
-        'lang',
-        'startdate','expires','lastrenew',
-        'referral',
-        'comment',
-        'bNoSED',
-        'bNoEBull',
-        'bNoDonorAppeals'
+    private $raFlds = [
+        'firstname'  => ['l_en'=>'First name'],
+        'lastname'   => ['l_en'=>'Last name'],
+        'firstname2' => ['l_en'=>'First name 2'],
+        'lastname2'  => ['l_en'=>'Last name 2'],
+        'company'    => ['l_en'=>'Company'],
+        'dept'       => ['l_en'=>'Dept'],
+        'address'    => ['l_en'=>'Address'],
+        'city'       => ['l_en'=>'City'],
+        'province'   => ['l_en'=>'Province'],
+        'postcode'   => ['l_en'=>'Postal code'],
+        'country'    => ['l_en'=>'Country'],
+        'email'      => ['l_en'=>'Email'],
+        'phone'      => ['l_en'=>'Phone'],
+        'comment'    => ['l_en'=>'Comment'],
+
+        'lang'       => ['l_en'=>'Language'],
+        'referral'   => ['l_en'=>'Referral'],
+        'bNoEBull'   => ['l_en'=>'No E-bulletin'],
+        'bNoDonorAppeals' => ['l_en'=>'No Donor Appeals'],
+        'expires'    => ['l_en'=>'Expires'],
+        'lastrenew'  => ['l_en'=>'Last Renewal'],
+        'startdate'  => ['l_en'=>'Start Date'],
+//      'bNoSED'     => ['l_en'=>'Online MSD'],     obsolete and no longer updated
+        'bPrintedMSD' => ['l_en'=>'Printed MSD'],
+
     ];
+
 
     private function mbrGet( $raParms )
     /**********************************
@@ -86,7 +116,7 @@ class QServerMbr extends SEEDQ
         $raM = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _status='0' AND _key='$kMbr'" );
         if( @$raM['_key'] ) {
             $raOut['_key'] = $raM['_key'];
-            foreach( $this->flds as $k ) {
+            foreach( $this->raFlds as $k =>$raDummy ) {
                 $raOut[$k] = $this->QCharSet($raM[$k]);
             }
             $bOk = true;
