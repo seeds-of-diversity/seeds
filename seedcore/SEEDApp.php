@@ -228,12 +228,22 @@ class SEEDQ
         return( $rQ );
     }
 
-    function QCharset( $s )
-    /**********************
-        Use this on fields that are cp1252: the output will be the charset defined by $this->bUTF8
+    function QCharset( $s ) { return( $this->QCharsetFromLatin( $s ) ); }
+
+    function QCharsetFromLatin( $s )
+    /*******************************
+        Use this when reading from storage in cp1252: the output will be the charset defined by $this->bUTF8
      */
     {
         return( $this->bUTF8 ? utf8_encode( $s ) : $s );
+    }
+
+    function QCharsetToLatin( $s )
+    /*****************************
+        Use this when writing to storage in cp1252: the input is defined by $this->bUTF8
+     */
+    {
+        return( $this->bUTF8 ? utf8_decode($s) : $s );
     }
 
     function GetEmptyRQ()
