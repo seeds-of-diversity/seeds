@@ -7,19 +7,32 @@
  * Contacts Q layer
  */
 
+include_once( "MbrContacts.php" );
+
 class QServerMbr extends SEEDQ
 {
+    private $oMbrContacts;
+
     function __construct( SEEDAppConsole $oApp, $raConfig )
     /******************************************************
      */
     {
         parent::__construct( $oApp, $raConfig );
+        $this->oMbrContacts = new Mbr_Contacts($oApp);
     }
 
     function Cmd( $cmd, $raParms = array() )
     {
         $rQ = $this->GetEmptyRQ();
 
+        if( SEEDCore_StartsWith( $cmd, 'mbr---' ) ) {
+            $rQ['bHandled'] = true;
+
+            if( !$this->oApp->sess->CanAdmin('MBR') ) {
+                $rQ['sErr'] = "<p>You do not have permission to admin mbr information.</p>";
+                goto done;
+            }
+        } else
         if( SEEDCore_StartsWith( $cmd, 'mbr--' ) ) {
             $rQ['bHandled'] = true;
 
@@ -38,32 +51,43 @@ class QServerMbr extends SEEDQ
         }
 
         switch( $cmd ) {
-            // Read
-            case 'mbr-get':
-                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms );
+            /* Read commands
+             */
+            case 'mbr-getFldsBasic':
+                $rQ['raOut'] = $this->oMbrContacts->GetBasicFlds();
+                $rQ['bOk'] = true;
                 break;
-            case 'mbr-search':
-                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrSearch( $raParms );
+            case 'mbr-getFldsOffice':
+                $rQ['raOut'] = $this->oMbrContacts->GetOfficeFlds();
+                $rQ['bOk'] = true;
                 break;
-            case 'mbr-getFlds':
-                $rQ['raOut'] = $this->raFlds;
+            // Read but only accessible by admin
+            case 'mbr---getFldsAll':
+                $rQ['raOut'] = $this->oMbrContacts->GetAllFlds();
                 $rQ['bOk'] = true;
                 break;
 
-            // Write
-            case 'mbr--put':
-//TODO: use a kfrel so we get logging
-                //$this->oApp->kfdb->SetDebug(2);
-                if( ($kMbr = intval(@$raParms['kMbr'])) ) {
-                    $ra = [];
-                    foreach( $this->raFlds as $k => $raDummy ) {
-                        $v = $this->bUTF8 ? utf8_decode($raParms[$k]) : $raParms[$k];
-                        if( isset($raParms[$k]) )  $ra[] = "$k='".addslashes($v)."'";
-                    }
-                    $rQ['bOk'] = $this->oApp->kfdb->Execute(
-                                    "UPDATE seeds2.mbr_contacts SET ".implode(',', $ra)." WHERE _key='$kMbr'" );
-                }
+            case 'mbr-getBasic':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'basic' );
                 break;
+            case 'mbr-getOffice':   // allows different perms access this in the future
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'office' );
+                break;
+            // Read but only accessible by internal code
+            case 'mbr----getAll':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'sensitive' );     // not implemented
+                break;
+
+            case 'mbr-search':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrSearch( $raParms );
+                break;
+
+            /* Write commands
+             */
+            case 'mbr--putBasic':   list($rQ['bOk'],$rQ['sErr']) = $this->mbrPut( $raParms, 'basic' );     break;
+            case 'mbr--putOffice':  list($rQ['bOk'],$rQ['sErr']) = $this->mbrPut( $raParms, 'office' );    break;
+            // only accessible by internal code
+            case 'mbr----putAll':   list($rQ['bOk'],$rQ['sErr']) = $this->mbrPut( $raParms, 'sensitive' ); break;
         }
 
         if( !$rQ['bHandled'] )  $rQ = parent::Cmd( $cmd, $raParms );
@@ -101,9 +125,11 @@ class QServerMbr extends SEEDQ
     ];
 
 
-    private function mbrGet( $raParms )
-    /**********************************
-        Return the basic information about a given contact
+    private function mbrGet( $raParms, $eDetail )
+    /********************************************
+        Return information about a given contact
+
+        eDetail : basic | office | sensitive
 
         kMbr : contact key
      */
@@ -112,12 +138,11 @@ class QServerMbr extends SEEDQ
         $raOut = array();
         $sErr = "";
 
-        $kMbr = intval(@$raParms['kMbr']);
-        $raM = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _status='0' AND _key='$kMbr'" );
-        if( @$raM['_key'] ) {
-            $raOut['_key'] = $raM['_key'];
-            foreach( $this->raFlds as $k =>$raDummy ) {
-                $raOut[$k] = $this->QCharSet($raM[$k]);
+        if( ($kMbr = intval(@$raParms['kMbr'])) && ($kfr = $this->oMbrContacts->oDB->GetKFR('M',$kMbr)) ) {
+            $raOut['_key'] = $kfr->Key();
+            $raFlds = $eDetail=='office' ? $this->oMbrContacts->GetOfficeFlds() : $this->oMbrContacts->GetBasicFlds();  // sensitive not implemented
+            foreach( $raFlds as $k =>$raDummy ) {
+                $raOut[$k] = $this->QCharsetFromLatin($kfr->Value($k));
             }
             $bOk = true;
         }
@@ -173,6 +198,32 @@ class QServerMbr extends SEEDQ
 
         done:
         return( [$bOk, $raOut, $sErr] );
+    }
+
+    private function mbrPut( $raParms, $eDetail )
+    /********************************************
+        Store information about a given contact
+
+        eDetail : basic | office | sensitive
+
+        kMbr : contact key
+
+        N.B. This method will only update a mbr_contact, not create one.
+     */
+    {
+        $bOk = false;
+        $sErr = "";
+
+        if( ($kMbr = intval(@$raParms['kMbr'])) && ($kfr = $this->oMbrContacts->oDB->GetKFR('M',$kMbr)) ) {     // CreateRecord not supported
+            $raFlds = $eDetail=='office' ? $this->oMbrContacts->GetOfficeFlds() : $this->oMbrContacts->GetBasicFlds();  // sensitive not implemented
+            foreach( $raFlds as $k =>$raDummy ) {
+                if( isset($raParms[$k]) )  $kfr->SetValue($k, $this->QCharsetToLatin($raParms[$k]));
+            }
+            $bOk = $kfr->PutDBRow();
+        }
+
+        done:
+        return( [$bOk, $sErr] );
     }
 }
 
