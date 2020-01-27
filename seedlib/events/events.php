@@ -16,6 +16,7 @@ class EventsLib
 
 class Events_event
 {
+    private $oE;
     private $kfr = null;
 
     function __construct( EventsLib $oE, $kEvent )
@@ -149,5 +150,17 @@ class Events_event
         }
 
 
+    }
+
+    function GetVolunteerLine()
+    {
+        $s = "";
+
+        if( $this->kfr ) {
+            $raMbrVol = ($kVol = $this->kfr->Value('vol_kMbr')) ? $this->oE->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kVol'" ) : [];
+            $s .= @$raMbrVol['_key'] ? "{$raMbrVol['firstname']} {$raMbrVol['lastname']} in {$raMbrVol['city']} ({$raMbrVol['_key']})" : "";
+        }
+
+        return( $s );
     }
 }
