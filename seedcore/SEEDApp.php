@@ -122,11 +122,13 @@ class SEEDAppConsole extends SEEDAppSessionAccount
 //  public $sess is inherited
     public $oC;
     private $fnPathToSelf = null;
+    private $urlQ = '';
 
     function __construct( $raConfig )
     {
         parent::__construct( $raConfig );
         if( isset($raConfig['fnPathToSelf']) )  $this->fnPathToSelf = $raConfig['fnPathToSelf'];
+        $this->urlQ = @$raConfig['urlQ'];
 
         $this->oC = new Console02( $this, @$raConfig['consoleConfig'] ?: array() ); // Console02 and SEEDAppConsole are circularly referenced
     }
@@ -147,6 +149,8 @@ class SEEDAppConsole extends SEEDAppSessionAccount
         }
         return( $s );
     }
+
+    function UrlQ()  { return( $this->urlQ ); }
 }
 
 class SEEDApp_Worker
@@ -224,12 +228,22 @@ class SEEDQ
         return( $rQ );
     }
 
-    function QCharset( $s )
-    /**********************
-        Use this on fields that are cp1252: the output will be the charset defined by $this->bUTF8
+    function QCharset( $s ) { return( $this->QCharsetFromLatin( $s ) ); }
+
+    function QCharsetFromLatin( $s )
+    /*******************************
+        Use this when reading from storage in cp1252: the output will be the charset defined by $this->bUTF8
      */
     {
         return( $this->bUTF8 ? utf8_encode( $s ) : $s );
+    }
+
+    function QCharsetToLatin( $s )
+    /*****************************
+        Use this when writing to storage in cp1252: the input is defined by $this->bUTF8
+     */
+    {
+        return( $this->bUTF8 ? utf8_decode($s) : $s );
     }
 
     function GetEmptyRQ()
