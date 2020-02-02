@@ -597,7 +597,7 @@ function SEEDPRG()
    Implement the Post, Redirect, Get paradigm for submitting forms.
    The purpose of this is to prevent the possibility of a user re-posting a form by reloading a page after a submit.
 
-   Usage: Call this near the top of your script.
+   Usage: Call this near the top of your script.  Make sure you've created a session first.
           If it returns true, process the contents of $_POST.
           Or you can ignore the return value and just check whether $_POST isn't empty.
  */
