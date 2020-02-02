@@ -56,11 +56,13 @@
 .console02-tabset-controlarea {
         background-color:var(--ts-bgcolor);
         border-radius: 15px 15px 0px 0px;
+        padding:10px;
 }
 
 .console02-tabset-contentarea {
         border:1px solid var(--ts-bgcolor);
         border-radius: 0px 0px 15px 15px;
+        padding:10px;
 }
 
 

@@ -283,7 +283,7 @@ private $_lastType = "";
             'SALAD BURNET' => array( 'FR' => 'Sanguisorba pimprenelle' ),
             'SORREL' => array( 'FR' => 'Oseille' ),
             "ST. JOHN'S WORT" => array( 'FR' => 'Millepertuis' ),
-            'SUMMER SAVORY' => array( 'FR' => 'Sarriette' ),
+            'SUMMER SAVORY' => array( 'FR' => "Sarriette d'&eacute;t&eacute;" ),
             'SWEET CICELY' => array( 'FR' => 'Cerfeuil musqu&eacute;' ),
             'TANSY' => array( 'FR' => 'Tanasie' ),
             'TEASEL' => array( 'FR' => 'Card&egrave;re cultiv&eacute;e' ),
