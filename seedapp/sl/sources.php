@@ -138,9 +138,10 @@ class MyConsole02TabSet extends Console02TabSet
         // ListDrawInteractive() is smart enough to  use that slice but only if you set iViewOffset and nViewSize
         // to tell it the context of the slice. There's probably a better way to encapsulate a ViewSlice using what oComp already knows.
         list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
-        $raListParms['iViewOffset'] = $this->oComp->Get_iWindowOffset();
-        $raListParms['nViewSize'] = $oView->GetNumRows();
-        $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
+        $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
+        $oViewWindow->SetViewSlice( $raWindowRows, ['iViewSliceOffset' => $this->oComp->Get_iWindowOffset(),
+                                                    'nViewSize' => $oView->GetNumRows()] );
+        $sList = $oList->ListDrawInteractive( $oViewWindow, $raListParms );
 
         $sForm = $oForm->Draw();
 

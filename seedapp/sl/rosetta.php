@@ -138,7 +138,7 @@ class MyConsole02TabSet extends Console02TabSet
         $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
         $oViewWindow->SetViewSlice( $raWindowRows, ['iViewSliceOffset' => $this->oComp->Get_iWindowOffset(),
                                                     'nViewSize' => $oView->GetNumRows()] );
-        $sList = $this->oList->ListDrawInteractive( $raWindowRows, $oViewWindow, $raListParms );
+        $sList = $this->oList->ListDrawInteractive( $oViewWindow, $raListParms );
 
         $sForm = $this->oForm->Draw();
 

@@ -487,17 +487,9 @@ $raListParms['nViewSize'] = $oView->GetNumRows();
 $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
 */
 
-    function ListDrawInteractive( $raViewRows, SEEDUIComponent_ViewWindow $oViewWindow, $raParms )
-    /****************************************************
+    function ListDrawInteractive( SEEDUIComponent_ViewWindow $oViewWindow, $raParms )
+    /********************************************************************************
         Draw a list widget for a given Window on a given View of rows in an array.
-
-        $raViewRows               = a [portion of] rows of a View
-                                    if not the complete view, specify iViewOffset and nViewSize
-                                    array of array( 'k1'=>'v1', 'k2'=>'v2' )
-                                    Rows are in display order, cols are not ordered (selected by raParms['cols']
-
-        $raConfig (set at constructor):
-            bUse_key              = activate the use of keys on rows: input and output kCurr uiParm, calculate iCurr/kCurr from each other
 
         $raParms:
             iViewOffset           = origin-0 row of the view that corresponds to the first element of raViewRows
