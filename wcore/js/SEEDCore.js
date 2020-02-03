@@ -40,6 +40,39 @@ function SEEDJXAsync( jxUrl, jxData, fnSuccess, fnError )
     });
 }
 
+function SEEDJXAsync2( jxUrl, jxData, fnSuccess, fnError = null )
+/****************************************************************
+    Post an ajax request to the given url, set handler functions for success or error and return immediately
+ */
+{
+    if( !fnError ) {
+        fnError = function(jqXHR, textStatus, errorThrown) {
+                      if( SEEDJX_bDebug ) {
+                          console.log(errorThrown);
+                          //alert(jqXHR);
+                          //alert(textStatus);
+                      }
+                  }
+    }
+    
+    $.ajax({
+        type: "POST",
+        async: true,
+        url: jxUrl,
+        data: jxData,
+        //dataType: "json",
+        
+        // This gets response data from .ajax, parses it and passes a Q object to the fnSuccess. Write your fnSuccess to receive a Q object.
+        // To debug the server, put die("whatever") in the server code and set SEEDJX_bDebug so "whatever" will appear in the console
+        success: function(data) {
+            if( SEEDJX_bDebug ) console.log("data="+data);
+            o = SEEDJX_ParseJSON(data);
+            fnSuccess(o);
+        },
+        error: fnError
+    });
+}
+
 function SEEDJXSync( jxUrl, jxData )
 /*********************************
     Post an ajax request to the given url, wait for the server, and return the response

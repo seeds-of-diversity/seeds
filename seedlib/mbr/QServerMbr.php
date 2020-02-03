@@ -96,6 +96,7 @@ class QServerMbr extends SEEDQ
         return( $rQ );
     }
 
+/* Moved to Mbr_Contacts
     private $raFlds = [
         'firstname'  => ['l_en'=>'First name'],
         'lastname'   => ['l_en'=>'Last name'],
@@ -123,7 +124,7 @@ class QServerMbr extends SEEDQ
         'bPrintedMSD' => ['l_en'=>'Printed MSD'],
 
     ];
-
+*/
 
     private function mbrGet( $raParms, $eDetail )
     /********************************************
