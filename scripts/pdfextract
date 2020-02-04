@@ -1,0 +1,15 @@
+# pdfextract - copy a range of pages from a pdf to a new file
+
+if [ ! -n "$3" ]
+then
+    echo "$0 inputfile nPageFrom nPageTo   # writes to xOut.pdf" 
+    exit
+fi
+
+
+INFILE=$1
+PAGEFROM=$2
+PAGETO=$3
+
+
+gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=$PAGEFROM -dLastPage=$PAGETO -sOutputFile=xOut.pdf -f "$INFILE"
