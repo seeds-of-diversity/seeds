@@ -125,10 +125,6 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_main_species_ContentDraw()
     {
-
-        // GetViewWindow() uses Get_iWindowOffset() to get a ViewSlice starting at the window offset.
-        // ListDrawInteractive() is smart enough to  use that slice but only if you set iViewOffset and nViewSize
-        // to tell it the context of the slice. There's probably a better way to encapsulate a ViewSlice using what oComp already knows.
         list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
         $raListParms = [          // variables that might be computed or altered during state computation
             'iViewOffset' => $this->oComp->Get_iWindowOffset(),
