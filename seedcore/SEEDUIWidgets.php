@@ -480,24 +480,12 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         return( $s );
     }
 
-/*
-list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
-$raListParms['iViewOffset'] = $this->oComp->Get_iWindowOffset();
-$raListParms['nViewSize'] = $oView->GetNumRows();
-$sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
-*/
-
     function ListDrawInteractive( SEEDUIComponent_ViewWindow $oViewWindow, $raParms )
     /********************************************************************************
         Draw a list widget for a given Window on a given View of rows in an array.
 
         $raParms:
-            iViewOffset           = origin-0 row of the view that corresponds to the first element of raViewRows
-            nViewSize             = size of View, optional if $raViewRows contains the full view, required if raViewRows is NULL or partial
-            iWindowOffset         = top View index that appears in the window, optional (default 0)
             nWindowSize           = number of rows to draw in the window (default 10)
-            iCurr                 = View index of the current row, optional (default 0) -- -1 = no current row, -2 = current row out of ViewSlice
-
             cols                  = as ListDrawBasic
             tableWidth            = as ListDrawBasic
             fnRowTranslate        = as ListDrawBasic
@@ -516,8 +504,6 @@ $raParms = array_merge( $this->raConfig, $raParms );
         // uiparms overrides raParms overrides default
         if( !$this->oComp->Get_nWindowSize() )  $this->oComp->Set_nWindowSize( @$raParms['nWindowSize'] ?: 10 );
         $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
-
-        $iViewOffset = intval(@$raParms['iViewOffset']);
 
         $nWindowRowsAbove = $oViewWindow->RowsAboveWindow();
         $nWindowRowsBelow = $oViewWindow->RowsBelowWindow();
