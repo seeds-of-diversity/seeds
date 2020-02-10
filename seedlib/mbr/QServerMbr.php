@@ -2,7 +2,7 @@
 
 /* QServerMbr
  *
- * Copyright 2019 Seeds of Diversity Canada
+ * Copyright 2019-2020 Seeds of Diversity Canada
  *
  * Contacts Q layer
  */
@@ -53,6 +53,8 @@ class QServerMbr extends SEEDQ
         switch( $cmd ) {
             /* Read commands
              */
+            /* Get the lists of fields pertaining to certain categories of readers
+             */
             case 'mbr-getFldsBasic':
                 $rQ['raOut'] = $this->oMbrContacts->GetBasicFlds();
                 $rQ['bOk'] = true;
@@ -67,15 +69,24 @@ class QServerMbr extends SEEDQ
                 $rQ['bOk'] = true;
                 break;
 
+            /* Get data for one contact
+             */
             case 'mbr-getBasic':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'basic' );
                 break;
             case 'mbr-getOffice':   // allows different perms access this in the future
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'office' );
                 break;
-            // Read but only accessible by internal code
-            case 'mbr----getAll':
+            // Requires read permission but only accessible by internal code
+            case 'mbr-!-getAll':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'sensitive' );     // not implemented
+                break;
+
+            /* Get a list of contact data, filtered by lots of parameters
+             */
+            // Requires read permission but only accessible by internal code
+            case 'mbr-!-getListOffice':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sOut'],$rQ['sErr']) = $this->mbrGetList( $raParms, 'office' );
                 break;
 
             case 'mbr-search':
@@ -152,6 +163,62 @@ class QServerMbr extends SEEDQ
         return( [$bOk, $raOut, $sErr] );
     }
 
+    private function mbrGetList( $raParms, $eDetail )
+    /************************************************
+        Return a list of contacts' information
+
+        eDetail : basic | office | sensitive
+
+        raParms:
+            bExistsEmail:   only if email<>''
+            bExistsAddress: only if address/city/postcode <> ''
+            bEbulletin:     only if ebulletin subscribed
+            yExpiresIn:     membership expires in given year
+            yExpiresSince:  membership expires in given year or later
+     */
+    {
+        $bOk = false;
+        $raOut = array();
+        $sOut = "";
+        $sErr = "";
+
+        $raCond = [];
+
+        if( @$raParms['bExistsEmail'] ) {
+            $raCond[] = "(email IS NOT NULL AND email<>'')";
+        }
+        if( @$raParms['bExistsAddress'] ) {
+            $raCond[] = "(address IS NOT NULL AND address<>'' AND "
+                        ."city IS NOT NULL AND city<>'' AND "
+                        ."postcode IS NOT NULL AND postcode<>'')";
+        }
+        if( @$raParms['bEbulletin'] ) {
+            $raCond[] = "bNoEBull='0'";
+        }
+
+        // Expiry parms are disjunctive
+        $raExpiry = [];
+        if( ($p = intval(@$raParms['yExpiresIn'])) )  { $raExpiry[] = "year(expires)='$p'"; }
+        if( ($p = intval(@$raParms['yExpiresSince'])) ) { $raExpiry[] = "year(expires)>='$p'"; }
+        if( $raExpiry ) $raCond[] = "(".implode( ' OR ', $raExpiry ).")";
+
+        $sCond = implode(' AND ', $raCond );
+
+        if( ($kfrc = $this->oMbrContacts->oDB->GetKFRC('M', $sCond)) ) {
+            while( $kfrc->CursorFetch() ) {
+                $ra = ['_key' => $kfrc->Key()];
+                $raFlds = $eDetail=='office' ? $this->oMbrContacts->GetOfficeFlds() : $this->oMbrContacts->GetBasicFlds();  // sensitive not implemented
+                foreach( $raFlds as $k =>$raDummy ) {
+                    $ra[$k] = $this->QCharsetFromLatin($kfrc->Value($k));
+                }
+                $raOut[] = $ra;
+            }
+            $bOk = true;
+        }
+
+        done:
+        return( [$bOk, $raOut, "GetList:$sCond", $sErr] );
+    }
 
     private function mbrSearch( $raParms )
     /*************************************
