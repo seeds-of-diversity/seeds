@@ -442,6 +442,7 @@ class SEEDCoreFormElements
     public function Value( $k )    { return( $this->sfValue( $k ) ); }
     public function ValueEnt( $k ) { return( $this->sfValueEnt( $k ) ); }
     public function ValueDB( $k )  { return( addslashes( $this->sfValue( $k ) ) ); }
+    public function ValueInt( $k ) { return( intval($this->sfValue( $k )) ); }
     public function SetValue( $k, $v ) { return( $this->sfSetValue( $k, $v ) ); }
 
     protected function sfValue( $k )     { return( NULL ); }    // Must override this in a derived class to get real parms from data storage (e.g. session vars, KFRecord)
