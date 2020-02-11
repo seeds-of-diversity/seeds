@@ -170,10 +170,12 @@ class QServerMbr extends SEEDQ
         eDetail : basic | office | sensitive
 
         raParms:
-            bExistsEmail:   only if email<>''
-            bExistsAddress: only if address/city/postcode <> ''
-            bEbulletin:     only if ebulletin subscribed
-            yMbrExpires:    comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
+            bExistsEmail   : only if email<>''
+            bExistsAddress : only if address/city/postcode <> ''
+            bEbulletin     : only if ebulletin subscribed
+            bPrintedMSD    : only if they receive the printed MSD
+            yMbrExpires    : comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
+            lang           : filter by language {EN,FR,default both/any}
      */
     {
         $bOk = false;
@@ -193,6 +195,9 @@ class QServerMbr extends SEEDQ
         }
         if( @$raParms['bEbulletin'] ) {
             $raCond[] = "bNoEBull='0'";
+        }
+        if( @$raParms['bPrintedMSD'] ) {
+            $raCond[] = "bPrintedMSD='1'";
         }
 
         if( ($p = @$raParms['yMbrExpires']) && ($ra = explode(',',$p))) {
@@ -216,6 +221,11 @@ class QServerMbr extends SEEDQ
             if( $sExp ) $raCond[] = "($sExp)";
         }
 
+        if( ($p = SEEDCore_ArraySmartVal( $raParms, 'lang', ['','EN','FR'] )) ) {
+            $p = addslashes(substr($p,0,1));        // E or F
+            $raCond[] = "lang in ('','B','$p')";    // '' or B means they want both so any input will match them
+        }
+
         $sCond = implode(' AND ', $raCond );
 
         if( ($kfrc = $this->oMbrContacts->oDB->GetKFRC('M', $sCond)) ) {
@@ -231,7 +241,7 @@ class QServerMbr extends SEEDQ
         }
 
         done:
-        return( [$bOk, $raOut, "GetList:$sCond", $sErr] );
+        return( [$bOk, $raOut, "GetList: $sCond", $sErr] );
     }
 
     private function mbrSearch( $raParms )
