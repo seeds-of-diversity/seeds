@@ -1,0 +1,13 @@
+# pdfjoin - join several pdf files together
+
+if [ ! -n "$1" ]
+then
+    echo "$0 \"file1.pdf file2.pdf...\"    # output is xOut.pdf  # be sure to quote the files so they are one argument" 
+    exit
+fi
+
+
+INFILES=$1
+
+
+gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile=xOut.pdf $INFILES

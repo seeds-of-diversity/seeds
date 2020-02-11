@@ -163,7 +163,17 @@
 
             let id = $(this).attr("id");
             let kP = id.substring(4);
-            $(".msd-order-info-"+kP).slideDown(500);
+            
+            $.get( qUrl+"?cmd=msdOrderInfo", { kP : kP } )
+            .done(function( data ) {
+                if( data ) {
+                    let rQ = ( window.JSON && window.JSON.parse && data ? window.JSON.parse(data) : eval(data) );
+                    if( rQ['bOk'] ) {
+                        $(".msd-order-info-"+kP).html(rQ['sOut']);
+                        $(".msd-order-info-"+kP).slideDown(500);
+                    }
+                }
+            });
         });
 
         showInstructions();
