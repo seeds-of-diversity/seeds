@@ -173,8 +173,7 @@ class QServerMbr extends SEEDQ
             bExistsEmail:   only if email<>''
             bExistsAddress: only if address/city/postcode <> ''
             bEbulletin:     only if ebulletin subscribed
-            yExpiresIn:     membership expires in given year
-            yExpiresSince:  membership expires in given year or later
+            yMbrExpires:    comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
      */
     {
         $bOk = false;
@@ -196,11 +195,26 @@ class QServerMbr extends SEEDQ
             $raCond[] = "bNoEBull='0'";
         }
 
-        // Expiry parms are disjunctive
-        $raExpiry = [];
-        if( ($p = intval(@$raParms['yExpiresIn'])) )  { $raExpiry[] = "year(expires)='$p'"; }
-        if( ($p = intval(@$raParms['yExpiresSince'])) ) { $raExpiry[] = "year(expires)>='$p'"; }
-        if( $raExpiry ) $raCond[] = "(".implode( ' OR ', $raExpiry ).")";
+        if( ($p = @$raParms['yMbrExpires']) && ($ra = explode(',',$p))) {
+            // comma separated years of membership expiry with optional '+' to indicate greater-equal e.g. 2018,2020+
+            $sGE = "";
+            $raY = [];
+            foreach( $ra as $y ) {
+                if( substr($y,-1,1) == '+' ) {
+                    $sGE = substr($y,0,4);    // greater than or equal to this year (assuming only one such year given)
+                } else {
+                    $raY[] = $y;
+                }
+            }
+            // year conditions are disjunctive
+            $sExp = "";
+            if( $sGE ) $sExp .= "YEAR(expires)>='".addslashes($sGE)."'";
+            if( $raY ) {
+                if( $sExp ) $sExp .= " OR ";
+                $sExp .= "YEAR(expires) IN (".addslashes(implode(',',$raY)).")";
+            }
+            if( $sExp ) $raCond[] = "($sExp)";
+        }
 
         $sCond = implode(' AND ', $raCond );
 
