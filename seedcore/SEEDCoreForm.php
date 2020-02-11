@@ -710,6 +710,8 @@ class SEEDCoreFormElements
                    disabled=>1
      */
     {
+        if( $value ) $value = strval($value);   // for purposes of determining SELECTED, '' should match 0 but '20+' should not match 20 (it does)
+
 //TODO : get the standardized 'value' using stdParms() instead of using sfValue - so this control can be used in ctrl_global,ctrl_row
         $attrs = (@$raParms['selected'] || $this->sfValue($fld)==$value) ? " SELECTED" : "";
         if( @$raParms['disabled'] )  $attrs .= " disabled";
