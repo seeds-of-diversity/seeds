@@ -2,13 +2,16 @@
 
 /* SEEDUI.php
  *
- * Copyright (c) 2013-2018 Seeds of Diversity Canada
+ * Copyright (c) 2013-2020 Seeds of Diversity Canada
  *
  * Classes that manage control parms for forms, UI components, and SEEDForms.
  *
  * SEEDUI
  *     Knows the list of Components registered in the UI.
  *     Stores persistent UI parms for all Components to simplify storage (derived classes can use e.g. session vars)
+ *
+ * SEEDUI_Session
+ *     A convenient derivation of SEEDUI that stores UI parms in a session namespace
  *
  * SEEDUIComponent( SEEDUI )
  *     Knows about a View on an abstract data relation, and uses a SEEDForm to update row(s) in the View.
@@ -219,6 +222,27 @@ class SEEDUI
         return( $raP );
     }
 }
+
+class SEEDUI_Session extends SEEDUI
+/*******************
+    SEEDUI exposes current uiParms and previous uiParms to each Widget so they can decide what to do wrt those changes.
+    However it has no mechanism for storing previous uiParms. This derivation uses a session namespace to store uiParms between page loads.
+ */
+{
+    private $oSVA;
+
+    function __construct( SEEDSession $sess, $sApplication )
+    {
+        parent::__construct();
+        $this->oSVA = new SEEDSessionVarAccessor( $sess, 'seedui-'.$sApplication );
+    }
+
+    // override SEEDUI methods to implement session-based uiParm storage
+    function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
+    function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
+    function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
+}
+
 
 class SEEDUIComponent
 /********************
