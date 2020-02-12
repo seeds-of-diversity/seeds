@@ -2,7 +2,7 @@
 
 /* QServerMbr
  *
- * Copyright 2019 Seeds of Diversity Canada
+ * Copyright 2019-2020 Seeds of Diversity Canada
  *
  * Contacts Q layer
  */
@@ -53,6 +53,8 @@ class QServerMbr extends SEEDQ
         switch( $cmd ) {
             /* Read commands
              */
+            /* Get the lists of fields pertaining to certain categories of readers
+             */
             case 'mbr-getFldsBasic':
                 $rQ['raOut'] = $this->oMbrContacts->GetBasicFlds();
                 $rQ['bOk'] = true;
@@ -67,15 +69,24 @@ class QServerMbr extends SEEDQ
                 $rQ['bOk'] = true;
                 break;
 
+            /* Get data for one contact
+             */
             case 'mbr-getBasic':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'basic' );
                 break;
             case 'mbr-getOffice':   // allows different perms access this in the future
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'office' );
                 break;
-            // Read but only accessible by internal code
-            case 'mbr----getAll':
+            // Requires read permission but only accessible by internal code
+            case 'mbr-!-getAll':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'sensitive' );     // not implemented
+                break;
+
+            /* Get a list of contact data, filtered by lots of parameters
+             */
+            // Requires read permission but only accessible by internal code
+            case 'mbr-!-getListOffice':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sOut'],$rQ['sErr']) = $this->mbrGetList( $raParms, 'office' );
                 break;
 
             case 'mbr-search':
@@ -152,6 +163,84 @@ class QServerMbr extends SEEDQ
         return( [$bOk, $raOut, $sErr] );
     }
 
+    private function mbrGetList( $raParms, $eDetail )
+    /************************************************
+        Return a list of contacts' information
+
+        eDetail : basic | office | sensitive
+
+        raParms:
+            bExistsEmail     : only if email<>''
+            bExistsAddress   : only if address/city/postcode <> ''
+            bGetEbulletin    : only if ebulletin subscribed
+            bGetPrintedMSD   : only if they receive the printed MSD
+            bGetDonorAppeals : only if they accept donor appeals
+            yMbrExpires      : comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
+            lang             : filter by language {EN,FR,default both/any}
+     */
+    {
+        $bOk = false;
+        $raOut = array();
+        $sOut = "";
+        $sErr = "";
+
+        $raCond = [];
+
+        if( @$raParms['bExistsEmail'] ) {
+            $raCond[] = "(email IS NOT NULL AND email<>'')";
+        }
+        if( @$raParms['bExistsAddress'] ) {
+            $raCond[] = "(address IS NOT NULL AND address<>'' AND "
+                        ."city IS NOT NULL AND city<>'' AND "
+                        ."postcode IS NOT NULL AND postcode<>'')";
+        }
+        if( @$raParms['bGetEbulletin'] )    { $raCond[] = "bNoEBull='0'"; }
+        if( @$raParms['bGetPrintedMSD'] )   { $raCond[] = "bPrintedMSD='1'"; }
+        if( @$raParms['bGetDonorAppeals'] ) { $raCond[] = "bNoDonorAppeals='0'"; }
+
+        if( ($p = @$raParms['yMbrExpires']) && ($ra = explode(',',$p))) {
+            // comma separated years of membership expiry with optional '+' to indicate greater-equal e.g. 2018,2020+
+            $sGE = "";
+            $raY = [];
+            foreach( $ra as $y ) {
+                if( substr($y,-1,1) == '+' ) {
+                    $sGE = substr($y,0,4);    // greater than or equal to this year (assuming only one such year given)
+                } else {
+                    $raY[] = $y;
+                }
+            }
+            // year conditions are disjunctive
+            $sExp = "";
+            if( $sGE ) $sExp .= "YEAR(expires)>='".addslashes($sGE)."'";
+            if( $raY ) {
+                if( $sExp ) $sExp .= " OR ";
+                $sExp .= "YEAR(expires) IN (".addslashes(implode(',',$raY)).")";
+            }
+            if( $sExp ) $raCond[] = "($sExp)";
+        }
+
+        if( ($p = SEEDCore_ArraySmartVal( $raParms, 'lang', ['','EN','FR'] )) ) {
+            $p = addslashes(substr($p,0,1));        // E or F
+            $raCond[] = "lang in ('','B','$p')";    // '' or B means they want both so any input will match them
+        }
+
+        $sCond = implode(' AND ', $raCond );
+
+        if( ($kfrc = $this->oMbrContacts->oDB->GetKFRC('M', $sCond)) ) {
+            while( $kfrc->CursorFetch() ) {
+                $ra = ['_key' => $kfrc->Key()];
+                $raFlds = $eDetail=='office' ? $this->oMbrContacts->GetOfficeFlds() : $this->oMbrContacts->GetBasicFlds();  // sensitive not implemented
+                foreach( $raFlds as $k =>$raDummy ) {
+                    $ra[$k] = $this->QCharsetFromLatin($kfrc->Value($k));
+                }
+                $raOut[] = $ra;
+            }
+            $bOk = true;
+        }
+
+        done:
+        return( [$bOk, $raOut, "GetList: $sCond", $sErr] );
+    }
 
     private function mbrSearch( $raParms )
     /*************************************

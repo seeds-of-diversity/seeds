@@ -59,7 +59,9 @@ class MbrSelector extends SFU_TextComplete
 
     makelabel( r )
     {
-        let l = r['firstname']+" "+r['lastname']+" ("+r['_key']+")";
+        let l = r['firstname']+" "+r['lastname'];
+        if( !l.trim() ) l = r['company'];            // if there is no firstname or lastname show company instead - trim because of the " "
+        l += " ("+r['_key']+")";
         if( r['city'] )  l += " in "+r['city'];
         return( l );
     }
