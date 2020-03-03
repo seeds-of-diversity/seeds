@@ -170,12 +170,13 @@ class QServerMbr extends SEEDQ
         eDetail : basic | office | sensitive
 
         raParms:
-            bExistsEmail   : only if email<>''
-            bExistsAddress : only if address/city/postcode <> ''
-            bEbulletin     : only if ebulletin subscribed
-            bPrintedMSD    : only if they receive the printed MSD
-            yMbrExpires    : comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
-            lang           : filter by language {EN,FR,default both/any}
+            bExistsEmail     : only if email<>''
+            bExistsAddress   : only if address/city/postcode <> ''
+            bGetEbulletin    : only if ebulletin subscribed
+            bGetPrintedMSD   : only if they receive the printed MSD
+            bGetDonorAppeals : only if they accept donor appeals
+            yMbrExpires      : comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
+            lang             : filter by language {EN,FR,default both/any}
      */
     {
         $bOk = false;
@@ -193,12 +194,9 @@ class QServerMbr extends SEEDQ
                         ."city IS NOT NULL AND city<>'' AND "
                         ."postcode IS NOT NULL AND postcode<>'')";
         }
-        if( @$raParms['bEbulletin'] ) {
-            $raCond[] = "bNoEBull='0'";
-        }
-        if( @$raParms['bPrintedMSD'] ) {
-            $raCond[] = "bPrintedMSD='1'";
-        }
+        if( @$raParms['bGetEbulletin'] )    { $raCond[] = "bNoEBull='0'"; }
+        if( @$raParms['bGetPrintedMSD'] )   { $raCond[] = "bPrintedMSD='1'"; }
+        if( @$raParms['bGetDonorAppeals'] ) { $raCond[] = "bNoDonorAppeals='0'"; }
 
         if( ($p = @$raParms['yMbrExpires']) && ($ra = explode(',',$p))) {
             // comma separated years of membership expiry with optional '+' to indicate greater-equal e.g. 2018,2020+

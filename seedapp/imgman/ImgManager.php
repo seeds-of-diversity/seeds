@@ -151,8 +151,10 @@ class SEEDAppImgManager
                 if( $this->bShowOnlyIncomplete ) {
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
                     if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
+                    if( count($raExts)==1 && isset($raExts['webp']) )  continue;    // assume that webp are already reduced and scaled 
+                                                                                    // (this is a temporary assumption that will not make sense some day, especially because webp are often better compressed than jpg)
                     if( count($raExts)==1 &&
-                        (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) || isset($raExts['webp'])) &&
+                        (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) ) &&
                         substr($filebase,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
                 }
 

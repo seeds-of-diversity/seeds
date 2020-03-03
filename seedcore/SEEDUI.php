@@ -2,13 +2,16 @@
 
 /* SEEDUI.php
  *
- * Copyright (c) 2013-2018 Seeds of Diversity Canada
+ * Copyright (c) 2013-2020 Seeds of Diversity Canada
  *
  * Classes that manage control parms for forms, UI components, and SEEDForms.
  *
  * SEEDUI
  *     Knows the list of Components registered in the UI.
  *     Stores persistent UI parms for all Components to simplify storage (derived classes can use e.g. session vars)
+ *
+ * SEEDUI_Session
+ *     A convenient derivation of SEEDUI that stores UI parms in a session namespace
  *
  * SEEDUIComponent( SEEDUI )
  *     Knows about a View on an abstract data relation, and uses a SEEDForm to update row(s) in the View.
@@ -42,6 +45,8 @@
  * 6) The Component fetches the current row, formulates the sql query for the View, and fetches a Window.
  * 7) When you call the Draw method of a Widget, it will give you the correct html.
  */
+
+include_once( "SEEDUIWidgets.php" );
 
 
 class SEEDUI
@@ -220,6 +225,27 @@ class SEEDUI
     }
 }
 
+class SEEDUI_Session extends SEEDUI
+/*******************
+    SEEDUI exposes current uiParms and previous uiParms to each Widget so they can decide what to do wrt those changes.
+    However it has no mechanism for storing previous uiParms. This derivation uses a session namespace to store uiParms between page loads.
+ */
+{
+    private $oSVA;
+
+    function __construct( SEEDSession $sess, $sApplication )
+    {
+        parent::__construct();
+        $this->oSVA = new SEEDSessionVarAccessor( $sess, 'seedui-'.$sApplication );
+    }
+
+    // override SEEDUI methods to implement session-based uiParm storage
+    function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
+    function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
+    function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
+}
+
+
 class SEEDUIComponent
 /********************
     A UI Component has a View on a data relation, and a SEEDForm that can act on the row(s).
@@ -249,7 +275,6 @@ class SEEDUIComponent
     protected $cid;
     protected $raCompConfig = array();
     public    $oForm;                   // widgets use this to draw controls
-
 
 //    public $kCurr = 0;     // the key of the current element in some list or table
 //    private $iCurr = 0;    // another way of representing the current item in a list or table
@@ -291,24 +316,27 @@ class SEEDUIComponent
         }
     }
 
-    public function Cid()               { return( $this->cid ); }
+    public function Cid()                   { return( $this->cid ); }
 
-    public function Get_kCurr()         { return( $this->GetUIParm('kCurr') ); }
-    public function Get_iCurr()         { return( $this->GetUIParm('iCurr') ); }
+    public function Get_kCurr()             { return( $this->GetUIParmInt('kCurr') ); }
+    public function Get_iCurr()             { return( $this->GetUIParmInt('iCurr') ); }
+    public function Set_kCurr( $k )         { $this->SetUIParmInt('kCurr', $k ); }
+    public function Set_iCurr( $i )         { $this->SetUIParmInt('iCurr', $i ); }
+
+    public function Get_iWindowOffset()     { return( $this->GetUIParmInt('iWindowOffset') ); }
+    public function Get_nWindowSize()       { return( $this->GetUIParmInt('nWindowSize') ); }
+    public function Set_iWindowOffset( $i ) { $this->SetUIParmInt('iWindowOffset', $i ); }
+    public function Set_nWindowSize( $i )   { $this->SetUIParmInt('nWindowSize', $i ); }
+
 //    public function Get_bNew()          { return( $this->GetUIParm('bNew') ); }
 //    public function Get_kDel()          { return( $this->GetUIParm('kDel') ); }
-    public function Get_iWindowOffset() { return( $this->GetUIParm('iWindowOffset') ); }
-    public function Get_nWindowSize()   { return( $this->GetUIParm('nWindowSize') ); }
-
-    public function Set_kCurr( $k )         { $this->SetUIParm('kCurr', $k ); }
-    public function Set_iCurr( $i )         { $this->SetUIParm('iCurr', $i ); }
 //    public function Set_bNew( $b )          { $this->SetUIParm('bNew', $b ); }
 //    public function Set_kDel( $k )          { $this->SetUIParm('kDel', $k ); }
-    public function Set_iWindowOffset( $i ) { $this->SetUIParm('iWindowOffset', $i ); }
-    public function Set_nWindowSize( $i )   { $this->SetUIParm('nWindowSize', $i ); }
 
     public function GetUIParm( $k )         { return( $this->oUI->GetUIParm( $this->cid, $k ) ); }
+    public function GetUIParmInt( $k )      { return( intval($this->GetUIParm($k)) ); }
     public function SetUIParm( $k, $v )     { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
+    public function SetUIParmInt( $k, $v )  { return( $this->SetUIParm($k, intval($v)) ); }
 
 
     protected function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
@@ -596,739 +624,196 @@ groupcol
 
          return( $s );
     }
-
 }
 
-
-class SEEDUIWidget_Base
-{
-    protected $oComp;
-    protected $raConfig;
-
-    function __construct( SEEDUIComponent $oComp, $raConfig )
-    {
-        $this->oComp = $oComp;
-        $this->raConfig = $raConfig;
-
-        $this->RegisterWithComponent();
-    }
-
-    protected function RegisterWithComponent()
-    /*****************************************
-     * Tell the component to add this widget to its list.
-     * Also provide the list of uiparms that SEEDUI should propagate in links/forms of other widgets.
-     */
-    {
-        $raUIParms = array();  // array( 'myparm1' => array( 'http'=>'sf[[cid]]ui_myparm1', 'v'=>'my-initial-value' ),
-                               //        'myparm2' => array( 'http'=>'sf[[cid]]ui_myparm2', 'v'=>'my-initial-value' ) );
-        $this->oComp->RegisterWidget( $this, $raUIParms );
-    }
-
-    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
-    /*******************************************************
-     * Given the uiparms from the previous page and the uiparms sent currently.
-     * Look for any changes that affect this widget and return an array of state change advisories.
-     */
-    {
-        $raAdvisories = array();
-
-        // empty array means no changes of ui state wrt this widget
-
-        return( $raAdvisories );
-    }
-
-    function Init2_NotifyUIStateChanges( $raAdvisories )
-    /***************************************************
-     * Given the list of state change advisories obtained from all widgets, tell SEEDUI to change uiparms that correspond to those changes wrt this widget.
-     */
-    {
-        // e.g.
-        // foreach( $raAdvisories as $v ) {
-        //     if( $v == 'resetSomething' ) {
-        //         $this->oComp->oUI->SetUIParm( 'something', 0 );
-        //     }
-        // }
-    }
-
-    function Init3_RequestSQLFilter()
-    /********************************
-     * At this point the uiparms are read, and reset as necessary for ui state changes. Use them to generate SQL conditions for the View wrt this widget.
-     * Return a string containing an sql conditional (or empty).
-     */
-    {
-        return( "" );
-    }
-
-    function Draw()
-    /**************
-     * UIParms are all set and the Component has loaded a view/window. Use those to draw the widget.
-     */
-    {
-        return( "OVERRIDE Draw()" );
-    }
-}
-
-
-class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
+class SEEDUIComponent_ViewWindow
 /*******************************
-    Draw a search control with one or more terms.  Each term has a field list, op list, and text input.
+    Encapsulates the view and window computation.
 
-    raConfig = array( 'filters'  => array( array('label=>label1, 'col'=>'fld1'),
-                                           array('label=>label2, 'col'=>'fld2') ),
-                      'template' => " HTML template containing [[fldN]] [[opN]] [[valN]] " )
+    Call this after SEEDUIComponent::Start()
 
-    The filters use the same format as the List cols, for convenience in your config.
-    The template substitutes the tags [[fldN]], [[opN]], [[valN]], where N is the origin-1 filter index
+    iWindowOffset, nWindowSize, kCurr and/or iCurr should already be set in the uiParms.
+    This takes a view or view slice and figures out:
+        1.  where the window actually lies within the view (iWindowOffset is corrected if the window extends past the view)
+        2a. where iCurr actually is wrt the window.
+        2b. if keys enabled, iCurr is ignored and kCurr is used to find iCurr in the view
+        3.  how to navigate the window (the target of a page-up or page-down, find selection, etc)
 
-    Default template just separates one row of tags with &nbsp;
+    View data can be provided in the constructor, or fetched via a derivation of SEEDUIComponent::FetchViewData().
+    A full view or a view slice is supported by the same parameters: a full view is iViewSliceOffset=0, nViewSize==count(raViewRows)
+
+    raConfig in __construct:
+        bEnableKeys      : use kCurr to find the current row; otherwise use iCurr (but this is impossible in an interactive list)
+        iViewSliceOffset : the origin-0 index of the first row in the slice, relative to the whole view
+                           if view data given in the constructor, this offset refers to that data
+                           if null given for view data, this is passed to SEEDUIComponent::FetchViewData() which must return that slice
+        nViewSize        : the total view size, regardless of the size of the data provided or view slice needed (used for navigation metrics)
  */
 {
-    function __construct( SEEDUIComponent $oComp, $raConfig )
+    private $oComp;
+    private $bEnableKeys;
+    private $raViewRows = null;
+    private $iViewSliceOffset = 0;          // origin-0 index of the first row in raViewRows relative to the whole view
+    private $nViewSize = 0;                 // size of whole view, possibly larger than count(raViewRows)
+    private $bCurrentRowOutsideViewSlice = false;   // true if raViewRows is a partial view slice and kCurr is given but not found in the slice
+
+    function __construct( SEEDUIComponent $oComp, $raConfig = [] )
     {
-        parent::__construct( $oComp, $raConfig );
+        $this->oComp = $oComp;
+        $this->bEnableKeys = @$raConfig['bEnableKeys'] ?: false;
     }
 
-    function RegisterWithComponent()
+    function IsEnableKeys()             { return( $this->bEnableKeys ); }
+
+    function IsWindowSmallerThanView()  { return( $this->rowsOutsideWindow() > 0 ); }
+
+    function IsCurrRowOutsideWindow()
     {
-        /* Tell SEEDUI that these parms should be read from $_REQUEST, and propagated in all links/forms in the UI
-         * Use sfAx_ format because SEEDForm can make controls like that conveniently.
-         */
-        $raUIParms = array();
-        foreach( array(1,2,3) as $i ) {
-            $raUIParms["srchfld$i"] = array( 'http'=>"sf[[cid]]x_srchfld$i", 'v'=>"" );
-            $raUIParms["srchop$i"]  = array( 'http'=>"sf[[cid]]x_srchop$i",  'v'=>"" );
-            $raUIParms["srchval$i"] = array( 'http'=>"sf[[cid]]x_srchval$i", 'v'=>"" );
-        }
-        $this->oComp->RegisterWidget( $this, $raUIParms );
-    }
+        $iCurr = $this->oComp->Get_iCurr();
+        $iWO   = $this->oComp->Get_iWindowOffset();
 
-    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
-    {
-        $raAdvisories = array();
+        if( $this->bCurrentRowOutsideViewSlice )  return( true );   // if it's outside of the view slice it's outside of the window
+        if( $iCurr < 0 )                          return( false );   // no current row
 
-        // if any search parameters have changed, reset the view
-        foreach( array(1,2,3) as $i ) {
-            if( ((@$raOldParms["srchfld$i"] || @$raNewParms["srchfld$i"]) && @$raOldParms["srchfld$i"] != @$raNewParms["srchfld$i"]) ||
-                ((@$raOldParms["srchop$i"]  || @$raNewParms["srchop$i"])  && @$raOldParms["srchop$i"]  != @$raNewParms["srchop$i"]) ||
-                ((@$raOldParms["srchval$i"] || @$raNewParms["srchval$i"]) && @$raOldParms["srchval$i"] != @$raNewParms["srchval$i"]) )
-            {
-                $raAdvisories[] = "VIEW_RESET";
-                break;
-            }
-        }
-        return( $raAdvisories );
-    }
-
-    function Init3_RequestSQLFilter()
-    {
-        $raCond = array();
-        $sCond = "";
-
-        if( !@$this->raConfig['filters'] )  goto done;
-
-        /* For each search row, get a condition clause
-         */
-        foreach( array(1,2,3) as $i ) {
-            $fld = $this->oComp->GetUIParm( "srchfld$i" );
-            $op  = $this->oComp->GetUIParm( "srchop$i" );
-            $val = trim($this->oComp->GetUIParm( "srchval$i" ));
-
-            if( $op == 'blank' ) {
-                // process this separately because the text value is irrelevant
-                if( $fld ) {  // 'Any'=blank is not allowed
-                    $raCond[] = "($fld='' OR $fld IS NULL)";
-                }
-            } else if( $val ) {
-                if( $fld ) {
-                    $raCond[] = $this->dbCondTerm( $fld, $op, $val );
-                } else {
-                    // field "Any" is selected, so loop through all the fields to generate a condition that includes them all
-                    $raC = array();
-                    foreach( $this->raConfig['filters'] as $raF ) {
-                        $label = $raF['label'];
-                        $f = $raF['col'];
-                        if( empty($f) )  continue;  // skip 'Any'
-                        $raC[] = $this->dbCondTerm( $f, $op, $val );   // op and val are the current uiparm values for this search row
-                    }
-
-                    // glue the conditions together as disjunctions
-                    $raCond[] = "(".implode(" OR ",$raC).")";
-                }
-            }
-        }
-        // glue the filters together as conjunctions
-        $sCond = implode(" AND ", $raCond);
-
-        done:
-        return( $sCond );
-    }
-
-    private function dbCondTerm( $col, $op, $val )
-    /*********************************************
-        eq       : $col = '$val'
-        like     : $col LIKE '%$val%'
-        start    : $col LIKE '$val%'
-        end      : $col LIKE '%$val'
-        less     : $col < '$val'
-        greater  : $col > '$val'
-        blank    : handled by SearchControlDBCond()
-     */
-    {
-        $val = addslashes($val);
-
-        switch( $op ) {
-            case 'like':    $s = "$col LIKE '%$val%'";  break;
-            case 'start':   $s = "$col LIKE '$val%'";   break;
-            case 'end':     $s = "$col LIKE '%$val'";   break;
-
-            case 'less':    $s = "($col < '$val' AND $col <> '')";    break;    // a < '1' is true if a is blank
-            case 'greater': $s = "($col > '$val' AND $col <> '')";    break;
-
-            case 'eq':
-            default:        $s = "$col = '$val'";       break;
-        }
-
-        return( $s );
-    }
-
-    function Draw()
-    {
-        $s = @$raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]]";
-
-        if( !@$this->raConfig['filters'] )  goto done;
-
-        foreach( array(1,2,3) as $i ) {
-            $fld = $this->oComp->GetUIParm( "srchfld$i" );
-            $op  = $this->oComp->GetUIParm( "srchop$i" );
-            $val = trim($this->oComp->GetUIParm( "srchval$i" ));
-
-            /* Collect the fields and substitute into the appropriate [[fieldsN]]
-             */
-            $raCols['Any'] = "";
-            foreach( $this->raConfig['filters'] as $ra ) {
-                $raCols[$ra['label']] = $ra['col'];
-            }
-
-            // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", array('selected'=>$fld, 'sfParmType'=>'ctrl_global') );
-
-            $s = str_replace( "[[fld$i]]", $c, $s );
-
-            /* Write the [[opN]]
-             */
-            // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Select(
-                    "srchop$i",
-                    array( "contains" => 'like',     "equals" => 'eq',
-                           "starts with" => 'start', "ends with" => 'end',
-                           "less than" => 'less',    "greater than" => 'greater',
-                           "is blank" => 'blank' ),
-                    "",
-                    array('selected'=>$op, 'sfParmType'=>'ctrl_global') );
-            $s = str_replace( "[[op$i]]", $c, $s );
-
-            /* Write the [[textN]]
-             */
-            // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Text( "srchval$i", "", array('value'=>$val, 'sfParmType'=>'ctrl_global', 'size'=>20) );
-            $s = str_replace( "[[text$i]]", $c, $s );
-        }
-
-        $s = str_replace( '[[submit]]', "<input type='submit' value='Search'/>", $s );
-
-        $s = $this->oComp->DrawWidgetInForm( $s, $this, array() );
-
-        done:
-        return( $s );
-    }
-}
-
-
-class SEEDUIWidget_SearchDropdown extends SEEDUIWidget_Base
-{
-    function __construct( SEEDUIComponent $oComp, $raConfig )
-    {
-        parent::__construct( $oComp, $raConfig );
-    }
-
-    function Init3_RequestSQLFilter()
-    {
-        $raCond = array();
-
-        /* For each defined control, get a condition clause
-         */
-        foreach( $raConfig['controls'] as $fld => $ra ) {
-            if( $ra[0] == 'select' ) {
-                if( ($currVal = $this->CtrlGlobal('srchctl_'.$fld)) ) {
-                    $raCond[] = "$fld='".addslashes($currVal)."'";
-                }
-            }
-        }
-    }
-
-
-    function Draw()
-    {
-        foreach( $raConfig['controls'] as $fld => $ra ) {
-            if( strpos( $s, "[[$fld]]" ) !== false ) {
-                // The control exists in the template  (probably we should assume this and not bother to check)
-                if( $ra[0] == 'select' ) {
-                    $currVal = $oForm->CtrlGlobal('srchctl_'.$fld);
-                    $c = $oForm->Select( 'srchctl_'.$fld, $ra[1], "", array( 'sfParmType'=>'ctrl_global', 'selected'=>$currVal) );
-                    $s = str_replace( "[[$fld]]", $c, $s );
-                }
-            }
-        }
-    }
-}
-
-
-class SEEDUIWidget_List extends SEEDUIWidget_Base
-{
-    function __construct( SEEDUIComponent $oComp, $raConfig = array() )
-    {
-        parent::__construct( $oComp, $raConfig );
-    }
-
-    function RegisterWithComponent()
-    {
-        // Tell SEEDUI that these parms should be read from $_REQUEST, and propagated in all links/forms in the UI
-        $raUIParms = array( 'sortup'   => array( 'http'=>'sf[[cid]]ui_sortup',   'v'=>0 ),
-                            'sortdown' => array( 'http'=>'sf[[cid]]ui_sortdown', 'v'=>0 ) );
-        $this->oComp->RegisterWidget( $this, $raUIParms );
-    }
-
-
-    function Init1_NotifyUIParms( $raOldParms, $raNewParms )
-    {
-        $raAdvisories = array();
-
-        if( ($i = intval($this->oComp->GetUIParm('sortup'))) && ($col = @$this->raConfig['cols'][$i-1]['col']) ) {
-            // sortup sorts the i'th column
-            $this->oComp->SetUIParm( 'sSortCol', $col );
-            $this->oComp->SetUIParm( 'bSortDown', 0 );
-        }
-        if( ($i = intval($this->oComp->GetUIParm('sortdown'))) && ($col = @$this->raConfig['cols'][$i-1]['col']) ) {
-            // sortdown sorts the i'th column
-            $this->oComp->SetUIParm( 'sSortCol', $col );
-            $this->oComp->SetUIParm( 'bSortDown', 1 );
-        }
-
-        return( $raAdvisories );
-    }
-
-
-
-    function Init2_NotifyUIStateChanges( $raAdvisories )
-    {
-    }
-
-
-    function Style()
-    {
-        $s = "<style>
-               table.sfuiListTable { border-collapse:separate; border-spacing:2px; }   /* allows white lines between List cells - the moz default, but BS collapses to zero */
-               .sfuiListRowTop,
-               .sfuiListRowBottom  { background-color: #777; font-size:8pt; color: #fff; }
-               .sfuiListRowBottom a:link    { color:#fff; }
-               .sfuiListRowBottom a:visited { color:#fff; }
-               .sfuiListRow     { font-size:8pt; }
-               .sfuiListRow0    { background-color: #e8e8e8; }
-               .sfuiListRow1    { background-color: #fff; }
-               .sfuiListRow2    { background-color: #44f; color: #fff; }
-              </style>";
-
-        return( $s );
-    }
-
-    function ListDrawBasic( $raList, $iOffset, $nSize, $raParms = array() )
-    /**********************************************************************
-        Draw the rows of $raList[$iOffset] to $raList[$iOffset + $nSize]
-        iOffset is 0-origin
-        nSize==-1 is the whole list after iOffset
-
-            Header = labels and controls
-            Top    = shows how many rows are above
-            Rows   = the data
-            Bottom = shows how many rows are below
-            Footer = ?
-
-        raParms:
-            cols          = the elements of raList to show, and the order to show them
-                            array of array( 'label'=>..., 'col'=>..., 'w'=>... etc
-                                label  = column header label
-                                col    = k in each raList[] to use for this column
-                                w      = width of column (css value)
-                                trunc  = chars to truncate
-                                colsel = array of filter values
-                                align  = css value for text-align (left,right,center,justify)
-
-            tableWidth    = css width of table
-
-            sHeader       = content for the header
-            sFooter       = content for the footer
-            sTop          = content for the top table row
-            sBottom       = content for the bottom table row
-
-            iCurrRow      = the element of $raList that is the current row (<iOffset or >=iOffset+nSize means no current row is shown)
-                            default is -1 (or more generally <0), which is always no-row
-            fnRowTranslate = function to translate row array into a different row array
-
-        raList:
-            Each row contains elements named as raParms['cols'][X]['col'],
-            also additional elements:
-                sfuiLink  = a link to be activated when someone clicks on the row
-     */
-    {
-        $s = "";
-
-        if( $nSize == -1 ) {
-            // window size should contain the whole raList starting at iOffset
-            $nSize = count($raList) - $iOffset;
-        } else {
-            // enforce sensible bounds
-            $nSize = SEEDCore_Bound( $nSize, 0, count($raList) - $iOffset );
-        }
-
-        /* Create default parms
-         *
-         * If cols is not specified, create it using the first data row
-         */
-        if( !isset($raParms['cols']) ) {
-            $raParms['cols'] = array();
-            foreach( $raList[0] as $k => $v ) {
-                $raParms['cols'][] = array( 'label'=>$k, 'col'=>$k );
-            }
-        }
-        $sHeader  = @$raParms['sHeader'];
-        $sFooter  = @$raParms['sFooter'];
-        $sTop     = SEEDCore_ArraySmartVal1( $raParms, 'sTop', "&nbsp;", false );       // nbsp needed to give height to a blank header
-        $sBottom  = SEEDCore_ArraySmartVal1( $raParms, 'sBottom', "&nbsp;", false );
-        $iCurrRow = SEEDCore_ArraySmartVal1( $raParms, 'iCurrRow', -1, true );          // if empty not allowed, 0 is interpreted as empty and converted to -1 !
-        //if( $iCurrRow < $iOffset || $iCurrRow >= $iOffset + $nSize )  $iCurrRow = -1;
-
-        $nCols = count($raParms['cols']);
-
-        $sTableStyle = ($p = @$raParms['tableWidth']) ? "width:$p;" : "";
-        $s .= "<table class='sfuiListTable' style='$sTableStyle'>";
-
-        /* List Header
-         */
-        $s .= $sHeader;
-
-        /* List Top
-         */
-        $s .= "<tr class='sfuiListRowTop'><td colspan='$nCols'>$sTop</td></tr>";
-
-        /* List Rows
-         */
-        for( $i = $iOffset; $i < $iOffset + $nSize; ++$i ) {
-            $raRow = array();
-            // Clean up any untidy characters.
-            // This can be a problem for content that's meant to show html markup.
-            // This is done here, instead of below, because we want to allow fnTranslate to insert html markup.
-            foreach( $raList[$i] as $kCol => $vCol ) {
-                $raRow[$kCol] = SEEDCore_HSC( $vCol );
-            }
-            if( @$raParms['fnRowTranslate'] ) {
-                $raRow = call_user_func( $raParms['fnRowTranslate'], $raRow );
-            }
-
-            if( $i == $iCurrRow ) {
-                $rowClass = 2;
-            } else {
-                $rowClass = $i % 2;
-            }
-            $s .= "<tr class='sfuiListRow sfuiListRow$rowClass'>";
-            foreach( $raParms['cols'] as $raCol ) {
-                $v = $raRow[$raCol['col']];
-
-                $sColStyle = "cursor:pointer;";
-                if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
-                if( ($p = @$raCol['w']) )      $sColStyle .= "width:$p;";
-                if( ($n = intval(@$raCol['trunc'])) && $n < strlen($v) ) {
-                    $v = substr( $v, 0, $n )."...";
-                }
-                $sLink = @$raRow['sfuiLink'] ? "onclick='location.replace(\"{$raRow['sfuiLink']}\");'" : "";
-
-                // $v has already been through HSC above, but before fnTranslation
-                $s .= "<td $sLink style='$sColStyle'>$v</td>";
-            }
-            $s .= "</tr>";
-        }
-
-        /* List Bottom
-         */
-        $s .= "<tr class='sfuiListRowBottom'><td colspan='$nCols'>$sBottom</td></tr>";
-
-        /* List Footer
-         */
-        $s .= $sFooter;
-
-        $s .= "</table>";
-
-        return( $s );
-    }
-
-/*
-How to use ListDrawInteractive. There should be a better way to encapsulate a ViewSlice using what oComp already knows.
-Note that ListDrawInteractive can use ListFetchViewSlice() if $raViewRows is empty, so maybe that should just use GetViewWindow() in
-the base class. Or change GetViewWindow() to get a ViewSlice object, which is probably essentially what it already does.
-
-// GetViewWindow() uses Get_iWindowOffset() to get a ViewSlice starting at the window offset.
-// ListDrawInteractive() is smart enough to  use that slice but only if you set iViewOffset and nViewSize
-// to tell it the context of the slice.
-list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
-$raListParms['iViewOffset'] = $this->oComp->Get_iWindowOffset();
-$raListParms['nViewSize'] = $oView->GetNumRows();
-$sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
-*/
-
-    function ListDrawInteractive( $raViewRows, $raParms )
-    /****************************************************
-        Draw a list widget for a given Window on a given View of rows in an array.
-
-        $raViewRows               = a [portion of] rows of a View
-                                    if not the complete view, specify iViewOffset and nViewSize
-                                    array of array( 'k1'=>'v1', 'k2'=>'v2' )
-                                    Rows are in display order, cols are not ordered (selected by raParms['cols']
-
-        $raConfig (set at constructor):
-            bUse_key              = activate the use of keys on rows: input and output kCurr uiParm, calculate iCurr/kCurr from each other
-
-        $raParms:
-            iViewOffset           = origin-0 row of the view that corresponds to the first element of raViewRows
-            nViewSize             = size of View, optional if $raViewRows contains the full view, required if raViewRows is NULL or partial
-            iWindowOffset         = top View index that appears in the window, optional (default 0)
-            nWindowSize           = number of rows to draw in the window (default 10)
-            iCurr                 = View index of the current row, optional (default 0) -- -1 = no current row, -2 = current row out of ViewSlice
-
-            cols                  = as ListDrawBasic
-            tableWidth            = as ListDrawBasic
-            fnRowTranslate        = as ListDrawBasic
-
-//          bNewAllowed           = true if the list is allowed to set links that create new records
-     */
-    {
-        $s = "";
-
-// kluge: $this->raConfig has things that Start() needs to know. Some of those used to be in $raParms so the code below expects them
-// to be there. Look for them in in $raConfig instead, but meanwhile, merge the arrays.
-$raParms = array_merge( $this->raConfig, $raParms );
-
-        // uiparms overrides raParms overrides default
-        if( !$this->oComp->Get_nWindowSize() )  $this->oComp->Set_nWindowSize( @$raParms['nWindowSize'] ?: 10 );
-        $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
-
-
-        $bEnableKeys = @$this->raConfig['bUse_key'];
-        if( $bEnableKeys ) {
-            /* If kCurr is given but not iCurr, search the list for the iCurr.
-             * Note the test doesn't notice when kCurr corresponds to the first row (iCurr==0) but the search will be very short.
-             */
-            if( $this->oComp->Get_kCurr() ) {  //&& !$this->oComp->Get_iCurr() ) {
-                $this->oComp->Set_iCurr( -2 );  // default result if row not found in ViewSlice
-                foreach( $raViewRows as $i => $ra ) {
-                    if( @$ra['_key'] && $ra['_key'] == $this->oComp->Get_kCurr() ) {
-                        $this->oComp->Set_iCurr( $i );
-                        break;
-                    }
-                }
-            }
-            /* If kCurr is not given, Try to get the current key from the current row. By default, that will be row 0, which is fine.
-             * Note that iCurr < 0 have special meanings that are invalid for this case.
-             */
-            if( !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 && ($k = @$raViewRows[$this->oComp->Get_iCurr()]['_key']) ) {
-                $this->oComp->Set_kCurr( $k );
-            }
-        }
-
-        $oLW = new SEEDUIListWindow();
-        $oLW->InitListWindow( array(
-            //'iViewOffset'    => intval(@$raParms['iViewOffset']),
-            'nViewSize'     => @$raParms['nViewSize'] ?: count($raViewRows),
-            'iWindowOffset' => $this->oComp->Get_iWindowOffset(),
-            'nWindowSize'   => $this->oComp->Get_nWindowSize(),
-            'iCurrOffset'   => $this->oComp->Get_iCurr()
-        ) );
-
-        $nWindowRowsAbove = $oLW->RowsAboveWindow();
-        $nWindowRowsBelow = $oLW->RowsBelowWindow();
-        $raScrollOffsets  = $oLW->ScrollOffsets();
-        $iViewOffset      = intval(@$raParms['iViewOffset']);
-        $iWindowOffset    = $nWindowRowsAbove;
-
-        //$bNewAllowed = intval(@$raParms['bNewAllowed']);
-
-
-        $iSortup = $iSortdown = 0;
-        $raSortSame = array();
-        if( ($iSortup = $this->oComp->GetUIParm('sortup')) ) {
-            $raSortSame = array( 'sortup'=>$iSortup );
-        } else if( ($iSortdown = $this->oComp->GetUIParm('sortdown')) ) {
-            $raSortSame = array( 'sortdown'=>$iSortdown );
-        }
-
-        /* List Header and Footer
-         */
-        $sHeader = "<tr>";
-        $c = 1;
-        foreach( $raParms['cols'] as $raCol ) {
-            // This just draws the headers based on the sorting criteria. You have to provide the ViewRows already sorted.
-            $bSortingUp   = $iSortup==$c;
-            $bSortingDown = $iSortdown==$c;
-
-            $sCrop = ($bSortingDown ? "position:absolute; top:-14px; left:-20px; clip: rect( 19px, auto, auto, 20px );" :
-                      ($bSortingUp ? "position:absolute; top:4px; left:-20px; clip: rect( 0px, auto, 6px, 20px );" :
-                                     "" ) );
-            $href   = ( $bSortingDown ? $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) :
-                       ($bSortingUp   ? $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortdown" => $c, "sortup"=>0)) :
-                                        $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) ));
-
-            $sColStyle = "font-size:small;";
-            if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
-            if( ($p = @$raCol['w']) )      $sColStyle .= "width:$p;";
-
-            $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
-                       ."<a $href>".$raCol['label']
-                       .($bSortingUp || $bSortingDown
-                          ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
-                          : "")
-                       ."</a></th>";
-            ++$c;
-        }
-        $sHeader .= "</tr>";
-
-        $sFooter = "";
-
-        /* List Top
-         */
-        $sTop = "&nbsp;&nbsp;&nbsp;"
-               .($nWindowRowsAbove ? ($nWindowRowsAbove.($nWindowRowsAbove > 1 ? " rows" : " row")." above")
-                                   : "Top of List")
-               ."<span style='float:right;margin-right:3px;'>";
-        if( $oLW->CurrRowIsOutsideWindow() ) {
-            $sTop .= $this->listButton( "<span style='display:inline-block;background-color:#ddd;color:#222;font-weight:bold;'>"
-                                       ."&nbsp;FIND SELECTION&nbsp;</span>", array('offset'=>$oLW->IdealOffset()))
-                    .SEEDCore_NBSP("",10);
-        }
-        if( $nWindowRowsAbove ) {
-            $sTop .= $this->listButton( "TOP", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['top'] ) ) )
-                    .SEEDCore_NBSP("",5)
-                    .$this->listButton( "PAGE", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['pageup'], 'img'=>"up2" ) ) )
-                    .SEEDCore_NBSP("",5)
-                    .$this->listButton( "UP", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['up'], 'img'=>"up" ) ) );
-        }
-        $sTop .= "</span>";
-
-        /* List Bottom
-         */
-        $sBottom = "&nbsp;&nbsp;&nbsp;"
-                  .($nWindowRowsBelow ? ($nWindowRowsBelow.($nWindowRowsBelow > 1 ? " rows" : " row")." below")
-                                        // : ("<a ".$this->HRef(array('kCurr'=>0,'bNew'=>true)).">End of List</a>"));
-                                      :"End of List")
-                  ."<span style='float:right;margin-right:3px;'>"
-                  // List size buttons
-                  //.$this->_listButton( "[10]", array( 'limit'=>10 ) ).SEEDCore_NBSP("",5)
-                  //.$this->_listButton( "[50]", array( 'limit'=>50 ) ).SEEDCore_NBSP("",5)
-                  // special case: the list can't yet compute scroll-up links when this button is chosen so offset must be cleared (see note above)
-                  //.$this->_listButton( "[All]", array( 'limit'=>-1, 'offset'=>$raScrollOffsets['top'] ) );
-                  //.SEEDCore_NBSP("",15)
-                  ;
-        if( $nWindowRowsBelow ) {
-            $sBottom .= $this->listButton( "BOTTOM", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['bottom'] ) ) )
-                       .SEEDCore_NBSP("",5)
-                       .$this->listButton( "PAGE", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['pagedown'], 'img'=>"down2" ) ) )
-                       .SEEDCore_NBSP("",5)
-                       .$this->listButton( "DOWN", array_merge( $raSortSame, array( 'offset'=>$raScrollOffsets['down'], 'img'=>"down" ) ) );
-        }
-        $sBottom .= "</span>";
-
-
-        if( $raViewRows ) {
-            // get the window within the given portion of the view
-            $raViewSlice = array_slice( $raViewRows, $iWindowOffset - $iViewOffset, $this->oComp->Get_nWindowSize() );
-        } else {
-            // get the window as needed
-            $raViewSlice = $this->ListFetchViewSlice( $iWindowOffset, $this->oComp->Get_nWindowSize() );
-        }
-
-
-        /* Links to activate a row as the current row when it is clicked
-         */
-        for( $i = 0; $i < count($raViewSlice); ++$i ) {
-            $ra = $raSortSame;
-            $ra['iCurr'] = $i + $iWindowOffset;
-            $ra['iWindowOffset'] = $iWindowOffset;
-            if( $bEnableKeys && ($k = @$raViewSlice[$i]['_key']) ) {
-                $ra['kCurr'] = $k;
-            }
-            $raViewSlice[$i]['sfuiLink'] = $this->oComp->LinkForWidget( $this, $ra );
-        }
-
-        $raBasicListParms = array(
-            'cols' => $raParms['cols'],
-            'tableWidth' => $raParms['tableWidth'],
-            'fnRowTranslate' => (@$raParms['fnRowTranslate'] ?: null),
-
-            'sHeader' => $sHeader,
-            'sFooter' => $sFooter,
-            'sTop' => $sTop,
-            'sBottom' => $sBottom,
-            'iCurrRow' => ($i = $this->oComp->Get_iCurr()) >= 0 ? ($i - $iWindowOffset) : $i,   // -1 and -2 have special meaning
+        return( $iCurr < $iWO ||                                   // current row above window
+                $iCurr >= $iWO + $this->oComp->Get_nWindowSize()   // current row below window
         );
-        $s .= $this->ListDrawBasic( $raViewSlice, 0, $this->oComp->Get_nWindowSize(), $raBasicListParms );
-
-        return( $s );
     }
 
-    function ListFetchViewSlice( $iOffset, $nSize )
-    /**********************************************
-        Override to get an array slice of the View
+    function RowsAboveWindow()
+    {
+        return( $this->oComp->Get_iWindowOffset() );
+    }
+    function RowsBelowWindow()
+    {
+        return( $this->IsWindowSmallerThanView()
+                    ? SEEDCore_Bound( $this->rowsOutsideWindow() - $this->oComp->Get_iWindowOffset(), 0 )
+                    : 0 );
+    }
+    private function rowsOutsideWindow()
+    /***********************************
+        This is the same number as RowsAboveWindow() + RowsBelowWindow().
+        It is also the maximum possible value for iWindowOffset.
      */
     {
-        return( array() );
+        return( SEEDCore_Bound($this->nViewSize - $this->oComp->Get_nWindowSize(), 0) );
     }
 
-    function ListDraw( $raViewRows, $raParms )    // DEPRECATE
+    function SetViewSlice( $raViewRows, $raParms )
     {
-        return( $this->ListDrawInteractive( $raViewRows, $raParms ) );
-    }
+        $this->raViewRows = $raViewRows;
+        $this->iViewSliceOffset = @$raParms['iViewSliceOffset'] ?: 0;
+        $this->nViewSize        = @$raParms['nViewSize'] ?: 0;
 
-    private function listButton( $label, $raParms )
-    /**********************************************
-        Draw the TOP, PAGE UP, etc buttons
-     */
-    {
-        $raChange = array();
-        if( isset($raParms['offset']) )  $raChange['iWindowOffset'] = $raParms['offset'];
-        if( isset($raParms['limit']) )   $raChange['nWindowSize'] = $raParms['limit'];
-
-// kind of want to hand raParms to HRef, and have it recognize these because they're registered into raUIParms
-        if( isset($raParms['sortup']) )   $raChange['sortup'] = $raParms['sortup'];
-        if( isset($raParms['sortDown']) ) $raChange['sortdown'] = $raParms['sortdown'];
-
-        $img = @$raParms['img'];
-
-        switch( $img ) {
-            case 'up':      $sCrop = "position:absolute; top:4px; left:-10px; clip: rect( 0px, 20px, 6px, 10px );";   break;
-            case 'up2':     $sCrop = "position:absolute; top:2px; left:-10px; clip: rect( 0px, 20px, 12px, 10px );";   break;
-            case 'down':    $sCrop = "position:absolute; top:-14px; left:-10px; clip: rect( 19px, 20px, auto, 10px );";   break;
-            case 'down2':   $sCrop = "position:absolute; top:-10px; left:-10px; clip: rect( 13px, 20px, auto, 10px );";   break;
-            default:        $sCrop = ""; break;
+        /* If kCurr is given, set iCurr to that row because it is not always set in a synchronized way.
+         * We need both because a window can be scrolled using a view slice such that the current row is not in the slice anymore
+         * so kCurr alone can't tell us where it is. We rely on iCurr being propagated during that scroll.
+         */
+        if( $this->bEnableKeys && $this->oComp->Get_kCurr() ) {
+            $this->bCurrentRowOutsideViewSlice = true;  // default result if row not found
+            $i = 0;
+            foreach( $this->raViewRows as $ra ) {
+                if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {
+                    $this->oComp->Set_iCurr( $i + $this->iViewSliceOffset );
+                    $this->bCurrentRowOutsideViewSlice = false;
+                    break;
+                }
+                ++$i;
+            }
         }
 
-        $s = "<a ".$this->oComp->oUI->HRef( $this->oComp->Cid(), $raChange)." style='color:white;text-decoration:none;font-size:7pt;'>"
-            ."<b>$label</b>"
-            .($img ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
-            ."</a>";
-        return( $s );
+        /* If kCurr is not given, try to get the current key from the current value of iCurr.
+         * If iCurr is outside of the view slice, default to the start of the slice
+         * (probably this will happen when something is reset so the slice will start at the top of the view anyway)
+         * Note that iCurr < 0 have special meanings that are invalid for this case.
+         */
+        if( $this->bEnableKeys && !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 ) {
+            // If iCurr is over the viewSize, reset it to viewOffset 0. Something weird happened that made the view shrink.
+            if( $this->oComp->Get_iCurr() >= $this->nViewSize ) {
+                $this->oComp->Set_iCurr(0);
+            }
+            // If there is a valid key at the current row, make that the kCurr
+            $this->oComp->Set_kCurr( @$this->raViewRows[$this->oComp->Get_iCurr()]['_key'] ?: 0 );
+        }
+    }
+
+    function GetWindowData()
+    /***********************
+        return view rows contained in the window
+     */
+    {
+        return( $this->GetViewData( $this->oComp->Get_iWindowOffset(), $this->oComp->Get_nWindowSize() ) );
+    }
+
+    function GetViewData( $iViewSliceOffset, $nViewSliceSize )
+    /*********************************************************
+        return nViewSliceSize rows of the view starting at origin-0 row iViewSliceOffset
+     */
+    {
+        if( !$this->raViewRows ) {
+            // View rows haven't been loaded yet. Fetch them using the derived object.
+            list($rows,$iVO,$nVS) = $this->FetchViewSlice( $iViewSliceOffset, $nViewSliceSize );
+            $this->SetViewSlice( $rows, ['iViewSliceOffset'=>$iVO,'nViewSize'=>$nVS] );
+        }
+
+        $iOffsetOfRequestedSliceWithinLoadedRows = $iViewSliceOffset - $this->iViewSliceOffset;
+        return( $this->raViewRows && ($iOffsetOfRequestedSliceWithinLoadedRows >=0)
+                    ? array_slice($this->raViewRows, $iOffsetOfRequestedSliceWithinLoadedRows, $nViewSliceSize)
+                    : [] );
+    }
+
+    function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
+    {
+        // Override to fetch the view data. You can fetch any amount of data, since the slice is re-obtained after the fetch.
+        $raViewData = [];
+        $iReturnedViewSliceOffset = 0;  // returned data is a slice starting at this offset of the view (can be lower number than requested if that's convenient)
+        $nViewSize = 0;                 // total size of the view (in case we didn't have it yet)
+        return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
+    }
+
+    function IdealWindowOffset()
+    /***************************
+        To reposition the window so it includes the selected row, find the window offset that puts
+        the row in the middle of the window, then adjust for boundaries.
+
+        If the iCurr row is outside of the view slice, we can't search for it by key so we are relying on the system to
+        propagate iCurr correctly since the last time we knew it.
+     */
+    {
+        if( $this->oComp->Get_iCurr() < 0 ) return(0);   // no current row
+
+        $offset = SEEDCore_Bound( $this->oComp->Get_iCurr() - intval($this->oComp->Get_nWindowSize()/2),
+                                  0, $this->rowsOutsideWindow() );
+        return( $offset );
+    }
+
+    function ScrollOffsets()
+    /***********************
+        The window offsets that would scroll the window to various places
+     */
+    {
+        $ra = array();
+
+//TODO: If you scroll an iLimited window down by some offset, then change iLimit to -1, you get a case where iOffset>0 but !bWindowLimited.
+//      The following calculations are necessary to draw the scroll-up links, but with !bWindowLimited that doesn't happen
+//      For now, implementations should set offset=0 whenever they dynamically set iLimit=-1
+
+        $iWO = $this->oComp->Get_iWindowOffset();
+        $nWS = $this->oComp->Get_nWindowSize();
+
+        $ra['top']      = 0;
+        $ra['bottom']   = $this->rowsOutsideWindow();   // maximum value for iWindowOffset
+        $ra['up']       = SEEDCore_Bound( $iWO - 1,    0, $ra['bottom'] );
+        $ra['down']     = SEEDCore_Bound( $iWO + 1,    0, $ra['bottom'] );
+        $ra['pageup']   = SEEDCore_Bound( $iWO - $nWS, 0, $ra['bottom'] );
+        $ra['pagedown'] = SEEDCore_Bound( $iWO + $nWS, 0, $ra['bottom'] );
+
+        return( $ra );
     }
 }
 
 
+// OBSOLETE
 class SEEDUIListWindow
 /*************************
     This encapsulates the view and window computation
@@ -1398,62 +883,6 @@ class SEEDUIListWindow
         }
     }
 */
-
-    function WindowIsLimited()  { return( $this->bWindowLimited ); }  // true if we are imposing a max size on the window (so offsets and scrolling needed)
-    function RowsAboveWindow()  { return( $this->iWindowOffset ); }   // number of rows that you can scroll up to the top of the view
-
-    function RowsBelowWindow()                                        // number of rows that you can scroll down to the bottom of the view
-    {
-        $n = 0;
-        if( $this->bWindowLimited ) {
-            $n = SEEDCore_Bound( $this->nViewSize - $this->iWindowOffset - $this->nWindowSize, 0 );
-        }
-        return( $n );
-    }
-
-    function IdealOffset()
-    /*********************
-        To reposition the window so it includes the selected row, find the window offset that puts
-        the row in the middle of the window, then adjust for boundaries
-     */
-    {
-        if( $this->iCurrOffset < 0 ) return(0);   // no current row
-
-        $offset = SEEDCore_Bound( $this->iCurrOffset - intval($this->nWindowSize/2),
-                                  0,
-                                  $this->nViewSize - $this->nWindowSize );
-        return( $offset );
-    }
-
-    function ScrollOffsets()
-    /***********************
-        The window offsets that would scroll the window to various places
-     */
-    {
-        $ra = array();
-
-//TODO: If you scroll an iLimited window down by some offset, then change iLimit to -1, you get a case where iOffset>0 but !bWindowLimited.
-//      The following calculations are necessary to draw the scroll-up links, but with !bWindowLimited that doesn't happen
-//      For now, implementations should set offset=0 whenever they dynamically set iLimit=-1
-
-        $ra['top']      = 0;
-        $ra['bottom']   = SEEDCore_Bound( $this->nViewSize - $this->nWindowSize,     0 );
-        $ra['up']       = SEEDCore_Bound( $this->iWindowOffset - 1,                  0, $ra['bottom'] );
-        $ra['down']     = SEEDCore_Bound( $this->iWindowOffset + 1,                  0, $ra['bottom'] );
-        $ra['pageup']   = SEEDCore_Bound( $this->iWindowOffset - $this->nWindowSize, 0, $ra['bottom'] );
-        $ra['pagedown'] = SEEDCore_Bound( $this->iWindowOffset + $this->nWindowSize, 0, $ra['bottom'] );
-
-        return( $ra );
-    }
-
-    function CurrRowIsOutsideWindow()
-    {
-        if( $this->iCurrOffset == -1 ) return( false );   // no current row
-        if( $this->iCurrOffset == -2 ) return( true );    // row is outside of ViewSlice
-
-        return( $this->bWindowLimited &&
-                ($this->iCurrOffset < $this->iWindowOffset || $this->iCurrOffset >= $this->iWindowOffset + $this->nWindowSize) );
-    }
 }
 
 
