@@ -21,16 +21,15 @@ else
 fi
 
 # these are output args so they have to precede $OUTFILE not $INFILE (particularly the scale filter)
-STDARGS="-hide_banner -preset slower  $CRFARG  -vf \"scale='min($MAXWIDTH,iw)':-2\" "
+STDARGS="-hide_banner -preset slower  $CRFARG  -vf scale='min($MAXWIDTH,iw)':-2 "
 
 if [ "$OUTFMT" = "mp4" ]; then 
-    GO="ffmpeg -i \"$INFILE\" -c:v libx264 -codec:a aac  $STDARGS $OTHERARGS \"$OUTFILE\""
-    echo $GO
-    $GO
+    echo ffmpeg -i "$INFILE" -c:v libx264 -codec:a aac  $STDARGS $OTHERARGS "$OUTFILE"
+         ffmpeg -i "$INFILE" -c:v libx264 -codec:a aac  $STDARGS $OTHERARGS "$OUTFILE"
+
 elif [ "$OUTFMT" = "webm" ]; then 
-    GO="ffmpeg -i \"$INFILE\" $STDARGS $OTHERARGS \"$OUTFILE\""
-    echo $GO
-    $GO
+    echo ffmpeg -i "$INFILE" $STDARGS $OTHERARGS "$OUTFILE"
+         ffmpeg -i "$INFILE" $STDARGS $OTHERARGS "$OUTFILE"
 else
     echo Only mp4 and webm are supported
 fi

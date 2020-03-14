@@ -2,7 +2,7 @@
 
 /* RosettaSEED app
  *
- * Copyright (c) 2014-2019 Seeds of Diversity Canada
+ * Copyright (c) 2014-2020 Seeds of Diversity Canada
  *
  */
 
@@ -32,12 +32,15 @@ $consoleConfig = [
 ];
 
 
-$oApp = new SEEDAppConsole( $config_KFDB['seeds1']
-                            + array( 'sessPermsRequired' => ['W SL'],
-                                     'sessUIConfig' => ['bTmpActivate'=>true, 'bLoginNotRequired'=>false, 'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ],
-                                     'consoleConfig' => $consoleConfig,
-                                     'logdir' => SITE_LOG_ROOT )
-);
+$oApp = SEEDConfig_NewAppConsole(
+        ['db'=>'seeds1',
+         'sessPermsRequired' => ['W SL'],
+         'sessUIConfig' => ['bTmpActivate'=>true ,
+                            'bLoginNotRequired'=>false,
+                            'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'],
+                           ],
+         'consoleConfig' => $consoleConfig,
+]);
 $oApp->kfdb->SetDebug(1);
 
 
@@ -63,7 +66,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_species_Init()
     {
 // the namespace functionality of this derived class should probably be provided in the base class instead
-        $oUI = new Rosetta_SEEDUI( $this->oApp, "Rosetta" );
+        $oUI = new SEEDUI_Session( $this->oApp->sess, "Rosetta" );
         $kfrel = $this->oSLDB->GetKfrel('S');
         $cid = 'S';
         $this->oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid );
@@ -159,20 +162,6 @@ $sInfo = "";
     }
 }
 
-class Rosetta_SEEDUI extends SEEDUI
-{
-    private $oSVA;
-
-    function __construct( SEEDAppSession $oApp, $sApplication )
-    {
-        parent::__construct();
-        $this->oSVA = new SEEDSessionVarAccessor( $oApp->sess, $sApplication );
-    }
-
-    function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
-    function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
-    function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
-}
 
 
 $s = "[[TabSet:main]]";

@@ -3,9 +3,15 @@ then
 
 echo
 echo Copying $HOME/w/ to $HOME/public_html/w/
-# this copies .svn, which is not okay  cp -Ruv ~/w/ ~/public_html/w/
+
+# use rsync because cp copies .svn, which is not okay : cp -Ruv ~/w/ ~/public_html/w/
 
 rsync -rv --exclude=.svn ~/w/ ~/public_html/w/
+
+echo
+echo Copying $HOME/wcore/ to $HOME/public_html/wcore/
+
+rsync -rv --exclude=.svn ~/seeds/wcore/ ~/public_html/wcore/
 
 else
 
