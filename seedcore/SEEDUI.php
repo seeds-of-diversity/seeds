@@ -600,6 +600,19 @@ groupcol
 
          return( $s );
     }
+
+    function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
+    /************************************************************
+        If a widget needs a slice of a view it can call here to get it.
+
+        Override to fetch view data from a data source.
+     */
+    {
+        $raViewData = [];
+        $iReturnedViewSliceOffset = 0;  // returned data is a slice starting at this offset of the view (can be lower number than requested if that's convenient)
+        $nViewSize = 0;                 // total size of the view (in case we didn't have it yet)
+        return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
+    }
 }
 
 class SEEDUIComponent_ViewWindow
@@ -728,7 +741,7 @@ class SEEDUIComponent_ViewWindow
     {
         if( !$this->raViewRows ) {
             // View rows haven't been loaded yet. Fetch them using the derived object.
-            list($rows,$iVO,$nVS) = $this->FetchViewSlice( $iViewSliceOffset, $nViewSliceSize );
+            list($rows,$iVO,$nVS) = $this->oComp->FetchViewSlice( $iViewSliceOffset, $nViewSliceSize );
             $this->SetViewSlice( $rows, ['iViewSliceOffset'=>$iVO,'nViewSize'=>$nVS] );
         }
 
@@ -736,15 +749,6 @@ class SEEDUIComponent_ViewWindow
         return( $this->raViewRows && ($iOffsetOfRequestedSliceWithinLoadedRows >=0)
                     ? array_slice($this->raViewRows, $iOffsetOfRequestedSliceWithinLoadedRows, $nViewSliceSize)
                     : [] );
-    }
-
-    function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
-    {
-        // Override to fetch the view data. You can fetch any amount of data, since the slice is re-obtained after the fetch.
-        $raViewData = [];
-        $iReturnedViewSliceOffset = 0;  // returned data is a slice starting at this offset of the view (can be lower number than requested if that's convenient)
-        $nViewSize = 0;                 // total size of the view (in case we didn't have it yet)
-        return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
     }
 
     function IdealWindowOffset()

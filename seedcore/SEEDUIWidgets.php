@@ -623,13 +623,14 @@ $raParms = array_merge( $this->raConfig, $raParms );
         return( $s );
     }
 
-    function ListFetchViewSlice( $iOffset, $nSize )
-    /**********************************************
-        Override to get an array slice of the View
-     */
-    {
-        return( array() );
-    }
+//obsolete delete
+//    function ListFetchViewSlice( $iOffset, $nSize )
+//    /**********************************************
+//        Override to get an array slice of the View
+//     */
+//    {
+//        return( array() );
+//    }
 
     function ListDraw( $raViewRows, $raParms )    // DEPRECATE
     {
