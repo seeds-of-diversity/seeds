@@ -16,7 +16,7 @@ function SEEDUI_BoxExpandInit( lang, urlWCore )
     When you click on the button the body will slide visible and hidden.
  */
 {
-    $(document).ready(function() {
+    jQuery(document).ready(function($) {
         /* Put the expand button and instruction on the left side of the header
          */
         $('.seedui_boxexpand_head').prepend(
