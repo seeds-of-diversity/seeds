@@ -22,7 +22,8 @@
 }
 .seedui_boxexpand_expand-button img {
         position: absolute;
-        left: 0;   /* js shifts this image right-left to alternate the symbol */
+        left: 0;         /* js shifts this image right-left to alternate the symbol */
+        max-width:none;  /* override responsive img css that a lot of themes like to do */
 }
 .seedui_boxexpand_expand-instruction {
         font-size:9pt;
