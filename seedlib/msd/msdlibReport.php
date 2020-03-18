@@ -93,6 +93,8 @@ class MSDLibReport
         $lastCat = $lastSp = "";
 
 // replace this with MSDQ::msdSeedList-GetData
+// Even faster is to make MSDQ::msdSeedList-DrawList (using SEEDCursor like msdSeedList-GetData does) with different draw modes, but don't call back to DrawProduct because it just calls
+// msdSeed-Draw with each key; do that inside msdSeedList-DrawList
         $oW = new SEEDApp_Worker( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp->lang );
 
         $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
