@@ -40,6 +40,19 @@ class KeyframeUIComponent extends SEEDUIComponent
         }
     }
 
+    function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
+    /************************************************************
+        If a widget needs a slice of a view it can call here to get it.
+     */
+    {
+// use GetViewWindow to implement this
+
+        $raViewData = [];
+        $iReturnedViewSliceOffset = 0;  // returned data is a slice starting at this offset of the view (can be lower number than requested if that's convenient)
+        $nViewSize = 0;                 // total size of the view (in case we didn't have it yet)
+        return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
+    }
+
     function GetViewWindow()
     {
         $raViewParms = array();

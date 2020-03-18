@@ -60,19 +60,21 @@ class MSDLibReport
         $s .= "<div class='msd_growers'>"
              ."<h2>Growers</h2>";
 
+        $sStyle = "style='font-size:8pt;font-family:Minion Pro;padding-bottom:2pt'";
+
         $gCond = "NOT G.bSkip AND NOT G.bDelete AND G._status='0'";
 
         // SoD
         if( ($kfrGxM = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( "G.mbr_id=1 AND $gCond" )) ) {
             while( $kfrGxM->CursorFetch() ) {
-                $s .= "<div class='msd_grower'>".$this->oMSDLib->DrawGrowerBlock( $kfrGxM, true )."</div>";
+                $s .= "<div class='msd_grower' $sStyle>".$this->oMSDLib->DrawGrowerBlock( $kfrGxM, true )."</div>";
             }
         }
 
         // Canada
         if( ($kfrGxM = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( "G.mbr_id<>1 AND M.country='CANADA' AND $gCond", ['sSortCol'=>'mbr_code'] )) ) {
             while( $kfrGxM->CursorFetch() ) {
-                $s .= "<div class='msd_grower'>".$this->oMSDLib->DrawGrowerBlock( $kfrGxM, true )."</div>";
+                $s .= "<div class='msd_grower' $sStyle>".$this->oMSDLib->DrawGrowerBlock( $kfrGxM, true )."</div>";
             }
         }
 
@@ -80,7 +82,7 @@ class MSDLibReport
         $s .= "<h3>U.S.A.</h3>";
         if( ($kfrGxM = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( "M.country<>'CANADA' AND $gCond", ['sSortCol'=>'mbr_code'] )) ) {
             while( $kfrGxM->CursorFetch() ) {
-                $s .= "<div class='msd_grower'>".$this->oMSDLib->DrawGrowerBlock( $kfrGxM, true )."</div>";
+                $s .= "<div class='msd_grower' $sStyle>".$this->oMSDLib->DrawGrowerBlock( $kfrGxM, true )."</div>";
             }
         }
 
@@ -110,7 +112,8 @@ class MSDLibReport
 //." AND PE1.v in ('flowers')"
 //." AND PE1.v in ('fruit','grain','herbs','misc','trees')"
 //." AND PE1.v in ('vegetables') AND PE2.v not like 'TOMATO%'"
-//." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO%'"
+//." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO%' AND PE2.v not like 'TOMATO/YELLOW%'"
+//." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO/YELLOW%'"
                                         ,
                                         array('sSortCol'=>'PE1_v,PE2_v,PE3_v') )) )
         {

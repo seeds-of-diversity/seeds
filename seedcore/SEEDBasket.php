@@ -250,7 +250,8 @@ klugeUTF8 = true: return sOut and sErr in utf8
             $sType = basket | product | purchase
      */
     {
-        return( new SEEDBasketCursor( $this, $sType, $sCond, $raKFRC ) );
+        $o = new SEEDBasketCursor( $this, $sType, $sCond, $raKFRC );
+        return( $o->IsValid() ? $o : null );
     }
 
     function DrawProduct( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
@@ -865,7 +866,7 @@ class SEEDBasketCursor
         done:;
     }
 
-    function IsValid() { return( $kfrc != null ); }
+    function IsValid() { return( $this->kfrc != null ); }
 
     function GetNext()
     {

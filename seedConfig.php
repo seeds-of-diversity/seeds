@@ -19,18 +19,21 @@ if( !defined("SEEDAPP") )   define( "SEEDAPP", SEEDROOT."seedapp/" );
 if( !defined("SEEDLIB") )   define( "SEEDLIB", SEEDROOT."seedlib/" );
 if( !defined("SEEDCORE") )  define( "SEEDCORE", SEEDROOT."seedcore/" );
 
-// Filesystem path to wcore.
+// Filesystem path to seedw (wcore).
 // This has to be visible to the browser (under the web docroot) so override if not
-if( !defined("W_CORE") )    define( "W_CORE", SEEDROOT."wcore/" );
+if( !defined("SEEDW") )     define( "SEEDW", SEEDROOT."wcore/" );
+if( !defined("W_CORE") )    define( "W_CORE", SEEDW );
 
-// URL path to wcore.
+// URL path to seedw (wcore).
 // If W_CORE uses a relative url then this will work. Otherwise you have to override with an absolute url.
-if( !defined("W_CORE_URL")) define( "W_CORE_URL", W_CORE );
+if( !defined("SEEDW_URL"))  define( "SEEDW_URL", SEEDW );
+if( !defined("W_CORE_URL")) define( "W_CORE_URL", SEEDW_URL );
 
-// URL path to q folder.
+// URL path to q directory.
 // If SEEDAPP is reachable by the browser you don't have to do anything.
 // Otherwise, set Q_URL somewhere convenient and for each file in SEEDAPP/q/*.php make a file with the same name that includes SEEDAPP."q/*.php"
-if( !defined("Q_URL") )     define( "Q_URL", SEEDAPP."q/" );
+if( !defined("SEEDQ_URL") ) define( "SEEDQ_URL", SEEDAPP."q/" );
+if( !defined("Q_URL") )     define( "Q_URL", SEEDQ_URL );
 
 // Locations of components that need to be visible to the web browser
 define("W_CORE_JQUERY_3_3_1", W_CORE_URL."os/jquery/jquery-3-3-1.min.js");  // use this if you need this specific version
@@ -44,10 +47,16 @@ require_once SEEDROOT."vendor/autoload.php";
 function SEEDConfig_NewAppConsole( $raConfig = array() )
 /*******************************************************
     SEEDApp should encapsulate all the system context that is external to SEEDROOT.
-    This function standardizes the global parameters that define the system context, and that must be defined outside of SEEDROOT ( i.e. by code that uses seeds/ )
+    This function standardizes the global parameters that define the system context, and that must be defined
+    outside of SEEDROOT ( i.e. by code that uses seeds/ )
 
-        $config_KFDB[]  array of kfdb connection defs
-        SEED_LOG_DIR    directory where log files should be written (if logdir not specified)
+    Must be defined externally:
+        $config_KFDB[]  : array of kfdb connection defs
+        SEED_LOG_DIR    : directory where log files should be written (if logdir not specified)
+
+    Defaults defined in this file, overridable in various ways:
+        W_URL           : url of the wcore/ directory
+        Q_URL           : url of the q/ directory
  */
 {
     global $config_KFDB;
@@ -57,6 +66,7 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
     $raP = [
         'lang'              => @$raConfig['lang'] ?: 'EN',
         'logdir'            => @$raConfig['logdir'] ?: SEED_LOG_DIR,
+        'urlW'              => @$raConfig['urlW'] ?: W_CORE_URL,
         'urlQ'              => @$raConfig['urlQ'] ?: Q_URL,
         'sessPermsRequired' => @$raConfig['sessPermsRequired'] ?: [],
         'sessUIConfig'      => @$raConfig['sessUIConfig']

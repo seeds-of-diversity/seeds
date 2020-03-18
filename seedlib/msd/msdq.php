@@ -18,10 +18,13 @@ class MSDQ extends SEEDQ
         raConfig: config_OverrideUidSeller = the uid_seller for multi-grower app, only allowed if sess->CanWrite('MSDOffice')
                   config_currYear          = the MSD year for new listings
                   config_bAllowCanSeedRead = override the canSeedRead check so a process can generate a grower's seed list without being logged in (e.g. bulk email generator)
+                  config_sbdb              = the db name where SEEDBasket lives (defaults to oApp->kfdb)
      */
     {
         parent::__construct( $oApp, $raConfig );
-        $this->oMSDCore = new MSDCore( $oApp, array('currYear'=>@$raConfig['config_currYear']) );
+        $this->oMSDCore = new MSDCore( $oApp, ['currYear' => @$raConfig['config_currYear'],
+                                               'sbdb'     => @$raConfig['config_sbdb']
+                                              ] );
 
         // If MSDOffice is editing a seed list by species (multiple growers) this is -1.
         // That means don't change the uid_seller. You can't add items in that mode, for the same reason.

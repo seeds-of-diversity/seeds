@@ -122,12 +122,14 @@ class SEEDAppConsole extends SEEDAppSessionAccount
 //  public $sess is inherited
     public $oC;
     private $fnPathToSelf = null;
+    private $urlW = '';
     private $urlQ = '';
 
     function __construct( $raConfig )
     {
         parent::__construct( $raConfig );
         if( isset($raConfig['fnPathToSelf']) )  $this->fnPathToSelf = $raConfig['fnPathToSelf'];
+        $this->urlW = @$raConfig['urlW'];
         $this->urlQ = @$raConfig['urlQ'];
 
         $this->oC = new Console02( $this, @$raConfig['consoleConfig'] ?: array() ); // Console02 and SEEDAppConsole are circularly referenced
@@ -151,6 +153,7 @@ class SEEDAppConsole extends SEEDAppSessionAccount
     }
 
     function UrlQ()  { return( $this->urlQ ); }
+    function UrlW()  { return( $this->urlW ); }
 }
 
 class SEEDApp_Worker
