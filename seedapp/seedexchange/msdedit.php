@@ -2,7 +2,7 @@
 
 /* msdedit
  *
- * Copyright (c) 2018-2019 Seeds of Diversity
+ * Copyright (c) 2018-2020 Seeds of Diversity
  *
  * App to edit Member Seed Directory, built on top of SEEDBasket
  */
@@ -99,7 +99,7 @@ drawScreen:
         );
         $oTmpl = SEEDTemplateMaker( $raTmplParms );
 
-        $oDraw = new MSDCommonDraw( $this->oSB );
+        $oDraw = new MSDCommonDraw( $this->oSB, ['sbdb'=>'seeds'] );
         $msdList = $oDraw->DrawMSDList();
 
         $s = $oTmpl->ExpandTmpl( 'msdSpeciesListScript', array() )
@@ -444,7 +444,6 @@ basketScript;
 
             $sC = $this->sItemTemplate;
             $sC = str_replace( '[[kP]]', $kProduct, $sC );
-
             $rQ = $oMSDQ->Cmd( 'msdSeed-Draw', array('kS'=>$kProduct, 'eDrawMode'=>MSDQ::SEEDDRAW_EDIT.' '.MSDQ::SEEDDRAW_VIEW_SHOWSPECIES) );
             $sP = $rQ['bOk'] ? $rQ['sOut'] : "Missing text for seed # $kProduct: {$rQ['sErr']}";
             $sC = str_replace( '[[sSeedText]]', $sP, $sC );

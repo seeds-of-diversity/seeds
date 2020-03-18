@@ -2,7 +2,7 @@
 
 /* msdCommon
  *
- * Copyright (c) 2011-2018 Seeds of Diversity Canada
+ * Copyright (c) 2011-2020 Seeds of Diversity Canada
  *
  * Member Seed Directory methods common to multiple applications
  */
@@ -19,10 +19,11 @@ class MSDCommonDraw
     public $oSB;
     private $oMSDCore;
 
-    function __construct( SEEDBasketCore $oSB )     // actually this is MSDBasketCore
+    function __construct( SEEDBasketCore $oSB, $raConfig = [] )     // actually this is MSDBasketCore
     {
         $this->oSB = $oSB;
-        $this->oMSDCore = new MSDCore( $oSB->oApp );
+// this is stupid - MSDCore should be getting the SEEDBasket db name from oSB
+        $this->oMSDCore = new MSDCore( $oSB->oApp, ['sbdb'=>@$raConfig['sbdb']] );
     }
 
     function DrawMSDList()
