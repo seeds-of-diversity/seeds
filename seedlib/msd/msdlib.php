@@ -18,10 +18,10 @@ class MSDLib
     public  $oApp;
     private $oMSDCore;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
         $this->oApp = $oApp;
-        $this->oMSDCore = new MSDCore( $oApp, array() );
+        $this->oMSDCore = new MSDCore( $oApp, ['sbdb' => @$raConfig['sbdb']] );
     }
 
     function PermOfficeW()  { return( $this->oMSDCore->PermOfficeW() ); }
