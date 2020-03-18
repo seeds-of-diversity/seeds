@@ -165,7 +165,8 @@ klugeUTF8 = true: return sOut and sErr in utf8
             if( ($kB = $oSVA->VarGetInt( 'kBasket' )) ) {
                 $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             } else if( ($uid = $this->sess->GetUID()) &&
-                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
+// get the db name from SEEDBasketDB
+                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM seeds.SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
             {
                 $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             }
@@ -398,7 +399,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
         $s = "";
 
         if( !$this->BasketIsOpen() || !($kB = $this->GetBasketKey()) )  goto done;
-
+// get the db name from SEEDBasketDB
         $bOk = $this->oDB->kfdb->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE fk_SEEDBasket_Baskets='$kB'" );
 
         done:
