@@ -47,6 +47,15 @@ class Mbr_Contacts
     private $raFldsSensitive = [
         // add donation fields etc here
     ];
+
+    function GetContactName( $k )
+    {
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,company FROM seeds2.mbr_contacts WHERE _key='$k'" );
+        if( !($name = trim($ra['firstname'].' '.$ra['lastname'])) ) {
+            $name = $ra['company'];
+        }
+        return( $name );
+    }
 }
 
 class Mbr_ContactsDB extends Keyframe_NamedRelations
