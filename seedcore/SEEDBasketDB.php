@@ -17,9 +17,8 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig = array() )
     {
         $this->kfdb = $kfdb;
-        $this->db = @$raConfig['db'] ?: $kfdb->GetDB();
+        $this->db = @$raConfig['db'] ?: $kfdb->GetDB();         // generally this should be specified because oApp can be created for a different db above code that calls this
         $this->raCustomProductKfrelDefs = @$raConfig['raCustomProductKfrelDefs'] ?: array();
-
         parent::__construct( $kfdb, $uid, $logdir );
     }
 
