@@ -495,6 +495,10 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
     {
         $s = "";
 
+        // If the caller called SetViewSlice() then the oViewWindow is all set up (e.g. the nViewSize is known, iCurr is set).
+        // If not we have to do this before anything else.
+        $raViewSlice = $oViewWindow->GetWindowData();
+
         //$bNewAllowed = intval(@$raParms['bNewAllowed']);
 
 // kluge: $this->raConfig has things that Start() needs to know. Some of those used to be in $raParms so the code below expects them
@@ -592,8 +596,6 @@ $raParms = array_merge( $this->raConfig, $raParms );
                        .$this->listButton( "DOWN", array_merge( $raSortSame, ['offset'=>$raScrollOffsets['down'], 'img'=>"down"] ) );
         }
         $sBottom .= "</span>";
-
-        $raViewSlice = $oViewWindow->GetWindowData();
 
         /* Links to activate a row as the current row when it is clicked
          */

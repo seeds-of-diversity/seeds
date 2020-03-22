@@ -32,17 +32,11 @@ $consoleConfig = [
 ];
 
 
-$oApp = SEEDConfig_NewAppConsole(
-        ['db'=>'seeds1',
-         'sessPermsRequired' => ['W SL'],
-         'sessUIConfig' => ['bTmpActivate'=>true ,
-                            'bLoginNotRequired'=>false,
-                            'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'],
-                           ],
-         'consoleConfig' => $consoleConfig,
-]);
+$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
+                                   'sessPermsRequired' => ['W SL'],
+                                   'consoleConfig' => $consoleConfig] );
 $oApp->kfdb->SetDebug(1);
-
+//var_dump($_REQUEST);
 
 class MyConsole02TabSet extends Console02TabSet
 {
@@ -122,21 +116,28 @@ class MyConsole02TabSet extends Console02TabSet
             ."||| *Notes*     || {colspan='3'} ".$oForm->TextArea( "notes", array('width'=>'100%') )
             ."<td colspan='2'>foo".$sStats."&nbsp;</td>"
             ."|||ENDTABLE"
+            ."[[hiddenkey:]]"
             ."<INPUT type='submit' value='Save'>";
             return( $s );
     }
 
     function TabSet_main_species_ContentDraw()
     {
-        list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
-        $raListParms = [          // variables that might be computed or altered during state computation
-            'iViewOffset' => $this->oComp->Get_iWindowOffset(),
-            'nViewSize' => $oView->GetNumRows()
-        ];
 
         $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
-        $oViewWindow->SetViewSlice( $raWindowRows, ['iViewSliceOffset' => $this->oComp->Get_iWindowOffset(),
-                                                    'nViewSize' => $oView->GetNumRows()] );
+
+// This is the "forward" method for loading rows.
+// If you don't do this ListDrawInteractive will call GetWindowData which does exactly the same thing.
+//        list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
+//        $oViewWindow->SetViewSlice( $raWindowRows, ['iViewSliceOffset' => $this->oComp->Get_iWindowOffset(),
+//                                                    'nViewSize' => $oView->GetNumRows()] );
+
+
+        $raListParms = [          // variables that might be computed or altered during state computation
+//            'iViewOffset' => $this->oComp->Get_iWindowOffset(),
+//            'nViewSize' => $oView->GetNumRows()
+        ];
+
         $sList = $this->oList->ListDrawInteractive( $oViewWindow, $raListParms );
 
         $sForm = $this->oForm->Draw();
@@ -171,5 +172,11 @@ $oCTS = new MyConsole02TabSet( $oApp );
 $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 
 
-echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN', array( 'consoleSkin'=>'green') );   // sCharset defaults to utf8
+echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN',
+                                // sCharset defaults to utf8
+                                ['consoleSkin'=>'green',
+                                // sCharset defaults to utf8
+                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
 
+?>
+<script>SEEDCore_CleanBrowserAddress();</script>

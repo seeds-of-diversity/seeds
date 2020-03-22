@@ -764,7 +764,8 @@ class SEEDUIComponent_ViewWindow
      */
     {
         if( !$this->raViewRows ) {
-            // View rows haven't been loaded yet. Fetch them using the derived object.
+            // View rows haven't been loaded yet. Fetch them using the component's derived object.
+            // If your component doesn't support this method you have to use SetViewSlice() before calling here.
             list($rows,$iVO,$nVS) = $this->oComp->FetchViewSlice( $iViewSliceOffset, $nViewSliceSize );
             $this->SetViewSlice( $rows, ['iViewSliceOffset'=>$iVO,'nViewSize'=>$nVS] );
         }

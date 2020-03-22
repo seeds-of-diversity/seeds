@@ -4,7 +4,7 @@
  *
  * UI classes for Keyframe
  *
- * Copyright (c) 2009-2019 Seeds of Diversity Canada
+ * Copyright (c) 2009-2020 Seeds of Diversity Canada
  */
 
 include_once( SEEDCORE."SEEDUI.php" );
@@ -43,28 +43,30 @@ class KeyframeUIComponent extends SEEDUIComponent
     function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
     /************************************************************
         If a widget needs a slice of a view it can call here to get it.
+
+        Returns the rows in the view slice and the total number of rows in the view (used for navigation by the caller)
      */
     {
-// use GetViewWindow to implement this
+        list($oView,$raWindowRows) = $this->GetViewWindow($iViewSliceOffset,$nViewSliceSize);
 
-        $raViewData = [];
-        $iReturnedViewSliceOffset = 0;  // returned data is a slice starting at this offset of the view (can be lower number than requested if that's convenient)
-        $nViewSize = 0;                 // total size of the view (in case we didn't have it yet)
-        return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
+        return( [$raWindowRows, $iViewSliceOffset, $oView->GetNumRows()] );
     }
 
-    function GetViewWindow()
+    function GetViewWindow( $iWindowOffset = 0, $nWindowSize = 0 )
     {
-        $raViewParms = array();
+        // this is almost always called with default arguments
+        $iWindowOffset = $iWindowOffset ?: $this->Get_iWindowOffset();
+        $nWindowSize   = $nWindowSize   ?: $this->Get_nWindowSize();
 
-        $raViewParms['sSortCol']  = $this->GetUIParm('sSortCol');
-        $raViewParms['bSortDown'] = $this->GetUIParm('bSortDown');
-        $raViewParms['sGroupCol'] = $this->GetUIParm('sGroupCol');
-        $raViewParms['iStatus']   = $this->GetUIParm('iStatus');
+        $raViewParms = ['sSortCol'  => $this->GetUIParm('sSortCol'),
+                        'bSortDown' => $this->GetUIParm('bSortDown'),
+                        'sGroupCol' => $this->GetUIParm('sGroupCol'),
+                        'iStatus'   => $this->GetUIParm('iStatus')];
 
         $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
-        $raWindowRows = $oView->GetDataWindowRA( $this->Get_iWindowOffset(), $this->Get_nWindowSize() );
-        return( array( $oView, $raWindowRows ) );
+        $raWindowRows = $oView->GetDataWindowRA( $iWindowOffset, $nWindowSize );
+
+        return( [$oView, $raWindowRows] );
     }
 }
 
