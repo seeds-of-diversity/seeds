@@ -77,6 +77,12 @@ class SodOrderFulfil
 
     public function KfrelOrder() { return( $this->oOrder->KfrelOrder() ); }
 
+    function SetOrderStatus( KeyframeRecord $kfr, $eStatus )
+    {
+        $kfr->SetValue( 'eStatus', $eStatus );
+        return( $kfr->PutDBRow() );
+    }
+
     function SetMailedToday( KeyframeRecord $kfr )
     {
         $kfr->SetValue( "eStatus2", 1 );
@@ -266,7 +272,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         = SEEDCore_Dollar($kfr->value('pay_total'))." by ".$kfr->value('ePayType')."<br/>"
          //."<b>".@$mbr_PayStatus[$kfr->value('pay_status')]."</b><br/>"
          ."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
-         .($kfr->value('eStatus')=='New' ? $this->changeToPaidButton($kfr->Key()): "")
+         .$this->paidButton( $kfr )
          .$this->mailStatus( $kfr, $raOrder );
 
     $sFulfilment
@@ -295,13 +301,13 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         return( "window.open(\"../int/emailme.php?to=$to\",\"_blank\",\"width=900,height=800,scrollbars=yes\")" );
     }
 
-    private function changeToPaidButton( $kOrder )
+    private function paidButton( $kfr )
     {
-        $s = "<form method='post' action='".Site_path_self()."'>"
-            ."<input type='hidden' name='row' value='$kOrder'/>"
-            ."<input type='hidden' name='action' value='changeStatusToPaid'/>"
-            ."<input type='submit' value='Change to Paid'/>"
-            ."</form><br/>";
+        $s = "";
+
+        if( $kfr->value('eStatus')=='New' ) {
+            $s = "<div class='doStatusPaid' data-kOrder='".$kfr->Key()."'><button>Change to Paid</button></div>";
+        }
 
         return( $s );
     }
