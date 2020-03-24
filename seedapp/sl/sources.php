@@ -2,7 +2,7 @@
 
 /* Seed Sources app
  *
- * Copyright (c) 2012-2019 Seeds of Diversity Canada
+ * Copyright (c) 2012-2020 Seeds of Diversity Canada
  *
  */
 
@@ -27,21 +27,16 @@ $consoleConfig = [
                                         'edit'            => [ "W SLSources", "A SL", "|" ],
                                         'downloadupload'  => [ "W SLSources", "A SL", "|" ],
                                         '|'  // allows screen-login even if some tabs are ghosted
+                                      ],
                            ],
-                  ],
-    ],
+                 ],
     'pathToSite' => '../../',
 
     'consoleSkin' => 'green',
 ];
 
-
-$oApp = new SEEDAppConsole( $config_KFDB['seeds1']
-                            + array( 'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
-                                     'sessUIConfig' => ['bTmpActivate'=>true, 'bLoginNotRequired'=>false, 'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ],
-                                     'consoleConfig' => $consoleConfig,
-                                     'logdir' => SITE_LOG_ROOT )
-);
+$oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
+                                   'consoleConfig' => $consoleConfig] );
 $oApp->kfdb->SetDebug(1);
 
 

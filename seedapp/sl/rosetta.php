@@ -19,21 +19,20 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'cultivar' => ['label'=>'Cultivar'],
                                         'species'  => ['label'=>'Species'],
                                       ],
-                            'perms' =>[ 'cultivar' => [],
-                                        'species'  => [],
-                                        'ghost'   => ['A notyou'],
+                            'perms' =>[ 'cultivar' => ["W SL"],
+                                        'species'  => ["W SL"],
+                                        'ghost'    => ['A notyou'],
                                         '|'  // allows screen-login even if some tabs are ghosted
+                                      ],
                            ],
-                  ],
-    ],
+                 ],
     'pathToSite' => '../../',
 
     'consoleSkin' => 'green',
 ];
 
 
-$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
-                                   'sessPermsRequired' => ['W SL'],
+$oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
 $oApp->kfdb->SetDebug(1);
 //var_dump($_REQUEST);
