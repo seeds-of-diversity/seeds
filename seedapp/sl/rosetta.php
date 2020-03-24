@@ -18,6 +18,7 @@ $consoleConfig = [
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'cultivar' => ['label'=>'Cultivar'],
                                         'species'  => ['label'=>'Species'],
+                                        'ghost'    => ['label'=>'Ghost']
                                       ],
                             'perms' =>[ 'cultivar' => ["W SL"],
                                         'species'  => ["W SL"],
