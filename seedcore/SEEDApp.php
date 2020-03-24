@@ -152,8 +152,8 @@ class SEEDAppConsole extends SEEDAppSessionAccount
         return( $s );
     }
 
-    function UrlQ()  { return( $this->urlQ ); }
-    function UrlW()  { return( $this->urlW ); }
+    function UrlQ( $fname = "" )  { return( $this->urlQ.$fname ); }
+    function UrlW( $fname = "" )  { return( $this->urlW.$fname ); }
 }
 
 class SEEDApp_Worker

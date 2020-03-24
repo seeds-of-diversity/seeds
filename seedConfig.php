@@ -2,7 +2,7 @@
 
 /* seedConfig
  *
- * Copyright (c) 2019 Seeds of Diversity Canada
+ * Copyright (c) 2019-2020 Seeds of Diversity Canada
  *
  * Definitions for locations of seeds components.
  */
@@ -22,18 +22,18 @@ if( !defined("SEEDCORE") )  define( "SEEDCORE", SEEDROOT."seedcore/" );
 // Filesystem path to seedw (wcore).
 // This has to be visible to the browser (under the web docroot) so override if not
 if( !defined("SEEDW") )     define( "SEEDW", SEEDROOT."wcore/" );
-if( !defined("W_CORE") )    define( "W_CORE", SEEDW );
+if( !defined("W_CORE") )    define( "W_CORE", SEEDW );    //deprecated
 
 // URL path to seedw (wcore).
 // If W_CORE uses a relative url then this will work. Otherwise you have to override with an absolute url.
 if( !defined("SEEDW_URL"))  define( "SEEDW_URL", SEEDW );
-if( !defined("W_CORE_URL")) define( "W_CORE_URL", SEEDW_URL );
+if( !defined("W_CORE_URL")) define( "W_CORE_URL", SEEDW_URL );    //deprecated
 
-// URL path to q directory.
-// If SEEDAPP is reachable by the browser you don't have to do anything.
-// Otherwise, set Q_URL somewhere convenient and for each file in SEEDAPP/q/*.php make a file with the same name that includes SEEDAPP."q/*.php"
+/* URL path to q directory.
+ * If seedapp/q/ is reachable by the browser you don't have to do anything.
+ * Otherwise, set SEEDQ_URL somewhere in the docroot and for each file seedapp/q/* make a file with the same name that includes SEEDAPP."q/*"
+ */
 if( !defined("SEEDQ_URL") ) define( "SEEDQ_URL", SEEDAPP."q/" );
-if( !defined("Q_URL") )     define( "Q_URL", SEEDQ_URL );
 
 // Locations of components that need to be visible to the web browser
 define("W_CORE_JQUERY_3_3_1", W_CORE_URL."os/jquery/jquery-3-3-1.min.js");  // use this if you need this specific version
@@ -42,6 +42,21 @@ define("W_CORE_JQUERY",       W_CORE_JQUERY_3_3_1 );                        // u
 
 // include everything that SEEDROOT gets via composer
 require_once SEEDROOT."vendor/autoload.php";
+
+function SEEDConfig_NewAppConsole_LoginNotRequired( $raConfig )
+/**************************************************************
+    Create a new SEEDAppConsole that doesn't require a login.
+    sess->IsLogin() will be true if the user is logged in, and sess->CanRead/Write can be checked.
+
+    The only difference is that the function will return if the user is not logged in, without diverting to the login screen.
+ */
+{
+    return( SEEDConfig_NewAppConsole( $raConfig +
+                        ['sessUIConfig' => ['bTmpActivate'=>true, 'bLoginNotRequired'=>true],
+                         // this is probably irrelevant because login is not required
+                         'sessPermsRequired' => @$raConfig['sessPermsRequired'] ?: ['PUBLIC']
+                        ] ) );
+}
 
 
 function SEEDConfig_NewAppConsole( $raConfig = array() )
@@ -55,8 +70,8 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
         SEED_LOG_DIR    : directory where log files should be written (if logdir not specified)
 
     Defaults defined in this file, overridable in various ways:
-        W_URL           : url of the wcore/ directory
-        Q_URL           : url of the q/ directory
+        SEEDW_URL       : url of the wcore/ directory
+        SEEDQ_URL       : url of the q/ directory
  */
 {
     global $config_KFDB;
@@ -66,8 +81,8 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
     $raP = [
         'lang'              => @$raConfig['lang'] ?: 'EN',
         'logdir'            => @$raConfig['logdir'] ?: SEED_LOG_DIR,
-        'urlW'              => @$raConfig['urlW'] ?: W_CORE_URL,
-        'urlQ'              => @$raConfig['urlQ'] ?: Q_URL,
+        'urlW'              => @$raConfig['urlW'] ?: SEEDW_URL,
+        'urlQ'              => @$raConfig['urlQ'] ?: SEEDQ_URL,
         'sessPermsRequired' => @$raConfig['sessPermsRequired'] ?: [],
         'sessUIConfig'      => @$raConfig['sessUIConfig']
                                 // default sessUI requires login, uses the old method temporarily
