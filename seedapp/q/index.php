@@ -10,8 +10,9 @@ if( !defined('SEEDROOT') ) { die( "set the seedConfig first" ); }
 include_once( SEEDCORE."SEEDApp.php" );
 include_once( SEEDLIB."q/Q.php" );
 
-$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
-                                   'sessPermsRequired' => ['PUBLIC'],
+$oApp = SEEDConfig_NewAppConsole_LoginNotRequired(
+            ['db'=>'seeds1',
+             'sessPermsRequired' => ['PUBLIC'],
                                    'sessUIConfig' => [],                // disable login UI (requires login by default)
                                    'lang' => 'EN' ] );
 
