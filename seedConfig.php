@@ -19,15 +19,17 @@ if( !defined("SEEDAPP") )   define( "SEEDAPP", SEEDROOT."seedapp/" );
 if( !defined("SEEDLIB") )   define( "SEEDLIB", SEEDROOT."seedlib/" );
 if( !defined("SEEDCORE") )  define( "SEEDCORE", SEEDROOT."seedcore/" );
 
-// Filesystem path to seedw (wcore).
-// This has to be visible to the browser (under the web docroot) so override if not
+/* Filesystem path to seedw (wcore).
+ * This has to be visible to the browser (under the web docroot) so override if not.
+ */
 if( !defined("SEEDW") )     define( "SEEDW", SEEDROOT."wcore/" );
 if( !defined("W_CORE") )    define( "W_CORE", SEEDW );    //deprecated
 
-// URL path to seedw (wcore).
-// If W_CORE uses a relative url then this will work. Otherwise you have to override with an absolute url.
-if( !defined("SEEDW_URL"))  define( "SEEDW_URL", SEEDW );
-if( !defined("W_CORE_URL")) define( "W_CORE_URL", SEEDW_URL );    //deprecated
+/* URL path to seedw (wcore).
+ * If SEEDW uses a relative url then this will work. Otherwise you have to override with an absolute url.
+ */
+if( !defined("SEEDW_URL") )  define( "SEEDW_URL", SEEDW );
+if( !defined("W_CORE_URL") ) define( "W_CORE_URL", SEEDW_URL );    //deprecated
 
 /* URL path to q directory.
  * If seedapp/q/ is reachable by the browser you don't have to do anything.
