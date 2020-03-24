@@ -16,22 +16,25 @@ class MSDCore
 {
     public  $oApp;
     private $raConfig;
+    public  $oMSDSB;
     private $oSBDB;
     private $currYear;
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
-        raConfig: sbdb     = name of db where SEEDBasket lives. Defaults to oApp->kfdb but sometimes you authenticate oApp on a different db.
+        raConfig: sbdb     = name of db where the MSD's SEEDBasket lives. Defaults to 'seeds'.
+                             This cannot be taken from oApp because sometimes you authenticate on a different db.
                   currYear = the current year for entering MSD entries
      */
     {
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
 
+        $this->oMSDSB = new MSDBasketCore( $oApp->kfdb, $oApp->sess, $oApp );
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
                                          // create these kfrels in oSBDB
                                          ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
-                                          'db' => @$raConfig['sbdb']
+                                          'db' => @$raConfig['sbdb'] ?: 'seeds'
                                          ] );
 
         $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
@@ -55,28 +58,8 @@ class MSDCore
     function PermOfficeW()  { return( $this->oApp->sess->CanWrite('MSDOffice') || $this->PermAdmin() ); }
     function PermAdmin()    { return( $this->oApp->sess->CanAdmin('MSDOffice') ); }
 
-    function GetSeedKeys( $set = "" )
-    /********************************
-        The official set of keys that make a seed product record that makes sense outside of SEEDBasket.
-        i.e. not including things like product_type and quant_type which *define* the product.
-     */
-    {
-        $kfrKeys = array( '_key', '_created', '_created_by', '_updated', '_updated_by' );   // not _status because we manage hidden/deleted using eStatus
-        $prodKeys = array( 'uid_seller', 'eStatus', 'img', 'item_price' );
-        $prodExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'days_maturity_seed',
-                                'quantity', 'origin', 'description', 'eOffer', 'year_1st_listed' );
-
-        switch( $set ) {
-            default:
-                return( array_merge($kfrKeys, $prodKeys, $prodExtraKeys ) );
-            case 'PRODUCT':
-                return( $prodKeys );
-            case 'PRODEXTRA':
-                return( $prodExtraKeys );
-            case 'PRODUCT PRODEXTRA':
-                return( array_merge( $prodKeys, $prodExtraKeys ) );
-        }
-    }
+    // deprecate, use the indirection instead because this is a low-level (even oSBDB kind of thing)
+    function GetSeedKeys( $set = "" ) { return( $this->oMSDSB->GetSeedKeys($set) ); }
 
     function CreateSeedKfr()
     /***********************
@@ -542,17 +525,32 @@ class MSDCore
 /* Derived class of SEEDBasketCore for MSD
  */
 class MSDBasketCore extends SEEDBasketCore
+/*****************************************
+    Derived class of SEEDBasketCore for MSD.
+
+    oDB knows the relation PxPEMSD which relates all MSD prodextra fields together
+
+    Db tables live in 'seeds' by default, or $raConfig['sbdb']
+ */
 {
     public $bIsMember;
 
-    function __construct( $kfdb, $sess, SEEDAppConsole $oApp ) {
+    function __construct( $kfdb, $sess, SEEDAppConsole $oApp, $raConfig = [] )
+    {
         $this->bIsMbrLogin = $sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
 
         parent::__construct( $kfdb, $sess, $oApp,
                              //SEEDBasketProducts_SoD::$raProductTypes );
                              array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ),
-                             array( 'fn_sellerNameFromUid' => array($this,"cb_SellerNameFromUid"),
-                                    'logdir'=>SITE_LOG_ROOT ) );
+
+                             ['fn_sellerNameFromUid' => [$this,"cb_SellerNameFromUid"],
+                              'logdir'=>SITE_LOG_ROOT,      // SEEDBasketCore should get this from oApp instead
+                              'sbdb_config' =>
+                                     ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
+                                      'db' => @$raConfig['sbdb'] ?: 'seeds'
+                                     ]
+                             ]
+                           );
     }
 
     function cb_SellerNameFromUid( $uidSeller )
@@ -574,5 +572,28 @@ class MSDBasketCore extends SEEDBasketCore
             }
         }
         return( $sSeller );
+    }
+
+    function GetSeedKeys( $set = "" )
+    /********************************
+        The official set of keys that make a seed product record that makes sense outside of SEEDBasket.
+        i.e. not including things like product_type and quant_type which *define* the product.
+     */
+    {
+        $kfrKeys = array( '_key', '_created', '_created_by', '_updated', '_updated_by' );   // not _status because we manage hidden/deleted using eStatus
+        $prodKeys = array( 'uid_seller', 'eStatus', 'img', 'item_price' );
+        $prodExtraKeys = array( 'category', 'species', 'variety', 'bot_name', 'days_maturity', 'days_maturity_seed',
+                                'quantity', 'origin', 'description', 'eOffer', 'year_1st_listed' );
+
+        switch( $set ) {
+            default:
+                return( array_merge($kfrKeys, $prodKeys, $prodExtraKeys ) );
+            case 'PRODUCT':
+                return( $prodKeys );
+            case 'PRODEXTRA':
+                return( $prodExtraKeys );
+            case 'PRODUCT PRODEXTRA':
+                return( array_merge( $prodKeys, $prodExtraKeys ) );
+        }
     }
 }

@@ -66,13 +66,14 @@ class SEEDBasketCore
     private $raParms = array();
     private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
 
-    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, SEEDAppConsole $oApp, $raHandlerDefs, $raParms = array() )
+    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
     {
         $this->oApp = $oApp;
         $this->sess = $sess;
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(),
             //get this from oApp
-            @$raParms['logdir'], ['db'=>@$raParms['db']] );
+            @$raParms['logdir'],
+            @$raParms['sbdb_config'] ?: ['db'=>@$raParms['db']] );  // deprecate 'db' use sbdb_config instead
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
