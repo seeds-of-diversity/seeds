@@ -19,6 +19,9 @@ class MSDCommonDraw
     public $oSB;
     private $oMSDCore;
 
+// this can just be oApp if MSDCore makes oSBDB public
+// or pass MSDCore here
+// or move this to MSDLib
     function __construct( SEEDBasketCore $oSB, $raConfig = [] )     // actually this is MSDBasketCore
     {
         $this->oSB = $oSB;

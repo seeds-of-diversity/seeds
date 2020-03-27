@@ -29,7 +29,7 @@ class MSDAppSeedEdit
  */
 {
     private $oSB;
-
+// this can just be oApp if MSDCommonDraw takes oApp instead too
     function __construct( SEEDBasketCore $oSB )
     {
         $this->oSB = $oSB;
