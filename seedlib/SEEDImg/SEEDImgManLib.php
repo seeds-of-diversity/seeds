@@ -45,14 +45,13 @@ class SEEDImgManLib
         foreach( $oFile->GetTraverseItems() as $k => $ra ) {
             $dir = $ra[0];
             $filename = $ra[1];
-            if( ($i = strrpos( $filename, '.' )) !== false ) {
-                $ext = substr( $filename, $i+1 );
-                $filename = substr( $filename, 0, $i );
+            $filename_base = pathinfo($ra[1],PATHINFO_FILENAME);    // basic filename before the extension
+            if( ($ext = pathinfo($ra[1],PATHINFO_EXTENSION)) ) {
+                $raFiles[$dir][$filename_base]['exts'][$ext] = $this->ImgInfo( $dir.$filename );
+                $raFiles[$dir][$filename_base]['info'] = array();
+                $raFiles[$dir][$filename_base]['action'] = '';
+                $raFiles[$dir][$filename_base]['actionMsg'] = '';
             }
-            $raFiles[$dir][$filename]['exts'][$ext] = $this->ImgInfo( $dir.$filename.'.'.$ext );
-            $raFiles[$dir][$filename]['info'] = array();
-            $raFiles[$dir][$filename]['action'] = '';
-            $raFiles[$dir][$filename]['actionMsg'] = '';
         }
         ksort($raFiles);
 
