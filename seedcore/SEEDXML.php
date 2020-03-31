@@ -34,7 +34,10 @@ class SEEDXML
             $this->oDom = new DOMDocument;
         }
         $this->oDom->preserveWhiteSpace = $bPreserveWS;
-        $this->oDom->load( $fname );
+        if( !$this->oDom->load( $fname ) ) {
+            $errors = libxml_get_errors();
+            var_dump($errors);
+        }
         if( $bProcessIncludes ) {
             $this->oDom->xinclude();       // this does <xi:include>
         }
@@ -63,7 +66,10 @@ class SEEDXML
             $this->oDom = new DOMDocument;
         }
         $this->oDom->preserveWhiteSpace = $bPreserveWS;
-        $this->oDom->loadxml( $sXML );
+        if( !$this->oDom->loadxml( $sXML ) ) {
+            $errors = libxml_get_errors();
+            var_dump($errors);
+        }
         if( $bProcessIncludes ) {
             $this->oDom->xinclude();       // this does <xi:include>
         }
