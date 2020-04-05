@@ -14,6 +14,21 @@ if( !defined("SEEDROOT") )  die( "SEEDROOT must be defined" );
 // Note: direct php execution (e.g. cron) doesn't set SERVER_NAME so it will always appear to be non-local
 define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"],0,9) == "localhost") ? true : false));
 
+
+/* Activate full error reporting in development environments, not in production
+ * You can define SEED_display_errors = true to turn on error reporting when you have weird production problems
+ */ 
+if( SEED_isLocal || defined("SEED_display_errors") ) {
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_errors', 1);
+    ini_set('html_errors', 1);
+} else {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+    ini_set('html_errors', 0);
+}
+
+
 // These are always under SEEDROOT
 if( !defined("SEEDAPP") )   define( "SEEDAPP", SEEDROOT."seedapp/" );
 if( !defined("SEEDLIB") )   define( "SEEDLIB", SEEDROOT."seedlib/" );
