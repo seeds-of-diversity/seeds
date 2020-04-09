@@ -8,6 +8,7 @@
  */
 
 include_once( SEEDCORE."SEEDBasket.php" );
+include_once( SEEDLIB."mbr/MbrContacts.php" );
 
 class MSDCore
 /************
@@ -482,11 +483,8 @@ class MSDCore
 
     function GetGrowerName( $kGrower )
     {
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,company FROM seeds2.mbr_contacts WHERE _key='$kGrower'" );
-        if( !($name = trim($ra['firstname'].' '.$ra['lastname'])) ) {
-            $name = $ra['company'];
-        }
-        return( $name );
+        $o = new Mbr_Contacts($this->oApp);
+        return( $o->GetContactName($kGrower) );
     }
 
     function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
@@ -560,15 +558,9 @@ class MSDBasketCore extends SEEDBasketCore
     {
         $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds.SEEDSession_Users WHERE _key='$uidSeller'" );
         if( !($sSeller = @$ra['realname']) ) {
-//            include_once( SEEDCOMMON."mbr/mbrSitePipe.php" );
-//            $ra = MbrSitePipeGetContactsRA2( $this->oW->kfdb, $uidSeller );
-            $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$uidSeller'" );
-            if( @$ra['firstname'] ) {
-                $sSeller = SEEDCore_ArrayExpand( $ra, "[[firstname]] [[lastname]]" );
-            } else if( @$ra['company'] ) {
-                $sSeller = SEEDCore_ArrayExpand( $ra, "[[company]]" );
-            } else {
-                $sSeller = "Seller # $uidSeller";
+            $o = new Mbr_Contacts($this->oApp);
+            if( !($sSeller = $o->GetContactName($uidSeller)) ) {
+                $sSeller = "Grower # $uidSeller";
             }
         }
         return( $sSeller );
