@@ -482,11 +482,23 @@ class MSDCore
     );
 
     function GetGrowerName( $kGrower )
+    /*********************************
+        Return the firstname-lastname or company of the given mbr_contact
+     */
     {
         $o = new Mbr_Contacts($this->oApp);
         return( $o->GetContactName($kGrower) );
     }
 
+    function GetGrowerDetails( $kGrower )
+    /************************************
+        Return the basic fields of the given mbr_contact
+     */
+    {
+        $o = new Mbr_Contacts($this->oApp);
+        return( $o->GetBasicValues($kGrower) );
+    }
+    
     function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
 
 

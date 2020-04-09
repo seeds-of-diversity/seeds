@@ -56,6 +56,17 @@ class Mbr_Contacts
         }
         return( $name );
     }
+    
+    function GetBasicValues( $k )
+    {
+        $raOut = [];
+        
+        if( ($raM = $this->oDB->GetRecordVals('M', $k)) ) {
+            foreach( $this->raFldsBasic as $k=>$dummy ) { $raOut[$k] = $raM[$k]; }
+        }
+        
+        return( $raOut );
+    }
 }
 
 class Mbr_ContactsDB extends Keyframe_NamedRelations
