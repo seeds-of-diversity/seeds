@@ -71,9 +71,13 @@ class QServerMbr extends SEEDQ
 
             /* Get data for one contact
              */
+            case 'mbr!getBasic':        // this does not require R perm, but is not accessible via ajax; used in non-office code that fetches a user's own info
+                $rQ['bHandled'] = true; // fall through to mbr-getBasic
             case 'mbr-getBasic':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'basic' );
                 break;
+            case 'mbr!getOffice':       // this does not require R perm, but is not accessible via ajax; used in non-office code that fetches a user's own info
+                $rQ['bHandled'] = true; // fall through to mbr-getOffice
             case 'mbr-getOffice':   // allows different perms access this in the future
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrGet( $raParms, 'office' );
                 break;
@@ -144,13 +148,23 @@ class QServerMbr extends SEEDQ
         eDetail : basic | office | sensitive
 
         kMbr : contact key
+            OR
+        sEmail : contact email
      */
     {
         $bOk = false;
         $raOut = array();
         $sErr = "";
 
-        if( ($kMbr = intval(@$raParms['kMbr'])) && ($kfr = $this->oMbrContacts->oDB->GetKFR('M',$kMbr)) ) {
+        if( ($kMbr = intval(@$raParms['kMbr'])) ) {
+            $kfr = $this->oMbrContacts->oDB->GetKFR('M',$kMbr);
+        } else if( ($dbEmail = addslashes(@$raParms['sEmail'])) ) {
+            $kfr = $this->oMbrContacts->oDB->GetKFRCond('M', "email='$dbEmail'");
+        } else {
+            goto done;
+        }
+
+        if( $kfr ) {
             $raOut['_key'] = $kfr->Key();
             $raFlds = $eDetail=='office' ? $this->oMbrContacts->GetOfficeFlds() : $this->oMbrContacts->GetBasicFlds();  // sensitive not implemented
             foreach( $raFlds as $k =>$raDummy ) {
