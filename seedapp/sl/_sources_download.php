@@ -51,8 +51,8 @@ class SLSourcesAppDownload
         return( $s );
     }
 
-    private $companyTableDef = array( 'headers-required' => array('k','company','species','cultivar','organic','notes'),
-                                      'headers-optional' => array() );
+    private $companyTableDef = ['headers-required' => ['k','company','species','cultivar','organic','bulk','notes'],
+                                'headers-optional' => [] ];
 
     private function companies()
     {
@@ -61,6 +61,8 @@ class SLSourcesAppDownload
         $yCurr = date("Y");
         $oUpload = new SLSourcesCVUpload( $this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0 );
         $oArchive = new SLSourcesCVArchive( $this->oApp );
+
+        $bNeedValidateBeforeReporting = false;
 
 //$this->oApp->kfdb->SetDebug(2);
         switch( SEEDInput_Str('cmd') ) {
@@ -72,6 +74,7 @@ class SLSourcesAppDownload
                 break;
             case 'company_upload':
                 $s .= $this->companies_uploadfile( $oUpload );
+                $bNeedValidateBeforeReporting = true;       // the report doesn't make sense because the validation/indexing must be done first
                 break;
             case 'cmpupload_archivecurr':
                 // only admin can do this, but it doesn't depend on upload state
@@ -90,7 +93,6 @@ class SLSourcesAppDownload
                 $s .= $oUpload->FixMatchingRowKeys();
                 break;
         }
-
 
         $raReport = $oUpload->CalculateUploadReport();
 
@@ -115,7 +117,11 @@ class SLSourcesAppDownload
                 $s .= "<p><a href='?cmd=cmpupload_commit'>Commit the Uploaded CSCI to the Web Site</a></p>";
             }
 
-            $s .= $oUpload->DrawUploadReport( $raReport );
+            if( $bNeedValidateBeforeReporting ) {      // immediately after file upload the index has to be built before the report makes sense
+                $s .= "<p><em>Build the index now</em></p>";
+            } else {
+                $s .= $oUpload->DrawUploadReport( $raReport );
+            }
         } else {
             $s .= $this->companies_drawUploadForm();
         }
@@ -167,7 +173,7 @@ class SLSourcesAppDownload
 
         /* Load the uploaded spreadsheet into an array
          */
-        $raSEEDTableLoadParms = ['sCharsetOutput'=>'cp1252', 'bBigFile'=>true];
+        $raSEEDTableLoadParms = $this->companyTableDef + ['charset-sheet'=>'cp1252', 'bBigFile'=>true];
         switch( SEEDInput_Str('upfile-format') ) {
             case 'xls':
             default:
@@ -180,13 +186,11 @@ class SLSourcesAppDownload
                 break;
             case 'csv-win1252':
                 $raSEEDTableLoadParms['fmt'] = 'csv';
-                $raSEEDTableLoadParms['charset-file'] = "Windows-1252";
+                $raSEEDTableLoadParms['charset-file'] = "cp1252";
                 break;
         }
 
-        list($oSheets,$sErrMsg) = SEEDTableSheets_LoadFromUploadedFile( 'upfile',
-                                        [ 'raSEEDTableSheetsFileParms'=> ['tabledef' => $this->companyTableDef],
-                                          'raSEEDTableSheetsLoadParms' => $raSEEDTableLoadParms ] );
+        list($oSheets,$sErrMsg) = SEEDTableSheets_LoadFromUploadedFile( 'upfile', ['raSEEDTableSheetsLoadParms' => $raSEEDTableLoadParms] );
         if( !$oSheets ) {
             $this->oApp->oC->AddErrMsg( $sErrMsg );
             goto done;
