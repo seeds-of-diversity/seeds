@@ -3,7 +3,7 @@
 /*
  * SEEDTableSheets
  *
- * Copyright 2014-2019 Seeds of Diversity Canada
+ * Copyright 2014-2020 Seeds of Diversity Canada
  *
  * Manage 3-d tabular data as sheets, rows, columns
  *
@@ -35,7 +35,7 @@ class SEEDTableSheets
     Parms:
         header-required : header labels required in top row
         header-optional : header labels optional in top row
-        charset         : charset of the in-memory data, default Windows-1252
+        charset         : charset of the in-memory data, default cp1252
  */
 {
     private $raConfig;
@@ -44,7 +44,7 @@ class SEEDTableSheets
     function __construct( $raConfig = array() )
     {
         $this->raConfig = $raConfig;
-//        if( !isset($this->raParms['charset']) ) $this->raParms['charset'] = "Windows-1252";
+        if( !isset($this->raConfig['charset']) ) $this->raConfig['charset'] = "cp1252";
     }
 
     function GetSheetList()     { return( array_keys($this->raSheets) ); }
@@ -58,6 +58,7 @@ class SEEDTableSheets
     function GetRow( $sheet, $row )        { return( @$this->raSheets[$sheet][$row] ?: array() ); }
     function GetCell( $sheet, $row, $col ) { return( @$this->raSheets[$sheet][$row][$col] ?: null ); }
 
+    function GetCharset()                  { return( $this->raConfig['charset'] ); }
 
     function LoadSheet( $sheet, $raTable, $raParms = array() )
     /*********************************************************
@@ -75,11 +76,15 @@ class SEEDTableSheets
 
             raParms: headers_required = array of header col names that must exist (order does not matter)
                      headers_optional = array of header col names to load if they exist
+                     charset-input    = (optional) charset of the input data. If different than sheet's charset, iconv
 
             If headers_required/headers_optional defined, only those are loaded; else all cols are loaded
      */
     {
         $this->raSheets[$sheet] = array();
+
+        // iconv strings if both the input and the sheet have a charset, and they're different
+        $bIconv = ($ci = @$raParms['charset-input']) && $this->GetCharset() && $ci != $this->GetCharset();
 
         $raHead = $raTable[0];
         // only load columns for defined header names; if both undefined or empty load all columns
@@ -94,6 +99,9 @@ class SEEDTableSheets
 
                 $ra[$raHead[$j]] = $raTable[$r][$j];
             }
+
+            if( $bIconv ) $ra = SEEDCore_CharsetConvert( $ra, $raParms['charset-input'], $this->GetCharset() );
+
             $this->raSheets[$sheet][] = $ra;
         }
 
@@ -111,10 +119,8 @@ class SEEDTableSheets
 
         if( isset($raParms['headers-required']) ) {
             foreach( $raParms['headers-required'] as $head ) {
-                if( !in_array( $head, $raRows[0] ) ) {
-                    $sErrMsg = "The first row must have the labels <span style='font-weight:bold'>"
-                              .implode( ", ", $raParms['headers-required'] )
-                              ."</span> (in any order). Like this:<br/>".self::SampleHead( $raParms );
+                if( !in_array( $head, $raTable[0] ) ) {
+                    $sErrMsg = "The first row must have these names (in any order):<br/>".self::SampleHead( $raParms );
                     goto done;
                 }
             }
@@ -162,9 +168,11 @@ class SEEDTableSheetsFile
         Read a file and return a SEEDTableSheets
 
         $raParms:
-            fmt          = xls (default) | csv
-            charset-file = utf-8 (default) | cp1252                                  ; not used for xls because it has to be utf-8
-            sheets       = array of the sheets to load (by name or 1-origin number)  ; default all
+            fmt           = xls (default) | csv
+            charset-file  = utf-8 (default) | cp1252                                  ; not used for xls because it has to be utf-8
+            charset-sheet = charset of the output SEEDTableSheets
+            sheets        = array of the sheets to load (by name or 1-origin number)  ; default all
+            bBigFile      = use SEEDXlsReadBigFile instead of SEEDXlsRead
      */
     {
         $ok = false;
@@ -172,7 +180,11 @@ class SEEDTableSheetsFile
 
         $raParms = $this->normalizeParms($raParms);
 
-        $oSheets = new SEEDTableSheets();
+        /* Charset conversion is implemented:
+         *     csv - the sheet knows its charset, the file charset is passed to LoadSheet, so the sheet converts its input
+         *     xls - the sheet knows its charset, the file is always utf-8 which is passed to LoadSheet, and the sheet converts its input
+         */
+        $oSheets = new SEEDTableSheets( ['charset'=>$raParms['charset-sheet']] );
 
         if( @$raParms['fmt'] == 'csv' ) {
             list($ok,$sErr) = $this->loadFromCSV( $oSheets, $filename, $raParms );
@@ -217,21 +229,101 @@ class SEEDTableSheetsFile
                 $raParms['charset-file'] = 'utf-8';
                 break;
             case 'csv':
-                $raParms['charset-file'] = SEEDCore_ArraySmartVal( $raParms, 'charset', ['utf-8','cp1252'] );
-                $raParms['sheets'] = @$raParms['sheets'] ? array($raParms['sheets'][0]) : array(1);
+                $raParms['charset-file'] = SEEDCore_ArraySmartVal( $raParms, 'charset-file', ['utf-8','cp1252'] );
+                $raParms['sheets'] = @$raParms['sheets'] ? [$raParms['sheets'][0]] : ['Sheet1'];    // just the first sheet name
                 break;
         }
+        if( !isset($raParms['charset-sheet']) )  $raParms['charset-sheet'] = 'utf-8';
 
         return( $raParms );
     }
 
-    function loadFromCSV( $oSheets, $filename, $raParms )
+    function loadFromCSV( SEEDTableSheets $oSheets, $filename, $raParms )
+    /********************************************************************
+        Read csv or tab-delimited file into the first sheet of $oSheets.
+        The first row is a header row, whose labels are converted into the keys of SEEDTableSheets data format.
+
+        Skip blank lines (don't store them).
+
+        $raParms:
+            bTab (default:false)    = same as (sDelimiter="\t", sEnclosure='', sEscape='\')
+            sDelimiter              = single char separating fields
+            sEnclosure              = single char before and after fields (not required if not necessary)
+            sEscape                 = single char to escape delimiter and enclosure chars
+     */
     {
         $ok = false;
         $sErr = "";
 
+        $nCols = 0;
+        $raRows = [];
 
-        return( array($ok,$sErr) );
+        if( !($f = @fopen( $filename, "r" )) ) {
+            $sErr = "Cannot open $filename<br/>";
+            goto done;
+        }
+
+        /* if bTab is not set use the first row to try to determine the format
+         */
+        if( isset($raParms['bTab']) ) {
+            $bTab = $raParms['bTab'];
+        } else {
+            $line = fgets($f);
+            $bTab = ( strpos( $line, "\t" ) !== false );
+            rewind( $f );
+        }
+
+
+        if( !$bTab ) {
+            $sDelimiter = @$raParms['sDelimiter'] ?: ",";
+            $sEnclosure = @$raParms['sEnclosure'] ?: "\"";
+        } else {
+            // not used below
+            //$sDelimiter = @$raParms['sDelimiter'] ?: "\t";
+            //$sEnclosure = @$raParms['sEnclosure'] ?: "";
+        }
+        $sEscape = @$raParms['sEscape'] ?: "\\";
+
+        while( !feof( $f ) ) {
+            if( $bTab ) {
+                // fgetcsv doesn't seem to like a blank sEnclosure, so here it's implemented our way.
+                $s = fgets( $f );
+                $s = rtrim( $s, " \r\n" );    // fgets retains the linefeed
+                if( !strlen( $s ) ) continue;
+                $raFields = explode( "\t", $s );
+            } else {
+// escape parm is available since PHP 5.3 -- try it out
+                $raFields = fgetcsv( $f, 0, $sDelimiter, $sEnclosure ); //, $sEscape );
+                if($raFields == null)   break;     // eof or error
+                if($raFields[0]===null) continue;  // blank line
+            }
+//var_dump($raFields);
+
+            $nCols = max( $nCols, count($raFields) );
+
+            $raRows[] = $raFields;
+        }
+
+        fclose( $f );
+
+
+        /* Fill unset values in the 2D array.
+         * If there were missing column values at the ends of rows, especially with longer rows later, some cells will be !isset
+         */
+        for( $i = 0; $i < count($raRows); ++$i ) {
+            while( count($raRows[$i]) < $nCols ) {
+                $raRows[$i][] = '';
+            }
+        }
+//var_dump($raRows);
+        list($ok,$sErr) = SEEDTableSheets::ValidateBeforeLoad( $raRows, $raParms );
+        if( $ok ) {
+            // the sheet will convert its input if its own charset is different than 'charset-input'
+            $oSheets->LoadSheet( $raParms['sheets'][0], $raRows, $raParms + ['charset-input'=>$raParms['charset-file']] );
+        }
+
+        done:
+        return( [$ok,$sErr] );
     }
 
     function writeToCSV( $oSheets, $filename, $raParms )
@@ -247,6 +339,12 @@ class SEEDTableSheetsFile
     {
         $ok = false;
         $sErr = "";
+
+        // SEEDXLSX could convert the returned data into the sheet's preferred charset but the sheet can
+        // also do that. For symmetry with CSV, we get the data in the spreadsheet's native utf-8 and tell
+        // that to LoadSheet(). The oSheet was created with the preferred output charset so it will do the right thing.
+        //$raParms['sCharsetOutput'] = $oSheets->GetCharset();
+        $raParms['sCharsetOutput'] = 'utf-8';   // reuse $raParms because it can also contain other SEEDXLSX parms.
 
         if( @$raParms['bBigFile'] ) {
             // the caller thinks this is going to be a big file so get it in chunks and return the data of the first sheet
@@ -268,7 +366,7 @@ class SEEDTableSheetsFile
             $ok = true;
         }
 
-        $oSheets->LoadSheet( $sSheetName, $data, $raParms );
+        $oSheets->LoadSheet( $sSheetName, $data, $raParms + ['charset-input'=>'utf-8'] );
 
         done:
         return( [$ok,$sErr] );
@@ -291,7 +389,6 @@ function SEEDTableSheets_LoadFromFile( $filename, $raParms = array() )
 
     raSEEDTableSheetsFileParms = the parms for SEEDTableSheetsFile()
     raSEEDTableSheetsLoadParms = the parms for SEEDTableSheetsFile::LoadFromFile()
-    bBigFile                   = use SEEDXlsReadBigFile instead of SEEDXlsRead
  */
 {
     $bOk = false;
