@@ -388,10 +388,10 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
             $sErrorUnknownCompanies = "<span style='color:red'> + $n unindexed</span>";
         }
         if( ($n = count($raReport['raUnknownSpecies'])) ) {
-            $sErrorUnknownSpecies = "<span style='color:red'> + $n unindexed</span>";
+            $sErrorUnknownSpecies = "<span style='color:blue'> + $n unindexed</span>";
         }
         if( ($n = count($raReport['raUnknownCultivars'])) ) {
-            $sErrorUnknownCultivars = "<span style='color:red'> + $n unindexed</span>";
+            $sErrorUnknownCultivars = "<span style='color:blue'> + $n unindexed</span>";
         }
 
         $s .= "<table class='companyUploadResultsTable'><tr><th>Existing</th><th width='50%'>Upload<br/>({$raReport['nRows']} rows)</th></tr>"
@@ -405,7 +405,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                ."<tr><td>&nbsp;</td><td>{$raReport['nRowsN']} rows are new</td></tr>"
                ."<tr><td>&nbsp;</td><td>{$raReport['nRowsD1']} rows are marked in the spreadsheet for deletion</td></tr>"
                ."<tr><td>{$raReport['nRowsD2']} rows will be deleted because they are missing in the upload</td><td>&nbsp;</td></tr>"
-               ."<tr><td>&nbsp;</td><td><span style='color:red'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
+               ."<tr><td>&nbsp;</td><td><span style='color:blue'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
                ."</table><br/>";
 
         /* Warn about unindexed species and cultivars, unless company is blank (action C-delete).
