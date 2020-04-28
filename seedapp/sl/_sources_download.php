@@ -134,7 +134,7 @@ class SLSourcesAppDownload
 //                 ."There are {$raReport['nRowsSameDiffKeys']} rows in upload table with the same (src,sp,cv) as SrcCv but different keys.<br/>"
 //                 ."This happens when new (k==0) rows are committed, which is fine, just fix it by clicking this link.<br/>"
 //                 ."N.B. You have to rebuild the indexes after clicking this link.</p>";
-            $s .= "<p class='alert alert-warning'>N.B. There were {$raReport['nRowsSameDiffKeys']} rows in the upload table with the same (src,sp,cv) as SrcCv but different keys.<br/>"
+            $s .= "<p class='alert alert-danger'>N.B. There were {$raReport['nRowsSameDiffKeys']} rows in the upload table with the same (src,sp,cv) as SrcCv but different keys.<br/>"
                  ."This has been corrected. <em>Please click Build/Rebuild Upload Table again to finish</em>.</p>";
             $s .= $oUpload->FixMatchingRowKeys();
 
