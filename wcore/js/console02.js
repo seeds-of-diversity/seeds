@@ -177,6 +177,10 @@ class ConsoleEditList
 
         this.bFormIsOpen = false;
         this.bFormIsNew = false;        // if an open form is new, Cancel will .remove() it
+
+        let saveThis = this;
+        // any controls with this class will open a New form when clicked
+        $(".seededit-ctrlnew").click( function(e) { console.log("A");saveThis.ItemNew(); });
     }
 
     IsFormOpen()  { return( this.bFormIsOpen ); }
@@ -277,9 +281,10 @@ class ConsoleEditList
                 saveThis.bFormIsOpen = false;
                 saveThis.bFormIsNew = false;
 
-                if( saveThis.jItemCurr ) {
+//                if( saveThis.jItemCurr ) {
+                    // N.B. if a New form is Cancelled, jItemCurr will be null here
                     saveThis.FormClose_PostClose( saveThis.jItemCurr );
-                }
+//                }
             } );
     }
 
@@ -349,16 +354,60 @@ class ConsoleEditList
     /* Functions meant to provide derived behaviours
      */
     Item_Init( jItem )
+    /*****************
+        Derived class must call this to hook clicks to FormOpen
+     */
     {
-        /* Derived class must call this to connect seededit-text to FormOpen */
-
         let saveThis = this;
         // clicking on the seededit-text causes the form to open
         jItem.find(".seededit-text").click( function(e) { saveThis.FormOpen( jItem ); });
+        // clicking on anything with class seededit_ctrledit causes the form to open (this could be a button, a link, an image...)
+        jItem.find(".seededit-ctrledit").click( function(e) { saveThis.FormOpen( jItem ); });
     }
-    FormOpen_IsOpenable( jItem, kItem )  { /* override to say whether the selected item is allowed to open a form */    return( true ); }
-    FormOpen_InitForm( jFormDiv, kItem ) { /* override to initialize the given form */ }
-    FormClose_PreClose( jFormDiv )       { /* override for actions when a form is closed, before it fades out */ }
-    FormClose_PostClose( jItem )         { /* override for actions when a form is closed, after it fades out */ }
-    FormSave_Action( kItem )             { /* override for the action when a form is saved */                           return( true ); }
+
+    FormOpen_IsOpenable( jItem, kItem )
+    /**********************************
+        Override to say whether the selected item is allowed to open a form
+     */
+    {
+        return( true );
+    }
+
+    FormOpen_InitForm( jFormDiv, kItem )
+    /***********************************
+        Override to initialize the given form
+     */
+    {
+        // disable all control buttons for all items, while the form is open
+        $(".seededit-ctrlnew").attr("disabled","disabled");
+        $(".seededit-ctrledit").attr("disabled","disabled");
+    }
+
+    FormClose_PreClose( jFormDiv )
+    /*****************************
+        Override for actions when a form is closed, before it fades out
+     */
+    {
+    }
+
+    FormClose_PostClose( jItem )
+    /***************************
+        Override for actions when a form is closed, after it fades out.
+        This is called after the form is removed from the dom. The item should still be valid though.
+        
+        N.B. If a New form is Cancelled, jItem will be null at this point.
+     */
+    {
+        // re-enable all control buttons for all items
+        $(".seededit-ctrlnew").removeAttr("disabled");
+        $(".seededit-ctrledit").removeAttr("disabled");
+    }
+
+    FormSave_Action( kItem )
+    /***********************
+        Override for the action when a form is saved
+     */
+    {
+        return( true );
+    }
 }
