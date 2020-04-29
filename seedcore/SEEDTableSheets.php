@@ -366,7 +366,10 @@ class SEEDTableSheetsFile
             $ok = true;
         }
 
-        $oSheets->LoadSheet( $sSheetName, $data, $raParms + ['charset-input'=>'utf-8'] );
+        list($ok,$sErr) = SEEDTableSheets::ValidateBeforeLoad( $data, $raParms );
+        if( $ok ) {
+            $oSheets->LoadSheet( $sSheetName, $data, $raParms + ['charset-input'=>'utf-8'] );
+        }
 
         done:
         return( [$ok,$sErr] );
