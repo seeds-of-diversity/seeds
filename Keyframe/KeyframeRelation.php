@@ -641,7 +641,7 @@ class KeyframeRecord
     private $key;
     private $values;
     private $dbValSnap;        // a snapshot of the _values most recently retrieved from the db.  For change detection.
-
+    private $valuesNull;       // PutDBRow sets these values to NULL in db (minimally implemented only for creating new rows)
     private $keyForce = 0;
 
     function KFRel()  { return( $this->kfrel ); }
@@ -662,6 +662,7 @@ class KeyframeRecord
         $this->key = 0;
         $this->values = array();
         $this->dbValSnap = array();
+        $this->valuesNull = [];
         $this->keyForce = 0;
 
         foreach( $this->kfrel->BaseTableFields() as $k ) {
@@ -701,7 +702,7 @@ class KeyframeRecord
 
     function Key()              { return( $this->key ); }
     function IsEmpty( $k )      { $v = $this->Value($k); return( empty($v) ); } // because empty doesn't work on methods
-    function SetKey( $i )       { $this->key = $i; $this->SetValue( 'key', $i ); }
+    function SetKey( $i )       { $this->key = $i;         $this->SetValue( 'key', $i );/*deprecate 'key' value, probably not used*/}
     function SetValue( $k, $v )
     {
 /*
@@ -718,7 +719,17 @@ class KeyframeRecord
         if( !$bFound ) { $this->_values[$k] = $v; }
 */
         $this->values[$k] = $v;
+        unset($this->valuesNull[$k]);
     }
+    function SetNull( $k )
+    /*********************
+        Set this field to NULL in the db. This is only minimally implemented for storing NULLs with PutDBRow
+     */
+    {
+        $this->values[$k] = '';     // so Value() will return an empty string because that's what happens when a NULL is read from the db
+        $this->valuesNull[$k] = true;
+    }
+
     // simulate the function of an S+ type
     function SetValuePrepend( $k, $v ) { $this->SetValue( $k, $v . $this->Value($k) ); }
     function SetValueAppend( $k, $v )  { $this->SetValue( $k, $this->Value($k) . $v ); }
@@ -886,15 +897,21 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             }
             foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( !in_array( $f['col'], array("_key", "_created", "_created_by", "_updated", "_updated_by") ) ) {
-                    /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
-                     * anyway, this makes kfr log files much more readable.
-                     */
-                    $val = $this->values[$f['alias']];
-                    if( $bSnap && isset($this->dbValSnap[$f['alias']]) && $this->dbValSnap[$f['alias']] == $val ) {
-                        continue;
+                    // if the field is in valuesNull, write a db NULL
+                    if( @$this->valuesNull[$f['alias']] ) {
+                        $sClause .= ",{$f['col']}=NULL";
+                        $bDo = true;
+                    } else {
+                        /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
+                         * anyway, this makes kfr log files much more readable.
+                         */
+                        $val = $this->values[$f['alias']];
+                        if( $bSnap && isset($this->dbValSnap[$f['alias']]) && $this->dbValSnap[$f['alias']] == $val ) {
+                            continue;
+                        }
+                        $sClause .= ",{$f['col']}=".$this->putFmtVal( $val, $f['type'] );
+                        $bDo = true;
                     }
-                    $sClause .= ",{$f['col']}=".$this->putFmtVal( $val, $f['type'] );
-                    $bDo = true;
                 }
             }
             if( $bDo ) {
@@ -920,7 +937,11 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( !in_array( $f['col'], array("_key", "_created", "_created_by","_updated","_updated_by") ) ) {
                     $sk .= ",".$f['col'];
-                    $sv .= ",".$this->putFmtVal( $this->values[$f['alias']], $f['type'] );
+                    if( @$this->valuesNull[$f['alias']] ) {
+                        $sv .= ",NULL";
+                    } else {
+                        $sv .= ",".$this->putFmtVal( $this->values[$f['alias']], $f['type'] );
+                    }
                 }
             }
 
