@@ -1,5 +1,13 @@
 <?php
 
+// issue 6 receipts Dec 31, 2019
+// record 19259 Michel St-Onge because it was overwritten by her later donation
+// issue receipts from 2019 that don't have receipt numbers
+// load a mbrcontacts db from Aug/Sept 2019 and see if it has any from earlier in 2019 that were overwritten later in 2019
+
+
+
+
 /* mbrPrint
  *
  * Copyright 2020 Seeds of Diversity Canada
@@ -10,6 +18,7 @@
 include_once( SEEDCORE."SEEDPrint.php" );
 include_once( SEEDAPP."mbr/mbrApp.php" );
 include_once( SEEDCORE."console/console02.php" );
+include_once( SEEDLIB."mbr/MbrContacts.php" );
 
 //list($kfdb,$sess,$lang) = SiteStartSessionAccount( array( 'R MBR' ) );
 
@@ -40,25 +49,42 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2',
 $kfdb = $oApp->kfdb;
 $sess = $oApp->sess;
 
+SEEDPRG();
+
 
 if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
     include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
 
+    if( !($nReceipt = SEEDInput_Int('donorReceiptNum')) ) {
+        $oApp->oC->AddErrMsg( 'Enter a receipt number' );
+        goto printDonationReceiptAbort;
+    }
+
+    $oContacts = new Mbr_Contacts( $oApp );
+    if( !($kfr = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
+        $oApp->oC->AddErrMsg( 'Unknown receipt number' );
+        goto printDonationReceiptAbort;
+    }
+
+
     $oMT = new MasterTemplate( $oApp, ['raSEEDTemplateMakerParms'=>['fTemplates'=>[SEEDAPP."templates/donation_receipt.html"]]] );
 
     $vars = [
-        'donorName' => "Michel St-Onge",
-        'donorAddr' => "291 rue du Marché<br/>Salaberry-de-Valleyfield QC J6T 1S4",
-        'donorReceiptNum' => "19259",
-        'donorAmount'  => "35.00",
-        'donorDateReceived' => "Feb 9, 2019",
-        'donorDateIssued' => "April 16, 2020"
-
+        'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]").$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
+        'donorAddr' => $kfr->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
+        'donorReceiptNum' => $nReceipt,
+        'donorAmount'  => $kfr->Value('amount'),
+        'donorDateReceived' => $kfr->Value('date_received'),
+        'donorDateIssued' => $kfr->Value('date_issued')
     ];
 
-    echo $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt', $vars );
+    $sBody = $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt', $vars );
+    $sHead = "";
+    echo Console02Static::HTMLPage( utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
 
     exit;
+
+    printDonationReceiptAbort:
 }
 
 
@@ -127,6 +153,7 @@ class MyConsole02TabSet extends Console02TabSet
 {
     private $o3UpMbr;
     private $o3UpDonors;
+    private $oContacts;
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -135,6 +162,8 @@ class MyConsole02TabSet extends Console02TabSet
 
         $this->o3UpMbr = $o3UpMbr;
         $this->o3UpDonors = $o3UpDonors;
+
+        $this->oContacts = new Mbr_Contacts( $oApp );
     }
 
     function TabSet_main_renewalRequests_ContentDraw()
@@ -161,7 +190,14 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_main_donationReceipts_ContentDraw()
     {
-        return( "<a href='?cmd=printDonationReceipt'><button>Donation</button></a>" );
+        $s = $this->oContacts->BuildDonorTable();
+
+        $s .= "<form target='_blank'>
+              <input type='hidden' name='cmd' value='printDonationReceipt'>
+              <input type='text' name='donorReceiptNum'/>
+              <input type='submit' value='Make Receipt'/>
+              </form>";
+        return( $s );
     }
 }
 
