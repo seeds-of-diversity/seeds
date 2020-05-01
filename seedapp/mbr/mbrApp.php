@@ -13,12 +13,12 @@ class MbrApp
     static $raAppPerms = [
         // the app that prints 3-up renewal and donation slips, and donation receipts
         'mbrPrint' =>
-            [ 'renewalRequests'  => ['R MBR'],
+            [ 'renewalRequests'   => ['R MBR'],
                'donationRequests' => ['R MBRDonations'],
                'donationReceipts' => ['R MBRDonations'],
+               'donations'        => ['W MBRDonations'],
                '|'  // allows screen-login even if some tabs are ghosted
             ],
-
     ];
 
 }

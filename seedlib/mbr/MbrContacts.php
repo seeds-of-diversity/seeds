@@ -85,6 +85,8 @@ $this->oApp->kfdb->SetDebug(1);
             foreach( $raR as $ra ) {
                 $s .= "<p>mbr:{$ra['_key']}, received: {$ra['date']}, $ {$ra['amount']}, receipt # {$ra['receipt_num']}</p>";
 
+                continue; // don't write changes, just show them for now
+
                 if( !$ra['date'] ) {
                     $s .= "<p>Skipping blank date</p>";
                     continue;

@@ -7,6 +7,7 @@
  * App that prints membership and donation slips, and donation receipts
  */
 
+include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDCORE."SEEDPrint.php" );
 include_once( SEEDAPP."mbr/mbrApp.php" );
 include_once( SEEDCORE."console/console02.php" );
@@ -23,7 +24,8 @@ $consoleConfig = [
     //    array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'renewalRequests'  => ['label'=>'Renewal Notices'],
                                         'donationRequests' => ['label'=>'Donation Requests'],
-                                        'donationReceipts' => ['label'=>'Donation Receipts']
+                                        'donationReceipts' => ['label'=>'Donation Receipts'],
+                                        'donations'        => ['label'=>'Donations']
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' => MbrApp::$raAppPerms['mbrPrint'],
@@ -148,6 +150,7 @@ if( SEEDInput_Str('cmd') == 'printDonationSlips' ) {
 
 class MyConsole02TabSet extends Console02TabSet
 {
+    private $oApp;
     private $o3UpMbr;
     private $o3UpDonors;
     private $oContacts;
@@ -157,6 +160,7 @@ class MyConsole02TabSet extends Console02TabSet
         global $consoleConfig, $o3UpMbr, $o3UpDonors;
         parent::__construct( $oApp->oC, $consoleConfig['TABSETS'] );
 
+        $this->oApp = $oApp;
         $this->o3UpMbr = $o3UpMbr;
         $this->o3UpDonors = $o3UpDonors;
 
@@ -194,10 +198,133 @@ class MyConsole02TabSet extends Console02TabSet
               <input type='text' name='donorReceiptRange'/>
               <input type='submit' value='Make Receipt'/>
               </form>";
+
+        return( $s );
+    }
+
+    function TabSet_main_donations_Init()         { $this->oW = new MbrDonationsListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_donations_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_donations_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+}
+
+
+class MbrDonationsListForm
+{
+    private $oApp;
+    private $oComp;
+    private $oSrch;
+    private $oList;
+    private $oForm;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function dsPreStore( Keyframe_DataStore $oDS )
+    {
+        // This allows date_issued to be erased. A DATE cannot be '' but it can be NULL.
+        // However, if it is already NULL KF will try to set it to NULL again and log that.
+        // So you'll see date_issued=NULL in the log when it was already NULL.
+        // The reason is that KF stores a NULL value's snapshot as '' so it thinks the value is changing from '' to NULL.
+        $kfr = $oDS->GetKFR();  // because there is no oDS->SetNull, though there could be if you can generalize it for the base SEEDDataStore
+        if( !$kfr->value('date_issued') ) $kfr->SetNull('date_issued');
+
+        return( true );
+    }
+
+    function Init()
+    {
+        $oContacts = new Mbr_Contacts( $this->oApp );
+
+        $oUI = new SEEDUI_Session( $this->oApp->sess, "Donations" );
+        $kfrel = $oContacts->oDB->Kfrel('DxM');
+        $cid = 'D';
+        $this->oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid, ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]] );
+
+        $this->oComp->Update();
+
+        $raSrchConfig = [
+            'filters' => [
+                ['label'=>'First name',    'col'=>'M.firstname'],
+                ['label'=>'Last name',     'col'=>'M.lastname'],
+                ['label'=>'Company',       'col'=>'M.company'],
+                ['label'=>'Amount',        'col'=>'amount'],
+                ['label'=>'Date received', 'col'=>'date_received'],
+                ['label'=>'Date issued',   'col'=>'date_issued'],
+                ['label'=>'Receipt #',     'col'=>'receipt_num'],
+            ]
+        ];
+        $this->oSrch = new SEEDUIWidget_SearchControl( $this->oComp, $raSrchConfig );
+
+        $raListConfig = [           // constant things for the __construct that might be needed for state computation
+            'bUse_key' => true,
+            'cols' => [
+                [ 'label'=>"k",         'col'=>"_key",          'w'=>30 ],
+                [ 'label'=>"Member",    'col'=>"M__key",        'w'=>80 ],
+                [ 'label'=>"Firstname", 'col'=>"M_firstname",   'w'=>120 ],
+                [ 'label'=>"Lastname",  'col'=>"M_lastname",    'w'=>120 ],
+                [ 'label'=>"Company",   'col'=>"M_company",     'w'=>120 ],
+                [ 'label'=>"Received",  'col'=>"date_received", 'w'=>120 ],
+                [ 'label'=>"Amount",    'col'=>"amount",        'w'=>120 ],
+                [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>120 ],
+                [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>120 ],
+            ]
+        ];
+        //$raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
+//$this->oApp->kfdb->SetDebug(2);
+        $this->oList = new KeyframeUIWidget_List( $this->oComp, $raListConfig );
+        $this->oForm = new KeyframeUIWidget_Form( $this->oComp, ['fnExpandTemplate'=>array($this,'foo')] );
+
+        $this->oComp->Start();    // call this after the widgets are registered
+
+
+    }
+
+    function ControlDraw()
+    {
+        $sSrch = $this->oSrch->Draw();
+        return( "<div style='padding:15px'>$sSrch</div>" );
+    }
+
+    function ContentDraw()
+    {
+        $s = "";
+
+        $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
+
+        $raListParms = [          // variables that might be computed or altered during state computation
+//            'iViewOffset' => $this->oComp->Get_iWindowOffset(),
+//            'nViewSize' => $oView->GetNumRows()
+        ];
+
+        $sList = $this->oList->ListDrawInteractive( $oViewWindow, $raListParms );
+
+        $sForm = $this->oForm->Draw();
+
+$sInfo = "";
+
+        $s .= $this->oList->Style()
+            ."<div>".$sList."</div>"
+            ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$sForm."</div>"
+            .$sInfo;
+
+        return( $s );
+    }
+
+    function foo( $oForm )
+    {
+        $s = "|||TABLE( || class='' width='100%' border='0')"
+            ."||| *Member*       || [[text:fk_mbr_contacts|size=30]]      || *Amount*  || [[text:amount|size=30]] || *Receipt #*  || [[text:receipt_num|size=30]]"
+            ."||| *Received*       || [[text:date_received|size=30]]      || *Issued*  || [[text:date_issued|size=30]]"
+            ."||| *Notes*     || {colspan='3'} ".$oForm->TextArea( "notes", array('width'=>'100%') )
+            ."|||ENDTABLE"
+            ."[[hiddenkey:]]"
+            ."<input type='submit' value='Save'>";
+
         return( $s );
     }
 }
-
 
 $oCTS = new MyConsole02TabSet( $oApp );
 
