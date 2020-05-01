@@ -621,11 +621,17 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
     |||table-type(col attrs | col attrs |... || table attrs)
     ||| first || row || of || columns
     ||| {td-attrs} second || {td-attrs} row || of || columns
+
+    If you want non-table content after the table you can use:
+
+    |||ENDTABLE
+    non-table content
  */
 {
     $ok = false;
     $s = "";
     $eTable = "";
+    $sAfterEndTable = "";
 
     if( substr( $sTemplate, 0, 9 ) == "|||TABLE(" ) {
         $eTable = "table";
@@ -644,6 +650,13 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
     } else {
         // no table here
         goto done;
+    }
+
+    /* If there is an ENDTABLE, remove it and save any content following it
+     */
+    if( ($endtable = strpos($sTemplate,"|||ENDTABLE")) ) {
+        $sAfterEndTable = substr( $sTemplate,$endtable+strlen("|||ENDTABLE") );
+        $sTemplate = substr( $sTemplate, 0, $endtable );
     }
 
     // find first row, skip first ||| to prevent empty element, and explode rows
@@ -676,6 +689,8 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
     }
 
     if( $eTable == 'table' )  $s .= "</table>";
+
+    $s .= $sAfterEndTable;      // content that was found after optional |||ENDTABLE
 
     $ok = true;
 
