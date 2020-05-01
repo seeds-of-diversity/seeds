@@ -1,13 +1,5 @@
 <?php
 
-// issue 6 receipts Dec 31, 2019
-// record 19259 Michel St-Onge because it was overwritten by her later donation
-// issue receipts from 2019 that don't have receipt numbers
-// load a mbrcontacts db from Aug/Sept 2019 and see if it has any from earlier in 2019 that were overwritten later in 2019
-
-
-
-
 /* mbrPrint
  *
  * Copyright 2020 Seeds of Diversity Canada
@@ -55,30 +47,35 @@ SEEDPRG();
 if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
     include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
 
-    if( !($nReceipt = SEEDInput_Int('donorReceiptNum')) ) {
+    if( !($rngReceipt = SEEDInput_Str('donorReceiptRange')) ) {
         $oApp->oC->AddErrMsg( 'Enter a receipt number' );
         goto printDonationReceiptAbort;
     }
 
-    $oContacts = new Mbr_Contacts( $oApp );
-    if( !($kfr = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
-        $oApp->oC->AddErrMsg( 'Unknown receipt number' );
-        goto printDonationReceiptAbort;
-    }
-
-
     $oMT = new MasterTemplate( $oApp, ['raSEEDTemplateMakerParms'=>['fTemplates'=>[SEEDAPP."templates/donation_receipt.html"]]] );
 
-    $vars = [
-        'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]").$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
-        'donorAddr' => $kfr->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
-        'donorReceiptNum' => $nReceipt,
-        'donorAmount'  => $kfr->Value('amount'),
-        'donorDateReceived' => $kfr->Value('date_received'),
-        'donorDateIssued' => $kfr->Value('date_issued')
-    ];
+    list($raReceipts) = SEEDCore_ParseRangeStr( $rngReceipt );
 
-    $sBody = $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt', $vars );
+    $oContacts = new Mbr_Contacts( $oApp );
+    $sBody = $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', [] );;
+    foreach( $raReceipts as $nReceipt ) {
+        if( !($kfr = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
+            $sBody .= "<div class='donReceipt_page'>Unknown receipt number $nReceipt</div>";
+            continue;
+        }
+
+        $vars = [
+            'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]").$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
+            'donorAddr' => $kfr->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
+            'donorReceiptNum' => $nReceipt,
+            'donorAmount'  => $kfr->Value('amount'),
+            'donorDateReceived' => $kfr->Value('date_received'),
+            'donorDateIssued' => $kfr->Value('date_issued')
+        ];
+
+        $sBody .= $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', $vars );
+    }
+
     $sHead = "";
     echo Console02Static::HTMLPage( utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
 
@@ -194,7 +191,7 @@ class MyConsole02TabSet extends Console02TabSet
 
         $s .= "<form target='_blank'>
               <input type='hidden' name='cmd' value='printDonationReceipt'>
-              <input type='text' name='donorReceiptNum'/>
+              <input type='text' name='donorReceiptRange'/>
               <input type='submit' value='Make Receipt'/>
               </form>";
         return( $s );

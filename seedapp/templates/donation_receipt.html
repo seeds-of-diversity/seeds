@@ -1,6 +1,6 @@
 # Seeds of Diversity donation receipt
 #
-# ExpandTmpl('donation_receipt', 
+# ExpandTmpl('donation_receipt_page', 
 #            ['donorName'=>
 #             'donorAddr'=>
 #             'donorReceiptNum'=>
@@ -9,7 +9,7 @@
 #             'donorAmount'=>        string formatted with cents but no dollar sign
 #            ])
 
-%% donation_receipt
+%% donation_receipt_page
 {% extends 'donrectmpl_page' %}
 
 {% block donrecblock_donorNameAddress %}
@@ -82,7 +82,7 @@ Canada Revenue Agency - www.canada.ca/charities-giving<br/>Agence du revenu du C
 
 %% donrectmpl_page
 <style>
-.donReceipt_page { width:8.5in; height:11in; padding:0 0.25in 0 0.75in; position:relative; font-size:10pt; font-family:helvetica,sans serif }
+.donReceipt_page { width:8.5in; height:11in; page-break-before:always; padding:0 0.25in 0 0.75in; position:relative; font-size:10pt; font-family:helvetica,sans serif }
 td { font-size:10pt; font-family:helvetica,sans serif }
 div {border:1px solid white;}   /* change this colour to see where the blocks are */
 </style>
@@ -95,25 +95,26 @@ div {border:1px solid white;}   /* change this colour to see where the blocks ar
 </div>
 #
 # first (official) receipt
-# envelope window printing starts 1.945in from top of the page
+# envelope window printing starts 2.245in from top of the page
 #
 <div style='text-align:center;margin:.125in auto; font-size:12pt'>
 OFFICIAL RECEIPT FOR INCOME TAX PURPOSES<br/>RE&Ccedil;U OFFICIEL POUR FIN DE L'IMPOT SUR LE REVENU
 </div>
-<div style='position:absolute; top:1.945in;left:0.75in;right:0'>{{ block('donrecblock_receiptBlock') }}</div>
+<div style='position:absolute; top:2.245in;left:0.75in;right:0'>{{ block('donrecblock_receiptBlock') }}</div>
+
 #
 # second (duplicate) receipt
 #
-<div style='position:absolute; top:5.2in;left:0.75in;right:0.75in; text-align:center;margin:.125in auto; font-size:12pt'>
+<div style='position:absolute; top:5.5in;left:0.75in;right:0.75in; text-align:center;margin:.125in auto; font-size:12pt'>
 <hr style='border:1px solid #777'/>
 DUPLICATE RECEIPT - Please keep this portion for your records.<br/>REPRODUCTION DU RE&Ccedil;U - Gardez cette portion pour votre rapport.
 </div>
-<div style='position:absolute; top:6.1in;left:0.75in;right:0'>{{ block('donrecblock_receiptBlock') }}</div>
+<div style='position:absolute; top:6.4in;left:0.75in;right:0'>{{ block('donrecblock_receiptBlock') }}</div>
 
 #
 # thank you
 #
-<div style='position:absolute;bottom:0.5in;left:0.75in;right:0.75in'>
+<div style='position:absolute;bottom:0in;left:0.75in;right:0.75in'>
   <table style='width:100%'><tr>
   <td valign='top' width='50%'>
   Thank you very much for your donation to Seeds of Diversity and its projects. Your donation will enable us to do our part to ensure 
