@@ -97,3 +97,83 @@ class KeyframeUIWidget_Form extends SEEDUIWidget_Form
         return( $s );
     }
 }
+
+class KeyFrameUI_ListFormUI
+/**************************
+    A UI subsystem comprised of a List, a Form, and a Search Control.
+
+    Usage: give the config what it needs to know, then:
+           Init() any time after construction, but before you want to read any Component state values (e.g. kCurr)
+           DrawList() to get the html for the list
+           DrawForm() to get the html for the form
+           DrawSearch() to get the html for the search control
+           DrawStyle() to get the <style> for this set of widgets
+
+    raConfig:
+        sessNamespace   = ns for the oSVA where UI parms are stored
+        cid             = a letter designating the Component id
+        kfrel           = the Component's kf relation
+        KFCompParms     = parms for KeyframeUIComponent   e.g. raSEEDFormParms
+        raListConfig    = define the list widget
+        raFormConfig    = define the form widget
+        raSrchConfig    = define the search widget
+ */
+{
+    protected $oApp;
+    protected $raConfig;
+    protected $oComp;
+    protected $oSrch;
+    protected $oList;
+    protected $oForm;
+
+    function __construct( SEEDAppSession $oApp, $raConfig )
+    {
+        $this->oApp = $oApp;
+        $this->raConfig = $raConfig;
+    }
+
+    function Init()
+    {
+        $oUI = new SEEDUI_Session( $this->oApp->sess, $this->raConfig['sessNamespace'] );
+        $this->oComp = new KeyframeUIComponent( $oUI, $this->raConfig['kfrel'], $this->raConfig['cid'], $this->raConfig['KFCompParms'] );
+        $this->oComp->Update();
+
+        $this->oSrch = new SEEDUIWidget_SearchControl( $this->oComp, $this->raConfig['raSrchConfig'] );
+        $this->oList = new KeyframeUIWidget_List( $this->oComp, $this->raConfig['raListConfig'] );
+        $this->oForm = new KeyframeUIWidget_Form( $this->oComp, $this->raConfig['raFormConfig'] );
+
+        $this->oComp->Start();    // call this after the widgets are registered
+    }
+
+    function DrawStyle()
+    /*******************
+        Return <style> for all widgets
+     */
+    {
+        return( $this->oList->Style() );    // add styles for search control
+    }
+
+    function DrawList()
+    {
+        $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
+
+        $raListParms = [          // variables that might be computed or altered during state computation
+//            'iViewOffset' => $this->oComp->Get_iWindowOffset(),
+//            'nViewSize' => $oView->GetNumRows()
+        ];
+
+        $sList = $this->oList->ListDrawInteractive( $oViewWindow, $raListParms );
+
+        return( $sList );
+    }
+
+    function DrawForm()
+    {
+        return( $this->oForm->Draw() );
+    }
+
+    function DrawSearch()
+    {
+        return( "<div style='padding:15px'>".$this->oSrch->Draw()."</div>" );   // put this padding in the search control css (see DrawStyle method)
+    }
+}

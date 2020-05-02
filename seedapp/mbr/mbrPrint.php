@@ -207,18 +207,47 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donations_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 }
 
-
-class MbrDonationsListForm
+class MbrDonationsListForm extends KeyframeUI_ListFormUI
 {
-    private $oApp;
-    private $oComp;
-    private $oSrch;
-    private $oList;
-    private $oForm;
-
     function __construct( SEEDAppConsole $oApp )
     {
-        $this->oApp = $oApp;
+        $raConfig = [
+            'sessNamespace' => "Donations",
+            'cid'   => 'D',
+            'kfrel' => (new Mbr_Contacts( $oApp ))->oDB->Kfrel('DxM'),
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]],
+
+            'raListConfig' => [
+                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                'cols' => [
+                    [ 'label'=>"k",         'col'=>"_key",          'w'=>30 ],
+                    [ 'label'=>"Member",    'col'=>"M__key",        'w'=>80 ],
+                    [ 'label'=>"Firstname", 'col'=>"M_firstname",   'w'=>120 ],
+                    [ 'label'=>"Lastname",  'col'=>"M_lastname",    'w'=>120 ],
+                    [ 'label'=>"Company",   'col'=>"M_company",     'w'=>120 ],
+                    [ 'label'=>"Received",  'col'=>"date_received", 'w'=>120 ],
+                    [ 'label'=>"Amount",    'col'=>"amount",        'w'=>120 ],
+                    [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>120 ],
+                    [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>120 ],
+                ],
+               // 'fnRowTranslate' => [$this,"listRowTranslate"],
+            ],
+
+            'raSrchConfig' => [
+                'filters' => [
+                    ['label'=>'First name',    'col'=>'M.firstname'],
+                    ['label'=>'Last name',     'col'=>'M.lastname'],
+                    ['label'=>'Company',       'col'=>'M.company'],
+                    ['label'=>'Amount',        'col'=>'amount'],
+                    ['label'=>'Date received', 'col'=>'date_received'],
+                    ['label'=>'Date issued',   'col'=>'date_issued'],
+                    ['label'=>'Receipt #',     'col'=>'receipt_num'],
+                ]
+            ],
+
+            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'donationForm'] ],
+        ];
+        parent::__construct( $oApp, $raConfig );
     }
 
     function dsPreStore( Keyframe_DataStore $oDS )
@@ -235,84 +264,24 @@ class MbrDonationsListForm
 
     function Init()
     {
-        $oContacts = new Mbr_Contacts( $this->oApp );
-
-        $oUI = new SEEDUI_Session( $this->oApp->sess, "Donations" );
-        $kfrel = $oContacts->oDB->Kfrel('DxM');
-        $cid = 'D';
-        $this->oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid, ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]] );
-
-        $this->oComp->Update();
-
-        $raSrchConfig = [
-            'filters' => [
-                ['label'=>'First name',    'col'=>'M.firstname'],
-                ['label'=>'Last name',     'col'=>'M.lastname'],
-                ['label'=>'Company',       'col'=>'M.company'],
-                ['label'=>'Amount',        'col'=>'amount'],
-                ['label'=>'Date received', 'col'=>'date_received'],
-                ['label'=>'Date issued',   'col'=>'date_issued'],
-                ['label'=>'Receipt #',     'col'=>'receipt_num'],
-            ]
-        ];
-        $this->oSrch = new SEEDUIWidget_SearchControl( $this->oComp, $raSrchConfig );
-
-        $raListConfig = [           // constant things for the __construct that might be needed for state computation
-            'bUse_key' => true,
-            'cols' => [
-                [ 'label'=>"k",         'col'=>"_key",          'w'=>30 ],
-                [ 'label'=>"Member",    'col'=>"M__key",        'w'=>80 ],
-                [ 'label'=>"Firstname", 'col'=>"M_firstname",   'w'=>120 ],
-                [ 'label'=>"Lastname",  'col'=>"M_lastname",    'w'=>120 ],
-                [ 'label'=>"Company",   'col'=>"M_company",     'w'=>120 ],
-                [ 'label'=>"Received",  'col'=>"date_received", 'w'=>120 ],
-                [ 'label'=>"Amount",    'col'=>"amount",        'w'=>120 ],
-                [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>120 ],
-                [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>120 ],
-            ]
-        ];
-        //$raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
-//$this->oApp->kfdb->SetDebug(2);
-        $this->oList = new KeyframeUIWidget_List( $this->oComp, $raListConfig );
-        $this->oForm = new KeyframeUIWidget_Form( $this->oComp, ['fnExpandTemplate'=>array($this,'foo')] );
-
-        $this->oComp->Start();    // call this after the widgets are registered
-
-
+        parent::Init();
     }
 
     function ControlDraw()
     {
-        $sSrch = $this->oSrch->Draw();
-        return( "<div style='padding:15px'>$sSrch</div>" );
+        return( $this->DrawSearch() );
     }
 
     function ContentDraw()
     {
-        $s = "";
-
-        $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
-
-        $raListParms = [          // variables that might be computed or altered during state computation
-//            'iViewOffset' => $this->oComp->Get_iWindowOffset(),
-//            'nViewSize' => $oView->GetNumRows()
-        ];
-
-        $sList = $this->oList->ListDrawInteractive( $oViewWindow, $raListParms );
-
-        $sForm = $this->oForm->Draw();
-
-$sInfo = "";
-
-        $s .= $this->oList->Style()
-            ."<div>".$sList."</div>"
-            ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$sForm."</div>"
-            .$sInfo;
+        $s = $this->DrawStyle()
+           ."<div>".$this->DrawList()."</div>"
+           ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
 
         return( $s );
     }
 
-    function foo( $oForm )
+    function donationForm( $oForm )
     {
         $s = "|||TABLE( || class='' width='100%' border='0')"
             ."||| *Member*       || [[text:fk_mbr_contacts|size=30]]      || *Amount*  || [[text:amount|size=30]] || *Receipt #*  || [[text:receipt_num|size=30]]"
