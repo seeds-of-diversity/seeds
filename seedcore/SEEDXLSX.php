@@ -136,11 +136,7 @@ class _seedxlsread_GetData
     {
         if( ($sCharset = @$raParms['sCharsetOutput']) && !in_array($sCharset, ['utf8','utf-8']) ) {
             for( $i = 0; $i < count($ra); ++$i ) {
-                for( $j = 0; $j < count($ra[$i]); ++$j ) {
-                    if( is_string($ra[$i][$j]) ) {
-                        $ra[$i][$j] = iconv( 'utf-8', $sCharset.'//TRANSLIT', $ra[$i][$j] );
-                    }
-                }
+                $ra[$i] = SEEDCore_CharsetConvert( $ra[$i], 'utf-8', $sCharset );   // $ra[$i] is an array; this converts each element individually
             }
         }
         return( $ra );

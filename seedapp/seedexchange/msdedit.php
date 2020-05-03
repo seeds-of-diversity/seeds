@@ -38,9 +38,9 @@ class MSDAppSeedEdit
     private $sItemTemplate =
         "<div class='well seededit-item seededit-item-msd' data-kitem='[[kP]]' style='margin:5px'>"
            ."<div class='msdSeedEditButtonContainer' style='float:right'>"
-               ."<button class='msdSeedEditButton_edit' style='display:none'>Edit</button><br/>"
-               ."<button class='msdSeedEditButton_skip' style='display:none'>Skip</button><br/>"
-               ."<button class='msdSeedEditButton_delete' style='display:none'>Delete</button></div>"
+               ."<button class='seededit-ctrledit' style='display:none'>Edit</button><br/>"
+               ."<button class='seededit-ctrlskip' style='display:none'>Skip</button><br/>"
+               ."<button class='seededit-ctrldelete' style='display:none'>Delete</button></div>"
            ."<div class='seededit-form-msg'></div>"
            ."<div class='seededit-text' style='padding:0px'>[[sSeedText]]</div>"
            ."<div class='seededit-form' style='display:none'></div>"
@@ -86,7 +86,7 @@ class MSDAppSeedEdit
 //        }
         if( $uidSeller ) {
             $sForm = "<div class='msdSeedEditGlobalControls' style='position:fixed'>"
-                    ."<button class='msdSeedEditButton_new'>Add New Seed</button>"
+                    ."<button class='seededit-ctrlnew'>Add New Seed</button>"
                     ."</div>";
         }
 
@@ -191,7 +191,9 @@ basketStyle;
 
 $s .= <<<basketScript
 <script>
-class MSDSeedEditList extends ConsoleEditList
+/* UI for an editable list of SEEDBasket products
+ */
+class SEEDBasket_EditList extends ConsoleEditList
 {
     constructor( raConfig )
     {
@@ -202,24 +204,105 @@ class MSDSeedEditList extends ConsoleEditList
     }
 
     Item_Init( jItem )
+    /*****************
+        Attach event listeners to the controls in an item. Show/hide controls based on eStatus.
+     */
     {
+        // the base class hooks certain click events to FormOpen 
         super.Item_Init( jItem );
 
-        // Attach event listeners to the controls in an item. Show/hide the buttons based on eStatus.
-
         let saveThis = this;
-        // on click of an Edit button, open the edit form (this is the same as what super.Item_Init does for .seededit-text)
-        jItem.find(".msdSeedEditButton_edit").click( function(e) { saveThis.FormOpen( jItem ); });
 
         // skip and delete buttons
-        jItem.find(".msdSeedEditButton_skip").click( function(e)   { saveThis.doSkip(   jItem ); });
-        jItem.find(".msdSeedEditButton_delete").click( function(e) { saveThis.doDelete( jItem ); });
+        jItem.find(".seededit-ctrlskip").click( function(e)   { saveThis.doSkip(   jItem ); });
+        jItem.find(".seededit-ctrldelete").click( function(e) { saveThis.doDelete( jItem ); });
 
         let kItem = this.GetItemId( jItem );
         if( kItem ) {
             let eStatus = this.raConfig['raSeeds'][kItem]['eStatus'];
-            this.setButtonLabels( jItem, eStatus )
+            this.setControlLabels( jItem, eStatus )
         }
+    }
+
+    FormOpen_InitForm( jFormDiv, kItem )
+    {
+        super.FormOpen_InitForm( jFormDiv, kItem );     // disable new and edit buttons
+
+        // disable all control buttons for all items, while the form is open
+        $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
+        $(".msdSeedEditGlobalControls  button").attr("disabled","disabled");
+    }
+
+    FormClose_PostClose( jItem )
+    /***************************
+        This is called after the form is removed from the dom. The item should still be valid though.
+
+        N.B. If a New form is Cancelled, jItem will be null at this point.
+     */
+    {
+        super.FormClose_PostClose( jItem );             // re-enable new and edit buttons
+
+        // re-enable all control buttons for all items
+        $(".msdSeedEditButtonContainer button").removeAttr("disabled");
+        $(".msdSeedEditGlobalControls  button").removeAttr("disabled");
+    }
+
+
+    setControlLabels( jItem, eStatus )
+    {
+        switch( eStatus ) {
+            default:
+            case 'ACTIVE':
+                jItem.find(".seededit-ctrledit").show().html( "Edit" );
+                jItem.find(".seededit-ctrlskip").show().html( "Skip" );
+                jItem.find(".seededit-ctrldelete").show().html( "Delete" );
+                break;
+            case 'INACTIVE':
+                jItem.find(".seededit-ctrledit").show().html( "Edit" );
+                jItem.find(".seededit-ctrlskip").show().html( "Un-skip" );
+                jItem.find(".seededit-ctrldelete").show().html( "Delete" );
+                break;
+            case 'DELETED':
+                jItem.find(".seededit-ctrledit").hide();
+                jItem.find(".seededit-ctrlskip").hide();
+                jItem.find(".seededit-ctrldelete").show().html( "Un-delete" );
+                break;
+        }
+    }
+
+
+    doSkip( jItem )
+    {
+        let kItem = this.SelectItem( jItem, false );   // make this the current item but don't open the form
+        if( kItem == -1 ) return;
+
+        //SEEDJX_bDebug = true;
+        let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleSkip&kS="+kItem );
+        if( oRet['bOk'] ) {
+            this.doAfterSuccess( jItem, oRet );
+        }
+    }
+
+    doDelete( jItem )
+    {
+        let kItem = this.SelectItem( jItem, false );   // make this the current item but don't open the form
+        if( kItem == -1 ) return;
+
+        //SEEDJX_bDebug = true;
+        let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleDelete&kS="+kItem );
+        if( oRet['bOk'] ) {
+            this.doAfterSuccess( jItem, oRet );
+        }
+    }
+
+}
+
+
+class MSDSeedEditList extends SEEDBasket_EditList
+{
+    constructor( raConfig )
+    {
+        super( raConfig );
     }
 
     FormOpen_IsOpenable( jItem, kItem )
@@ -231,6 +314,8 @@ class MSDSeedEditList extends ConsoleEditList
 
     FormOpen_InitForm( jFormDiv, kItem )
     {
+        super.FormOpen_InitForm( jFormDiv, kItem );
+
         if( kItem ) {
             // eOffer==member is not explicitly stored
             if( !this.raConfig['raSeeds'][kItem]['eOffer'] ) this.raConfig['raSeeds'][kItem]['eOffer'] = 'member';
@@ -248,10 +333,6 @@ class MSDSeedEditList extends ConsoleEditList
         this.setEOfferText( jFormDiv );
         let saveThis = this;
         jFormDiv.find('#msdSeedEdit_eOffer').change( function() { saveThis.setEOfferText( jFormDiv ); } );
-
-        // disable all control buttons for all items, while the form is open
-        $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
-        $(".msdSeedEditGlobalControls  button").attr("disabled","disabled");
     }
 
     setEOfferText( jFormDiv )
@@ -292,64 +373,6 @@ class MSDSeedEditList extends ConsoleEditList
         return( oRet['bOk'] );
     }
 
-    FormClose_PostClose( jItem )
-    /***************************
-        This is called after the form is removed from the dom. The item should still be valid though.
-     */
-    {
-        // re-enable all control buttons for all items
-        $(".msdSeedEditButtonContainer button").removeAttr("disabled");
-        $(".msdSeedEditGlobalControls  button").removeAttr("disabled");
-    }
-
-
-    setButtonLabels( jItem, eStatus )
-    {
-        switch( eStatus ) {
-            default:
-            case 'ACTIVE':
-                jItem.find(".msdSeedEditButton_edit").show().html( "Edit" );
-                jItem.find(".msdSeedEditButton_skip").show().html( "Skip" );
-                jItem.find(".msdSeedEditButton_delete").show().html( "Delete" );
-                break;
-            case 'INACTIVE':
-                jItem.find(".msdSeedEditButton_edit").show().html( "Edit" );
-                jItem.find(".msdSeedEditButton_skip").show().html( "Un-skip" );
-                jItem.find(".msdSeedEditButton_delete").show().html( "Delete" );
-                break;
-            case 'DELETED':
-                jItem.find(".msdSeedEditButton_edit").hide();
-                jItem.find(".msdSeedEditButton_skip").hide();
-                jItem.find(".msdSeedEditButton_delete").show().html( "Un-delete" );
-                break;
-        }
-    }
-
-
-    doSkip( jItem )
-    {
-        let kItem = this.SelectItem( jItem, false );   // make this the current item but don't open the form
-        if( kItem == -1 ) return;
-
-        //SEEDJX_bDebug = true;
-        let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleSkip&kS="+kItem );
-        if( oRet['bOk'] ) {
-            this.doAfterSuccess( jItem, oRet );
-        }
-    }
-
-    doDelete( jItem )
-    {
-        let kItem = this.SelectItem( jItem, false );   // make this the current item but don't open the form
-        if( kItem == -1 ) return;
-
-        //SEEDJX_bDebug = true;
-        let oRet = SEEDJXSync( this.raConfig['qUrl'], "cmd=msdSeed--ToggleDelete&kS="+kItem );
-        if( oRet['bOk'] ) {
-            this.doAfterSuccess( jItem, oRet );
-        }
-    }
-
     doAfterSuccess( jItem, rQ )
     /**************************
         After a successful update, store the updated data and update the UI to match it
@@ -368,7 +391,7 @@ class MSDSeedEditList extends ConsoleEditList
             this.SetItemId( jItem, kItem );
         }
 
-        this.setButtonLabels( jItem, rQ['raOut']['eStatus'] );
+        this.setControlLabels( jItem, rQ['raOut']['eStatus'] );
     }
 
     doAfterError( jItem, rQ )
@@ -383,7 +406,6 @@ $(document).ready( function() {
 
     var msdSEL = new MSDSeedEditList( msdSELConfig );
 
-    $(".msdSeedEditButton_new").click( function(e)    { msdSEL.ItemNew(); });
 });
 
 </script>

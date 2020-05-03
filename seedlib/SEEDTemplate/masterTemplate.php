@@ -11,7 +11,7 @@
 
 include_once( SEEDCORE."SEEDTemplateMaker.php" );
 
-class MasterTemplate_move_here_from_siteTemplate
+class MasterTemplate
 {
     private $oApp;
     private $oTmpl;
@@ -52,8 +52,14 @@ class MasterTemplate_move_here_from_siteTemplate
                                          'raParms' => SEEDCore_ArraySmartVal1( $raParms, 'raResolverParms', array() )   // empty array is the default value
         ];
 
+        // Add DocRepTagHandler
 
-        // Normally you always use the basic resolver, and you probably only set parms if you want to override the defaults
+        // Add SEEDSessionAccountTag handler
+
+        /* Basic resolver is enabled by default.
+         * EnableBasicResolver=>'DISABLE' disables it.
+         * EnableBasicResolver=>[parms] overrides default parms
+         */
         if( @$raParms['EnableBasicResolver'] != "DISABLE" ) {
             $raTmplParms['bEnableBasicResolver'] = true;
             $raTmplParms['raBasicResolverParms'] = ['LinkBase'=>"https://seeds.ca/", "ImgBase"=>"https://seeds.ca/d?n="]
@@ -68,6 +74,27 @@ class MasterTemplate_move_here_from_siteTemplate
     /******************************************************************************************************
      */
     {
+        $s = "";
+        $bHandled = true;
+
+        switch( strtolower($raTag['tag']) ) {
+            case 'events':
+                // move events handler from siteTemplate
+                break;
+
+            case 'msd':
+                // move msd handler from siteTemplate
+                break;
+
+            case 'cd':
+                // move crop profiles handler from siteTemplate
+                break;
+
+            default:
+                $bHandled = false;
+        }
+
+        done:
+        return( [$bHandled,$s] );
     }
 }
-

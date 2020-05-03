@@ -1,0 +1,129 @@
+# Seeds of Diversity donation receipt
+#
+# ExpandTmpl('donation_receipt_page', 
+#            ['donorName'=>
+#             'donorAddr'=>
+#             'donorReceiptNum'=>
+#             'donorDateReceived'=>
+#             'donorDateIssued'=>    today's date
+#             'donorAmount'=>        string formatted with cents but no dollar sign
+#            ])
+
+%% donation_receipt_page
+{% extends 'donrectmpl_page' %}
+
+{% block donrecblock_donorNameAddress %}
+<div style='font-size:12pt'>
+{{ donorName | raw }}<br/>
+{{ donorAddr | raw }}
+</div>
+{% endblock %}
+
+
+{% block donrecblock_receiptData %}
+<div style='font-size:10.5pt; line-height:1.75; margin-bottom:15px'>
+Receipt number / Num&eacute;ro de re&ccedil;u : {{donorReceiptNum}}<br/>
+Donation received / R&eacuteception : {{donorDateReceived}}<br/>
+Receipt issued / &Eacute;mission : {{donorDateIssued}} in Waterloo ON<br/>
+Amount / Montant : ${{donorAmount}}
+</div>
+{% endblock %}
+
+
+{% block donrecblock_sodNameAddress %}
+<div>
+Seeds of Diversity Canada<br/>
+Semences du patrimoine Canada<br/>
+12 Dupont St W, Unit 1<br/>
+Waterloo, ON N2L 2X6<br/>
+<br/>
+office@seeds.ca / bureau@semences.ca<br/>
+226-600-7782 (voicemail)
+</div>
+{% endblock %}
+
+
+{% block donrecblock_signature %}
+#
+# N.B. this img can only be loaded if you're logged into the office
+#
+<div>
+<img src='https://seeds.ca/office/d?n=img/signatures/bob_full_white.png' style='width:1.5in'/>
+<hr/>
+Bob Wildfong<br/>
+Executive Director / Directeur ex&eacute;cutif
+</div>
+{% endblock %}
+
+
+{% block donrecblock_receiptBlock %}
+<table border='0'><tr>
+<td style='width:4.5in' valign='top'>{{ block('donrecblock_donorNameAddress') }}</td>
+# receiptData block extends past the right margin to allow Waterloo ON to push the margin if the date is long
+<td valign='top'><div style='margin-right:-1.75in'>{{ block('donrecblock_receiptData') }}</div></td> 
+</tr><tr>
+<td valign='top'>{{ block('donrecblock_sodNameAddress') }}</td>
+<td valign='top'>{{ block('donrecblock_signature') }}</td> 
+</tr><tr>
+<td colspan='2'>
+<div style='margin-top:15px'>
+Charitable registration number / Num&eacute;ro d'enregistrement de charit&eacute; : 89650 8157 RR0001<br/>
+Canada Revenue Agency - www.canada.ca/charities-giving<br/>Agence du revenu du Canada - www.canada.ca/organismes-bienfaisance-dons
+</div>
+</td>
+</tr></table>
+# <div style='position:absolute;top:0in;left:0.75in;right:4.5in'>{{ block('donrecblock_donorNameAddress') }}</div>
+# <div style='position:absolute;top:0in;left:5.5in;right:0.10in'>{{ block('donrecblock_receiptData') }}</div>
+
+# <div style='position:absolute;top:1.75in;left:0.75in;right:4.5in'>{{ block('donrecblock_sodNameAddress') }}</div>
+# <div style='position:absolute;top:1.75in;left:5.5in;right:0.75in'>{{ block('donrecblock_signature') }}</div>
+{% endblock %}
+
+
+%% donrectmpl_page
+<style>
+.donReceipt_page { width:8.5in; height:11in; page-break-before:always; padding:0 0.25in 0 0.75in; position:relative; font-size:10pt; font-family:helvetica,sans serif }
+td { font-size:10pt; font-family:helvetica,sans serif }
+div {border:1px solid white;}   /* change this colour to see where the blocks are */
+</style>
+<div class='donReceipt_page'>
+#
+# logo
+#
+<div style='text-align:center;margin:0.5in auto 0 auto;'>
+<img src='https://seeds.ca/i/img/logo/logoA_b-bi-1200x.png' style='width:3in'/>
+</div>
+#
+# first (official) receipt
+# envelope window printing starts 2.245in from top of the page
+#
+<div style='text-align:center;margin:.125in auto; font-size:12pt'>
+OFFICIAL RECEIPT FOR INCOME TAX PURPOSES<br/>RE&Ccedil;U OFFICIEL POUR FIN DE L'IMPOT SUR LE REVENU
+</div>
+<div style='position:absolute; top:2.245in;left:0.75in;right:0'>{{ block('donrecblock_receiptBlock') }}</div>
+
+#
+# second (duplicate) receipt
+#
+<div style='position:absolute; top:5.5in;left:0.75in;right:0.75in; text-align:center;margin:.125in auto; font-size:12pt'>
+<hr style='border:1px solid #777'/>
+DUPLICATE RECEIPT - Please keep this portion for your records.<br/>REPRODUCTION DU RE&Ccedil;U - Gardez cette portion pour votre rapport.
+</div>
+<div style='position:absolute; top:6.4in;left:0.75in;right:0'>{{ block('donrecblock_receiptBlock') }}</div>
+
+#
+# thank you
+#
+<div style='position:absolute;bottom:0in;left:0.75in;right:0.75in'>
+  <table style='width:100%'><tr>
+  <td valign='top' width='50%'>
+  Thank you very much for your donation to Seeds of Diversity and its projects. Your donation will enable us to do our part to ensure 
+  that our horticultural heritage will survive for future generations. <br/><br/>  Happy Gardening!
+  </td><td>
+  Nous vous remercions sinc&egrave;rement pour votre contibution au Programme semencier du patrimoine et ses projets. Votre don nous aidera &agrave; 
+  faire notre part pour sauvegarder notre h&eacute;ritage horticole pour le b&eacute;n&eacute;fice de nos futures g&eacute;n&eacute;rations.
+  <br/><br/>  Bon jardinage!
+  </td></tr></table>
+</div>
+
+</div>

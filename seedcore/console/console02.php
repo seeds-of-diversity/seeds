@@ -290,7 +290,9 @@ class Console02Static
         $s = "<!DOCTYPE html>"
              ."<html lang='".($lang == 'FR' ? 'fr' : 'en')."'>"
              ."<head>".$sHead."</head>"
-             ."<body $sBodyAttr><div style='$cssBodyStyle'>".$sBody."</div></body>"   // div is easier than trying to parse style in sBodyAttr
+             ."<body $sBodyAttr>"
+             .($cssBodyStyle ? ("<div style='$cssBodyStyle'>$sBody</div>") : $sBody)       // div is easier than trying to parse style in sBodyAttr
+             ."</body>"
              ."</html>";
 
         return( $s );

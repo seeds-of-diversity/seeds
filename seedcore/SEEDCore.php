@@ -83,6 +83,28 @@ function SEEDCore_HSC( $s )
     return( htmlspecialchars( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
 }
 
+function SEEDCore_CharsetConvert( $val, $sCharsetFrom, $sCharsetTo, $bTransliterate = true )
+/*******************************************************************************************
+    Convert val from one charset to another.
+    Transliteration allows approximate conversions if the destination charset has no exact conversion for a certain
+    character. Setting this to false will cause a fatal error if that happens.
+ */
+{
+    if( $bTransliterate ) $sCharsetTo .= '//TRANSLIT';
+
+    if( is_string($val) ) {
+        $val = iconv( $sCharsetFrom, $sCharsetTo, $val );
+    } else
+    if( is_array($val) ) {
+        array_walk( $val,
+                    function (&$v,$k) use ($sCharsetFrom,$sCharsetTo) {
+                        if( is_string($v) ) { $v = iconv( $sCharsetFrom, $sCharsetTo, $v ); }
+                    } );
+    }
+    return( $val );
+}
+
+
 
 /******
  * SEEDCore_ArrayExpand(*)
@@ -221,6 +243,11 @@ function SEEDCore_ArraySmartVal1( $raParms, $k, $pDefault, $bEmptyAllowed = fals
 /**********************************************************************************
     $raParms[$k] can have any value (except empty if !bEmptyAllowed).
     If it is not set, or it fails the bEmptyAllowed test, return $pDefault
+
+Not so useful anymore:
+    Since short-hand ternary operators were introduced, when bEmptyAllowed==false this is just
+        return( @$raParms[$k] ?: $pDefault )
+    which is smaller and easier to understand in your code anyway
  */
 {
     if( !isset($raParms[$k]) )  return( $pDefault );

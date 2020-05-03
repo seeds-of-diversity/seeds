@@ -189,7 +189,11 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         $condDataBasicSameFkSp = "(C.fk_sl_species=T.fk_sl_species AND T.fk_sl_species<>'0' AND C.fk_sl_sources=T.fk_sl_sources AND C.ocv=T.ocv )";
         $condDataSame          = "($condDataBasicSame AND C.bOrganic=T.organic AND C.bulk=T.bulk AND C.notes=T.notes)";
 
-        // Clear old ops
+//$this->oApp->kfdb->SetDebug(2);
+
+        // Clear old ops, but before that remove all rows with op='X' because those were inserted by the last Build
+        // (they indicate which sl_cv_sources rows to delete because they're missing in the upload)
+        $this->oApp->kfdb->Execute( "DELETE FROM {$this->tmpTable} WHERE op='X' AND ".$this->uploadCond('') );
         $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} SET op='',op_data=0 WHERE ".$this->uploadCond('') );
 
         // First: any rows in the tmp table whose non-blank (fk_sl_sources, osp/fk_sl_species, ocv) are identical
@@ -246,6 +250,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                         // if replacing specific companies then delete missing rows from those companies only
                         : ("SRCCV.fk_sl_sources IN (SELECT distinct(fk_sl_sources) FROM {$this->tmpTable} T WHERE $condBase)")) );
         }
+//$this->oApp->kfdb->SetDebug(0);
 
         $bOk = true;
 
@@ -272,9 +277,16 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
      */
     {
         $dbtable = $this->tmpTable;
+
+        if( !$this->oApp->kfdb->TableExists( $this->tmpTable ) ) {
+            $raReport['nRows'] = 0;
+            goto done;
+        }
+
         $kfdb = $this->oApp->kfdb;
         $kUploadCond = $this->uploadCond('');    // don't use table prefix T.
 
+//$kfdb->SetDebug(2);
         $raReport = array(
             'nRows'              => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond" ),
             'nRowsUncomputed'    => $kfdb->Query1( "SELECT count(*) FROM {$dbtable} WHERE $kUploadCond AND op=''" ),
@@ -306,13 +318,15 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
             // rows where (src,sp,cv) are duplicated
             'raDuplicates'       => $kfdb->QueryRowsRA( "SELECT A.company as company,A.osp as osp,A.ocv as ocv,A.k as kA,B.k as kB "
                                                        ."FROM {$dbtable} A,{$dbtable} B "
-                                                       ."WHERE ".$this->uploadCond('A.')." AND ".$this->uploadCond('B.')." "
-                                                              ."AND A.fk_sl_sources<>'0' AND B.fk_sl_sources<>'0' "
-                                                              ."AND A.fk_sl_species<>'0' AND B.fk_sl_species<>'0' "
-                                                              ."AND A._key<B._key AND A.fk_sl_sources=B.fk_sl_sources "
-                                                              ."AND A.fk_sl_species=B.fk_sl_species AND A.ocv=B.ocv" ),
+                                                       ."WHERE ".$this->uploadCond('A.')." AND ".$this->uploadCond('B.')
+                                                              ." AND A._key < B._key"
+                                                              ." AND A.fk_sl_sources<>'0' AND A.fk_sl_sources=B.fk_sl_sources"
+                                                              ." AND (A.fk_sl_species<>'0' AND A.fk_sl_species=B.fk_sl_species OR A.osp=B.osp)"
+                                                              ." AND A.ocv=B.ocv" ),
         );
+//$kfdb->SetDebug(0);
 
+        done:
         return( $raReport );
     }
 
@@ -349,8 +363,14 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         /* Report error if duplicate rows in the upload table.
          * This is more serious than it looks because it can lead to infinite validation loops where we try to fix incorrect keys on matched rows.
          */
-        if( count($raReport['raDuplicates']) ) {
-            $s .= "<div class='alert alert-danger'><p>These entries are duplicated in the upload.</p>"
+        if( ($c = count($raReport['raDuplicates'])) ) {
+            $s .= "<div class='alert alert-danger'><p>These $c entries are duplicated in the upload.</p>"
+                 ."<p style='font-size:x-small'>
+                     Use this to see them / remove one of each duplicate<br/>
+                     select count(*) // delete T2
+                     from sl_tmp_cv_sources T1,sl_tmp_cv_sources T2
+                     where T1.k=T2.k and T1.fk_sl_sources<>0 and T1.osp<>'' and T1.ocv<>''
+                     and T1.fk_sl_sources=T2.fk_sl_sources and T2.osp=T1.osp and T1.ocv=T2.ocv and T1._key < T2._key;</p>"
                  ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
                  .SEEDCore_ArrayExpandRows( $raReport['raDuplicates'], "<li>[[company]] : [[osp]] : [[ocv]] ([[kA]], [[kB]])</li>")."</ul></div>";
         }
@@ -368,10 +388,10 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
             $sErrorUnknownCompanies = "<span style='color:red'> + $n unindexed</span>";
         }
         if( ($n = count($raReport['raUnknownSpecies'])) ) {
-            $sErrorUnknownSpecies = "<span style='color:red'> + $n unindexed</span>";
+            $sErrorUnknownSpecies = "<span style='color:blue'> + $n unindexed</span>";
         }
         if( ($n = count($raReport['raUnknownCultivars'])) ) {
-            $sErrorUnknownCultivars = "<span style='color:red'> + $n unindexed</span>";
+            $sErrorUnknownCultivars = "<span style='color:blue'> + $n unindexed</span>";
         }
 
         $s .= "<table class='companyUploadResultsTable'><tr><th>Existing</th><th width='50%'>Upload<br/>({$raReport['nRows']} rows)</th></tr>"
@@ -385,7 +405,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                ."<tr><td>&nbsp;</td><td>{$raReport['nRowsN']} rows are new</td></tr>"
                ."<tr><td>&nbsp;</td><td>{$raReport['nRowsD1']} rows are marked in the spreadsheet for deletion</td></tr>"
                ."<tr><td>{$raReport['nRowsD2']} rows will be deleted because they are missing in the upload</td><td>&nbsp;</td></tr>"
-               ."<tr><td>&nbsp;</td><td><span style='color:red'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
+               ."<tr><td>&nbsp;</td><td><span style='color:blue'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
                ."</table><br/>";
 
         /* Warn about unindexed species and cultivars, unless company is blank (action C-delete).
@@ -425,7 +445,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         // Commit is only allowed if the upload state is valid
         if( !$this->IsCommitAllowed($raReport) )  goto done;
 
-//+$this->oApp->kfdb->SetDebug(2);
+//$this->oApp->kfdb->SetDebug(2);
         $uid = $this->oApp->sess->GetUID();
 
         // N = new rows (k==0)
