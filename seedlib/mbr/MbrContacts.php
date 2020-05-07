@@ -48,13 +48,65 @@ class Mbr_Contacts
         // add donation fields etc here
     ];
 
-    function GetContactName( $k )
+    function GetContactName( $k, $raParms = [] )
+    /*******************************************
+        Default is to show [firstname] [lastname] { & [firstname2] [lastname2] }
+                        or [company] if names are blank.
+
+        SHOW_ONE_NAME_ONLY     = inhibits firstname2/lastname2
+        SHOW_COMPANY_WITH_NAME = shows company even if names not blank
+        SHOW_CITY              = appends "in [city]"
+        SHOW_PROVINCE          = appends "in [province]"
+        SHOW_CITY_PROVINCE     = appends "in [city], [province]" or SHOW_PROVINCE if city is blank
+     */
     {
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,company FROM seeds2.mbr_contacts WHERE _key='$k'" );
-        if( !($name = trim($ra['firstname'].' '.$ra['lastname'])) ) {
-            $name = $ra['company'];
+        $s = "";
+
+        $bShowOneNameOnly       = @$raParms['SHOW_ONE_NAME_ONLY'];
+        $bShowCompanyWithName   = @$raParms['SHOW_COMPANY_WITH_NAME'];
+        $bShowCity              = @$raParms['SHOW_CITY'];
+        $bShowProvince          = @$raParms['SHOW_PROVINCE'];
+        $bShowCityProvince      = @$raParms['SHOW_CITY_PROVINCE'];
+
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province FROM seeds2.mbr_contacts WHERE _key='$k'" );
+
+        // firstname(s)/lastname(s)
+        $f1 = $ra['firstname']; $f2 = $ra['firstname2'];
+        $l1 = $ra['lastname'];  $l2 = $ra['lastname2'];
+
+        if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
+            $s = trim("$f1 $l1");
+        } else if( !$f1 && !$l1 ) {         // name2 only
+            $s = trim("$f2 $l2");
+        } else if( $l1 == $l2 ) {           // both names, lastname is the same
+            $s = trim("$f1 & $f2 $l2");
+        } else {                            // both names, lastnames are different
+            $s = trim("$f1 $l1 & $f2 $l2");
         }
-        return( $name );
+
+        // company
+        if( !$s || $bShowCompanyWithName ) {
+            $s = ($s ? ", " : "") . $ra['company'];
+        }
+
+        // city, province
+        if( !$ra['city'] ) {
+            // if city not defined, reduce to just province parms
+            $bShowProvince = $bShowProvince || $bShowCityProvince;
+            $bShowCity = false;
+            $bShowCityProvince = false;
+        }
+        if( !$ra['province'] ) {
+            // if province not defined, reduce to just city parms
+            $bShowCity = $bShowCity || $bShowCityProvince;
+            $bShowProvince = false;
+            $bShowCityProvince = false;
+        }
+        if( $bShowCity )          $s .= " in {$ra['city']}";
+        if( $bShowProvince )      $s .= " in {$ra['province']}";
+        if( $bShowCityProvince )  $s .= " in {$ra['city']}, {$ra['province']}";
+
+        return( $s );
     }
 
     function GetBasicValues( $k )
