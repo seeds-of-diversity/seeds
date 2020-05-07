@@ -54,7 +54,9 @@ function SEEDJXAsync2( jxUrl, jxData, fnSuccess, fnError = null )
                       }
                   }
     }
-    
+
+    if( SEEDJX_bDebug ) {console.log("cmd="+jxUrl+":"); console.log(jxData); }
+
     $.ajax({
         type: "POST",
         async: true,
@@ -65,7 +67,7 @@ function SEEDJXAsync2( jxUrl, jxData, fnSuccess, fnError = null )
         // This gets response data from .ajax, parses it and passes a Q object to the fnSuccess. Write your fnSuccess to receive a Q object.
         // To debug the server, put die("whatever") in the server code and set SEEDJX_bDebug so "whatever" will appear in the console
         success: function(data) {
-            if( SEEDJX_bDebug ) console.log("data="+data);
+            if( SEEDJX_bDebug ) console.log("outData="+data);
             o = SEEDJX_ParseJSON(data);
             fnSuccess(o);
         },
