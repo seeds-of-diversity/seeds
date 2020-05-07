@@ -9,7 +9,7 @@ echo Copying $HOME/w/ to $HOME/public_html/w/
 rsync -rv --exclude=.svn ~/w/ ~/public_html/w/
 
 echo
-echo Copying $HOME/wcore/ to $HOME/public_html/wcore/
+echo Copying $HOME/seeds/wcore/ to $HOME/public_html/wcore/
 
 rsync -rv --exclude=.svn ~/seeds/wcore/ ~/public_html/wcore/
 

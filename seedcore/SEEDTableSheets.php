@@ -119,7 +119,8 @@ class SEEDTableSheets
 
         if( isset($raParms['headers-required']) ) {
             foreach( $raParms['headers-required'] as $head ) {
-                if( !in_array( $head, $raTable[0] ) ) {
+                // strict mode is necessary so (string)"colname" does not match (int)0, which it does otherwise
+                if( !in_array( $head, $raTable[0], true ) ) {
                     $sErrMsg = "The first row must have these names (in any order):<br/>".self::SampleHead( $raParms );
                     goto done;
                 }
