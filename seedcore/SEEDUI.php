@@ -117,15 +117,9 @@ class SEEDUI
         if( isset($this->raUIParms[$cid]) ) {
             foreach( $this->raUIParms[$cid] as $name => $ra ) {
                 $raOut[$name] = $ra['v'];
-
             }
         }
         return( $raOut );
-    }
-    public function GetUIParmsListOld( $cid )
-    {
-        // return an array of all UI parms from the previous page
-        return( array() );
     }
     /* Override the functions above to implement alternate UIParm storage
      ***************************************/
@@ -243,6 +237,15 @@ class SEEDUI_Session extends SEEDUI
     function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
     function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
     function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
+    function GetUIParmsList( $cid )
+    {
+        $ra = $this->oSVA->VarGetAllRA( "$cid|" );
+        $raOut = [];
+        foreach( $ra as $k => $v ) {
+            $raOut[substr($k,strlen("$cid|"))] = $v;  // remove the $cid| prefix from the keys
+        }
+        return( $raOut );
+    }
 }
 
 
@@ -285,6 +288,8 @@ class SEEDUIComponent
 
     private   $raWidgets = array();     // every widget registers itself with the component for the initialization routine
 
+    private   $raUIParmsListOld = [];   // a snapshot of the uiParms before initialization, so session-based uiParms can be compared
+
     function __construct( SEEDUI $oUI, $cid = 'A', $raCompConfig = array() )
     {
         $this->oUI = $oUI;
@@ -296,6 +301,10 @@ class SEEDUIComponent
 
         $this->oForm = $this->factory_SEEDForm( $this->Cid(),
                                                 isset($raCompConfig['raSEEDFormParms']) ? $raCompConfig['raSEEDFormParms'] : array() );
+
+        // Before initializing the uiParms, save a copy of the last page's uiParms so we can compare them.
+        // If this method is not implemented, the array will be blank.
+        $this->raUIParmsListOld = $this->oUI->GetUIParmsList( $this->cid );
 
         /* Initialize the uiParms. It is done one by one through a public method so derived SEEDUIComponents and widgets can do this too.
          * The constructor raConfig can contain initial values and alternate http names
@@ -396,36 +405,58 @@ groupcol
     function Start()
     /***************
         Call this after Update(), and after Widgets are constructed, to initialize the widgets and the View.
+
+        The order of initializations takes into account:
+            - Some parm transitions cause significant UI state changes (e.g. changed search parameters cause a VIEW_RESET)
+            - Those UI changes might possibly change view parameters.
+            - View parameters are needed before computing default kCurr / finding the window that contains kCurr
+
+        Init1 : notify widgets of new and old ui parms. They respond with state changes. e.g. VIEW_RESET when search parms change
+        Init2 : notify widgets of state changes. They modify uiparms appropriately. e.g. List sets kCurr=0,iWO=0.
+        Init3 : request view parameters from each widget. e.g. Search returns its sql condition.
+        Init4 : widgets can read view data and reset uiparms as necessary. e.g. List sets kCurr to first item in list.
+                No widget may rely on those uiparms until the next step. e.g. List can change your kCurr if it comes later in the Init round.
+        Init5 : ui parms are final. Widgets may initialize internal states.
      */
     {
-        /* Notify every widget of the new and old ui parms. They return arrays of state change advisories.
+        /* Init1: Notify every widget of the new and old ui parms. They return arrays of state change advisories.
          */
-        $raAdvisories = array();
+        $raAdvisories = [];
         foreach( $this->raWidgets as $ra ) {
-            $raAdvisories = array_merge( $raAdvisories,
-                                         $ra['oWidget']->Init1_NotifyUIParms( $this->oUI->GetUIParmsListOld($this->cid),
-                                                                              $this->oUI->GetUIParmsList($this->cid) ) );
+            $raAdvisories += $ra['oWidget']->Init1_NotifyUIParms( $this->raUIParmsListOld, // $this->oUI->GetUIParmsListOld($this->cid),
+                                                                  $this->oUI->GetUIParmsList($this->cid) );
         }
         $raAdvisories = array_unique($raAdvisories);
 
-        /* Provide the list of advisories (even if it's empty) to every widget so they can tell SEEDUI how to alter the uiparms wrt state changes.
+        /* Init2: Send advisories (even if empty) to every widget so they can alter uiparms wrt state changes.
          */
         foreach( $this->raWidgets as $ra ) {
             $ra['oWidget']->Init2_NotifyUIStateChanges( $raAdvisories );
         }
 
-        /* Request sql filters from every widget, now that uiparms are stable and reflect the View state.
+        /* Init3: Request view parameters from every widget. (Note that the window/kCurr/iCurr state is not necessarily stable yet)
          */
-        $raSqlCond = array();
+        $raSqlCond = [];
         foreach( $this->raWidgets as $ra ) {
-            if( ($cond = $ra['oWidget']->Init3_RequestSQLFilter()) ) {
+            list($cond) = $ra['oWidget']->Init3_RequestViewParameters();
+            if( $cond ) {
                 $raSqlCond[] = "($cond)";
             }
         }
-
-        /* sqlCond is a gift to a derived class that would actually implement db access
-         */
+        // although this base class doesn't do sql, derived classes can use this
         $this->sSqlCond = implode( " AND ", $raSqlCond );
+
+        /* Init4: Widgets set up their view/window data and alter window/kCurr/iCurr uiparms as necessary.
+         */
+        foreach( $this->raWidgets as $ra ) {
+            $ra['oWidget']->Init4_EstablishViewState();
+        }
+
+        /* Init5: Widgets set up their internal state now that uiparms are unchangeable
+         */
+        foreach( $this->raWidgets as $ra ) {
+            $ra['oWidget']->Init5_UIStateFinalized();
+        }
     }
 
     function RegisterWidget( SEEDUIWidget_Base $o, $raUIParms )
@@ -653,7 +684,7 @@ class SEEDUIComponent_ViewWindow
         3.  how to navigate the window (the target of a page-up or page-down, find selection, etc)
 
     View data can be provided in the constructor, or fetched via a derivation of SEEDUIComponent::FetchViewData().
-    A full view or a view slice is supported by the same parameters: a full view is iViewSliceOffset=0, nViewSize==count(raViewRows)
+    A full view or a view slice is supported by the same parameters: a full view is iViewRowsOffset=0, nViewSize==count(raViewRows)
 
     raConfig in __construct:
         bEnableKeys      : use kCurr to find the current row; otherwise use iCurr (but this is impossible in an interactive list)
@@ -666,7 +697,7 @@ class SEEDUIComponent_ViewWindow
     private $oComp;
     private $bEnableKeys;
     private $raViewRows = null;
-    private $iViewSliceOffset = 0;          // origin-0 index of the first row in raViewRows relative to the whole view
+    private $iViewRowsOffset = 0;          // origin-0 index of the first row in raViewRows relative to the whole view
     private $nViewSize = 0;                 // size of whole view, possibly larger than count(raViewRows)
     private $bCurrentRowOutsideViewSlice = false;   // true if raViewRows is a partial view slice and kCurr is given but not found in the slice
 
@@ -715,39 +746,67 @@ class SEEDUIComponent_ViewWindow
     function SetViewSlice( $raViewRows, $raParms )
     {
         $this->raViewRows = $raViewRows;
-        $this->iViewSliceOffset = @$raParms['iViewSliceOffset'] ?: 0;
-        $this->nViewSize        = @$raParms['nViewSize'] ?: 0;
+        $this->iViewRowsOffset = @$raParms['iViewSliceOffset'] ?: 0;
+        $this->nViewSize       = @$raParms['nViewSize'] ?: 0;
+    }
 
-        /* If kCurr is given, set iCurr to that row because it is not always set in a synchronized way.
-         * We need both because a window can be scrolled using a view slice such that the current row is not in the slice anymore
-         * so kCurr alone can't tell us where it is. We rely on iCurr being propagated during that scroll.
-         */
-        if( $this->bEnableKeys && $this->oComp->Get_kCurr() ) {
-            $this->bCurrentRowOutsideViewSlice = true;  // default result if row not found
-            $i = 0;
-            foreach( $this->raViewRows as $ra ) {
-                if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {
-                    $this->oComp->Set_iCurr( $i + $this->iViewSliceOffset );
-                    $this->bCurrentRowOutsideViewSlice = false;
-                    break;
-                }
-                ++$i;
+    private function _setViewSlice( $rows, $iOffset, $nViewSize )
+    {
+        // Store this, but it's independent of everything below
+        $this->nViewSize = $nViewSize;
+
+        // Add/prepend/append/overlay new rows into raViewRows
+        $raJoin = [];
+        if( !$this->raViewRows || $iOffset <= $this->iViewRowsOffset ) {      /* the new rows prepend or overlap the start of raViewRows, or raViewRows==[] */
+            // Add the new rows first
+            $newOffset = $iOffset;
+            $raJoin = $rows;
+
+            // If there is a gap between the new slice and the old slice, put in some gap rows.
+            // This should never happen, but it would be bad if it did and we didn't pad the gap.
+            for( $i = $newOffset + count($raJoin); $i < $this->iViewRowsOffset; ++$i ) {
+                $raJoin[] = [];
+            }
+
+            // If any part of the old slice extends past the new slice, add that part
+            for( $i = $newOffset + count($raJoin); $this->raViewRows && ($i < $this->iViewRowsOffset + count($this->raViewRows)); ++$i ) {
+                $raJoin[] = $this->raViewRows[$i - $this->iViewRowsOffset];
+            }
+        } else {                                        /* the new rows append or overlap the end of raViewRows */
+            $newOffset = $this->iViewRowsOffset;
+            // if any part of the old slice extends before the new slice, add that part first
+            for( $i = $this->iViewRowsOffset; $i < min($iOffset, $this->iViewRowsOffset + count($this->raViewRows)); ++$i ) {
+                $raJoin[] = $this->raViewRows[$i - $this->iViewRowsOffset];
+            }
+
+            // If there is a gap between the old slice and the old slice, put in some gap rows.
+            // This should never happen, but it would be bad if it did and we didn't pad the gap.
+            for( $i = $newOffset + count($raJoin); $i < $iOffset; ++$i ) {
+                $raJoin[] = [];
+            }
+
+            // Add the new slice here
+            foreach( $rows as $ra ) {
+                $raJoin[] = $ra;
             }
         }
 
-        /* If kCurr is not given, try to get the current key from the current value of iCurr.
-         * If iCurr is outside of the view slice, default to the start of the slice
-         * (probably this will happen when something is reset so the slice will start at the top of the view anyway)
-         * Note that iCurr < 0 have special meanings that are invalid for this case.
-         */
-        if( $this->bEnableKeys && !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 ) {
-            // If iCurr is over the viewSize, reset it to viewOffset 0. Something weird happened that made the view shrink.
-            if( $this->oComp->Get_iCurr() >= $this->nViewSize ) {
-                $this->oComp->Set_iCurr(0);
-            }
-            // If there is a valid key at the current row, make that the kCurr
-            $this->oComp->Set_kCurr( @$this->raViewRows[$this->oComp->Get_iCurr()]['_key'] ?: 0 );
+        $this->raViewRows = $raJoin;
+        $this->iViewRowsOffset = $newOffset;
+    }
+
+    function GetRowData( $iViewRow, $bFirstTry = true )
+    /**************************************************
+        Return one view row. iViewRow is the origin-0 index in the view.  i.e. GetRowData( Get_iCurr() ) gets the currently selected row
+     */
+    {
+        if( $this->isViewRowLoaded($iViewRow) ) {
+            return( $this->raViewRows[$iViewRow - $this->iViewRowsOffset] );
+        } else if( $bFirstTry ) {
+            $this->GetViewData( $iViewRow, 1 );
+            return( $this->GetRowData( $iViewRow, false ) );
         }
+        return( [] );
     }
 
     function GetWindowData()
@@ -758,22 +817,36 @@ class SEEDUIComponent_ViewWindow
         return( $this->GetViewData( $this->oComp->Get_iWindowOffset(), $this->oComp->Get_nWindowSize() ) );
     }
 
-    function GetViewData( $iViewSliceOffset, $nViewSliceSize )
-    /*********************************************************
-        return nViewSliceSize rows of the view starting at origin-0 row iViewSliceOffset
+    function GetViewData( $iRowStart, $nRows )
+    /*****************************************
+        Return a View slice of nRows starting at origin-0 row iRowStart
      */
     {
-        if( !$this->raViewRows ) {
-            // View rows haven't been loaded yet. Fetch them using the component's derived object.
-            // If your component doesn't support this method you have to use SetViewSlice() before calling here.
-            list($rows,$iVO,$nVS) = $this->oComp->FetchViewSlice( $iViewSliceOffset, $nViewSliceSize );
-            $this->SetViewSlice( $rows, ['iViewSliceOffset'=>$iVO,'nViewSize'=>$nVS] );
+        /* If the requested slice is already loaded, return it.
+         */
+        if( $this->isViewRowLoaded($iRowStart) && $this->isViewRowLoaded($iRowStart + $nRows -1) ) {
+            goto done;
         }
 
-        $iOffsetOfRequestedSliceWithinLoadedRows = $iViewSliceOffset - $this->iViewSliceOffset;
+        /* Fetch the requested slice using the component's derived object.
+         * If your component doesn't support this method you have to use SetViewSlice() before calling here.
+         */
+        list($rows,$iVO,$nVS) = $this->oComp->FetchViewSlice( $iRowStart, $nRows );
+        $this->_setViewSlice( $rows, $iVO, $nVS );
+
+        done:
+        $iOffsetOfRequestedSliceWithinLoadedRows = $iRowStart - $this->iViewRowsOffset;
         return( $this->raViewRows && ($iOffsetOfRequestedSliceWithinLoadedRows >=0)
-                    ? array_slice($this->raViewRows, $iOffsetOfRequestedSliceWithinLoadedRows, $nViewSliceSize)
+                    ? array_slice($this->raViewRows, $iOffsetOfRequestedSliceWithinLoadedRows, $nRows)
                     : [] );
+    }
+
+    private function isViewRowLoaded( $iRow )
+    /****************************************
+        True if the origin-0 iRow of the View is loaded in $this->raViewRows[$iRow - $this->iViewRowsOffset]
+     */
+    {
+        return( $this->raViewRows && ($iRow >= $this->iViewRowsOffset && $iRow < $this->iViewRowsOffset + count($this->raViewRows)) );
     }
 
     function IdealWindowOffset()
@@ -814,6 +887,91 @@ class SEEDUIComponent_ViewWindow
         $ra['pagedown'] = SEEDCore_Bound( $iWO + $nWS, 0, $ra['bottom'] );
 
         return( $ra );
+    }
+
+
+    function InitViewWindow()
+    /************************
+     * Call this when the View is fetchable, but window/iCurr/kCurr state is not stable yet.
+     *
+     * Ordinarily, kCurr/iCurr are in sync and iWO scrolls such that the selection may or may not be in the window.
+     * The calling code will use ViewWindow to load only the ViewSlice corresponding to the window, showing it with or without
+     * the current selection. That works for basic cases of row-selection and scrolling, but more information is needed for special cases.
+     *
+     * Here are several special cases to prepare the ViewWindow:
+     *
+     * 1) [e.g. Initialization or SearchControl parms change]
+     *    After VIEW_RESET (or application starts) the selected row is unknown or possibly not in the new view.
+     *    The solution is that the first row in the new view should be selected.
+     *    If keys are enabled, kCurr should be initialized to raViewRows[(iCurr=0)]['_key'].
+     *    Calling code must do the reset of kCurr=iCurr=0.
+     *    The code below detects that kCurr=0 and loads the first view row to set kCurr.
+     *
+     * 2) [e.g. Sorting]
+     *    When the view changes in such a way that the selected row is still in the view (not necessarily in the window) but at a different
+     *    offset, we have no way to predict the new iCurr.
+     *    If keys not enabled, the calling code should do a VIEW_RESET so sorting causes the selection to jump to the first row.
+     *    If keys are enabled, the solution is to search the new view for kCurr in order to set iCurr.
+     *    Calling code must set iCurr=-1.
+     *    The code below detects iCurr=-1 and searches the view for kCurr in order to set iCurr.
+     *
+     * 3) [e.g. Sorting]
+     *    When the view changes in such a way that the Window's content is still in the view (selected row might not be in the window)
+     *    but not in the same position, nor contiguous, the window shouldn't really stay at the same offset.
+     *    The most usual case is that the selected row is in the window and you'd like it to stay in the window after sorting.
+     *    The solution is to reposition the window around the re-computed iCurr.
+     *    If keys not enabled, this case will not happen because the above case will cause a VIEW_RESET anyway.
+     *    The code below repositions the iWO after it re-computes iCurr as above.
+     */
+    {
+        if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
+
+        /* See case (1) above.
+         * Initialize kCurr to the first row iCurr=0.
+         * This also tries to work for cases where iCurr>0 but that probably doesn't happen?
+         */
+        if( !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 ) {
+            if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
+                $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
+            }
+
+            /* MAYBE OBSOLETE
+             * There was a weird case that made the view shrink smaller than iCurr. It might not happen anymore, but this was the fix.
+             * It's necessary to put it here because nViewSize is not known until some view data is fetched, which might not happen
+             * before the GetRowData() above.
+             */
+            if( $this->oComp->Get_iCurr() >= $this->nViewSize ) {
+                $this->oComp->Set_iCurr(0);
+                $this->oComp->Set_iWindowOffset(0);
+                if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
+                    $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
+                }
+            }
+        }
+
+
+        /* See case (2) and (3) above.
+         * Search for iCurr and reposition iWO after the view is sorted (or similarly reordered without losing kCurr).
+         */
+        if( $this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() < 0 ) {
+            // fetch 100 rows at a time
+            for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
+                $rows = $this->GetViewData( $i, 100 );
+                foreach( $rows as $ra ) {
+                    if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {var_dump("WO $i {$ra['fk_mbr_contacts']}");
+                        $this->oComp->Set_iCurr( $i );
+                        goto doneSearch;
+                    }
+                    ++$i;
+                }
+            }
+            doneSearch:
+
+            // reposition iWO to include the new iCurr row
+            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
+        }
+
+        done:;
     }
 }
 

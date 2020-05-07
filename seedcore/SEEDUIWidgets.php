@@ -60,13 +60,31 @@ class SEEDUIWidget_Base
         // }
     }
 
-    function Init3_RequestSQLFilter()
-    /********************************
-     * At this point the uiparms are read, and reset as necessary for ui state changes. Use them to generate SQL conditions for the View wrt this widget.
-     * Return a string containing an sql conditional (or empty).
+    function Init3_RequestViewParameters()
+    /*************************************
+     * Return view parameters for this widget.
+     * [0] is the sql condition (or empty string).
      */
     {
-        return( "" );
+        return( [""] );
+    }
+
+    function Init4_EstablishViewState()
+    /**********************************
+     * View state is stable, but window/iCurr/kCurr state is not stable yet.
+     * Use view data to set/alter uiparms relating to window/curr. N.B. do not rely on these values yet, since other widgets can change them now.
+     */
+    {
+        return;
+    }
+
+    function Init5_UIStateFinalized()
+    /********************************
+     * All uiparms are finalized and may not change now.
+     * Compute any internal state here.
+     */
+    {
+        return;
     }
 
     function Draw()
@@ -129,16 +147,20 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
         return( $raAdvisories );
     }
 
-    function Init3_RequestSQLFilter()
+    function Init2_NotifyUIStateChanges( $raAdvisories )
     {
-        $raCond = array();
-        $sCond = "";
+        // if a VIEW_RESET occurs, other widgets will respond by resetting their navigational states
+    }
+
+    function Init3_RequestViewParameters()
+    {
+        $raCond = [];
 
         if( !@$this->raConfig['filters'] )  goto done;
 
         /* For each search row, get a condition clause
          */
-        foreach( array(1,2,3) as $i ) {
+        foreach( [1,2,3] as $i ) {
             $fld = $this->oComp->GetUIParm( "srchfld$i" );
             $op  = $this->oComp->GetUIParm( "srchop$i" );
             $val = trim($this->oComp->GetUIParm( "srchval$i" ));
@@ -166,12 +188,14 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
                 }
             }
         }
-        // glue the filters together as conjunctions
-        $sCond = implode(" AND ", $raCond);
 
         done:
-        return( $sCond );
+        // glue the filters together as conjunctions
+        return( [implode(" AND ", $raCond)] );
     }
+
+    function Init4_EstablishViewState()  { return; }
+    function Init5_UIStateFinalized()  { return; }
 
     private function dbCondTerm( $col, $op, $val )
     /*********************************************
@@ -261,9 +285,15 @@ class SEEDUIWidget_SearchDropdown extends SEEDUIWidget_Base
         parent::__construct( $oComp, $raConfig );
     }
 
-    function Init3_RequestSQLFilter()
+    // Init2_NotifyUIStateChanges: a VIEW_RESET shouldn't change these filters
+
+    function Init3_RequestViewParameters()
+    /*************************************
+     * Return view parameters for this widget.
+     * [0] is the sql condition (or empty string).
+     */
     {
-        $raCond = array();
+        $raCond = [];
 
         /* For each defined control, get a condition clause
          */
@@ -274,8 +304,9 @@ class SEEDUIWidget_SearchDropdown extends SEEDUIWidget_Base
                 }
             }
         }
-    }
 
+        return( [implode(" AND ", $raCond)] );
+    }
 
     function Draw()
     {
@@ -294,10 +325,25 @@ class SEEDUIWidget_SearchDropdown extends SEEDUIWidget_Base
 
 
 class SEEDUIWidget_List extends SEEDUIWidget_Base
+/**********************
+    How kCurr and iCurr work (when keys are enabled)
+
+    kCurr is always propagated because it's used by other widgets like Forms.
+    iCurr is normally propagated a) because it's how ListBasic works so it's easier for the code to be consistent,
+                             and b) to prevent having to search the viewRows for _key==kCurr to find the selected row (do we need it anyway though?)
+
+    When a VIEW_RESET happens, e.g. search parameters change, kCurr might not be in the View anymore so kCurr=iCurr=0
+
+    When the list is sorted, kCurr will still be in the View, but iCurr will change. Set iCurr=-1, forcing the rows to be searched for kCurr.
+ */
 {
+    private $oViewWindow;
+
     function __construct( SEEDUIComponent $oComp, $raConfig = array() )
     {
         parent::__construct( $oComp, $raConfig );
+
+        $this->oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>$raConfig['bUse_key']] );
     }
 
     function RegisterWithComponent()
@@ -324,15 +370,48 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             $this->oComp->SetUIParm( 'bSortDown', 1 );
         }
 
+        // If a list column is sorted but keys are not enabled, there is no way to locate iCurr.
+        // This condition is signified by iCurr=-1 ; sort controls must issue this.
+        // If keys are enabled, InitViewWindow() will search the new view for kCurr in order to find iCurr.
+        // If keys are not enabled, the only option is to reset the selection to the first row.
+        if( $this->oComp->Get_iCurr() == -1 && !$this->oViewWindow->IsEnableKeys() ) {
+            $raAdvisories[] = "VIEW_RESET";
+        }
+
         return( $raAdvisories );
     }
 
-
-
     function Init2_NotifyUIStateChanges( $raAdvisories )
     {
+        // if a VIEW_RESET occurs, reset iWindowOffset=0,kCurr=0,iCurr=0 so the default selection will be made
+        foreach( $raAdvisories as $v ) {
+            if( $v == 'VIEW_RESET' ) {
+                $this->oComp->SetUIParm( 'iWindowOffset', 0 );
+                $this->oComp->SetUIParm( 'iCurr', 0 );
+                $this->oComp->SetUIParm( 'kCurr', 0 );
+            }
+        }
     }
 
+    function Init3_RequestViewParameters() { return( [""] ); }
+
+    function Init4_EstablishViewState()
+    /**********************************
+        Figure out the correct values for kCurr, iCurr, iWO based on whatever just happened.
+        See InitViewWindow() for details.
+     */
+    {
+        $this->oViewWindow->InitViewWindow();
+    }
+
+    function Init5_UIStateFinalized()
+    /********************************
+     * All uiparms are finalized and may not change now.
+     * Compute any internal state here.
+     */
+    {
+        return;
+    }
 
     function Style()
     {
@@ -493,6 +572,9 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
 //          bNewAllowed           = true if the list is allowed to set links that create new records
      */
     {
+//kluge - using the one we make
+$oViewWindow = $this->oViewWindow;
+
         $s = "";
 
         // If the caller called SetViewSlice() then the oViewWindow is all set up (e.g. the nViewSize is known, iCurr is set).
@@ -533,9 +615,9 @@ $raParms = array_merge( $this->raConfig, $raParms );
             $sCrop = ($bSortingDown ? "position:absolute; top:-14px; left:-20px; clip: rect( 19px, auto, auto, 20px );" :
                       ($bSortingUp ? "position:absolute; top:4px; left:-20px; clip: rect( 0px, auto, 6px, 20px );" :
                                      "" ) );
-            $href   = ( $bSortingDown ? $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) :
-                       ($bSortingUp   ? $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortdown" => $c, "sortup"=>0)) :
-                                        $this->oComp->HRefForWidget( $this, array("iCurr"=>0,"sortup"   => $c, "sortdown"=>0)) ));
+            $href   = ( $bSortingDown ? $this->oComp->HRefForWidget( $this, array("iCurr"=>-1,"sortup"   => $c, "sortdown"=>0)) :
+                       ($bSortingUp   ? $this->oComp->HRefForWidget( $this, array("iCurr"=>-1,"sortdown" => $c, "sortup"=>0)) :
+                                        $this->oComp->HRefForWidget( $this, array("iCurr"=>-1,"sortup"   => $c, "sortdown"=>0)) ));
 
             $sColStyle = "font-size:small;";
             if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
