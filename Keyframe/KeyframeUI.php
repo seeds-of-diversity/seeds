@@ -49,12 +49,14 @@ class KeyframeUIComponent extends SEEDUIComponent
     {
         list($oView,$raWindowRows) = $this->GetViewWindow($iViewSliceOffset,$nViewSliceSize);
 
+        // This redundantly returns the iViewSliceOffset because the method is designed to allow a larger slice to be returned if convenient.
+        // The caller must assume that the returned offset could be lower than requested.
         return( [$raWindowRows, $iViewSliceOffset, $oView->GetNumRows()] );
     }
 
     function GetViewWindow( $iWindowOffset = 0, $nWindowSize = 0 )
     {
-        // this is almost always called with default arguments
+        // this is almost always called with default (=0) arguments
         $iWindowOffset = $iWindowOffset ?: $this->Get_iWindowOffset();
         $nWindowSize   = $nWindowSize   ?: $this->Get_nWindowSize();
 
