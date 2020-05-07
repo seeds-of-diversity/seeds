@@ -238,6 +238,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                     ['label'=>'First name',    'col'=>'M.firstname'],
                     ['label'=>'Last name',     'col'=>'M.lastname'],
                     ['label'=>'Company',       'col'=>'M.company'],
+                    ['label'=>'Member #',      'col'=>'M._key'],
                     ['label'=>'Amount',        'col'=>'amount'],
                     ['label'=>'Date received', 'col'=>'date_received'],
                     ['label'=>'Date issued',   'col'=>'date_issued'],
@@ -275,21 +276,41 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
     function ContentDraw()
     {
         $s = $this->DrawStyle()
+           ."<style>.donationFormTable td { padding:3px;}</style>"
            ."<div>".$this->DrawList()."</div>"
            ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
 
         return( $s );
     }
 
-    function donationForm( $oForm )
+    function donationForm( KeyframeForm $oForm )
     {
-        $s = "|||TABLE( || class='' width='100%' border='0')"
-            ."||| *Member*       || [[text:fk_mbr_contacts|size=30]]      || *Amount*  || [[text:amount|size=30]] || *Receipt #*  || [[text:receipt_num|size=30]]"
-            ."||| *Received*       || [[text:date_received|size=30]]      || *Issued*  || [[text:date_issued|size=30]]"
-            ."||| *Notes*     || {colspan='3'} ".$oForm->TextArea( "notes", array('width'=>'100%') )
+        $sReceiptInstructions = "<p style='font-size:x-small'>" //Receipt Instructions:<br/>"
+                               ."-1 = no receipt, see note<br/>-2 = no receipt, below threshold<br/>-3 = Canada Helps</p>";
+
+        $s = "|||TABLE( || class='donationFormTable' width='100%' border='0')"
+            ."||| *Member*     || [[text:fk_mbr_contacts|size=30]]"
+            ." || *Amount*     || [[text:amount|size=30]]"
+            ." || *Received*   || [[text:date_received|size=30]]"
+            ."||| &nbsp        || &nbsp;"
+            ." || *Receipt #*  || [[text:receipt_num|size=30]]"
+            ." || *Issued*     || [[text:date_issued|size=30]]"
+            ."||| *Notes*      || {colspan='1'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'2'] )
+            ." || &nbsp; || ".$sReceiptInstructions
+            ." || &nbsp; || ".$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') )
             ."|||ENDTABLE"
             ."[[hiddenkey:]]"
             ."<input type='submit' value='Save'>";
+
+        return( $s );
+    }
+
+    private function donationData( $kDonation, $kMbr )
+    {
+        $s = "";
+
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kMbr'" );
+        $s .= "<p>Mbr database:<br/>donation_receipt: {$ra['donation_receipt']}</p>";
 
         return( $s );
     }
