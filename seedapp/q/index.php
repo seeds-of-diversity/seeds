@@ -23,8 +23,8 @@ $oQ = new Q( $oApp, ['bUTF8'=>true] );  // return utf8 data unless this is rever
 $sCharset = "utf-8";
 $rQ = $oQ->Cmd( $qcmd, $_REQUEST );
 
-($name  = (@$raQParms['qname']))  || ($name  = (@$rQ['raMeta']['name']))  || ($name = $cmd);
-($title = (@$raQParms['qtitle'])) || ($title = (@$rQ['raMeta']['title'])) || ($title = $cmd);
+($name  = (@$raQParms['qname']))  || ($name  = (@$rQ['raMeta']['name']))  || ($name = $qcmd);
+($title = (@$raQParms['qtitle'])) || ($title = (@$rQ['raMeta']['title'])) || ($title = $qcmd);
 
 switch( $qfmt ) {
     case 'plain':    echo $rQ['sOut'];         break;
@@ -55,6 +55,18 @@ switch( $qfmt ) {
 
     case 'xls':
         if( $rQ['bOk'] ) {
+            include_once( SEEDCORE."SEEDXLSX.php" );
+
+            $oXLSX = new SEEDXlsWrite();
+
+            $iRow = 0;
+            foreach( $rQ['raOut'] as $ra ) {
+                $oXLSX->WriteRow( 0, $iRow++, $ra );
+            }
+
+            $oXLSX->OutputSpreadsheet();
+            exit;
+
 //            include_once( STDINC."SEEDTable.php" );
 
             // PHPExcel sends the header( Content-Type )
@@ -94,5 +106,5 @@ switch( $qfmt ) {
 
 $oApp->Log( "q.log", $_SERVER['REMOTE_ADDR']."\t"
                     .intval(@$rQ['bOk'])."\t"
-                    .$cmd."\t"
+                    .$qcmd."\t"
                     .(@$rQ['sLog'] ? : "") );
