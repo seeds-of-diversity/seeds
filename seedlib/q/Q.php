@@ -62,7 +62,7 @@ class Q
 
         if( SEEDCore_StartsWith( $cmd, 'src' ) ) {
             include_once( "QServerSources.php" );
-            $o = new QServerSourceCV( $this, ['bUTF8' => true] );
+            $o = new QServerSourceCV( $this->oApp, $this->raConfig );
             $rQ = $o->Cmd( $cmd, $parms );
         }
         else

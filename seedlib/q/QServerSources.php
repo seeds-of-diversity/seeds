@@ -11,22 +11,22 @@
 include_once( "Q.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
-class QServerSourceCV
+class QServerSourceCV extends SEEDQ
 {
-    private $oQ;
     private $oSLDBSrc;
 
-    function __construct( Q $oQ, $raConfig = array() )
+    function __construct( SEEDAppDB $oApp, $raConfig = array() )
     {
-        $this->oQ = $oQ;
-        $this->oSLDBSrc = new SLDBSources( $oQ->oApp );
+        parent::__construct( $oApp, $raConfig );
+        $this->oSLDBSrc = new SLDBSources( $oApp );
     }
 
     function Cmd( $cmd, $parms )
     {
-        $rQ = Q::GetEmptyRQ();
+        $rQ = $this->GetEmptyRQ();
 
         if( $cmd == 'srcHelp' ) {
+            $rQ['bHandled'] = true;
             $rQ['bOk'] = true;
             $rQ['sOut'] = $this->sHelp;
         }
@@ -34,6 +34,7 @@ class QServerSourceCV
         /* Cultivars X Sources offered by seed companies and/or seed banks (one row per SrcCv)
          */
         if( $cmd == 'srcSrcCv' ) {
+            $rQ['bHandled'] = true;
             $raParms = $this->normalizeParms( $parms );
 
             // Currently default is true. This should possibly not be a public user parm. Or maybe it's just not advertised or encouraged.
@@ -46,6 +47,20 @@ class QServerSourceCV
             $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
 
             if( ($ra = $this->getSrcCV( $raParms )) ) {
+                $rQ['bOk'] = true;
+                $rQ['raOut'] = $ra;
+            }
+        }
+
+        /* Download ESF/CSCI statistics based on the log files
+         */
+        if( $cmd == 'srcESFStats' ) {
+            $rQ['bHandled'] = true;
+            $raParms = ['v' => intval(@$parms['v'])];    // select the type of report
+
+            $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
+
+            if( ($ra = $this->getSrcESFStats( $raParms )) ) {
                 $rQ['bOk'] = true;
                 $rQ['raOut'] = $ra;
             }
@@ -93,23 +108,23 @@ class QServerSourceCV
 
 if( ($k = intval(@$raParms['kPcvKluge'])) ) {
 // kluge: some kPcv are fakes, actually SRCCV._key+10,000,000 representing the ocv at that row
-    if( ($ra = $this->oQ->oApp->kfdb->QueryRA("SELECT osp,ocv FROM seeds.sl_cv_sources WHERE _key='".($k-10000000)."'")) ) {
+    if( ($ra = $this->oApp->kfdb->QueryRA("SELECT osp,ocv FROM seeds.sl_cv_sources WHERE _key='".($k-10000000)."'")) ) {
         $raCond[] = "SRCCV.osp='".addslashes($ra['osp'])."' AND SRCCV.ocv='".addslashes($ra['ocv'])."'";
     }
 }
 
         $sCondDB = implode( " AND ", $raCond );
-//$this->oQ->oApp->kfdb->SetDebug(2);
+//$this->oApp->kfdb->SetDebug(2);
 
         $oCursor = null;
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRC", $sCondDB, $raParms['kfrcParms'] )) ) {
-            $oCursor = new QCursor( $kfrc, array($this,"GetSrcCVRow"), $raParms );
+            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVRow"], $raParms );
         }
 
         return( $oCursor );
     }
 
-    function GetSrcCVRow( QCursor $oCursor, $raParms )
+    function GetSrcCVRow( SEEDQCursor $oCursor, $raParms )
     {
         $ra = array();
 
@@ -118,13 +133,13 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         // extra or "hidden" information cannot be requested by a standardized parm.
         $bSanitize = SEEDCore_ArraySmartVal( $raParms, 'bSanitize', array(true,false) );     // by default only return the common fields
 
-        $kfrc = $oCursor->KFRC();
+        $kfrc = $oCursor->kfrc;
 
         if( $raParms['bCSCICols'] ) {
             $ra = [ 'k' => $kfrc->Value('_key'),
-                    'company'           => $this->oQ->QCharset( $kfrc->Value('SRC_name_en') ),
-                    'species'           => $this->oQ->QCharset( $kfrc->Value('osp') ),
-                    'cultivar'          => $this->oQ->QCharset( $kfrc->Value('ocv') ),
+                    'company'           => $this->QCharsetFromLatin( $kfrc->Value('SRC_name_en') ),
+                    'species'           => $this->QCharsetFromLatin( $kfrc->Value('osp') ),
+                    'cultivar'          => $this->QCharsetFromLatin( $kfrc->Value('ocv') ),
                     'organic'           => $kfrc->Value('bOrganic'),
                     'bulk'              => $kfrc->Value('bulk'),
                     'notes'             => $kfrc->Value('notes')
@@ -136,8 +151,8 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                     'SRCCV_fk_sl_species' => $kfrc->Value('fk_sl_species'),
                     'SRCCV_fk_sl_pcv'     => $kfrc->Value('fk_sl_pcv'),
                     'SRCCV_fk_sl_sources' => $kfrc->Value('fk_sl_sources'),
-                    'SRCCV_osp'           => $this->oQ->QCharset( $kfrc->Value('osp') ),
-                    'SRCCV_ocv'           => $this->oQ->QCharset( $kfrc->Value('ocv') ),
+                    'SRCCV_osp'           => $this->QCharsetFromLatin( $kfrc->Value('osp') ),
+                    'SRCCV_ocv'           => $this->QCharsetFromLatin( $kfrc->Value('ocv') ),
                     'SRCCV_bOrganic'      => $kfrc->Value('bOrganic'),
             ];
         } else {
@@ -145,6 +160,107 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             $ra = $kfrc->ValuesRA();
         }
         return( $ra );
+    }
+
+    private function getSrcESFStats( $raParms )
+    {
+        $raOut = array();
+
+        switch( intval(@$raParms['v']) ) {
+            case 1: $raOut = $this->getSrcESFStats1();  break;
+            case 2: $raOut = $this->getSrcESFStats2();  break;
+        }
+
+        return( $raOut );
+    }
+
+    private function getSrcESFStats1()
+    // Report on the contents of the CSCI log (species selected) and ESF log (species searched)
+    {
+        $raOut = array();
+        $raTmp = array();   // collect stats here, then sort and copy them to raOut in Q format
+
+        if( file_exists( ($fname = (SITE_LOG_ROOT."csci_sp.log")) ) &&
+            ($f = fopen( $fname, "r" )) )
+        {
+            while( ($line = fgets($f)) !== false ) {
+                $ra = array();
+                preg_match( "/^([^\s]+) ([^\s]+) ([^\s]+) \| (.*)$/", $line, $ra );
+
+                if( ($kSp = intval($ra[4])) ) {
+                    $sp = $this->oApp->kfdb->Query1( "SELECT name_en FROM seeds.sl_species WHERE _key='$kSp'" );
+                } else {
+                    $sp = substr( $ra[4], 2 );
+                }
+
+                $sp = str_replace( "+", " ", $sp );                 // for some reason some names have + instead of spaces
+                $sp = str_replace( "Broccooli", "Broccoli", $sp );  // typo in earlier logs
+                $sp = str_replace( "Oriental", "Asian", $sp );      // don't call it that
+
+                $raTmp[$sp] = intval(@$raTmp[$sp]) + 1;
+            }
+            fclose( $f );
+        }
+
+        if( file_exists( ($fname = (SITE_LOG_ROOT."q.log")) ) &&
+            ($f = fopen( $fname, "r" )) )
+        {
+            while( ($line = fgets($f)) !== false ) {
+            }
+        }
+
+        /* Species hits have been counted as array( sSp => n )
+         * Sort by sSp and convert to array( 'sp'=>charset(sSp), 'n'=>n )
+         */
+        ksort($raTmp);
+        foreach( $raTmp as $sp => $n ) {
+            $raOut[] = array( 'sp'=>$this->QCharsetFromLatin($sp), 'n'=>$n );
+        }
+
+        return( $raOut );
+    }
+
+    private function getSrcESFStats2()
+    // Report on the contents of the ESF log
+    {
+        $raOut = array();
+        $raTmp = array();
+
+        if( file_exists( ($fname = (SITE_LOG_ROOT."q.log")) ) &&
+            ($f = fopen( $fname, "r" )) )
+        {
+            while( ($line = fgets($f)) !== false ) {
+                $ra = array();
+                preg_match( "/^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*(.*)$/", $line, $ra );
+
+                $cmd = @$ra[5];
+                if( $cmd == 'srcSources' &&
+                    (substr( ($r = @$ra[6]), 0, 5 ) == 'kPcv=') &&
+                    ($kPCV = intval(substr($r,5))) )
+                {
+                    if( $kPCV >= 10000000 ) {
+                        list($kSp,$sCV) = $this->oApp->kfdb->QueryRA( "SELECT fk_sl_species,ocv FROM seeds.sl_cv_sources WHERE _key='".($kPCV-10000000)."'" );
+                    } else {
+                        list($kSp,$sCV) = $this->oApp->kfdb->QueryRA( "SELECT fk_sl_species,name FROM seeds.sl_pcv WHERE _key='$kPCV'" );
+                    }
+                    if( $kSp && $sCV ) {
+                        $psp = $this->oApp->kfdb->Query1( "SELECT psp FROM seeds.sl_species WHERE _key='$kSp'" );
+                        $raTmp[$psp."|".$sCV] = intval(@$raTmp[$psp."|".$sCV]) + 1;
+                    }
+                }
+            }
+        }
+
+        /* CV source hits have been counted as array( psp|pname => n )
+         * Sort by sp,cv and convert to array( 'sp'=>charset(sSp), 'cv'=>charset(pname), 'n'=>n )
+         */
+        ksort($raTmp);
+        foreach( $raTmp as $k => $n ) {
+            list($psp,$pname) = explode( '|', $k );
+            $raOut[] = array( 'sp'=>$this->charset($psp), 'cv'=>$this->charset($pname), 'n'=>$n );
+        }
+
+        return( $raOut );
     }
 
 
