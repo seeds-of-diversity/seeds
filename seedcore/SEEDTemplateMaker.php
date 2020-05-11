@@ -32,7 +32,7 @@ function SEEDTemplateMaker2( $raConfig )
         vars = array of variables globally available to all templates (and unaffected by local overrides and SetVar because of scoping)
  */
 {
-    $raGen = array();
+    $raGen = ['charset' => (@$raConfig['charset'] ?: 'utf-8')];
 
     /* Templates can be defined in strings containing %% tmpl names, files with the same format as strings, or arrays of named templates.
      * All of these can be given as single items or arrays of items.
