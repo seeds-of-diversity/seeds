@@ -36,6 +36,9 @@ $consoleConfig = [
 $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
 $oApp->kfdb->SetDebug(1);
+
+SEEDPRG();
+
 //var_dump($_REQUEST);
 
 class MyConsole02TabSet extends Console02TabSet
@@ -48,6 +51,8 @@ class MyConsole02TabSet extends Console02TabSet
     private $oList;
     private $oForm;
 
+    private $oW;
+
     function __construct( SEEDAppConsole $oApp )
     {
         global $consoleConfig;
@@ -57,56 +62,92 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oSLDB = new SLDBRosetta( $this->oApp );
     }
 
-    function TabSet_main_species_Init()
+    function TabSet_main_species_Init()         { $this->oW = new RosettaSpeciesListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_species_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_species_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+
+
+    function TabSet_main_cultivar_ControlDraw()
     {
-// the namespace functionality of this derived class should probably be provided in the base class instead
-        $oUI = new SEEDUI_Session( $this->oApp->sess, "Rosetta" );
-        $kfrel = $this->oSLDB->GetKfrel('S');
-        $cid = 'S';
-        $this->oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid );
-
-        $this->oComp->Update();
-
-        $raSrchConfig = [
-            'filters' => [
-                ['label'=>'Species #',  'col'=>'S._key'],
-                ['label'=>'Name',       'col'=>'S.name_en'],
-                ['label'=>'Bot name',   'col'=>'S.name_bot'],
-            ]
-        ];
-        $this->oSrch = new SEEDUIWidget_SearchControl( $this->oComp, $raSrchConfig );
-
-        $raListConfig = [           // constant things for the __construct that might be needed for state computation
-            'bUse_key' => true,
-            'cols' => [
-                [ "label"=>"Sp #",      "col"=>"_key",      "w"=>30 ],
-                [ "label"=>"psp",       "col"=>"psp",       "w"=>80 ],
-                [ "label"=>"Name EN",   "col"=>"name_en",   "w"=>120 ],
-                [ "label"=>"Index EN",  "col"=>"iname_en",  "w"=>120 ],
-                [ "label"=>"Name FR",   "col"=>"name_fr",   "w"=>120 ], //, "colsel" => array("filter"=>"")),
-                [ "label"=>"Index FR",  "col"=>"iname_fr",  "w"=>120 ],
-                [ "label"=>"Botanical", "col"=>"name_bot",  "w"=>120 ],
-                [ "label"=>"Family EN", "col"=>"family_en", "w"=>120 ],
-                [ "label"=>"Family FR", "col"=>"family_fr", "w"=>120 ],
-                [ "label"=>"Category",  "col"=>"category",  "w"=>60, "colsel" => array("filter"=>"") ],
-            ]
-        ];
-        //$raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
-//$this->oApp->kfdb->SetDebug(2);
-        $this->oList = new KeyframeUIWidget_List( $this->oComp, $raListConfig );
-        $this->oForm = new KeyframeUIWidget_Form( $this->oComp, ['fnExpandTemplate'=>array($this,'foo')] );
-
-        $this->oComp->Start();    // call this after the widgets are registered
+        return( "<div style='padding:20px'>AAA</div>" );
     }
 
-    function TabSet_main_species_ControlDraw()
+    function TabSet_main_cultivar_ContentDraw()
     {
+        return( "<div style='padding:20px'>BBB</div>" );
+    }
+}
 
-        $sSrch = $this->oSrch->Draw();
-        return( "<div style='padding:15px'>$sSrch</div>" );
+class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
+{
+    private $oSLDB;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oSLDB = new SLDBRosetta( $oApp );
+
+        $raConfig = [
+            'sessNamespace' => "RosettaSpecies",
+            'cid'   => 'R',
+            'kfrel' => $this->oSLDB->GetKfrel('S'),
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]],
+
+            'raListConfig' => [
+                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                'cols' => [
+                    [ 'label'=>"Sp #",      'col'=>"_key",      'w'=>30 ],
+                    [ 'label'=>"psp",       'col'=>"psp",       'w'=>80 ],
+                    [ 'label'=>"Name EN",   'col'=>"name_en",   'w'=>120 ],
+                    [ 'label'=>"Index EN",  'col'=>"iname_en",  'w'=>120 ],
+                    [ 'label'=>"Name FR",   'col'=>"name_fr",   'w'=>120 ], //, "colsel" => array("filter"=>"")),
+                    [ 'label'=>"Index FR",  'col'=>"iname_fr",  'w'=>120 ],
+                    [ 'label'=>"Botanical", 'col'=>"name_bot",  'w'=>120 ],
+                    [ 'label'=>"Family EN", 'col'=>"family_en", 'w'=>120 ],
+                    [ 'label'=>"Family FR", 'col'=>"family_fr", 'w'=>120 ],
+                    [ 'label'=>"Category",  'col'=>"category",  'w'=>60, "colsel" => array("filter"=>"") ],
+                ],
+               // 'fnRowTranslate' => [$this,"listRowTranslate"],
+            ],
+
+            'raSrchConfig' => [
+                'filters' => [
+                    ['label'=>'Species #',  'col'=>'S._key'],
+                    ['label'=>'Name',       'col'=>'S.name_en'],
+                    ['label'=>'Bot name',   'col'=>'S.name_bot'],
+                ]
+            ],
+
+            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'speciesForm'] ],
+        ];
+        parent::__construct( $oApp, $raConfig );
     }
 
-    function foo( $oForm )
+    function dsPreStore( Keyframe_DataStore $oDS )
+    {
+        return( true );
+    }
+
+    function Init()
+    {
+        parent::Init();
+    }
+
+    function ControlDraw()
+    {
+        return( $this->DrawSearch() );
+    }
+
+    function ContentDraw()
+    {
+        $s = $this->DrawStyle()
+           ."<style></style>"
+           ."<div>".$this->DrawList()."</div>"
+           ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
+
+        return( $s );
+    }
+
+    function speciesForm( $oForm )
     {
         $sStats = "";
         $s = "|||TABLE( || class='slAdminForm' width='100%' border='0')"
@@ -120,49 +161,7 @@ class MyConsole02TabSet extends Console02TabSet
             ."<INPUT type='submit' value='Save'>";
             return( $s );
     }
-
-    function TabSet_main_species_ContentDraw()
-    {
-
-        $oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>true] );
-
-// This is the "forward" method for loading rows.
-// If you don't do this ListDrawInteractive will call GetWindowData which does exactly the same thing.
-//        list($oView,$raWindowRows) = $this->oComp->GetViewWindow();
-//        $oViewWindow->SetViewSlice( $raWindowRows, ['iViewSliceOffset' => $this->oComp->Get_iWindowOffset(),
-//                                                    'nViewSize' => $oView->GetNumRows()] );
-
-
-        $raListParms = [          // variables that might be computed or altered during state computation
-//            'iViewOffset' => $this->oComp->Get_iWindowOffset(),
-//            'nViewSize' => $oView->GetNumRows()
-        ];
-
-        $sList = $this->oList->ListDrawInteractive( $oViewWindow, $raListParms );
-
-        $sForm = $this->oForm->Draw();
-
-$sInfo = "";
-
-        $s = $this->oList->Style()
-            ."<div>".$sList."</div>"
-            ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$sForm."</div>"
-            .$sInfo;
-
-        return( "<div style='padding:15px'>$s</div>" );
-    }
-
-    function TabSet_main_cultivar_ControlDraw()
-    {
-        return( "<div style='padding:20px'>AAA</div>" );
-    }
-
-    function TabSet_main_cultivar_ContentDraw()
-    {
-        return( "<div style='padding:20px'>BBB</div>" );
-    }
 }
-
 
 
 $s = "[[TabSet:main]]";
@@ -173,9 +172,7 @@ $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 
 
 echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN',
-                                // sCharset defaults to utf8
                                 ['consoleSkin'=>'green',
-                                // sCharset defaults to utf8
                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
 
 ?>

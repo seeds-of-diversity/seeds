@@ -90,7 +90,7 @@ class UsersGroupsPermsUI
 
         $oComp->Start();    // call this after the widgets are registered
 
-        list($oView,$raWindowRows) = $oComp->GetViewWindow();
+        list($oView,$raWindowRows) = $oComp->GetViewWindow($oComp->Get_iWindowOffset(), $oComp->Get_nWindowSize());
         $oViewWindow = new SEEDUIComponent_ViewWindow( $oComp, ['bEnableKeys'=>true] );
         $oViewWindow->SetViewSlice( $raWindowRows, ['iViewSliceOffset' => $oComp->Get_iWindowOffset(),
                                                     'nViewSize' => $oView->GetNumRows()] );
