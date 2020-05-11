@@ -72,6 +72,9 @@ class SLSourcesAppEditCompany
         $raTmplParms = [
             'fTemplates' => [ SEEDAPP."templates/sl-srccv-edit.html" ],
             'sFormCid'   => 'Plain',
+            // Tell Twig that the template and variables are cp1252.
+            // This prevents messing up accents when Twig auto-escapes  {{cvName}} using HSC('utf8')
+            'charset'    => 'iso-8859-1',
             //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
             'vars'       => ['W_CORE_URL'=>W_CORE_URL]      // this is not being found by ExpandTmpl's twig handler
         ];
