@@ -2,7 +2,7 @@
 
 /* Q.php
  *
- * Copyright 2017-2019 Seeds of Diversity Canada
+ * Copyright 2017-2020 Seeds of Diversity Canada
  *
  * Main API point for Q commands
  */
@@ -17,13 +17,13 @@ class Q
 {
     public $oApp;
     public $raConfig;
-    public $bUTF8 = false;
+    public $bUTF8 = false;     // deprecated: SEEDQ handles this (the opposite way)
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
-        $this->bUTF8 = intval(@$raConfig['bUTF8']);
+        $this->bUTF8 = intval(@$raConfig['bUTF8']);     // deprecated: SEEDQ handles this (the opposite way)
     }
 
     function Cmd( $cmd, $parms )
@@ -37,6 +37,7 @@ class Q
         }
 
         if( $cmd == 'test' ) {
+            $rQ['bHandled'] = true;
             $rQ['bOk'] = true;
             $rQ['sOut'] = "Test is successful";
             $rQ['raOut'] = [ [ 'first name' => "Fred", 'last name' => "Flintstone" ],
@@ -48,14 +49,14 @@ class Q
 
         if( SEEDCore_StartsWith( $cmd, 'desc' ) ) {
 //            include_once( "_QServerDesc.php" );
-//            $o = new QServerDesc( $this );
+//            $o = new QServerDesc( $this->oApp, $this->raConfig );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
 
         if( SEEDCore_StartsWith( $cmd, 'rosetta' ) ) {
 //            include_once( "_QServerPCV.php" );
-//            $o = new QServerPCV( $this );
+//            $o = new QServerPCV( $this->oApp, $this->raConfig );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
@@ -69,21 +70,21 @@ class Q
 
         if( SEEDCore_StartsWith( $cmd, 'collection' ) ) {
 //            include_once( "_QServerCollection.php" );
-//            $o = new QServerCollection( $this, [] );
+//            $o = new QServerCollection( $this->oApp, $this->raConfig );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
 
         if( SEEDCore_StartsWith( $cmd, 'collreport' ) ) {
 //            include_once( "_QServerCollectionReport.php" );
-//            $o = new QServerCollectionReport( $this, [] );
+//            $o = new QServerCollectionReport( $this->oApp, $this->raConfig );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
 
         if( SEEDCore_StartsWith( $cmd, 'mbr' ) ) {
 //            include_once( SEEDLIB."mbr/QServerMbr.php" );
-//            $o = new QServerMbr( $this->oApp, array() );
+//            $o = new QServerMbr( $this->oApp, $this->raConfig );
 //            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
