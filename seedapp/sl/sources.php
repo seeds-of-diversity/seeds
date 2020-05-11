@@ -39,6 +39,7 @@ $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSET
                                    'consoleConfig' => $consoleConfig] );
 $oApp->kfdb->SetDebug(1);
 
+SEEDPRG();
 
 class MyConsole02TabSet extends Console02TabSet
 {
