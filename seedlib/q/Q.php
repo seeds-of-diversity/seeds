@@ -7,11 +7,7 @@
  * Main API point for Q commands
  */
 
-
-/* Change this so every QServer extends from SEEDQ and raConfig is passed to every QServer __construct. Every SEEDQ must have a conforming Cmd.
-   This frees each QServer from a dependency on Q which is dependent on all QServers.
- */
-
+include_once( SEEDCORE."SEEDApp.php" );
 
 class Q
 {
