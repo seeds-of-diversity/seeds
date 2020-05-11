@@ -9,19 +9,16 @@
 
 include_once( "Q.php" );
 
-class QServerBasket
+class QServerBasket extends SEEDQ
 {
-    private $oQ;
-    private $oSB;
-
-    function __construct( Q $oQ, $raConfig = array() )
+    function __construct( SEEDAppConsole $oApp, $raConfig )
     {
-        $this->oQ = $oQ;
+        parent::__construct( $oApp, $raConfig );
     }
 
     function Cmd( $cmd, $parms )
     {
-        $rQ = Q::GetEmptyRQ();
+        $rQ = $this->GetEmptyRQ();
 
         // common inputs that may or may not be defined
         $kBP = intval(@$parms['kBP']);

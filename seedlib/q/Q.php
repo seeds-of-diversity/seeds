@@ -28,7 +28,7 @@ class Q
 
     function Cmd( $cmd, $parms )
     {
-        $rQ = self::GetEmptyRQ();
+        $rQ = SEEDQ::GetEmptyRQ();
 
         // cmds containing ! are insecure for ajax access: use them via your own instance of a QServer* object
         if( strpos($cmd,'!') !== false ) {
@@ -98,7 +98,7 @@ class Q
 
         if( SEEDCore_StartsWith( $cmd, 'basket' ) ) {
             include_once( "QServerBasket.php" );
-            $o = new QServerBasket( $this, [] );
+            $o = new QServerBasket( $this->oApp, $this->raConfig );
             $rQ = $o->Cmd( $cmd, $parms );
         }
         else {
@@ -109,20 +109,24 @@ class Q
         return( $rQ );
     }
 
+/* obsolete - using SEEDQ::QCharset
     function QCharset( $s )
-    /**********************
+    [**********************
         If the input is cp1252, the output will be the charset defined by $this->bUTF8
-     */
+     *]
     {
         return( $this->bUTF8 ? utf8_encode($s) : $s );
     }
+*/
 
+/* obsolete - using SEEDQ::GetEmptyRQ
     static function GetEmptyRQ()
-    /***************************
-     */
+    ]***************************
+     *]
     {
         return( [ 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>[], 'raMeta'=>[] ] );
     }
+*/
 
     function CheckPerms( $cmd, $ePerm, $sPermLabel )
     /***********************************************
@@ -156,7 +160,7 @@ class Q
     }
 }
 
-
+/* obsolete: using SEEDQCursor instead
 class QCursor
 {
     private $kfrc;
@@ -185,3 +189,4 @@ class QCursor
         return( $raOut );
     }
 }
+*/

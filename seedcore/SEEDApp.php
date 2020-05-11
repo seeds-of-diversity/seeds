@@ -249,11 +249,11 @@ class SEEDQ
         return( $this->bUTF8 ? utf8_decode($s) : $s );
     }
 
-    function GetEmptyRQ()
-    /********************
+    static function GetEmptyRQ()
+    /***************************
      */
     {
-        return( array( 'bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>array(), 'raMeta'=>array() ) );
+        return( ['bHandled'=>false, 'bOk'=>false, 'sOut'=>"", 'sErr'=>"", 'sLog'=>"", 'raOut'=>[], 'raMeta'=>[] ] );
     }
 }
 
