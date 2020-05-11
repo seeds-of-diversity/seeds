@@ -958,7 +958,7 @@ class SEEDUIComponent_ViewWindow
             for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
                 $rows = $this->GetViewData( $i, 100 );
                 foreach( $rows as $ra ) {
-                    if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {var_dump("WO $i {$ra['fk_mbr_contacts']}");
+                    if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {
                         $this->oComp->Set_iCurr( $i );
                         goto doneSearch;
                     }

@@ -54,12 +54,8 @@ class KeyframeUIComponent extends SEEDUIComponent
         return( [$raWindowRows, $iViewSliceOffset, $oView->GetNumRows()] );
     }
 
-    function GetViewWindow( $iWindowOffset = 0, $nWindowSize = 0 )
+    function GetViewWindow( $iWindowOffset, $nWindowSize )
     {
-        // this is almost always called with default (=0) arguments
-        $iWindowOffset = $iWindowOffset ?: $this->Get_iWindowOffset();
-        $nWindowSize   = $nWindowSize   ?: $this->Get_nWindowSize();
-
         $raViewParms = ['sSortCol'  => $this->GetUIParm('sSortCol'),
                         'bSortDown' => $this->GetUIParm('bSortDown'),
                         'sGroupCol' => $this->GetUIParm('sGroupCol'),
