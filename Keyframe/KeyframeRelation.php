@@ -549,14 +549,17 @@ class KeyFrame_Relation
     /**********************************************************
      */
     {
-        $sGroupCols = @$parms['sGroupCol'];      // deprecate in favour of sGroupCols
-        if( !$sGroupCols )
-        $sGroupCols = @$parms['sGroupCols'];    // unpack colalias1,colalias2,... and use those for GROUP BY as well as SELECT cols
+        $sGroupAliases = @$parms['sGroupCol'];      // deprecate in favour of sGroupAliases
+        if( !$sGroupAliases )
+        $sGroupAliases = @$parms['sGroupCols'];     // deprecate in favour of sGroupAliases
+        if( !$sGroupAliases )
+        $sGroupAliases = @$parms['sGroupAliases'];  // unpack colalias1,colalias2,... and use those for GROUP BY as well as SELECT cols
         $sSortCol  = @$parms['sSortCol'];
         $bSortDown = intval(@$parms['bSortDown']);
         $iOffset   = intval(@$parms['iOffset']);
         $iLimit    = intval(@$parms['iLimit']);
         $iStatus   = intval(@$parms['iStatus']);
+        $sGroupCols = "";
 
         /* $this->qSelect is completely defined by kfrel.
          * Now customize the query by appending conditions and call-specific clauses e.g. ORDER, GROUP
@@ -582,9 +585,24 @@ class KeyFrame_Relation
                 $sFieldsClause .= ($sFieldsClause ? "," : "");
                 $sFieldsClause .= SEEDCore_StartsWith($alias,'VERBATIM') ? $fld : "$fld as $alias";
             }
-        } else if( $sGroupCols ) {
+/* Didn't need this because $this->GetRealColName() can get the col names from the aliases
+        } else if( isset($parms['raGroup']) ) {
+            foreach( $parms['raGroup'] as $alias=>$fld ) {
+                $sFieldsClause .= ($sFieldsClause ? "," : "")
+                                 ."$fld as $alias";
+                $sGroupCol     .= ($sGroupCol ? "," : "").$fld;
+            }
+            // N.B. MariaDB doesn't have ANY_VALUE()
+            if( isset($parms['raGroupAnyValue']) ) {
+                foreach( $parms['raGroupAnyValue'] as $alias=>$fld ) {
+                    $sFieldsClause .= ($sFieldsClause ? "," : "")
+                                     ."ANY_VALUE($fld) as $alias";
+                }
+            }
+*/
+        } else if( $sGroupAliases ) {
             // colalias1,colalias2,... are the group cols and all of the select cols.
-            foreach( ($ra = explode( ',', $sGroupCols )) as $a ) {
+            foreach( ($ra = explode( ',', $sGroupAliases )) as $a ) {
                 $col = $this->GetRealColName( trim($a) );
                 $sFieldsClause .= ($sFieldsClause ? "," : "")
                                  ."$col as $a";
