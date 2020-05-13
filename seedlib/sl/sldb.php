@@ -327,7 +327,6 @@ class SLDBCollection extends SLDBRosetta
 
         $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
 
-        // Letters are out of order in the arrays to solve forward-dependency in the sql (is this still necessary?)
         $raKfrel['IxA']       = $this->newKfrel2( $kfdb, $uid, array('I','A'), $sLogfile );
         $raKfrel['AxPxS']     = $this->newKfrel2( $kfdb, $uid, array('A','P','S'), $sLogfile );
         $raKfrel['IxAxPxS']   = $this->newKfrel2( $kfdb, $uid, array('I','A','P','S'), $sLogfile );
