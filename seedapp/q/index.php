@@ -10,8 +10,10 @@ if( !defined('SEEDROOT') ) { die( "set the seedConfig first" ); }
 include_once( SEEDCORE."SEEDApp.php" );
 include_once( SEEDLIB."q/Q.php" );
 
+if( !defined("Q_DB") )  define("Q_DB", "seeds1");   // caller can initialize Q to any other database
+
 $oApp = SEEDConfig_NewAppConsole_LoginNotRequired(
-            ['db'=>'seeds1',
+            ['db'=>Q_DB,
              'sessPermsRequired' => ['PUBLIC'],
                                    'sessUIConfig' => [],                // disable login UI (requires login by default)
                                    'lang' => 'EN' ] );
