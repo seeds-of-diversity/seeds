@@ -15,7 +15,7 @@ class QServerSourceCV extends SEEDQ
 {
     private $oSLDBSrc;
 
-    function __construct( SEEDAppDB $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
         parent::__construct( $oApp, $raConfig );
         $this->oSLDBSrc = new SLDBSources( $oApp );

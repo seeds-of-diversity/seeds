@@ -2,7 +2,7 @@
 
 /* Seed Library database access
  *
- * Copyright (c) 2010-2018 Seeds of Diversity Canada
+ * Copyright (c) 2010-2020 Seeds of Diversity Canada
  *
  * SLDBBase                              All individual tables accessible by named relations. e.g. 'A', 'P', 'SY'
  * SLDBRosetta      extends SLDBBase     Joins of variety naming tables e.g. 'PxS', 'SYxS', 'PYxPxS'
@@ -229,7 +229,7 @@ class SLDBBase extends Keyframe_NamedRelations
 {
     protected $tDef = array();      // table defs for building kfreldefs. Derived classes just add more.
 
-    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
         $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
@@ -291,7 +291,7 @@ class SLDBRosetta extends SLDBBase
  * Implement joins of variety name tables
  */
 {
-    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
         parent::__construct( $oApp, $raConfig );
     }
@@ -315,7 +315,7 @@ class SLDBCollection extends SLDBRosetta
  * Implement joins of Seed Library tables and Rosetta
  */
 {
-    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
         parent::__construct( $oApp, $raConfig );
     }
@@ -361,7 +361,7 @@ class SLDBSources extends SLDBRosetta
  * Implement joins of cv-source tables and variety name tables
  */
 {
-    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
         parent::__construct( $oApp, $raConfig );
     }
@@ -572,5 +572,3 @@ CREATE TABLE seeds.sl_tmp_cv_sources (
 ) CHARSET latin1;
 ";
 }
-
-?>
