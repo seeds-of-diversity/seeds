@@ -335,6 +335,38 @@ class SEEDSessionAccount extends SEEDSession
         return( array($bOk, $suff, $sErr) );
     }
 
+    function CheckPerms( $cmd, $ePerm, $sPermLabel )
+    /***********************************************
+        Similar to IsAllowed() but more flexible because the ePerm doesn't have to be encoded in the cmd
+
+        cmds containing --- require admin access
+        cmds containing --  require write access
+        cmds containing -   require read access
+
+        Note that any command might check further permissions to allow or deny access
+     */
+    {
+        $bAccess = false;
+        $sErr = "";
+
+        if( strpos( $cmd, "---" ) !== false ) {
+            if( !($bAccess = $this->TestPerm( $ePerm, 'A' )) ) {
+                $sErr = "Command requires $sPermLabel admin permission";
+            }
+        } else
+        if( strpos( $cmd, "--" ) !== false ) {
+            if( !($bAccess = $this->TestPerm( $ePerm, 'W' )) ) {
+                $sErr = "Command requires $sPermLabel write permission";
+            }
+        } else
+        if( strpos( $cmd, "-" ) !== false ) {
+            if( !($bAccess = $this->TestPerm( $ePerm, 'R' )) ) {
+                $sErr = "Command requires $sPermLabel read permission";
+            }
+        }
+
+        return( [$bAccess, $sErr] );
+    }
 
 
     function LogoutSession()
