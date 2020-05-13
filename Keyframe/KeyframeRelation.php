@@ -76,9 +76,9 @@ class KeyFrame_Relation
 
     // internal constants
     private $baseTable = null;  // ref to the base table definition in $this->kfrdef
-    private $baseTableAlias;
-    private $raTableN2A;        // store all table names and aliases for reference ( array of tableName => tableAlias )
-    private $raColAlias;        // store all field names for reference ( array of colAlias => tableAlias.col )
+    private $baseTableAlias = "";
+    private $raTableN2A = [];        // store all table names and aliases for reference ( array of tableName => tableAlias )
+    private $raColAlias = [];        // store all field names for reference ( array of colAlias => tableAlias.col )
 
     private $qSelect = null;            // cache the constant part of the SELECT query (with the fields clause substitutable)
     private $qSelectFieldsClause = "";  // cache the default fields clause (caller can override)
@@ -103,7 +103,6 @@ class KeyFrame_Relation
 
         if( @$raKfrelParms['logfile'] ) { $this->SetLogFile( $raKfrelParms['logfile'] ); }
 
-        $bFirst = true;
         foreach( $this->kfrdef['Tables'] as $a => &$t ) {
             /* Make a lookup table of tablename->alias.
              * The kfrdef can always be used as a lookup of alias->tablename.
@@ -113,9 +112,8 @@ class KeyFrame_Relation
             /* If Type is not specified, the first one is Base
              */
             if( empty($t['Type']) ) {
-                $t['Type'] = $bFirst ? "Base" : "Join";
+                $t['Type'] = $this->baseTableAlias ? "Join" : "Base";
             }
-            $bFirst = false;
             if( $t['Type'] == 'Base' ) {
                 $this->baseTableAlias = $a;
             }
@@ -153,10 +151,18 @@ class KeyFrame_Relation
              * Default col aliases for base table are the column names.  Default col alias for other tables is tableAlias_col
              */
             foreach( $t['Fields'] as &$f ) {
+                $col = $a.".".$f['col'];    // col always has table prefix
+                // if alias is predefined, just use it. Otherwise create a default alias
                 if( empty($f['alias']) ) {
-                    $f['alias'] = ($t['Type'] == 'Base' ? $f['col'] : ($a."_".$f['col']));
+                    $fullAlias = $a."_".$f['col'];
+                    if( $t['Type'] == 'Base' ) {
+                        $f['alias'] = $f['col'];                // store base alias in kfrdef and raColAlias
+                        $this->raColAlias[$fullAlias] = $col;   // store full alias in raColAlias
+                    } else {
+                        $f['alias'] = $fullAlias;               // store full alias in kfrdef and raColAlias
+                    }
                 }
-                $this->raColAlias[$f['alias']] = $a.".".$f['col'];
+                $this->raColAlias[$f['alias']] = $col;
             }
             unset($f);
         }
@@ -170,6 +176,7 @@ class KeyFrame_Relation
         /* Calculate the non-varying portion of the SELECT statement for this Relation.
          */
         $this->qSelect = $this->makeQSelect();
+        //var_dump($this->raColAlias);
     }
 
     function IsBaseField( $q )
