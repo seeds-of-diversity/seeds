@@ -37,11 +37,11 @@ class MSDCommonDraw
         // and for each category get all distinct species (distinct prodextra-values for prodextra-key=='species').
         // The second query needs a double-join on prodextra, to fetch category and species together.
         $raCat = $this->oSB->oDB->GetList( "PxPE", "product_type='seeds' AND PE.k='category'",
-                                           array('sGroupCol'=>'PE_v', 'sSortCol'=>'PE_v', 'raFieldsOverride'=>array('PE_v'=>'PE.v')) );
+                                           ['sGroupAliases'=>'PE_v', 'sSortCol'=>'PE_v'] );
         foreach( $raCat as $ra ) {
             $raSpList = $this->oSB->oDB->GetList( "PxPE2", "product_type='seeds' AND PE1.k='category' "
                                                  ."AND PE1.v='".addslashes($ra['PE_v'])."' AND PE2.k='species'",
-                                                  array('sGroupCol'=>'PE2_v', 'sSortCol'=>'PE2_v', 'raFieldsOverride'=>array('PE2_v'=>'PE2.v')) );
+                                                  ['sGroupAliases'=>'PE2_v', 'sSortCol'=>'PE2_v'] );
 
             $sCat = $this->oMSDCore->TranslateCategory( $ra['PE_v'] );
             // get all the species names and translate them
