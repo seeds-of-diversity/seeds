@@ -632,6 +632,28 @@ function SEEDPRG()
     $doPost = false;
 
     if( @$_SERVER['REQUEST_METHOD'] == 'POST' ) {
+        if( $_FILES ) {
+            // A file is being uploaded. The temp file disappears when the script ends so don't do PRG.
+
+            /* The correct way to do this is:
+                 First Step;
+                     $_SESSION['seedprg-files'] = $_FILES;  // metadata about the uploaded files, but not the actual files
+                     foreach( $_FILES as f ) {
+                         create temp file name t;
+                         move_uploaded_file( f['tmp_name'], t );
+                         $_SESSION['seedprg-files'][f]['seedprg-tmpfile'] = t;
+                     }
+                 Second Step:
+                     $_FILES = $_SESSION['seedprg-files'];
+                     foreach( $_SESSION['seedprg-files'] as f ) {
+                         record somewhere the locations of the uploaded files (could record them in _FILES[f]['tmp_name'] but the
+                         application code has to know that they are not temporary files and will have to be moved/deleted normally
+                         (not with move_uploaded_file)
+                     }
+             */
+            return( true );
+        }
+
         // A form was submitted. Defer processing until the page is reloaded via 303, which causes the browser to do a GET on the given location.
         $uniqid = uniqid();
         $_SESSION['seedprg'][$uniqid] = $_POST;
