@@ -926,6 +926,8 @@ class SEEDUIComponent_ViewWindow
     {
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
+var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset());
+
         /* See case (1) above.
          * Initialize kCurr to the first row iCurr=0.
          * This also tries to work for cases where iCurr>0 but that probably doesn't happen?
