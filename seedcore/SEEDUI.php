@@ -971,6 +971,9 @@ class SEEDUIComponent_ViewWindow
             $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
         }
 
+//if( in_array($this->oComp->oUI->oApp->sess->GetUID(), [1,1499]) )
+var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset());
+
         done:;
     }
 }
