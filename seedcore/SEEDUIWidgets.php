@@ -574,22 +574,23 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
     {
 //kluge - using the one we make
 $oViewWindow = $this->oViewWindow;
-
-        $s = "";
-
-        // If the caller called SetViewSlice() then the oViewWindow is all set up (e.g. the nViewSize is known, iCurr is set).
-        // If not we have to do this before anything else.
-        $raViewSlice = $oViewWindow->GetWindowData();
-
-        //$bNewAllowed = intval(@$raParms['bNewAllowed']);
-
 // kluge: $this->raConfig has things that Start() needs to know. Some of those used to be in $raParms so the code below expects them
 // to be there. Look for them in in $raConfig instead, but meanwhile, merge the arrays.
 $raParms = array_merge( $this->raConfig, $raParms );
 
+        $s = "";
+
+        //$bNewAllowed = intval(@$raParms['bNewAllowed']);
+
         // uiparms overrides raParms overrides default
         if( !$this->oComp->Get_nWindowSize() )  $this->oComp->Set_nWindowSize( @$raParms['nWindowSize'] ?: 10 );
         $raParms['tableWidth'] = @$raParms['tableWidth'] ?: "100%";
+
+
+        // If the caller called SetViewSlice() then the oViewWindow is all set up (e.g. the nViewSize is known, iCurr is set).
+        // If not we have to do this before anything else.
+        // Set_nWindowSize() default has to be done first (above)
+        $raViewSlice = $oViewWindow->GetWindowData();
 
         $nWindowRowsAbove = $oViewWindow->RowsAboveWindow();
         $nWindowRowsBelow = $oViewWindow->RowsBelowWindow();
