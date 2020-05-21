@@ -926,7 +926,7 @@ class SEEDUIComponent_ViewWindow
     {
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
-var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset());
+var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset()." nWS:". $this->oComp->Get_nWindowSize());
 
         /* See case (1) above.
          * Initialize kCurr to the first row iCurr=0.
@@ -976,7 +976,7 @@ var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".
 
 
 //if( in_array($this->oComp->oUI->oApp->sess->GetUID(), [1,1499]) )
-var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset());
+var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset()." nWS:". $this->oComp->Get_nWindowSize());
 
         done:;
     }
