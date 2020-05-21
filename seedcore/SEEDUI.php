@@ -926,8 +926,6 @@ class SEEDUIComponent_ViewWindow
     {
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
-var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset()." nWS:". $this->oComp->Get_nWindowSize());
-
         /* See case (1) above.
          * Initialize kCurr to the first row iCurr=0.
          * This also tries to work for cases where iCurr>0 but that probably doesn't happen?
@@ -965,18 +963,12 @@ var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".
          * At this point, the iCurr row might as well be loaded, so do that and test that it contains kCurr. If not, reset the view.
          */
         if( !($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) || $raRow['_key'] != $this->oComp->Get_kCurr() ) {
-            var_dump("sync problem fixed: k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset());
             $this->oComp->Set_iCurr(0);
             $this->oComp->Set_iWindowOffset(0);
             if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
                 $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
             }
         }
-
-
-
-//if( in_array($this->oComp->oUI->oApp->sess->GetUID(), [1,1499]) )
-var_dump("k:".$this->oComp->Get_kCurr()." i:".$this->oComp->Get_iCurr()." iWO:".$this->oComp->Get_iWindowOffset()." nWS:". $this->oComp->Get_nWindowSize());
 
         done:;
     }
