@@ -14,6 +14,182 @@ class UsersGroupsPermsUI
         $this->oAcctDB = new SEEDSessionAccountDB2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), ['logdir'=>$this->oApp->logdir] );
     }
 
+
+    function GetConfig( $sMode )
+    {
+        $raConfigUsers = [
+            'sessNamespace' => "UGPUsers",
+            'cid'   => 'U',
+            'kfrel' => $this->oAcctDB->GetKfrel('U'),
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'usersPreStore']]]],
+
+            'raListConfig' => [
+                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                'cols' => [
+                    [ 'label'=>'User #',  'col'=>'_key' ],
+                    [ 'label'=>'Name',    'col'=>'realname' ],
+                    [ 'label'=>'Email',   'col'=>'email' ],
+                    [ 'label'=>'Status',  'col'=>'eStatus' ],
+                    [ 'label'=>'Group1',  'col'=>'G_groupname' ],
+                ],
+                'fnRowTranslate' => [$this,'usersListRowTranslate'],
+            ],
+            // Not the same format as listcols because these actually need the column names not aliases.
+            // For groups and perms it happens to work but when _key is included in the WHERE it is ambiguous
+            'raSrchConfig' => [
+                'filters' => [
+                    [ 'label'=>'User #',  'col'=>'U._key' ],
+                    [ 'label'=>'Name',    'col'=>'U.realname' ],
+                    [ 'label'=>'Email',   'col'=>'U.email' ],
+                    [ 'label'=>'Status',  'col'=>'U.eStatus' ],
+                    [ 'label'=>'Group1',  'col'=>'G.groupname' ],
+                ],
+            ],
+
+            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'usersFormTemplate'] ],
+        ];
+
+        $raConfigGroups = [
+            'sessNamespace' => "UGPGroups",
+            'cid'   => 'G',
+            'kfrel' => $this->oAcctDB->GetKfrel('G'),
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'groupsPreStore']]]],
+
+            'raListConfig' => [
+                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                'cols' => [
+                    [ 'label'=>'k',          'col'=>'_key' ],
+                    [ 'label'=>'Group Name', 'col'=>'groupname' ],
+                    [ 'label'=>'Inherited',  'col'=>'gid_inherited' ],
+                ],
+                'fnRowTranslate' => [$this,'groupsListRowTranslate'],
+            ],
+
+            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'groupsFormTemplate'] ],
+        ];
+        $raConfigGroups['raSrchConfig']['filters'] = $raConfigGroups['raListConfig']['cols'];     // conveniently the same format
+
+
+        $raConfigPerms = [
+            'sessNamespace' => "UGPPerms",
+            'cid'   => 'P',
+            'kfrel' => $this->oAcctDB->GetKfrel('P'),
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'permsPreStore']]]],
+
+            'raListConfig' => [
+                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                'cols' => [
+                    [ 'label'=>'Permission', 'col'=>'perm' ],
+                    [ 'label'=>'Modes',      'col'=>'modes' ],
+                    [ 'label'=>'User',       'col'=>'U_realname' ],
+                    [ 'label'=>'Group',      'col'=>'G_groupname' ],
+                ],
+                'fnRowTranslate' => [$this,'permsListRowTranslate'],
+            ],
+
+            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'permsFormTemplate'] ],
+        ];
+        $raConfigPerms['raSrchConfig']['filters'] = $raConfigPerms['raListConfig']['cols'];     // conveniently the same format
+
+        switch( $sMode ) {
+            default:
+            case 'users':  $raConfig = $raConfigUsers;  break;
+            case 'groups': $raConfig = $raConfigGroups; break;
+            case 'perms':  $raConfig = $raConfigPerms;  break;
+        }
+
+        return( $raConfig );
+    }
+
+    /* ListRowTranslate callbacks
+     */
+    function usersListRowTranslate( $raRow )
+    {
+        // show the groupname with (gid) appended for convenience
+        if( $raRow['gid1'] && $raRow['G_groupname'] ) {
+            $raRow['G_groupname'] .= " (".$raRow['gid1'].")";
+        }
+        return( $raRow );
+    }
+    function groupsListRowTranslate( $raRow )
+    {
+        // show the inherited groupname instead of the key
+        if( $raRow['gid_inherited'] == 0 ) {
+            $raRow['gid_inherited'] = '';
+        } else {
+            $g = intval($raRow['gid_inherited']);   // protect against sql injection
+            $raRow['gid_inherited'] = $this->oApp->kfdb->Query1("SELECT groupname FROM SEEDSession_Groups WHERE _key='$g'" )
+                                     ." ($g)";
+        }
+        return( $raRow );
+    }
+    function permsListRowTranslate( $raRow )
+    {
+        return( $raRow );
+    }
+
+    /* Form templates
+     */
+    function usersFormTemplate()
+    {
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+            ."||| User #|| [[Key: | readonly]]\n"
+            ."||| Name  || [[Text:realname]]\n"
+            ."||| Email || [[Text:email]]\n"
+            ."||| Password || [[if:[[value:password]]|-- cannot change here --|[[Text:password]] ]]\n"
+            ."||| Status|| ".$this->getSelectTemplateFromArray( 'sfUp_eStatus', 'eStatus',
+                                    ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'] )."\n"
+            ."||| Group || ".$this->makeGroupSelect( 'sfUp_gid1', 'gid1' )
+            ."||| <input type='submit'>";
+        return( $s );
+    }
+    function groupsFormTemplate()
+    {
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+            ."||| Name            || [[Text:groupname]]\n"
+            ."||| Inherited Group || ".$this->makeGroupSelect('sfGp_gid_inherited', 'gid_inherited' )
+            ."||| <input type='submit'> [[HiddenKey:]]";
+
+        return( $s );
+    }
+    function permsFormTemplate()
+    {
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+            ."||| Name  || [[Text:perm]]\n"
+            ."||| Mode  || [[Text:modes]]\n"
+            ."||| User  || ".$this->makeUserSelect( 'sfPp_uid', 'uid' )
+            ."||| Group || ".$this->makeGroupSelect( 'sfPp_gid', 'gid' )
+            ."||| <input type='submit'>  [[HiddenKey:]]";
+
+        return( $s );
+    }
+
+
+    /* DSPreStore callbacks
+     */
+    function usersPreStore( Keyframe_DataStore $oDS )
+    {
+        if( !$oDS->Value('lang') ) $oDS->SetValue('lang','E');
+        // help make sure a blank value is cast as an integer
+        if( !$oDS->Value('gid1') ) $oDS->SetValue('gid1','0');
+        return( true );
+    }
+    function groupsPreStore( Keyframe_DataStore $oDS )
+    {
+        // help make sure a blank value is cast as an integer
+        if( !$oDS->Value('gid_inherited') ) $oDS->SetValue('gid_inherited','0');
+        // don't allow a group to inherit itself (we don't check for loops but at least we can check for this)  not sure what happens if you loop
+        if( $oDS->Key() && $oDS->value('gid_inherited')==$oDS->Key() ) {
+            $oDS->SetValue( 'gid_inherited', 0 );
+        }
+        return( true );
+    }
+    function permsPreStore( Keyframe_DataStore $oDS )
+    {
+        return( true );
+    }
+
+/*
     function DrawUI()
     {
         $s = "";
@@ -36,7 +212,7 @@ class UsersGroupsPermsUI
                     [ 'label'=>'Status',  'col'=>'eStatus' ],
                     [ 'label'=>'Group1',  'col'=>'G_groupname' ],
                 ];
-                $raListConfig['fnRowTranslate'] = array($this,"usersListRowTranslate");
+                $raListConfig['fnRowTranslate'] = [$this,'usersListRowTranslate'];
                 // Not the same format as listcols because these actually need the column names not aliases.
                 // For groups and perms it happens to work but when _key is included in the WHERE it is ambiguous
                 $raSrchParms['filters'] = [
@@ -46,7 +222,7 @@ class UsersGroupsPermsUI
                     [ 'label'=>'Status',  'col'=>'U.eStatus' ],
                     [ 'label'=>'Group1',  'col'=>'G.groupname' ],
                 ];
-                $formTemplate = $this->getUsersFormTemplate();
+                $formTemplate = $this->usersFormTemplate();
                 $raSEEDFormParms = ['DSParms'=>['fn_DSPreStore'=> [$this,'usersPreStore']]];
                 break;
             case "Groups":
@@ -57,9 +233,9 @@ class UsersGroupsPermsUI
                     [ 'label'=>'Group Name', 'col'=>'groupname' ],
                     [ 'label'=>'Inherited',  'col'=>'gid_inherited' ],
                 ];
-                $raListConfig['fnRowTranslate'] = array($this,"groupsListRowTranslate");
+                $raListConfig['fnRowTranslate'] = [$this,'groupsListRowTranslate'];
                 $raSrchParms['filters'] = $raListConfig['cols'];     // conveniently the same format
-                $formTemplate = $this->getGroupsFormTemplate();
+                $formTemplate = $this->groupsFormTemplate();
                 $raSEEDFormParms = ['DSParms'=>['fn_DSPreStore'=> [$this,'groupsPreStore']]];
                 break;
             case "Permissions":
@@ -71,9 +247,9 @@ class UsersGroupsPermsUI
                     [ 'label'=>'User',       'col'=>'U_realname' ],
                     [ 'label'=>'Group',      'col'=>'G_groupname' ],
                 ];
-                $raListConfig['fnRowTranslate'] = array($this,"permsListRowTranslate");
+                $raListConfig['fnRowTranslate'] = [$this,'permsListRowTranslate'];
                 $raSrchParms['filters'] = $raListConfig['cols'];     // conveniently the same format
-                $formTemplate = $this->getPermsFormTemplate();
+                $formTemplate = $this->permsFormTemplate();
                 $raSEEDFormParms = ['DSParms'=>['fn_DSPreStore'=> [$this,'permsPreStore']]];
                 break;
         }
@@ -143,8 +319,9 @@ class UsersGroupsPermsUI
 
         return( $s );
     }
+*/
 
-    private function drawUsersInfo( KeyframeUIComponent $oComp )
+    function drawUsersInfo( KeyframeUIComponent $oComp )
     {
         $s = "";
         $s .= $this->ugpStyle();
@@ -218,14 +395,14 @@ class UsersGroupsPermsUI
         return( $s );
     }
 
-    private function drawGroupsInfo( KeyframeUIComponent $oComp )
+    function drawGroupsInfo( KeyframeUIComponent $oComp )
     {
         $s = "";
 
         return( $s );
     }
 
-    private function drawPermsInfo( KeyframeUIComponent $oComp )
+    function drawPermsInfo( KeyframeUIComponent $oComp )
     {
         $s = "";
 
@@ -233,7 +410,7 @@ class UsersGroupsPermsUI
 
     }
 
-    function ugpStyle()
+    private function ugpStyle()
     {
         $s = "<style>"
              .".ugpForm { font-size:14px; }"
@@ -242,41 +419,6 @@ class UsersGroupsPermsUI
         return( $s );
     }
 
-    private function getUsersFormTemplate()
-    {
-        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-            ."||| User #|| [[Key: | readonly]]\n"
-            ."||| Name  || [[Text:realname]]\n"
-            ."||| Email || [[Text:email]]\n"
-            ."||| Password || [[if:[[value:password]]|-- cannot change here --|[[Text:password]] ]]\n"
-            ."||| Status|| ".$this->getSelectTemplateFromArray( 'sfUp_eStatus', 'eStatus',
-                                    ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'] )."\n"
-            ."||| Group || ".$this->makeGroupSelect( 'sfUp_gid1', 'gid1' )
-            ."||| <input type='submit'>";
-        return( $s );
-    }
-
-    private function getGroupsFormTemplate()
-    {
-        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-            ."||| Name            || [[Text:groupname]]\n"
-            ."||| Inherited Group || ".$this->makeGroupSelect('sfGp_gid_inherited', 'gid_inherited' )
-            ."||| <input type='submit'> [[HiddenKey:]]";
-
-        return( $s );
-    }
-
-    private function getPermsFormTemplate()
-    {
-        $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-            ."||| Name  || [[Text:perm]]\n"
-            ."||| Mode  || [[Text:modes]]\n"
-            ."||| User  || ".$this->makeUserSelect( 'sfPp_uid', 'uid' )
-            ."||| Group || ".$this->makeGroupSelect( 'sfPp_gid', 'gid' )
-            ."||| <input type='submit'>  [[HiddenKey:]]";
-
-        return( $s );
-    }
 
     private function makeUserSelect( $name_sf, $name )
     {
@@ -376,57 +518,6 @@ class UsersGroupsPermsUI
     }
 
 
-    /* Callbacks to amend the contents of lists for each table
-     */
-    function usersListRowTranslate( $raRow )
-    {
-        // show the groupname with (gid) appended for convenience
-        if( $raRow['gid1'] && $raRow['G_groupname'] ) {
-            $raRow['G_groupname'] .= " (".$raRow['gid1'].")";
-        }
-        return( $raRow );
-    }
-    function groupsListRowTranslate( $raRow )
-    {
-        // show the inherited groupname instead of the key
-        if( $raRow['gid_inherited'] == 0 ) {
-            $raRow['gid_inherited'] = '';
-        } else {
-            $g = intval($raRow['gid_inherited']);   // protect against sql injection
-            $raRow['gid_inherited'] = $this->oApp->kfdb->Query1("SELECT groupname FROM SEEDSession_Groups WHERE _key='$g'" )
-                                     ." ($g)";
-        }
-        return( $raRow );
-    }
-    function permsListRowTranslate( $raRow )
-    {
-        return( $raRow );
-    }
-
-
-    /* Callbacks to process DSPreStore for each table
-     */
-    function usersPreStore( $kfr )
-    {
-        if( !$kfr->value('lang') ) $kfr->SetValue('lang','E');
-        // help make sure a blank value is cast as an integer
-        if( !$kfr->value('gid1') ) $kfr->SetValue('gid1','0');
-        return( true );
-    }
-    function groupsPreStore( $kfr )
-    {
-        // help make sure a blank value is cast as an integer
-        if( !$kfr->value('gid_inherited') ) $kfr->SetValue('gid_inherited','0');
-        // don't allow a group to inherit itself (we don't check for loops but at least we can check for this)  not sure what happens if you loop
-        if( $kfr->Key() && $kfr->value('gid_inherited')==$kfr->Key() ) {
-            $kfr->SetValue( 'gid_inherited', 0 );
-        }
-        return( true );
-    }
-    function permsPreStore( $kfr )
-    {
-        return( true );
-    }
 
 
     private function doCmd( $mode )
@@ -456,6 +547,7 @@ class UsersGroupsPermsUI
     }
 }
 
+/*
 class UGP_SEEDUI extends SEEDUI
 {
     private $oSVA;
@@ -470,3 +562,4 @@ class UGP_SEEDUI extends SEEDUI
     function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
     function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
 }
+*/
