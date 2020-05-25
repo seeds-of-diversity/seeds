@@ -25,7 +25,7 @@ class SLSourcesCVUpload
     private $kUpload;
     private $tmpTable = "seeds.sl_tmp_cv_sources";
 
-    function __construct( SEEDAppSession $oApp, $eReplace, $kUpload = 0 )
+    function __construct( SEEDAppConsole $oApp, $eReplace, $kUpload = 0 )
     {
 //    __construct( kUpload == 0 ) prepares the object for a potential Load(). Nothing else will work.
 //    __construct( kUpload != 0 ) prepares the object to work with the rows in sl_tmp_cv_sources identified by kUpload.
@@ -324,6 +324,25 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                                                               ." AND (A.fk_sl_species<>'0' AND A.fk_sl_species=B.fk_sl_species OR A.osp=B.osp)"
                                                               ." AND A.ocv=B.ocv" ),
         );
+
+        /* Find rows that appear to be matches but really aren't because of case-insensitive string comparison.
+         * (fix this in the table build)
+         */
+        // case-sensitive string comparisons rely on collations set in sql below. It would be better to set the tables' collation.
+        if( $kfdb->Query1("SELECT LEFT(table_collation,4) FROM information_schema.tables "
+                         ."WHERE table_schema='seeds' and table_name='sl_cv_sources'") == 'utf8' &&
+            $kfdb->Query1("SELECT LEFT(table_collation,6) FROM information_schema.tables "
+                         ."WHERE table_schema='seeds' and table_name='sl_tmp_cv_sources'") == 'latin1' )
+        {
+            $raReport['raCaseInsensitiveFail'] =
+                    $kfdb->QueryRowsRA( "SELECT T.k as k,S.ocv as S_ocv,T.ocv as T_ocv FROM seeds.sl_cv_sources S,{$dbtable} T "
+                                       ."WHERE $kUploadCond AND S._key=T.k "
+                                       ." AND T.op='-' "                                                     // apparently identical
+                                       ." AND S.ocv collate utf8_bin<>T.ocv collate latin1_general_cs" );    // but not with case-sensitive collation
+        } else {
+            $raReport['raCaseInsensitiveFail'] = [];
+            $this->oApp->oC->AddErrMsg( "unexpected collation on sl_cv_sources or sl_tmp_cv_sources for case-sensitive string comparisons" );
+        }
 //$kfdb->SetDebug(0);
 
         done:
@@ -408,12 +427,23 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                ."<tr><td>&nbsp;</td><td><span style='color:blue'>{$raReport['nRowsUncomputed']} rows are not computed</span></td></tr>"
                ."</table><br/>";
 
+        /* Warn about case-insensitive matches that should be updated
+         */
+        if( count($raReport['raCaseInsensitiveFail']) ) {
+            $s .= "<div class='alert alert-warning'><p>These cultivars match case-insensitively, but not case-sensitively.</p>"
+                 ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
+                 .SEEDCore_ArrayExpandRows( $raReport['raCaseInsensitiveFail'], "<li>[[k]] [[S_ocv]], [[T_ocv]]</li>")
+                 ."</ul></div>";
+        }
+
+
         /* Warn about unindexed species and cultivars, unless company is blank (action C-delete).
          */
         if( count($raReport['raUnknownSpecies']) ) {
             $s .= "<div class='alert alert-warning'><p>These species are not indexed. Please add to Species list or Species Synonyms and try again.</p>"
                  ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
-                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownSpecies'], "<li>[[osp]]</li>")."</ul></div>";
+                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownSpecies'], "<li>[[osp]]</li>")
+                 ."</ul></div>";
         }
 
         /* Warn about unindexed cultivars that are not indexed, unless company is blank (action C-delete).
@@ -421,7 +451,8 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         if( count($raReport['raUnknownCultivars']) ) {
             $s .= "<div class='alert alert-warning'><p>These cultivars are not indexed. They will be matched by name as much as possible, but you should add them to the Cultivars list.</p>"
                  ."<ul style='background-color:#f8f8f8;max-height:200px;overflow-y:scroll'>"
-                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownCultivars'], "<li>[[osp]] : [[ocv]]</li>")."</ul></div>";
+                 .SEEDCore_ArrayExpandRows( $raReport['raUnknownCultivars'], "<li>[[osp]] : [[ocv]]</li>")
+                 ."</ul></div>";
         }
 
         done:
