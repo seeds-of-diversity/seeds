@@ -123,7 +123,7 @@ $oCTS = new MyConsole02TabSet( $oApp );
 
 $s .= $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
-echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN',
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
 

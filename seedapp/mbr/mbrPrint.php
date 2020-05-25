@@ -79,7 +79,7 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
     }
 
     $sHead = "";
-    echo Console02Static::HTMLPage( utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
+    echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
 
     exit;
 
@@ -114,7 +114,7 @@ if( SEEDInput_Str('cmd') == 'printMemberSlips' ) {
     $sHead = $oPrint->GetHead();
     $sBody = $oPrint->GetBody();
 
-    echo Console02Static::HTMLPage( utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
+    echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
 
     exit;
 }
@@ -132,7 +132,7 @@ if( SEEDInput_Str('cmd') == 'printDonationSlips' ) {
     $sHead = $oPrint->GetHead();
     $sBody = $oPrint->GetBody();
 
-    echo Console02Static::HTMLPage( utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
+    echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
 
     exit;
 }
@@ -321,7 +321,7 @@ $oCTS = new MyConsole02TabSet( $oApp );
 $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]".$sBody, ['oTabSet'=>$oCTS] );
 
 
-echo Console02Static::HTMLPage( utf8_encode($sBody), $sHead, 'EN', ['consoleSkin'=>'green'] );   // sCharset defaults to utf8
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['consoleSkin'=>'green'] );   // sCharset defaults to utf8
 
 
 //echo Console01Static::HTMLPage( $sBody, $sHead, "EN", array( 'bBootstrap' => false,    // we want to control the CSS completely, thanks anyway Bootstrap
@@ -408,7 +408,7 @@ class Mbr3UpDonors
             // now for each row in the result, insert the address block in the row
             $ra1 = array();
             foreach( $this->raData[$k] as $k1=>$ra1 ) {
-                $this->raData[$k][$k1]['SEEDPrint:addressblock'] = utf8_encode(MbrDrawAddressBlockFromRA( $ra1 ));
+                $this->raData[$k][$k1]['SEEDPrint:addressblock'] = SEEDCore_utf8_encode(MbrDrawAddressBlockFromRA( $ra1 ));
             }
         }
     }
@@ -612,7 +612,7 @@ class Mbr3UpMemberRenewals
 
         $this->raMbr   = $this->lang=='EN' ? $this->raMbrEN : $this->raMbrFR;
         foreach( $this->raMbr as &$ra ) {
-            $ra['SEEDPrint:addressblock'] = utf8_encode(MbrDrawAddressBlockFromRA( $ra ));
+            $ra['SEEDPrint:addressblock'] = SEEDCore_utf8_encode(MbrDrawAddressBlockFromRA( $ra ));
         }
     }
 

@@ -68,7 +68,7 @@ class MSDAppSeedEdit
         }
         if( $uidSeller ) {
             $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
-                     .utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
+                     .SEEDCore_utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
         } else {
             $sList .= "<h3>All Growers</h3>";
         }

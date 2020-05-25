@@ -235,10 +235,10 @@ class SEEDQ
 
     function QCharsetFromLatin( $s )
     /*******************************
-        Use this when reading from storage in cp1252: the output will be the charset defined by $this->bUTF8
+        Use this when reading from storage in cp1252: the output will be converted if $this->bUTF8
      */
     {
-        return( $this->bUTF8 ? utf8_encode( $s ) : $s );
+        return( $this->bUTF8 ? SEEDCore_utf8_encode( $s ) : $s );
     }
 
     function QCharsetToLatin( $s )
@@ -246,7 +246,7 @@ class SEEDQ
         Use this when writing to storage in cp1252: the input is defined by $this->bUTF8
      */
     {
-        return( $this->bUTF8 ? utf8_decode($s) : $s );
+        return( $this->bUTF8 ? SEEDCore_utf8_decode($s) : $s );
     }
 
     static function GetEmptyRQ()

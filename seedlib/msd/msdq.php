@@ -250,7 +250,7 @@ class MSDQ extends SEEDQ
         foreach( $this->oMSDCore->GetSeedKeys('PRODUCT PRODEXTRA') as $k ) {
             if( isset($raParms[$k]) ) {
                 $v = $raParms[$k];
-                if( $this->bUTF8 ) $v = utf8_decode($v);
+                if( $this->bUTF8 ) $v = SEEDCore_utf8_decode($v);
                 $kfrS->SetValue( $k, $v );
             }
         }
