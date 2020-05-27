@@ -12,7 +12,7 @@ class SEEDMailerDB extends Keyframe_NamedRelations
 {
     private $dbname = "";
 
-    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
         if( isset($raConfig['dbname']) ) {
             $this->dbname = $raConfig['dbname'].".";    // prepend this to the table names
