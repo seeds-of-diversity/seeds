@@ -83,7 +83,9 @@ function SEEDCore_HSC( $s )
     return( htmlspecialchars( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
 }
 
-/* Replace the standard utf8_encode/decode functions because they go to/from iso-8859-1 so they screw up Windows quotes
+/* Replace the standard utf8_encode/decode functions because they go to/from iso-8859-1 so they screw up Windows quotes.
+ *
+ * Note $v can be a string or an array of strings
  */
 function SEEDCore_utf8_encode( $v ) { return( SEEDCore_CharsetConvert( $v, 'cp1252', 'utf-8' ) ); }
 function SEEDCore_utf8_decode( $v ) { return( SEEDCore_CharsetConvert( $v, 'utf-8', 'cp1252' ) ); }
