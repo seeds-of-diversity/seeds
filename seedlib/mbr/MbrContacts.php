@@ -109,16 +109,43 @@ class Mbr_Contacts
         return( $s );
     }
 
-    function GetBasicValues( $k )
+    function GetAllValues( $mbrid )   // mbrid can be _key or email
+    {
+        return( is_numeric($mbrid) ? $this->oDB->GetRecordVals( 'M', $mbrid )
+                                   : $this->oDB->GetRecordValsCond( 'M', "email='".addslashes($mbrid)."'" ) );
+    }
+
+    function GetBasicValues( $mbrid )   // mbrid can be _key or email
     {
         $raOut = [];
 
-        if( ($raM = $this->oDB->GetRecordVals('M', $k)) ) {
+        if( ($raM = $this->GetAllValues($mbrid)) ) {
             foreach( $this->raFldsBasic as $k=>$dummy ) { $raOut[$k] = $raM[$k]; }
         }
 
         return( $raOut );
     }
+
+    private function getMbrKfr( $mbrid )
+    {
+        return( is_numeric($mbrid) ? $this->oDB->GetKFR( 'M', $mbrid )
+                                   : $this->oDB->GetKFRCond( 'M', "email='".addslashes($mbrid)."'", [] ) );
+    }
+
+    function EBullSubscribe( $mbrid, $bSubscribe )
+    /*********************************************
+        Subscribe/unsubscribe the ebulletin
+     */
+    {
+        $ok = false;
+
+        if( ($kfr = $this->getMbrKfr( $mbrid )) ) {
+            $kfr->SetValue( 'bNoEBull', !$bSubscribe );     // bNoEBull==0 is the default, which means bSubscribe
+            $ok = $kfr->PutDBRow();
+        }
+        return( $ok );
+    }
+
 
     function BuildDonorTable()
     {
@@ -162,7 +189,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
     private $oApp;
 
-    function __construct( SEEDAppSession $oApp )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
