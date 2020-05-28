@@ -1383,16 +1383,18 @@ class Keyframe_NamedRelations
 
     function GetRecordVals( $sRel, $k )
     /**********************************
-        Get values of one record
+        Get values of one record by _key
      */
     {
-        $ra = [];
+        return( ($kfr = $this->GetKFR( $sRel, $k )) ? $kfr->ValuesRA() : [] );
+    }
 
-        if( ($kfr = $this->GetKFR( $sRel, $k )) ) {
-            $ra = $kfr->ValuesRA();
-        }
-
-        return( $ra );
+    function GetRecordValsCond( $sRel, $sCond, $raKFParms = [] )
+    /***********************************************************
+        Get values of one record: the first result that matches sCond
+     */
+    {
+        return( ($kfr = $this->GetKFRCond($sRel, $sCond, $raKFParms)) ? $kfr->ValuesRA() : [] );
     }
 
     function GetKFRCond( $sRel, $sCond, $raKFParms = array() )
@@ -1426,5 +1428,3 @@ class Keyframe_NamedRelations
         die( "OVERRIDE with function to create kfrel array" );
     }
 }
-
-?>
