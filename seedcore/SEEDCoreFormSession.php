@@ -64,7 +64,7 @@ class SEEDCoreFormSession extends _seedCoreFormSessionBase
 
 class SEEDCoreFormSVA extends SEEDCoreForm
 /********************
-    Same as SEEDCoreForm but store the data in a given SEEDsessionCarAccessor
+    Same as SEEDCoreForm but store the data in a given SEEDsessionVarAccessor
  */
 {
     function __construct( SEEDSessionVarAccessor $oSVA, $cid = NULL, $raConfig = array() )
