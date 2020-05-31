@@ -148,7 +148,6 @@ class _sldb_defs
         return( array( array( "col"=>"fk_sl_pcv",           "type"=>"K" ),
                        array( "col"=>"name",                "type"=>"S" ),
                        array( "col"=>"t",                   "type"=>"I" ),
-                       array( "col"=>"packetLabel",         "type"=>"S" ),
                        array( "col"=>"notes",               "type"=>"S" ) )
         );
     }
@@ -256,7 +255,7 @@ class SLDBBase extends Keyframe_NamedRelations
         $raKfrel['G'] = $this->newKfrel( $kfdb, $uid, array( "G" => $this->tDef['G'] ), $sLogfile );
 
         $sLogfile = $logdir ? "{$logdir}slrosetta.log" : "";
-        $raKFrel['P'] = $this->newKfrel( $kfdb, $uid, array( "P" => $this->tDef['P'] ),  $sLogfile );
+        $raKfrel['P'] = $this->newKfrel( $kfdb, $uid, array( "P" => $this->tDef['P'] ),  $sLogfile );
         $raKfrel['S'] = $this->newKfrel( $kfdb, $uid, array( "S" => $this->tDef['S'] ),  $sLogfile );
         $raKfrel['PY']= $this->newKfrel( $kfdb, $uid, array( "PY"=> $this->tDef['PY'] ), $sLogfile );
         $raKfrel['SY']= $this->newKfrel( $kfdb, $uid, array( "SY"=> $this->tDef['SY'] ), $sLogfile );
