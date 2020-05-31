@@ -11,18 +11,22 @@ include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
+include_once( "rosetta_ts_cultivarsyn.php" );
+
 $consoleConfig = [
     'CONSOLE_NAME' => "rosetta",
     'HEADER' => "RosettaSEED",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'cultivar' => ['label'=>'Cultivar'],
-                                        'species'  => ['label'=>'Species'],
-                                        'ghost'    => ['label'=>'Ghost']
+    'TABSETS' => ['main'=> ['tabs' => [ 'cultivar'     => ['label'=>'Cultivar'],
+                                        'species'      => ['label'=>'Species'],
+                                        'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
+                                        'ghost'        => ['label'=>'Ghost']
                                       ],
-                            'perms' =>[ 'cultivar' => ["W SL"],
-                                        'species'  => ["W SL"],
-                                        'ghost'    => ['A notyou'],
+                            'perms' =>[ 'cultivar'     => ["W SL"],
+                                        'species'      => ["W SL"],
+                                        'cultivarsyn'  => ["W SL"],
+                                        'ghost'        => ['A notyou'],
                                         '|'  // allows screen-login even if some tabs are ghosted
                                       ],
                            ],
@@ -76,6 +80,12 @@ class MyConsole02TabSet extends Console02TabSet
     {
         return( "<div style='padding:20px'>BBB</div>" );
     }
+
+    function TabSet_main_cultivarsyn_Init()         { $oSVA = $this->TabSetGetSVA( 'main', 'cultivarsyn' );
+                                                      $this->oW = new RosettaCultivarSynonyms( $this->oApp, $oSVA );
+                                                      $this->oW->Init(); }
+    function TabSet_main_cultivarsyn_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_cultivarsyn_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 }
 
 class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
