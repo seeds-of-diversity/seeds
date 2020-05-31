@@ -161,14 +161,16 @@ class KeyframeDatabase {
         return( $ra );
     }
 
-    function QueryRowsRA1( $query, $result_type = KEYFRAMEDB_RESULT_BOTH ) {
-        /* Fetch an array of rows where each row contains one value, and collapse the rows into a single-dimensional array.
-         *
-         * e.g. SELECT k FROM tbl; for a table with 3 rows, would return array( k_of_row1, k_of_row2, k_of_row3 )
-         */
+    function QueryRowsRA1( $query )
+    /******************************
+       Fetch an array of rows where each row contains one value, and collapse the rows into a single-dimensional array.
+
+       e.g. SELECT k FROM tbl; for a table with 3 rows, would return array( k_of_row1, k_of_row2, k_of_row3 )
+     */
+    {
         $ra = array();
         if( ($dbc = $this->CursorOpen( $query )) ) {
-            while( ($raRow = $this->CursorFetch( $dbc, $result_type )) ) {
+            while( ($raRow = $this->CursorFetch( $dbc, KEYFRAMEDB_RESULT_NUM )) ) {
                 $ra[] = $raRow[0];
             }
             $this->CursorClose( $dbc );
