@@ -25,6 +25,7 @@ class QServerMbr extends SEEDQ
     {
         $rQ = $this->GetEmptyRQ();
 
+// use sess->CheckPerms()
         if( SEEDCore_StartsWith( $cmd, 'mbr---' ) ) {
             $rQ['bHandled'] = true;
 
