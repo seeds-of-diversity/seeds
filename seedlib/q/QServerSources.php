@@ -56,11 +56,12 @@ class QServerSourceCV extends SEEDQ
          */
         if( $cmd == 'srcESFStats' ) {
             $rQ['bHandled'] = true;
-            $raParms = ['v' => intval(@$parms['v'])];    // select the type of report
+            $v = intval(@$parms['v']);   // type of report
+            $y = intval(@$parms['y']);   // limit to a given year
 
-            $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
+            $rQ['sLog'] = "v=$v, y=$y";
 
-            if( ($ra = $this->getSrcESFStats( $raParms )) ) {
+            if( ($ra = $this->getSrcESFStats( $v, $y )) ) {
                 $rQ['bOk'] = true;
                 $rQ['raOut'] = $ra;
             }
@@ -162,19 +163,19 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         return( $ra );
     }
 
-    private function getSrcESFStats( $raParms )
+    private function getSrcESFStats( $v, $year )
     {
-        $raOut = array();
+        $raOut = [];
 
-        switch( intval(@$raParms['v']) ) {
-            case 1: $raOut = $this->getSrcESFStats1();  break;
-            case 2: $raOut = $this->getSrcESFStats2();  break;
+        switch( $v ) {
+            case 1: $raOut = $this->getSrcESFStats1( $year );  break;
+            case 2: $raOut = $this->getSrcESFStats2( $year );  break;
         }
 
         return( $raOut );
     }
 
-    private function getSrcESFStats1()
+    private function getSrcESFStats1( $year )
     // Report on the contents of the CSCI log (species selected) and ESF log (species searched)
     {
         $raOut = array();
@@ -185,7 +186,11 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         {
             while( ($line = fgets($f)) !== false ) {
                 $ra = array();
+                // date  time  ip  |  kSp  spNameIfKeyZero
                 preg_match( "/^([^\s]+) ([^\s]+) ([^\s]+) \| (.*)$/", $line, $ra );
+
+                // only collect data for the given year, 0 = all years
+                if( $year && substr(@$ra[0],0,4) != $year )  continue;
 
                 if( ($kSp = intval($ra[4])) ) {
                     $sp = $this->oApp->kfdb->Query1( "SELECT name_en FROM seeds.sl_species WHERE _key='$kSp'" );
@@ -220,7 +225,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         return( $raOut );
     }
 
-    private function getSrcESFStats2()
+    private function getSrcESFStats2( $year )
     // Report on the contents of the ESF log
     {
         $raOut = array();
@@ -231,7 +236,11 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         {
             while( ($line = fgets($f)) !== false ) {
                 $ra = array();
+                // date  time  ip  bOk  qcmd  parms
                 preg_match( "/^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*(.*)$/", $line, $ra );
+
+                // only collect data for the given year, 0 = all years
+                if( $year && substr(@$ra[0],0,4) != $year )  continue;
 
                 $cmd = @$ra[5];
                 if( $cmd == 'srcSources' &&
@@ -257,7 +266,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         ksort($raTmp);
         foreach( $raTmp as $k => $n ) {
             list($psp,$pname) = explode( '|', $k );
-            $raOut[] = array( 'sp'=>$this->charset($psp), 'cv'=>$this->charset($pname), 'n'=>$n );
+            $raOut[] = $this->QCharsetFromLatin( ['sp'=>$psp, 'cv'=>$pname, 'n'=>$n] );
         }
 
         return( $raOut );
