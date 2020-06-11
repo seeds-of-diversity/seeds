@@ -14,9 +14,7 @@ if( !defined("Q_DB") )  define("Q_DB", "seeds1");   // caller can initialize Q t
 
 $oApp = SEEDConfig_NewAppConsole_LoginNotRequired(
             ['db'=>Q_DB,
-             'sessPermsRequired' => ['PUBLIC'],
-                                   'sessUIConfig' => [],                // disable login UI (requires login by default)
-                                   'lang' => 'EN' ] );
+             'lang' => 'EN' ] );
 
 $qcmd = SEEDInput_Str('qcmd');
 $qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
