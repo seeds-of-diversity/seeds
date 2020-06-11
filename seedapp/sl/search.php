@@ -84,20 +84,31 @@ class SLSearchApp
 
             /* Crop Profile
              */
-            $s .= "<h3 class='sl_srch_heading'>What our seed savers told us about it</h3>";
-            $s .= "<p>Show first 200px with expand</p>";
+            if( $rQ['raOut']['raProfile'] ) {
+                $s .= "<h3 class='sl_srch_heading'>What our seed savers told us about it</h3>";
+                $s .= "<p>Show first 200px with expand</p>";
+            }
 
             /* Sources
              */
-            $s .= "<h3 class='sl_srch_heading'>Where you can buy it in Canada</h3>";
-            $s .= "<p>Show first 200px with expand</p>";
-            $s .= "<p>-- We don't know of any Canadian seed companies that sell this. If you do, please tell us.</p>";
+            $cSrc = count($rQ['raOut']['raSrc']);
+            $s .= "<h3 class='sl_srch_heading'>Where you can buy it in Canada".($cSrc ? (" ($cSrc companies)") : "")."</h3>";
+            if( $cSrc ) {
+                $s .= "<div style='border:1px solid white;max-height:200px;overflow-y:auto;width:50%'>"
+                     .SEEDCore_ArrayExpandRows( $rQ['raOut']['raSrc'],
+                                                "<div><a href='http://[[SRC_web]]' target='_blank'>[[SRC_name_en]] in [[SRC_prov]]</a></div>" )
+                     ."</div>";
+            } else {
+                $s .= "<p>Hmm, we don't know of any Canadian seed companies that sell this. If you do, please tell us.</p>";
+            }
 
             /* Seed Exchange
              */
-            $s .= "<h3 class='sl_srch_heading'>Listed in our Seed Exchange</h3>";
-            $s .= "<p>Seeds of Diversity's seed savers collect over 3000 varieties of heritage vegetables, fruits, grains, flowers, and herbs,
-                      and offer them through a national seed exchange. Find out how you can exchange seeds with our seed savers too!</p>";
+            if( $rQ['raOut']['raMSD'] ) {
+                $s .= "<h3 class='sl_srch_heading'>Listed in our Seed Exchange</h3>";
+                $s .= "<p>Seeds of Diversity's seed savers collect over 3000 varieties of heritage vegetables, fruits, grains, flowers, and herbs,
+                          and offer them through a national seed exchange. Find out how you can exchange seeds with our seed savers too!</p>";
+            }
 
             /* Seed Library Collection
              */
