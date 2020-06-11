@@ -181,7 +181,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         $raOut = array();
         $raTmp = array();   // collect stats here, then sort and copy them to raOut in Q format
 
-        if( file_exists( ($fname = (SITE_LOG_ROOT."csci_sp.log")) ) &&
+        if( file_exists( ($fname = ($this->oApp->logdir."csci_sp.log")) ) &&
             ($f = fopen( $fname, "r" )) )
         {
             $spCache = [];
@@ -212,7 +212,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             fclose( $f );
         }
 
-        if( file_exists( ($fname = (SITE_LOG_ROOT."q.log")) ) &&
+        if( file_exists( ($fname = ($this->oApp->logdir."q.log")) ) &&
             ($f = fopen( $fname, "r" )) )
         {
             while( ($line = fgets($f)) !== false ) {
@@ -236,7 +236,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         $raOut = array();
         $raTmp = array();
 
-        if( file_exists( ($fname = (SITE_LOG_ROOT."q.log")) ) &&
+        if( file_exists( ($fname = ($this->oApp->logdir."q.log")) ) &&
             ($f = fopen( $fname, "r" )) )
         {
             while( ($line = fgets($f)) !== false ) {
