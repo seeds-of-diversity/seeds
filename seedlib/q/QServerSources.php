@@ -184,6 +184,8 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         if( file_exists( ($fname = (SITE_LOG_ROOT."csci_sp.log")) ) &&
             ($f = fopen( $fname, "r" )) )
         {
+            $spCache = [];
+
             while( ($line = fgets($f)) !== false ) {
                 $ra = array();
                 // date  time  ip  |  kSp  spNameIfKeyZero
@@ -193,7 +195,10 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                 if( $year && substr(@$ra[0],0,4) != $year )  continue;
 
                 if( ($kSp = intval($ra[4])) ) {
-                    $sp = $this->oApp->kfdb->Query1( "SELECT name_en FROM seeds.sl_species WHERE _key='$kSp'" );
+                    if( !($sp = @$spCache[$kSp]) ) {
+                        $sp = $this->oApp->kfdb->Query1( "SELECT name_en FROM seeds.sl_species WHERE _key='$kSp'" );
+                        $spCache[$kSp] = $sp;
+                    }
                 } else {
                     $sp = substr( $ra[4], 2 );
                 }
