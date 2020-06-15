@@ -1421,6 +1421,21 @@ class Keyframe_NamedRelations
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordSetRA( $sCond, $raKFParms ) : array() );
     }
 
+    function Get1List( $sRel, $fld, $sCond, $raKFParms = [] )
+    /********************************************************
+        Return a 1D array of the given fld from records that match the query
+     */
+    {
+        $raOut = [];
+
+        if( ($kfrc = $this->GetKFRC($sRel, $sCond, $raKFParms)) ) {
+            while( $kfrc->CursorFetch() ) {
+                $raOut[] = $kfrc->Value($fld);
+            }
+        }
+
+        return( $raOut );
+    }
 
     protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     // logfile can be blank if only reading, or ignored if derived method knows it
