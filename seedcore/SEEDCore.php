@@ -477,8 +477,12 @@ function SEEDCore_MakeRangeStr( $raNumbers, $bSorted = false )
 
     $s = "";
 
+    // nice to remove duplicates
+    $raNumbers = array_unique($raNumbers, SORT_NUMERIC);
+
     // Does this affect the caller's array?
-    // No. PHP makes a late copy of arrays passed to functions. Passed by reference for efficiency, but a value-by-value copy is made if the array is changed.
+    // No. PHP makes a late copy of arrays passed to functions.
+    // Passed by reference for efficiency, but a value-by-value copy is made if the array is changed.
     if( !$bSorted ) {
         sort($raNumbers);
     }
