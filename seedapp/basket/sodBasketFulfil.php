@@ -68,11 +68,13 @@ class SodOrderFulfil
 {
     public $oApp;
     protected $oOrder;
+    protected $oSoDBasket;
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oOrder = new SodOrder( $oApp );
+        $this->oSoDBasket = new SoDOrderBasket( $oApp );
     }
 
     public function KfrelOrder() { return( $this->oOrder->KfrelOrder() ); }
@@ -276,9 +278,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          .$this->mailStatus( $kfr, $raOrder );
 
     $sFulfilment
-        = $this->buttonBuildBasket( $kfr )
-         .$this->showBasket( $kfr )
-         .$this->doneAccountingButton( $kfr )
+        = $this->doneAccountingButton( $kfr )
          .$this->doneRecordingButton( $kfr );
 
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
@@ -286,13 +286,15 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
-         ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder )."</td>"
+         ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder ).$this->basketContents( $kfr )."</td>"
          ."<td valign='top' $style>$sPayment</td>"
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
 
          return( $s );
     }
+
+    function DrawBasketTmp( $kB, &$fTotal ) { return( $this->oSoDBasket->ShowBasketContents( $kB, $fTotal ) ); }   // until calling code is moved here
 
     private function linkSendEmail( $kfr )
     {
@@ -364,33 +366,26 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     }
 
 
-    private function buttonBuildBasket( KeyframeRecord $kfr )
-    /********************************************************
+    private function basketContents( KeyframeRecord $kfr )
+    /*****************************************************
      */
     {
         $s = "";
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
-            $kOrder = $kfr->Key();
-// data-kOrder is also present in the enclosing <tr>
-            $s .= "<div data-kOrder='$kOrder' class='doBuildBasket'><button>basket</button></div>";
+            $fTotal = 0.0;
+            $sContents = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), $fTotal );
+            $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
+            $s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>"
+                 .$sContents
+                 ."</div>";
         }
 
-        return( $s );
-    }
-
-    private function showBasket( KeyframeRecord $kfr )
-    /*************************************************
-     */
-    {
-        $s = "";
-
-        if( !($kB = $kfr->Value('kBasket')) )  goto done;
-
-        $oOrder = new SoDOrder_MbrOrder( $this->oApp );
-        $s = $oOrder->ShowBasket( $kB );
-
-        done:
+        if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
+            $kOrder = $kfr->Key();
+// data-kOrder is also present in the enclosing <tr>
+            $s .= "<div data-kOrder='$kOrder' class='doBuildBasket'><button>rebuild this basket</button></div>";
+        }
         return( $s );
     }
 
@@ -416,13 +411,70 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
         return( $s );
     }
+
 }
 
+class SoDOrderBasket
+/*******************
+    Manage SoD's SEEDBaskets (with no reference to mbrOrder - use SoDOrder_MbrOrder for transition)
+ */
+{
+    private $oApp;
+    private $oSB;
+
+    function __construct( SEEDAppSessionAccount $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
+
+
+// SBC should use oApp instead
+            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
+    }
+
+
+    function ShowBasketContents( $kB, &$fTotal )
+    {
+        $s = "";
+
+        if( !$kB )  goto done;
+
+        $oB = new SEEDBasket_Basket( $this->oSB, $kB );
+        $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
+
+//        foreach( $raProd as $oProd ) {
+//            $s .= $oProd->GetName()."<br/>";
+//        }
+
+        // Find out if there is a membership in this order.
+        $bHasMbrProduct = false;
+        foreach( $raProd as $oProd ) {
+            if( $oProd->GetProductType() == 'membership' ) { $bHasMbrProduct = true; break; }
+        }
+
+        $raBContents = $oB->ComputeBasketContents( false );
+        if( @$raBContents['raSellers'][1] ) {
+            $s .= "<table ".($bHasMbrProduct ? "class='doShowMembershipForm'" : "")." style='text-align:right'>";
+            $s .= "<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
+            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" );
+            }
+            $s .= "</table>";
+        }
+        $fTotal = $raBContents['fTotal'];
+
+        done:
+        return( $s );
+    }
+
+}
 
 class SoDOrder_MbrOrder
+// Transition from mbrOrder to SoDOrderBasket
 {
-    private $oOrder;
+    private $oApp;
     private $oSB;
+    private $oOrder;
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -436,11 +488,56 @@ class SoDOrder_MbrOrder
             ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
     }
 
+    function UpdateBasketsForAllOrders()
+    {
+        $nUpdated = 0;
+
+        if( ($kfr = $this->oOrder->KfrelOrder()->CreateRecordCursor( "year(_created)='2020'" )) ) {
+            while( $kfr->CursorFetch() ) {
+                $nUpdated += $this->createFromMbrOrderKfr( $kfr );
+            }
+        }
+        return( $nUpdated );
+    }
+
+
     function CreateFromMbrOrder( int $kOrder )
     {
-        //$this->oApp->kfdb->SetDebug(2);
-        if( !($kfrMbrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) )  goto done;
-        //var_dump($kfrMbrOrder->ValuesRA());
+        $ok = false;
+
+        if( ($kfr = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) ) {
+            $ok = $this->createFromMbrOrderKfr( $kfr );
+        }
+
+        return( $ok ? 1 : 0 );
+    }
+
+    private function createFromMbrOrderKfr( $kfrMbrOrder )
+    {
+        /* SoD products
+
+            INSERT INTO seeds.SEEDBasket_Products
+                (_key,_created,_created_by,_updated,_updated_by,_status,
+                 uid_seller,eStatus,img,v_t1,v_t2,v_t3,sExtra,
+                 product_type,quant_type,item_price,item_price_us,bask_quant_min,bask_quant_max,name,title_en,title_fr)
+            VALUES
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'membership','ITEM-1',35,35,1,1,  'mbr1_35',      'Membership 1 Year','Adhesion 1 an'),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'membership','ITEM-1',45,45,1,1,  'mbr1_45sed',   'Membership 1 Year with Seed Directory','Adhesion 1 an avec catalogue'),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'membership','ITEM-1',100,100,1,1,'mbr3_100',     'Membership 3 Years','Adhesion 3 ans'),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'membership','ITEM-1',130,130,1,1,'mbr3_130sed',  'Membership 3 Years with Seed Directory','Adhesion 3 ans avec catalogue'),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'donation',  'MONEY',0,0,-1,-1,   'general',      'Donation','Don charitable'),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'donation',  'MONEY',0,0,-1,-1,   'seed-adoption','Donation','Don charitable'),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'book',      'ITEM-N',15,15,1,-1, 'ssh6en',       'How to Save Your Own Seeds',''),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'book',      'ITEM-N',15,15,1,-1, 'ssh6fr',       'La conservation des semences',''),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'book',      'ITEM-N',35,35,1,-1, 'everyseed',    'Every Seed Tells a Tale',''),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'book',      'ITEM-N',15,15,1,-1, 'chan2012',     'Conserving Native Pollinators',''),
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'book',      'ITEM-N', 8, 8,1,-1, 'kent2012',     'How to Make a Pollinator Garden',''),
+
+                (NULL,NOW(),1,NOW(),1,0,1,'ACTIVE','','','','','', 'special',   'ITEM-1',15,15,1,1,  'bulbils15',      'Garlic Bulbils',"Bulbilles d'ails")
+                ;
+         */
+
+        $ok = false;
 
         $kB = $kfrMbrOrder->Value('kBasket');
         $oB = new SEEDBasket_Basket( $this->oSB, $kB );    // look up the Basket or create an empty one
@@ -459,12 +556,13 @@ class SoDOrder_MbrOrder
                       'buyer_country'   => 'mail_country',
                       'buyer_email'     => 'mail_email',
                       'buyer_phone'     => 'mail_phone',
-                      'buyer_lang'      => 'mail_lang',
+                      //'buyer_lang'      => 'mail_lang',
                       'buyer_notes'     => 'notes',
                 ] as $k=>$v )
             {
                 $oB->SetValue( $k, $kfrMbrOrder->Value($v) );
             }
+            $oB->SetValue( 'buyer_lang', $kfrMbrOrder->Value('mail_lang') ? "F" : "E" );   // mail_lang: 0=english, 1=french
             $oB->PutDBRow();
             $kB = $oB->Key();
 
@@ -483,63 +581,66 @@ class SoDOrder_MbrOrder
             }
         }
 
-/*
+        // Donation - General
         if( ($d = floatval($kfrMbrOrder->Value('donation'))) > 0.0 ) {
-            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='general" )) ) {
-                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
-                $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
-            }
-        }
-
-        foreach( ['nPubSSH-EN6','nPubSSH-FR6','nPubEverySeed','nPubKent2012'] as $v ) {
-            if( ($n = $kfrMbrOrder->UrlParmGet('sExtra', $v)) ) {
-                if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='$v'" )) ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='general'" )) ) {
+                if( !in_array($oP->GetKey(), $raProdKeys) ) {
                     $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
-                    $oBP->StorePurchase( $oB, $oP, ['n'=>$n] );
+                    $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
                 }
             }
         }
 
+        // Donation - Seed Adoption
+        if( ($d = floatval($kfrMbrOrder->UrlParmGet('sExtra','slAdopt_amount'))) ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='seed-adoption'" )) ) {
+                if( !in_array($oP->GetKey(), $raProdKeys) ) {
+                    $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                    $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
+                }
+            }
+        }
+
+        // Books
+        foreach( ['nPubSSH-EN6' => 'ssh6en',
+                  'nPubSSH-FR6' => 'ssh6fr',
+                  'nPubEverySeed' => 'everyseed',
+                  'nPubSueChan2012' => 'chan2012',
+                  'nPubKent2012' => 'kent2012'] as $nameOld => $nameNew )
+        {
+            if( ($n = $kfrMbrOrder->UrlParmGet('sExtra', $nameOld)) ) {
+                if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='$nameNew'" )) ) {
+                    if( !in_array($oP->GetKey(), $raProdKeys) ) {
+                        $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                        $oBP->StorePurchase( $oB, $oP, ['n'=>$n] );
+                    }
+                }
+            }
+        }
+
+        // Book shipping
         if( ($d = floatval($kfrMbrOrder->Value('nPubEverySeed_Shipping'))) ) {
             if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='shipping" )) ) {
-                $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
-                $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
+                if( !in_array($oP->GetKey(), $raProdKeys) ) {
+                    $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                    $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
+                }
             }
         }
-*/
 
-        done:
-        return;
-    }
-
-    function ShowBasket( $kB )
-    {
-        $s = "";
-
-        $oB = new SEEDBasket_Basket( $this->oSB, $kB );
-        $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
-
-        foreach( $raProd as $oProd ) {
-            $s .= $oProd->GetName()."<br/>";
-        }
-
-        // Find out if there is a membership in this order.
-        $bHasMbrProduct = false;
-        foreach( $raProd as $oProd ) {
-            if( $oProd->GetProductType() == 'membership' ) { $bHasMbrProduct = true; break; }
-        }
-
-        $raBContents = $oB->ComputeBasketContents( false );
-        if( @$raBContents['raSellers'][1] ) {
-            $s .= "<table ".($bHasMbrProduct ? "class='doShowMembershipForm'" : "").">";
-            $s .= "<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
-            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
-                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td valign='top'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" );
+        // Garlic bulbils
+        if( $kfrMbrOrder->UrlParmGet('sExtra', 'bBulbils15') ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='misc' AND name='bulbils15'" )) ) {
+                if( !in_array($oP->GetKey(), $raProdKeys) ) {
+                    $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
+                    $oBP->StorePurchase( $oB, $oP, ['n'=>1] );
+                }
             }
-            $s .= "</table>";
         }
 
-        return( $s );
+        $ok = true;
+
+        return( $ok );
     }
 
 }
