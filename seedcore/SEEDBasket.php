@@ -469,16 +469,16 @@ class SEEDBasket_Basket
         $this->SetKey( $kB );
     }
 
-    function Key()     { return( $this->kfr->Key() ); }
-    function GetKey()  { return( $this->kfr->Key() ); }
+    function Key()     { return( $this->kfr ? $this->kfr->Key() : 0 ); }
+    function GetKey()  { return( $this->kfr ? $this->kfr->Key() : 0 ); }
 
     function SetKey( $k )
     {
         $this->kfr = $k ? $this->oSB->oDB->GetBasketKFR($k) : $this->oSB->oDB->GetBasketKFREmpty();
     }
 
-    function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
-    function PutDBRow()         { $this->kfr->PutDBRow(); }
+    function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
+    function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
     function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
@@ -493,7 +493,7 @@ class SEEDBasket_Basket
         $bReturnKeys = @$raParms['returnType'] == 'keys';
 
         $raOut = [];
-        if( $this->kfr->Key() ) {
+        if( $this->kfr && $this->kfr->Key() ) {
             $raPur = $this->oSB->oDB->GetPurchasesList( $this->kfr->Key() );
             foreach( $raPur as $ra ) {
                 if( ($kP = $ra['fk_SEEDBasket_Products']) ) {
@@ -561,7 +561,7 @@ $s .= "<style>
     {
         $raOut = [ 'fTotal'=>0.0, 'raSellers'=>[] ];
 
-        if( !($kBasket = $this->kfr->Key()) )  goto done;
+        if( !($kBasket = $this->GetKey()) )  goto done;
 
         if( ($kfrBPxP = $this->oSB->oDB->GetPurchasesKFRC( $kBasket )) ) {
             while( $kfrBPxP->CursorFetch() ) {
@@ -628,7 +628,7 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
 
         if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
             // There is just a single price for all quantities
-            $f = $this->oSB->dollar( $sRange );
+            $f = $sRange;
         } else {
             $raRanges = explode( ',', $sRange );
             foreach( $raRanges as $r ) {
@@ -669,7 +669,7 @@ class SEEDBasket_Product
         $this->oSB = $oSB;
         $this->SetKey( $kP );
         if( !$kP && ($pt = @$raConfig['product_type']) ) {
-            $this->kfr->SetValue( 'product_type', $pt );
+            $this->SetValue( 'product_type', $pt );
         }
     }
 
@@ -678,8 +678,8 @@ class SEEDBasket_Product
         $this->cache_oHandler = null;
     }
 
-    function Key()     { return( $this->kfr->Key() ); }
-    function GetKey()  { return( $this->kfr->Key() ); }
+    function Key()     { return( $this->kfr ? $this->kfr->Key() : 0 ); }
+    function GetKey()  { return( $this->kfr ? $this->kfr->Key() : 0 ); }
 
     function SetKey( $k )
     {
@@ -687,8 +687,8 @@ class SEEDBasket_Product
         $this->kfr = $k ? $this->oSB->oDB->GetProductKFR($k) : $this->oSB->oDB->GetProductKFREmpty();
     }
 
-    function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
-    function PutDBRow()         { $this->kfr->PutDBRow(); }
+    function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
+    function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
 
     function GetName()          { return( $this->kfr ? $this->kfr->Value('name') : "" ); }
     function GetProductType()   { return( $this->kfr ? $this->kfr->Value('product_type') : "" ); }
