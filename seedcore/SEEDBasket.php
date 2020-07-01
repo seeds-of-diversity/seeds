@@ -477,6 +477,8 @@ class SEEDBasket_Basket
         $this->kfr = $k ? $this->oSB->oDB->GetBasketKFR($k) : $this->oSB->oDB->GetBasketKFREmpty();
     }
 
+    function GetBuyer()  { return( $this->kfr ? $this->kfr->Value('uid_buyer') : "" ); }
+
     function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
 

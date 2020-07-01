@@ -446,10 +446,11 @@ class SoDOrderBasket
 //            $s .= $oProd->GetName()."<br/>";
 //        }
 
-        // Find out if there is a membership in this order.
-        $bHasMbrProduct = false;
+        // Find out if there is a membership or donation in this order.
+        $bHasMbrProduct = $bHasDonProduct = false;
         foreach( $raProd as $oProd ) {
-            if( $oProd->GetProductType() == 'membership' ) { $bHasMbrProduct = true; break; }
+            if( $oProd->GetProductType() == 'membership' ) { $bHasMbrProduct = true; }
+            if( $oProd->GetProductType() == 'donation' )   { $bHasDonProduct = true; }
         }
 
         $raBContents = $oB->ComputeBasketContents( false );
@@ -461,6 +462,11 @@ class SoDOrderBasket
             }
             $s .= "</table>";
         }
+
+        if( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() ) {
+            $s .= "<div class='alert alert-danger'>Contact id is needed</div>";
+        }
+
         $fTotal = $raBContents['fTotal'];
 
         done:

@@ -5,7 +5,7 @@ class Mbr_Contacts
     public  $oDB;
     private $oApp;
 
-    function __construct( SEEDAppSession $oApp )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oDB = new Mbr_ContactsDB( $oApp );
@@ -149,37 +149,14 @@ class Mbr_Contacts
 
     function BuildDonorTable()
     {
+        include_once( "MbrIntegrity.php" );
+
         $s = "";
 
 $this->oApp->kfdb->SetDebug(1);
-        /* Find donations in mbr_contacts that are not in mbr_donations
-         */
-        $sql = "SELECT M._key as _key, M.donation_date as date, M.donation as amount, M.donation_receipt as receipt_num
-                FROM seeds2.mbr_contacts M LEFT JOIN seeds2.mbr_donations D
-                ON (M._key=D.fk_mbr_contacts AND M.donation_date=D.date_received)
-                WHERE M.donation>0 AND D.fk_mbr_contacts IS NULL";
-        if( ($raR = $this->oApp->kfdb->QueryRowsRA($sql)) ) {
-            $s .= "<p>Copying ".count($raR)." rows</p>";
 
-            foreach( $raR as $ra ) {
-                $s .= "<p>mbr:{$ra['_key']}, received: {$ra['date']}, $ {$ra['amount']}, receipt # {$ra['receipt_num']}</p>";
-
-                if( !$ra['date'] ) {
-                    $s .= "<p>Skipping blank date</p>";
-                    continue;
-                }
-
-                continue; // don't write changes, just show them for now
-
-                $kfr = $this->oDB->KFRel('D')->CreateRecord();
-                $kfr->SetValue( 'fk_mbr_contacts', $ra['_key'] );
-                $kfr->SetValue( 'date_received', $ra['date'] );
-                $kfr->SetValue( 'amount', $ra['amount'] );
-                $kfr->SetValue( 'receipt_num', $ra['receipt_num'] );
-                $kfr->SetNull( 'date_issued' );
-                $kfr->PutDBRow();
-            }
-        }
+        $oInteg = new MbrIntegrity( $this->oApp );
+        $s = $oInteg->ReportDonations();
 
         return( $s );
     }
