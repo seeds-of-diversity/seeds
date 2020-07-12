@@ -17,7 +17,7 @@ define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"],0,9) == "localhost") ? 
 
 /* Activate full error reporting in development environments, not in production
  * You can define SEED_display_errors = true to turn on error reporting when you have weird production problems
- */ 
+ */
 if( SEED_isLocal || defined("SEED_display_errors") ) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', 1);
@@ -59,6 +59,8 @@ define("W_CORE_JQUERY",       W_CORE_JQUERY_3_3_1 );                        // u
 
 // include everything that SEEDROOT gets via composer
 require_once SEEDROOT."vendor/autoload.php";
+
+include_once( SEEDCORE."SEEDApp.php" );
 
 function SEEDConfig_NewAppConsole_LoginNotRequired( $raConfig )
 /**************************************************************
