@@ -5,10 +5,41 @@
  * Copyright (c) 2019-2020 Seeds of Diversity Canada
  *
  * Definitions for locations of seeds components.
+ *
+ * There are two ways to initialize a seed app:
+ *
+ * 1. Execute seedapp/foo directly. When SEEDROOT is found to be undefined, SEED_APP_BOOT_REQUIRED is set which causes _myseedconfig.php
+ *    to be executed below. That's where you put your config parameters.
+ *
+ * 2. Execute a boot script that sets the config parameters then includes seedapp/foo. If it defines SEEDROOT, SEED_APP_BOOT_REQUIRED is not
+ *    set and _myseedconfig.php is not used.
  */
+
 
 // You have to define SEEDROOT. We'll make good guesses about everything else.
 if( !defined("SEEDROOT") )  die( "SEEDROOT must be defined" );
+
+if( defined("SEED_APP_BOOT_REQUIRED") ) {
+    /* A seed app was executed directly so use the _myseedconfig.php boot-up script.
+     *
+     * Required:
+     * $config_KFDB = ['dbname' => ['kfdbUserid'   => 'seeds', 'kfdbPassword' => 'seeds', 'kfdbDatabase' => 'seeds'], ... ]
+     *
+     * Optional:
+     * SEEDW
+     * SEEDW_URL
+     * SEEDQ_URL
+     * SEED_LOG_DIR
+     */
+    if( !file_exists($fMyConfig = SEEDROOT."../_myseedconfig.php") &&
+        !file_exists($fMyConfig = SEEDROOT."../../_myseedconfig.php") &&
+        !file_exists($fMyConfig = SEEDROOT."../../_config/_myseedconfig.php") )
+    {
+            die( "_myseedconfig.php not found" );
+    }
+
+    require_once $fMyConfig;
+}
 
 // Good to know. substr is necessary because SERVER_NAME can have a port number.
 // Note: direct php execution (e.g. cron) doesn't set SERVER_NAME so it will always appear to be non-local
@@ -51,6 +82,9 @@ if( !defined("W_CORE_URL") ) define( "W_CORE_URL", SEEDW_URL );    //deprecated
  * Otherwise, set SEEDQ_URL somewhere in the docroot and for each file seedapp/q/* make a file with the same name that includes SEEDAPP."q/*"
  */
 if( !defined("SEEDQ_URL") ) define( "SEEDQ_URL", SEEDAPP."q/" );
+
+if( !defined("SEED_LOG_DIR") )  define( "SEED_LOG_DIR", SEEDROOT."../logs" );
+
 
 // Locations of components that need to be visible to the web browser
 define("W_CORE_JQUERY_3_3_1", W_CORE_URL."os/jquery/jquery-3-3-1.min.js");  // use this if you need this specific version
