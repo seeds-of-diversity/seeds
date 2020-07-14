@@ -160,22 +160,25 @@ class CollectionListForm extends KeyframeUI_ListFormUI
 
     private function drawSummary()
     {
+        $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
+        
         $s = "<pre>
-Tomato : Quarter Pounder (cv 3164)
+{$this->oComp->oForm->Value("S_name_en")} : {$this->oComp->oForm->Value("P_name")} (cv {$this->oComp->oForm->Value("P__key")})
 
-Original name:	Quarter Pounder
-Batch:
-Grower/Source:	Bob
-Harvest:	2016
-Received:
+Original name:	{$this->oComp->oForm->Value("P_name")}
+Batch: {$this->oComp->oForm->Value("A_batch_id")}
+Grower/Source:	{$this->oComp->oForm->Value("A_x_member")}
+Harvest:	{$this->oComp->oForm->Value("A_x_d_harvest")}
+Received:   {$this->oComp->oForm->Value("A_x_d_received")}
 
-SoD-6917    58.700 g    @ T-06 D
-SoD-6918    1.900 g     @ P-26 A
-            --------
-            60.6 g
+";
+        $totalWeight = array_sum(array_column($raLots, "g_weight"));
+        $s .= SEEDCore_ArrayExpandRows($raLots, "SoD-[[inv_number]]    [[g_weight]] g    @ [[location]]\n");
+        $s .= "            ".str_repeat("-",strlen(strval($totalWeight))+2)."\n"
+             ."            {$totalWeight} g";
 
-</pre>";
-
+        $s .= "</pre>";
+        
         return( $s );
     }
 
