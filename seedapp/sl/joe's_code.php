@@ -90,9 +90,31 @@ $commercial_population = array(
 
 $germination = SEEDInput_Str("germ") / 100;
 $species = SEEDInput_Str("sp");
+$weight100 = SEEDInput_Str("weight");
+
+$have_weight = true;
+if ($weight100 == "") {
+    $have_weight = false;
+}
 
 $working_lot = 10 * ($commercial_population[$species] / $germination) * 1.15;
 $backup_lot = 20 * ($commercial_population[$species] / $germination) * 1.15;
-echo("working lot: " . $working_lot . "<br>");
-echo("backup lot: " . $backup_lot . "<br>");
+
+$working_weight = 0;
+$backup_weight = 0;
+if ($have_weight) {
+    $working_weight = round($working_lot * 100 / $weight100, 2);
+    $backup_weight = round($backup_lot * 100 / $weight100, 2);
+}
+
+$working_string = "working lot: " . $working_lot . " seeds";
+$backup_string = "backup lot: " . $backup_lot . " seeds";
+
+if ($have_weight) {
+    $working_string .= " (" . $working_weight . "g)";
+    $backup_string .= " (" . $backup_weight . "g)";
+}
+
+echo($working_string . "<br>");
+echo($backup_string . "<br>");
 ?>
