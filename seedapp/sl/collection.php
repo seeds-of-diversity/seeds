@@ -21,6 +21,9 @@ include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
+include_once( "_collection_germtests.php" );
+include_once( "_collection_packetlabels.php" );
+
 
 $consoleConfig = [
     'CONSOLE_NAME' => "collection",
@@ -39,6 +42,15 @@ $consoleConfig = [
                                         '|'  // allows screen-login even if some tabs are ghosted
                                       ],
                            ],
+
+                  'colltabs'=> ['tabs' => [ 'germ' => ['label'=>'Germination Tests'],
+                                            'packetlabels' => ['label'=>'Packet Labels'],
+                                          ],
+                                'perms' =>[ 'germ'   => ["PUBLIC"],
+                                            'packetlabels'   => ["PUBLIC"],
+                                            '|'
+                                          ]
+                                ],
                  ],
     'pathToSite' => '../../',
 
@@ -153,7 +165,8 @@ class CollectionListForm extends KeyframeUI_ListFormUI
            ."<div class='col-sm-3'>".$this->drawSummary()."</div>"
            ."<div class='col-sm-9'>".$this->DrawList()."</div>"
            ."</div></div>"
-           ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
+           ."<div>".$this->drawCollectionSubtabs()."</div>";
+           //."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
 
         return( $s );
     }
@@ -161,7 +174,7 @@ class CollectionListForm extends KeyframeUI_ListFormUI
     private function drawSummary()
     {
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
-        
+
         $s = "<pre>
 {$this->oComp->oForm->Value("S_name_en")} : {$this->oComp->oForm->Value("P_name")} (cv {$this->oComp->oForm->Value("P__key")})
 
@@ -178,7 +191,17 @@ Received:   {$this->oComp->oForm->Value("A_x_d_received")}
              ."            {$totalWeight} g";
 
         $s .= "</pre>";
-        
+
+        return( $s );
+    }
+
+    private function drawCollectionSubTabs()
+    {
+        $s = "";
+
+        $oCTS = new Collection_Console02TabSet( $this->oApp, $this->oComp->oForm->Value("_key") );  // tell the subtabs the current selection in the list
+        $s = $oCTS->TabSetDraw( 'colltabs' );
+
         return( $s );
     }
 
@@ -200,6 +223,32 @@ Received:   {$this->oComp->oForm->Value("A_x_d_received")}
         return( $s );
     }
 }
+
+
+class Collection_Console02Tabset extends Console02TabSet
+{
+    private $oApp;
+    private $oW;
+    private $kInventory;    // the key of the sl_inventory currently selected in the list
+
+    function __construct( SEEDAppConsole $oApp, $kInventory )
+    {
+        global $consoleConfig;
+        parent::__construct( $oApp->oC, $consoleConfig['TABSETS'] );
+
+        $this->oApp = $oApp;
+        $this->kInventory = $kInventory;
+    }
+
+    function TabSet_colltabs_germ_Init()         { $this->oW = new CollectionTab_GerminationTests( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_germ_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_colltabs_germ_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_colltabs_packetlabels_Init()         { $this->oW = new CollectionTab_PacketLabels( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_packetlabels_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_colltabs_packetlabels_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+}
+
 
 
 $s = "[[TabSet:main]]";
