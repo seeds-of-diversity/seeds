@@ -14,7 +14,7 @@ class SoDWebsite_HomePage
     private $oApp;
     private $oBucket;
 
-    function __construct( SEEDAppSession $oApp )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb, $oApp->sess->GetUID() );

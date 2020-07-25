@@ -113,7 +113,7 @@ class MSDCore
 
         foreach( $this->GetSeedKeys('ALL') as $k ) {
             $v = $kfrS->Value($k);
-            $raOut[$k] = $bUTF8 ? utf8_encode($v) : $v;
+            $raOut[$k] = $bUTF8 ? SEEDCore_utf8_encode($v) : $v;
         }
         // the above does raOut['_key']=value('_key') which doesn't actually work, so overwrite it
         $raOut['_key'] = $kfrS->Key();
@@ -498,7 +498,7 @@ class MSDCore
         $o = new Mbr_Contacts($this->oApp);
         return( $o->GetBasicValues($kGrower) );
     }
-    
+
     function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
 
 

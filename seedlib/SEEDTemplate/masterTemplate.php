@@ -18,7 +18,7 @@ class MasterTemplate
 
     private $oDesc = null;
 
-    function __construct( SEEDAppSession $oApp, $raParms )
+    function __construct( SEEDAppSessionAccount $oApp, $raParms )
     {
         $this->oApp = $oApp;
 

@@ -1,11 +1,21 @@
 <?php
 
+/* Ultimately this factors with QServerRosetta::cultivarOverview except sometimes you want narrow information on many cultivars
+ * and sometimes you want all information on one cultivar.
+ *
+ * Although this appears to be a reporting tool just for the Collection, its only use-case is a general overview that should include Srccv and MSD,
+ * and at sufficient depth and narrowness, also SrccvArchive and MSDArchive.
+ *
+ * So this should be remodelled to go to varying depths of detail, expanded to include Srccv(Archive) and MSD(Archive) and implemented for
+ * individual cultivar reporting, and list reporting for certain lists (adopted varieties, given species, etc).
+ */
+
+
 /* QServerSLCollectionReports
  *
  * Copyright 2017-2020 Seeds of Diversity Canada
  *
  * Serve reports about sl_collection, sl_accession, sl_adoption, etc
- * This is intended mainly for internal use, so permissions are restricted to SoD personnel.
  */
 
 include_once( SEEDLIB."sl/sldb.php" );
@@ -26,42 +36,72 @@ class QServerSLCollectionReports extends SEEDQ
 
         $rQ = $this->GetEmptyRQ();
 
-        /* These commands are intended mainly for internal use, so permissions are restricted to SoD personnel.
-         */
-        list($bAccess,$rQ['sErr']) = $this->oApp->sess->CheckPerms( $cmd, 'SLCollectionReport', "Seed Collection Report" );
-// also check per-collection RWA permission
-        if( !$bAccess ) goto done;
+        $cmd = strtolower($cmd);
 
-        switch( strtolower($cmd) ) {
+        /* Permissions:
+         *
+         * collreport-- and above require W or A permission.
+         *
+         * collreport- are publicly accessible because this is used to show public information about our Seed Library.
+         *             But some internal information is only returned if the user explicitly has R permission.
+         */
+
+// also check per-collection RWA permission
+
+        if( SEEDCore_StartsWith( $cmd, 'collreport--' ) ) {
+            list($bAccess,$rQ['sErr']) = $this->oApp->sess->CheckPerms( $cmd, 'SLCollectionReport', "Seed Collection Report" );
+            if( !$bAccess ) goto done;
+            $bCanReadInternal = true;
+            $rQ['bHandled'] = true;
+        } else
+        if( SEEDCore_StartsWith( $cmd, 'collreport-' ) ) {
+            $bCanReadInternal = $this->oApp->sess->TestPerm( 'SLCollectionReport', 'R' );
+            $rQ['bHandled'] = true;
+        } else {
+            goto done;
+        }
+
+        switch( $cmd ) {
+            // list of info for all cultivars - use collreport-cultivarinfo for one kPcv
             case 'collreport-cultivarsummary':
             case 'collreport-cultivarsummaryunioncsci':
-                if( !($kCollection = intval(@$parms['kCollection'])) ) {
-                    $rQ['sErr'] = "No collection specified";
+                if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
                     goto done;
                 }
-                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarSummary( $kCollection, strtolower($cmd)=='collreport-cultivarsummaryunioncsci' );
+                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarSummary( $parms['kCollection'],
+                                                                        strtolower($cmd)=='collreport-cultivarsummaryunioncsci',
+                                                                        $bCanReadInternal );
                 $rQ['raMeta']['title'] = "Summary of All Varieties";
-                $rQ['raMeta']['name'] = "collreport-cultivar-summary";
+                $rQ['raMeta']['name'] = $cmd;
                 break;
 
             case 'collreport-adoptedsummary':
-                if( !($kCollection = intval(@$parms['kCollection'])) ) {
-                    $rQ['sErr'] = "No collection specified";
+                if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
                     goto done;
                 }
-                list($rQ['bOk'],$rQ['raOut']) = $this->adoptedSummary( $kCollection );
+                list($rQ['bOk'],$rQ['raOut']) = $this->adoptedSummary( $parms['kCollection'], $bCanReadInternal );
                 $rQ['raMeta']['title'] = "Summary of Adopted Varieties";
-                $rQ['raMeta']['name'] = "collreport-adopted-summary";
+                $rQ['raMeta']['name'] = $cmd;
                 break;
 
             case 'collreport-germsummary':
-                if( !($kCollection = intval(@$parms['kCollection'])) ) {
-                    $rQ['sErr'] = "No collection specified";
+                if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
                     goto done;
                 }
-                list($rQ['bOk'],$rQ['raOut']) = $this->germSummary( $kCollection );
+                list($rQ['bOk'],$rQ['raOut']) = $this->germSummary( $parms['kCollection'], $bCanReadInternal );
                 $rQ['raMeta']['title'] = "Germination Tests";
-                $rQ['raMeta']['name'] = "collreport-germ-summary";
+                $rQ['raMeta']['name'] = $cmd;
+                break;
+
+            // info for one cultivar
+            case 'collreport-cultivarinfo':
+                if( !$this->normalizeParms($parms, "kCollection kPcv", $rQ['sErr']) ) {
+                    goto done;
+                }
+                $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'], true, $bCanReadInternal, true );
+                $rQ['bOk'] = true;
+                $rQ['raMeta']['title'] = "Cultivar Information";
+                $rQ['raMeta']['name'] = $cmd;
                 break;
 
             default:
@@ -72,8 +112,35 @@ class QServerSLCollectionReports extends SEEDQ
         return( $rQ );
     }
 
-    private function cultivarSummary( $kCollection, $bUnionCSCI )
-    /************************************************************
+    private function normalizeParms( &$parms, $sRequired, &$sErr )
+    {
+        $ok = true;
+
+        foreach( explode(' ', $sRequired) as $p ) {
+            switch( $p ) {
+                case 'kCollection':
+                    if( !($parms['kCollection'] = intval(@$parms['kCollection'])) ) {
+                        $sErr = "No collection specified";
+                        $ok = false;
+                        goto done;
+                    }
+                    break;
+                case 'kPcv':
+                    if( !($parms['kPcv'] = intval(@$parms['kPcv'])) ) {
+                        $sErr = "No kPcv specified";
+                        $ok = false;
+                        goto done;
+                    }
+                    break;
+            }
+        }
+
+        done:
+        return( $ok );
+    }
+
+    private function cultivarSummary( $kCollection, $bUnionCSCI, $bCanReadInternal )
+    /*******************************************************************************
         Get a summary of information on all cultivars in the given Seed Library Collection.
         If bUnionCSCI get all varieties in the csci and left-join that with the collection information.
      */
@@ -126,7 +193,7 @@ class QServerSLCollectionReports extends SEEDQ
             foreach( $raRows as $ra ) {
                 if( $ra['P__key'] ) {
                     // this row came from the Seed Library Collection
-                    $raOut[] = $this->getDetailsForPCV( $ra, $kCollection, true );
+                    $raOut[] = $this->getDetailsForPCV( $ra, $kCollection, true, $bCanReadInternal );
                 } else {
                     // this row came from the csci where fk_sl_pcv=0
 /*
@@ -150,7 +217,7 @@ class QServerSLCollectionReports extends SEEDQ
             }
 
         } else {
-            // Get the pcv of every variety in the specified collection
+            // Get the pcv of every variety in the specified collection by grouping IxAxPxS by P,S, then compute details for each pcv
             $raRows = $this->oSLDB->GetList(
                             "IxAxPxS",
                             "I.fk_sl_collection='$kCollection' AND NOT I.bDeAcc",
@@ -158,7 +225,7 @@ class QServerSLCollectionReports extends SEEDQ
                              'sSortCol' => 'S.psp,P.name'] );
 
             foreach( $raRows as $ra ) {
-                $raOut[] = $this->getDetailsForPCV( $ra, $kCollection, true );
+                $raOut[] = $this->getDetailsForPCV( $ra, $kCollection, true, $bCanReadInternal );
             }
         }
 
@@ -168,79 +235,141 @@ class QServerSLCollectionReports extends SEEDQ
         return( [$bOk, $raOut] );
     }
 
-    private function getDetailsForPCV( $raPCV, $kCollection, $bComputeAdoption )
+    private function getDetailsForPCV( $raPCV, $kCollection, $bComputeAdoption, $bCanReadInternal )
     {
         $raOut = [];
 
         // Get the most recent harvest date and total weight of each pcv
-        list($yNewest,$nWeightTotal,$sNotes,$fAdoption) = $this->getInvDetailsForPCV( $raPCV['P__key'], $kCollection, $bComputeAdoption );
+        $ra = $this->getInvDetailsForPCV( $raPCV['P__key'], $kCollection, $bComputeAdoption, $bCanReadInternal );
+        $yNewest = $ra['yNewest'];
+        $nWeightTotal = $ra['nWeightTotal'];
+        $sNotes = $bCanReadInternal ? $ra['sNotes'] : "";
+        $fAdoption = $ra['fAdoption'];  // ok to show the amount publicly
 
         // Get the number of csci companies that have the given pcv
         $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
 
-        $raOut = [
-                'cv'          => $raPCV['P__key'],
-                'species'     => $raPCV['S_psp'],
-                'cultivar'    => $this->QCharSetFromLatin($raPCV['P_name']),
-                'csci_count'  => $nCSCI,
-                'adoption'    => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
-                'year_newest' => $yNewest,
-                'total_grams' => $nWeightTotal,
-                'notes'       => $sNotes,
-        ];
+        $raOut = ['cv'          => $raPCV['P__key'],
+                  'species'     => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
+                  'cultivar'    => $this->QCharSetFromLatin( $raPCV['P_name'] ),
+                  'csci_count'  => $nCSCI,
+                  'adoption'    => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
+                  'year_newest' => $yNewest,
+                  'total_grams' => $nWeightTotal,
+                  'notes'       => $sNotes,           // already QCharset in the method that aggregates it
+                 ];
 
         return( $raOut );
     }
 
-//TODO: make this a cmd so Rosetta can get this info
-    private function getInvDetailsForPCV( $kPCV, $kCollection, $bAdoption )
-    /**********************************************************************
-        Get some reporting details about the SL inventory for the given pcv
+    private function getInvDetailsForPCV( $kPCV, $kCollection, $bAdoption, $bCanReadInternal, $bFullDetails = false )
+    /****************************************************************************************************************
+        Report details about the IxA inventory for the given (pcv,collection), plus some aggregate information e.g. adoption status
+
+        Return:
+            yNewest      = year of the newest non-bDeAcc accession
+            nWeightTotal = sum of lot weights for this pcv
+            fAdoption    = sum of adoption amounts for this pcv
+            sNotes       = summary of lot notes (if $bCanReadInternal)
+
+            $bFullDetails:
+            raIxA        = list of non-bDeAcc IxA for this pcv
+            PxS          = the PxS record for this pcv
      */
     {
-        $kfrcI = $this->oSLDB->GetKFRC( "IxA", "A.fk_sl_pcv='$kPCV' AND I.fk_sl_collection='$kCollection' AND NOT I.bDeAcc" );
+        $raOut = [ 'yNewest' => 0,
+                   'nWeightTotal' => 0.0,
+                   'fAdoption' => 0.0,
+                   'sNotes' => "",
+                   'raIxA' => [],
+                   'PxS' => []
+                 ];
 
-        $yNewest = 0;
-        $nWeightTotal = 0.0;
-        $sNotes = "";
-        $raNotes = array();
-        $fAdoption = 0.0;
+        /* Get PxS record if reporting full details (other clients either don't use it or they got here from a list of P,S anyway.
+         * Note that everything returned by this method has QCharset, so avoid double-converting by clients.
+         */
+        if( $bFullDetails ) {
+            $o = new SLDBRosetta($this->oApp);
+            if( ($kfr = $o->GetKFR('PxS', $kPCV)) ) {
+                $raOut['PxS'] = $this->QCharsetFromLatin( ['kPcv'          => $kPCV,
+                                                           'P_name'        => $kfr->Value('name'),
+                                                           'P_packetLabel' => $kfr->Value('packetLabel'),
+                                                           'P_notes'       => ($bCanReadInternal ? $kfr->Value('notes') : ""),
+                                                           'kSp'           => $kfr->Value('fk_sl_species'),
+                                                           'S_psp'         => $kfr->Value('S_psp'),
+                                                           'S_name_en'     => $kfr->Value('S_name_en'),
+                                                           'S_name_fr'     => $kfr->Value('S_name_fr'),
+                                                           'S_name_bot'    => $kfr->Value('S_name_bot'),
+                                                          ] );
+            }
+        }
 
-        /* Count the total weight and find the newest lot.
+        /* Get all IxA for this cultivar.
+         * Count the total weight and find the newest lot.
          * Also record the weight and year of the lots in reverse chronological order. This is hard because the year can come from
          * two different places, so store array( '0year i'=>weight, ... ) where i is a unique number, then sort, then unpack.
          */
         $i = 0;
-        while( $kfrcI->CursorFetch() ) {
+        $raNotes = array();
+        $kfrcI = $this->oSLDB->GetKFRC( "IxA", "A.fk_sl_pcv='$kPCV' AND I.fk_sl_collection='$kCollection' AND NOT I.bDeAcc" );
+        while( $kfrcI && $kfrcI->CursorFetch() ) {
+            // don't report zero-weight lots publicly
+            if( !$bCanReadInternal && $kfrcI->Value('g_weight')==0 ) continue;
+
             // sometimes these fields contain a date and sometimes just the year. Mysql doesn't allow dates to just be years, so these are plain strings.
-            $y = intval(substr($kfrcI->Value('A_x_d_harvest'),0,4)) or $y = intval(substr($kfrcI->Value('A_x_d_received'),0,4));
-            if( $y > $yNewest )  $yNewest = $y;
+            $yHarvested = intval(substr($kfrcI->Value('A_x_d_harvest'),0,4));
+            $yReceived  = intval(substr($kfrcI->Value('A_x_d_received'),0,4));
+            $y = $yHarvested or $y = $yReceived;
+            $raOut['yNewest'] = max( $raOut['yNewest'], $y );
 
-            $g = intval($kfrcI->Value('g_weight')*100.0)/100.0;
-            $nWeightTotal += $g;
+            $g = intval($kfrcI->Value('g_weight')*100.0)/100.0;     // round to 0.01
+            $raOut['nWeightTotal'] += $g;
 
-            $raNotes["0$y $i"] = $g;    // this will ksort by year, and you can get the year with intval() even if $y is 0
+            if( $bFullDetails ) {
+                /* Note that everything returned by this method has QCharset, so avoid double-converting by clients.
+                 */
+                $raOut['raIxA'][] = $this->QCharsetFromLatin(
+                            ['inv_number' => $kfrcI->Value('inv_number'),
+                             'g_weight'   => $g,
+                             'year_harvested' => $yHarvested,
+                             'year_received'  => $yReceived,
+                             'notes' => ($bCanReadInternal ? trim($kfr->Expand("[[notes]] [[A_notes]]")) : ""),
+                            ]);
+            }
+
+            // don't show notes publicly
+            if( $bCanReadInternal ) $raNotes["0$y $i"] = $g;    // this will ksort by year, and you can get the year with intval() even if $y is 0
             $i++;
         }
         krsort($raNotes);
         foreach( $raNotes as $y => $g ) {
             $y = intval($y);
-            $sNotes .= ($sNotes ? " | " : "")."$g g from ".($y ? $y : "unknown year");
+            $raOut['sNotes'] .= ($raOut['sNotes'] ? " | " : "")."$g g from ".($y ? $y : "unknown year");
         }
 
-        if( $bAdoption ) {
-            // this is independent of kCollection, and really should only be used if kCollection==1
-            $fAdoption = $this->oApp->kfdb->Query1( "SELECT SUM(amount) FROM seeds.sl_adoption WHERE fk_sl_pcv='$kPCV' AND _status='0'" );
+        // It's okay to show the adoption amount publicly. Adoption info only makes sense for kCollection==1
+        if( $bAdoption && $kCollection == 1 ) {
+            $raOut['fAdoption'] = $this->oApp->kfdb->Query1( "SELECT SUM(amount) FROM seeds.sl_adoption WHERE fk_sl_pcv='$kPCV' AND _status='0'" );
         }
 
-        return( [$yNewest,$nWeightTotal,$sNotes, $fAdoption] );
+        /* This method returns everything with QCharset, so avoid double-converting in client code.
+         */
+        $raOut['sNotes'] = $this->QCharSetFromLatin( $raOut['sNotes'] );
+
+        return( $raOut );
     }
 
 
-    private function adoptedSummary( $kCollection )
+    private function adoptedSummary( $kCollection, $bCanReadInternal )
     {
         $bOk = false;
         $raOut = array();
+
+        if( !$bCanReadInternal ) {
+            /* It's okay to show the sum(D.amount) publicly.
+             * Any information about donors could be confidential though (or they might have given permission).
+             */
+        }
 
         // Get the pcv of every adopted variety
         $raDRows = $this->oApp->kfdb->QueryRowsRA( "SELECT P._key as P__key,P.name as P_name,S.psp as S_psp,SUM(D.amount) as amount "
@@ -250,7 +379,7 @@ class QServerSLCollectionReports extends SEEDQ
                                              ."GROUP BY P._key ORDER BY S.psp,P.name" );
 
         foreach( $raDRows as $ra ) {
-            $raOut[] = $this->getDetailsForPCV( $ra, $kCollection, false );
+            $raOut[] = $this->getDetailsForPCV( $ra, $kCollection, false, $bCanReadInternal );
         }
 
         $bOk = true;
@@ -259,7 +388,7 @@ class QServerSLCollectionReports extends SEEDQ
         return( array($bOk, $raOut) );
     }
 
-    private function germSummary( $kCollection )
+    private function germSummary( $kCollection, $bCanReadInternal )
     {
         $bOk = false;
         $raOut = [];

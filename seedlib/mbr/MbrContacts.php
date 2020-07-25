@@ -5,7 +5,7 @@ class Mbr_Contacts
     public  $oDB;
     private $oApp;
 
-    function __construct( SEEDAppSession $oApp )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oDB = new Mbr_ContactsDB( $oApp );
@@ -109,50 +109,54 @@ class Mbr_Contacts
         return( $s );
     }
 
-    function GetBasicValues( $k )
+    function GetAllValues( $mbrid )   // mbrid can be _key or email
+    {
+        return( is_numeric($mbrid) ? $this->oDB->GetRecordVals( 'M', $mbrid )
+                                   : $this->oDB->GetRecordValsCond( 'M', "email='".addslashes($mbrid)."'" ) );
+    }
+
+    function GetBasicValues( $mbrid )   // mbrid can be _key or email
     {
         $raOut = [];
 
-        if( ($raM = $this->oDB->GetRecordVals('M', $k)) ) {
+        if( ($raM = $this->GetAllValues($mbrid)) ) {
             foreach( $this->raFldsBasic as $k=>$dummy ) { $raOut[$k] = $raM[$k]; }
         }
 
         return( $raOut );
     }
 
+    private function getMbrKfr( $mbrid )
+    {
+        return( is_numeric($mbrid) ? $this->oDB->GetKFR( 'M', $mbrid )
+                                   : $this->oDB->GetKFRCond( 'M', "email='".addslashes($mbrid)."'", [] ) );
+    }
+
+    function EBullSubscribe( $mbrid, $bSubscribe )
+    /*********************************************
+        Subscribe/unsubscribe the ebulletin
+     */
+    {
+        $ok = false;
+
+        if( ($kfr = $this->getMbrKfr( $mbrid )) ) {
+            $kfr->SetValue( 'bNoEBull', !$bSubscribe );     // bNoEBull==0 is the default, which means bSubscribe
+            $ok = $kfr->PutDBRow();
+        }
+        return( $ok );
+    }
+
+
     function BuildDonorTable()
     {
+        include_once( "MbrIntegrity.php" );
+
         $s = "";
 
 $this->oApp->kfdb->SetDebug(1);
-        /* Find donations in mbr_contacts that are not in mbr_donations
-         */
-        $sql = "SELECT M._key as _key, M.donation_date as date, M.donation as amount, M.donation_receipt as receipt_num
-                FROM seeds2.mbr_contacts M LEFT JOIN seeds2.mbr_donations D
-                ON (M._key=D.fk_mbr_contacts AND M.donation_date=D.date_received)
-                WHERE M.donation>0 AND D.fk_mbr_contacts IS NULL";
-        if( ($raR = $this->oApp->kfdb->QueryRowsRA($sql)) ) {
-            $s .= "<p>Copying ".count($raR)." rows</p>";
 
-            foreach( $raR as $ra ) {
-                $s .= "<p>mbr:{$ra['_key']}, received: {$ra['date']}, $ {$ra['amount']}, receipt # {$ra['receipt_num']}</p>";
-
-                if( !$ra['date'] ) {
-                    $s .= "<p>Skipping blank date</p>";
-                    continue;
-                }
-
-                continue; // don't write changes, just show them for now
-
-                $kfr = $this->oDB->KFRel('D')->CreateRecord();
-                $kfr->SetValue( 'fk_mbr_contacts', $ra['_key'] );
-                $kfr->SetValue( 'date_received', $ra['date'] );
-                $kfr->SetValue( 'amount', $ra['amount'] );
-                $kfr->SetValue( 'receipt_num', $ra['receipt_num'] );
-                $kfr->SetNull( 'date_issued' );
-                $kfr->PutDBRow();
-            }
-        }
+        $oInteg = new MbrIntegrity( $this->oApp );
+        $s = $oInteg->ReportDonations();
 
         return( $s );
     }
@@ -162,7 +166,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
     private $oApp;
 
-    function __construct( SEEDAppSession $oApp )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );

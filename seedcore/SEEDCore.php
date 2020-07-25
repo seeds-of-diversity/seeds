@@ -83,6 +83,13 @@ function SEEDCore_HSC( $s )
     return( htmlspecialchars( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
 }
 
+/* Replace the standard utf8_encode/decode functions because they go to/from iso-8859-1 so they screw up Windows quotes.
+ *
+ * Note $v can be a string or an array of strings
+ */
+function SEEDCore_utf8_encode( $v ) { return( SEEDCore_CharsetConvert( $v, 'cp1252', 'utf-8' ) ); }
+function SEEDCore_utf8_decode( $v ) { return( SEEDCore_CharsetConvert( $v, 'utf-8', 'cp1252' ) ); }
+
 function SEEDCore_CharsetConvert( $val, $sCharsetFrom, $sCharsetTo, $bTransliterate = true )
 /*******************************************************************************************
     Convert val from one charset to another.
@@ -470,8 +477,12 @@ function SEEDCore_MakeRangeStr( $raNumbers, $bSorted = false )
 
     $s = "";
 
+    // nice to remove duplicates
+    $raNumbers = array_unique($raNumbers, SORT_NUMERIC);
+
     // Does this affect the caller's array?
-    // No. PHP makes a late copy of arrays passed to functions. Passed by reference for efficiency, but a value-by-value copy is made if the array is changed.
+    // No. PHP makes a late copy of arrays passed to functions.
+    // Passed by reference for efficiency, but a value-by-value copy is made if the array is changed.
     if( !$bSorted ) {
         sort($raNumbers);
     }
@@ -632,6 +643,28 @@ function SEEDPRG()
     $doPost = false;
 
     if( @$_SERVER['REQUEST_METHOD'] == 'POST' ) {
+        if( $_FILES ) {
+            // A file is being uploaded. The temp file disappears when the script ends so don't do PRG.
+
+            /* The correct way to do this is:
+                 First Step;
+                     $_SESSION['seedprg-files'] = $_FILES;  // metadata about the uploaded files, but not the actual files
+                     foreach( $_FILES as f ) {
+                         create temp file name t;
+                         move_uploaded_file( f['tmp_name'], t );
+                         $_SESSION['seedprg-files'][f]['seedprg-tmpfile'] = t;
+                     }
+                 Second Step:
+                     $_FILES = $_SESSION['seedprg-files'];
+                     foreach( $_SESSION['seedprg-files'] as f ) {
+                         record somewhere the locations of the uploaded files (could record them in _FILES[f]['tmp_name'] but the
+                         application code has to know that they are not temporary files and will have to be moved/deleted normally
+                         (not with move_uploaded_file)
+                     }
+             */
+            return( true );
+        }
+
         // A form was submitted. Defer processing until the page is reloaded via 303, which causes the browser to do a GET on the given location.
         $uniqid = uniqid();
         $_SESSION['seedprg'][$uniqid] = $_POST;

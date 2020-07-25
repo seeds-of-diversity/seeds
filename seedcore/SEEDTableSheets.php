@@ -224,17 +224,27 @@ class SEEDTableSheetsFile
 
     function normalizeParms( $raParms )
     {
+        // to facilitate testing (input_charset == output_charset) reduce the synonyms
+        $charsets = ['utf8'   => ['utf8','utf-8'],
+                     'cp1252' => ['cp1252','cp-1252','windows1252','windows-1252']
+                    ];
+        foreach( $charsets as $normal => $raSyn ) {
+            foreach( ['charset-file', 'charset-sheet']  as $p ) {
+                if( isset($raParms[$p]) && in_array( strtolower($raParms[$p]), $raSyn ) )  $raParms[$p] = $normal;
+            }
+        }
+
         $raParms['fmt'] = SEEDCore_ArraySmartVal( $raParms, 'fmt', ['xls','csv'] );
         switch( $raParms['fmt'] ) {
             case 'xls':
-                $raParms['charset-file'] = 'utf-8';
+                $raParms['charset-file'] = 'utf8';
                 break;
             case 'csv':
-                $raParms['charset-file'] = SEEDCore_ArraySmartVal( $raParms, 'charset-file', ['utf-8','cp1252'] );
+                $raParms['charset-file'] = SEEDCore_ArraySmartVal( $raParms, 'charset-file', ['utf8','cp1252'] );
                 $raParms['sheets'] = @$raParms['sheets'] ? [$raParms['sheets'][0]] : ['Sheet1'];    // just the first sheet name
                 break;
         }
-        if( !isset($raParms['charset-sheet']) )  $raParms['charset-sheet'] = 'utf-8';
+        if( !isset($raParms['charset-sheet']) )  $raParms['charset-sheet'] = 'utf8';
 
         return( $raParms );
     }
@@ -251,6 +261,7 @@ class SEEDTableSheetsFile
             sDelimiter              = single char separating fields
             sEnclosure              = single char before and after fields (not required if not necessary)
             sEscape                 = single char to escape delimiter and enclosure chars
+            charset-file            = charset of the input file
      */
     {
         $ok = false;
@@ -423,7 +434,7 @@ function SEEDTableSheets_LoadFromUploadedFile( $fileIndex, $raParms )
         if( $f['size'] == 0 ) {
             $sErr .= "No file was uploaded.  Please try again.";
         } else if( !isset($f['error']) ) {
-            $sErr .= "No error was recorded.  Please tell Bob.";
+            $sErr .= "Something went wrong but no error was recorded.  Please tell Bob.";
         } else {
             $sErr .= "Please tell Bob that error # ${f['error']} was reported.";
         }

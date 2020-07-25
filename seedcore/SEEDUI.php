@@ -934,19 +934,6 @@ class SEEDUIComponent_ViewWindow
             if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
                 $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
             }
-
-            /* MAYBE OBSOLETE
-             * There was a weird case that made the view shrink smaller than iCurr. It might not happen anymore, but this was the fix.
-             * It's necessary to put it here because nViewSize is not known until some view data is fetched, which might not happen
-             * before the GetRowData() above.
-             */
-            if( $this->oComp->Get_iCurr() >= $this->nViewSize ) {
-                $this->oComp->Set_iCurr(0);
-                $this->oComp->Set_iWindowOffset(0);
-                if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
-                    $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
-                }
-            }
         }
 
 
@@ -969,6 +956,18 @@ class SEEDUIComponent_ViewWindow
 
             // reposition iWO to include the new iCurr row
             $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
+        }
+
+
+        /* There is a weird case when a relogin is necessary after a session timeout where kCurr and iCurr seem unsynchronized.
+         * At this point, the iCurr row might as well be loaded, so do that and test that it contains kCurr. If not, reset the view.
+         */
+        if( !($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) || $raRow['_key'] != $this->oComp->Get_kCurr() ) {
+            $this->oComp->Set_iCurr(0);
+            $this->oComp->Set_iWindowOffset(0);
+            if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
+                $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
+            }
         }
 
         done:;

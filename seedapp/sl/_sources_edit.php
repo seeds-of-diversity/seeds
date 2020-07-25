@@ -213,8 +213,8 @@ $s .= "<script>$sUploadJS</script>";
         if( $oDS->IsEmpty('fk_sl_sources') )  $oDS->SetValue( 'fk_sl_sources', $this->kCompany );
 
         // http input parms are utf8 but data is stored cp1252
-        $oDS->SetValue( 'osp', utf8_decode($oDS->Value('osp')) );
-        $oDS->SetValue( 'ocv', utf8_decode($oDS->Value('ocv')) );
+        $oDS->SetValue( 'osp', SEEDCore_utf8_decode($oDS->Value('osp')) );
+        $oDS->SetValue( 'ocv', SEEDCore_utf8_decode($oDS->Value('ocv')) );
 
         return( true );
     }

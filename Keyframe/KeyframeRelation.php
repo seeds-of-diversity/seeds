@@ -576,13 +576,11 @@ class KeyFrame_Relation
         /* Make the SELECT field clause.
          *
          * raFieldsOverride takes precedence over all computed select fields.
-         *     array( alias=>fld, ... ) generates {fld as alias},...
-         *            'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'" generates 1,'foo'     keys start with VERBATIM but should have different arbitrary suffixes because they're keys
+         *     [ alias=>fld, ... ] generates {fld as alias},...
+         *     [ 'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'"] generates {1,'foo'}  keys start with VERBATIM but should have different arbitrary suffixes because they're keys
          *
-         * If raGroup is defined, use it to create the select fields.
-         *     array( alias=>fld, ... ) uses {fld} as grouping cols and {fld as alias} as select fields
-         *
-         *     raGroupAlso => array( alias=>fld, .... ) makes {ANY_VALUE(fld) as alias} to retrieve cols not dependent on the group columns
+         * If sGroupAliases is defined (and not raFieldsOverride), use it to create the select fields.
+         *     [ alias1,alias2 ] uses {col1,col2} as grouping cols and {col1 as alias1,col2 as alias2} as select fields
          *
          * Otherwise use the default select fields computed from the kfrel.
          */
@@ -592,34 +590,20 @@ class KeyFrame_Relation
                 $sFieldsClause .= ($sFieldsClause ? "," : "");
                 $sFieldsClause .= SEEDCore_StartsWith($alias,'VERBATIM') ? $fld : "$fld as $alias";
             }
-/* Didn't need this because $this->GetRealColName() can get the col names from the aliases
-        } else if( isset($parms['raGroup']) ) {
-            foreach( $parms['raGroup'] as $alias=>$fld ) {
-                $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                 ."$fld as $alias";
-                $sGroupCol     .= ($sGroupCol ? "," : "").$fld;
-            }
-            // N.B. MariaDB doesn't have ANY_VALUE()
-            if( isset($parms['raGroupAnyValue']) ) {
-                foreach( $parms['raGroupAnyValue'] as $alias=>$fld ) {
-                    $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                     ."ANY_VALUE($fld) as $alias";
-                }
-            }
-*/
-        } else if( $sGroupAliases ) {
-            // colalias1,colalias2,... are the group cols and all of the select cols.
+
+        }
+        if( $sGroupAliases ) {
+            // alias1,alias2,... identify the group cols and if !raFieldsOverride then also all of the select cols/aliases.
             foreach( ($ra = explode( ',', $sGroupAliases )) as $a ) {
                 $col = $this->GetRealColName( trim($a) );
-                $sFieldsClause .= ($sFieldsClause ? "," : "")
-                                 ."$col as $a";
+                if( !isset($parms['raFieldsOverride']) ) {
+                    $sFieldsClause .= ($sFieldsClause ? "," : "")
+                                     ."$col as $a";
+                }
+                $sGroupCols .= ($sGroupCols ? ',' : "").$col;
             }
-            // set the group clause to 1,2,3,... since the appropriate cols are now set as the select fields clause
-            $sGroupCols = "";
-            for( $i = 0; $i < count($ra); ++$i ) {
-                $sGroupCols .= ($sGroupCols ? ',' : "").($i+1);
-            }
-        } else {
+        }
+        if( !$sFieldsClause ) {
             $sFieldsClause = $this->qSelectFieldsClause;
         }
 
@@ -1399,16 +1383,18 @@ class Keyframe_NamedRelations
 
     function GetRecordVals( $sRel, $k )
     /**********************************
-        Get values of one record
+        Get values of one record by _key
      */
     {
-        $ra = [];
+        return( ($kfr = $this->GetKFR( $sRel, $k )) ? $kfr->ValuesRA() : [] );
+    }
 
-        if( ($kfr = $this->GetKFR( $sRel, $k )) ) {
-            $ra = $kfr->ValuesRA();
-        }
-
-        return( $ra );
+    function GetRecordValsCond( $sRel, $sCond, $raKFParms = [] )
+    /***********************************************************
+        Get values of one record: the first result that matches sCond
+     */
+    {
+        return( ($kfr = $this->GetKFRCond($sRel, $sCond, $raKFParms)) ? $kfr->ValuesRA() : [] );
     }
 
     function GetKFRCond( $sRel, $sCond, $raKFParms = array() )
@@ -1435,6 +1421,21 @@ class Keyframe_NamedRelations
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordSetRA( $sCond, $raKFParms ) : array() );
     }
 
+    function Get1List( $sRel, $fld, $sCond, $raKFParms = [] )
+    /********************************************************
+        Return a 1D array of the given fld from records that match the query
+     */
+    {
+        $raOut = [];
+
+        if( ($kfrc = $this->GetKFRC($sRel, $sCond, $raKFParms)) ) {
+            while( $kfrc->CursorFetch() ) {
+                $raOut[] = $kfrc->Value($fld);
+            }
+        }
+
+        return( $raOut );
+    }
 
     protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     // logfile can be blank if only reading, or ignored if derived method knows it
@@ -1442,5 +1443,3 @@ class Keyframe_NamedRelations
         die( "OVERRIDE with function to create kfrel array" );
     }
 }
-
-?>

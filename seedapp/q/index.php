@@ -14,9 +14,7 @@ if( !defined("Q_DB") )  define("Q_DB", "seeds1");   // caller can initialize Q t
 
 $oApp = SEEDConfig_NewAppConsole_LoginNotRequired(
             ['db'=>Q_DB,
-             'sessPermsRequired' => ['PUBLIC'],
-                                   'sessUIConfig' => [],                // disable login UI (requires login by default)
-                                   'lang' => 'EN' ] );
+             'lang' => 'EN' ] );
 
 $qcmd = SEEDInput_Str('qcmd');
 $qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
@@ -24,6 +22,15 @@ $qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
 $oQ = new Q( $oApp, ['bUTF8'=>true] );  // return utf8 data unless this is reversed below
 $sCharset = "utf-8";
 $rQ = $oQ->Cmd( $qcmd, $_REQUEST );
+
+/* Write cmd and sLog to log file. Then unset it so we don't send our log notes to the user.
+ */
+$oApp->Log( "q.log", $_SERVER['REMOTE_ADDR']."\t"
+                    .intval(@$rQ['bOk'])."\t"
+                    .$qcmd."\t"
+                    .(@$rQ['sLog'] ? : "") );
+unset($rQ['sLog']);
+
 
 ($name  = (@$raQParms['qname']))  || ($name  = (@$rQ['raMeta']['name']))  || ($name = $qcmd);
 ($title = (@$raQParms['qtitle'])) || ($title = (@$rQ['raMeta']['title'])) || ($title = $qcmd);
@@ -68,17 +75,6 @@ switch( $qfmt ) {
 
             $oXLSX->OutputSpreadsheet();
             exit;
-
-//            include_once( STDINC."SEEDTable.php" );
-
-            // PHPExcel sends the header( Content-Type )
-            // N.B. the data has to be utf8 or PHPExcel will fail to write it
-//            SEEDTable_OutputXLSFromRARows( $rQ['raOut'],
-//                               array( 'columns' => array_keys($rQ['raOut'][0]),
-//                                      'filename'=>"$name.xls",
-//                                      'created_by'=>$sess->GetName(),
-//                                      'title'=>'$title'
-//                                      ) );
         }
         break;
 
@@ -105,8 +101,3 @@ switch( $qfmt ) {
     default:
         break;
 }
-
-$oApp->Log( "q.log", $_SERVER['REMOTE_ADDR']."\t"
-                    .intval(@$rQ['bOk'])."\t"
-                    .$qcmd."\t"
-                    .(@$rQ['sLog'] ? : "") );

@@ -191,7 +191,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         switch( $eDetail ) {
             case SEEDBasketProductHandler::DETAIL_TINY:
                 $s = $kfrP->Expand( "<p>[[species]] - [[variety]]</p>" );
-                if( $bUTF8 ) { $s = utf8_encode($s); }
+                if( $bUTF8 ) { $s = SEEDCore_utf8_encode($s); }
                 break;
             default:
                 switch( $eDetail ) {
