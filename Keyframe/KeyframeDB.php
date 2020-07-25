@@ -32,6 +32,7 @@ abstract class KeyframeDB_Connection
     abstract function _getErrNo();
     abstract function _getErrMsg();
     abstract function _getConnectErrMsg();
+    abstract function _escapeString( $s );
 }
 
 
@@ -70,6 +71,7 @@ class KeyframeDB_Connection_MySQLI extends KeyFrameDB_Connection
     function _getConnectErrMsg()       { return( mysqli_connect_error() ); }
     function _getErrMsg()              { return( mysqli_error( $this->_conn ) ); }
     function _getErrNo()               { return( mysqli_errno( $this->_conn ) ); }
+    function _escapeString( $s )       { return( mysqli_real_escape_string( $this->_conn, $s ) ); }
 }
 
 
@@ -238,6 +240,14 @@ class KeyframeDatabase {
         return( $raFld['Field'] != "" );
     }
 
+    function EscapeString( $s )
+    /**************************
+        Escape the given string for use in SQL statements
+     */
+    {
+        return( $this->oConn->_escapeString( $s ) );
+    }
+
     private function debugStart( $sql )
     {
         $this->lastQuery = $sql;
@@ -249,5 +259,3 @@ class KeyframeDatabase {
         if( $bError && $this->bDebug ) { echo "<p style='font-size:9pt;font-family:courier,monospace;color:gray;'>".$this->GetErrMsg()."</p>"; }
     }
 }
-
-?>

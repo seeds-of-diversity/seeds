@@ -17,15 +17,17 @@ define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"],0,9) == "localhost") ? 
 
 /* Activate full error reporting in development environments, not in production
  * You can define SEED_display_errors = true to turn on error reporting when you have weird production problems
- */ 
+ */
 if( SEED_isLocal || defined("SEED_display_errors") ) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', 1);
     ini_set('html_errors', 1);
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 } else {
     error_reporting(0);
     ini_set('display_errors', 0);
     ini_set('html_errors', 0);
+    mysqli_report(MYSQLI_REPORT_OFF);
 }
 
 
