@@ -12,6 +12,7 @@
         "phpoffice/phpword": "dev-develop",
         "phpoffice/phpspreadsheet": "^1.5",
           "twig/twig": "1.42.2",
-          "components/jquery": "^3.3"
+          "components/jquery": "^3.3",
+          "dompdf/dompdf": "^0.8.5"
     }
 }
