@@ -30,19 +30,20 @@ $consoleConfig = [
     'HEADER' => "My Seed Collection",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'collection'   => ['label'=>'Collection'],
-                                        //'species'      => ['label'=>'Species'],
+    'TABSETS' => ['main'=> ['tabs' => [ 'collection'   => ['label'=>'My Collection'],
+                                        'batch'        => ['label'=>'Batch Operations'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
                             'perms' =>[ 'collection'   => ["PUBLIC"],
-                                        //'species'      => ["W SL"],
+                                        'batch'        => ["PUBLIC"],
                                         //'cultivarsyn'  => ["W SL"],
                                         //'ghost'        => ['A notyou'],
                                         '|'  // allows screen-login even if some tabs are ghosted
                                       ],
                            ],
 
+                  // sub-tabs for collection
                   'colltabs'=> ['tabs' => [ 'germ' => ['label'=>'Germination Tests'],
                                             'packetlabels' => ['label'=>'Packet Labels'],
                                           ],
@@ -51,6 +52,17 @@ $consoleConfig = [
                                             '|'
                                           ]
                                 ],
+
+                  // sub-tabs for batch
+                  'batchtabs'=> ['tabs' => [ 'germ' => ['label'=>'Germination Tests'],
+                                             //'packetlabels' => ['label'=>'Packet Labels'],
+                                          ],
+                                'perms' =>[ 'germ'   => ["PUBLIC"],
+                                            //'packetlabels'   => ["PUBLIC"],
+                                            '|'
+                                          ]
+                                ],
+
                  ],
     'pathToSite' => '../../',
 
@@ -80,6 +92,10 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_collection_Init()         { $this->oW = new CollectionListForm( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_collection_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_collection_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_batch_Init()              { $this->oW = new CollectionBatchOps( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_batch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_batch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
 }
 
 class CollectionListForm extends KeyframeUI_ListFormUI
@@ -224,6 +240,30 @@ Received:   {$this->oComp->oForm->Value("A_x_d_received")}
     }
 }
 
+class CollectionBatchOps
+{
+    private $oApp;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function Init()
+    {
+        //parent::Init();
+    }
+
+    function ControlDraw()
+    {
+        return( "" );
+    }
+
+    function ContentDraw()
+    {
+        return( "Put Germination Test entry here" );
+    }
+}
 
 class Collection_Console02Tabset extends Console02TabSet
 {
