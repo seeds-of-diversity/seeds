@@ -3,9 +3,6 @@ include_once( SEEDLIB."fpdf/PDF_Label.php" );
 include_once( SEEDCORE."SEEDCoreForm.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
-//TODO REMOVE
-define( "SITEROOT", "https://seeds.ca/" );
-
 class CollectionTab_PacketLabels
 {
     private $oApp;
@@ -31,92 +28,103 @@ class CollectionTab_PacketLabels
     {
         $oForm = new SEEDCoreForm( 'A' );
         $oForm->Update();
-        
+
         if( SEEDInput_Str('cmd') == 'Make Labels' ){
             // Do PDF Creation
-            $this->drawPDF_Lables($oForm);
-            exit; // Actually drawPDF_Lables exits, but it's nice to have a reminder of that here
+            $this->drawPDF_Labels($oForm);
+            exit; // Actually drawPDF_Labels exits, but it's nice to have a reminder of that here
         }
-        
+
         $oSLDB = new SLDBCollection( $this->oApp );
-        
+
         if( (!$oForm->Value('cvName') || !$oForm->Value('desc')) && $this->kInventory ) {
-            if( ($kfrLot = $oSLDB->GetKFRCond( 'IxAxPxS', "fk_sl_collection='1' AND I._key='".$this->kInventory."'" )) ) {
+            if( ($kfrLot = $oSLDB->GetKFR( 'IxAxPxS', $this->kInventory )) ) {
                 if( !$oForm->Value('cvName') ) $oForm->SetValue( 'cvName', $kfrLot->Value('P_name').' '.strtolower($kfrLot->Value('S_name_en')) );
-                
+
                 if( !$oForm->Value('desc') ) $oForm->SetValue( 'desc', $kfrLot->Value('P_packetLabel') );
             }
         }
         $oForm->SetValue('kLot', $kfrLot->Value('inv_number'));
-        
+
+        // the label header is: Cultivar Species (Lot_number)
+        //                      Description
+        $oForm->SetValue( 'label_head', $kfrLot->Value('P_name')." ".strtolower($kfrLot->Value('S_name_en'))." (".$kfrLot->Value('inv_number').")" );
+        $oForm->SetValue( 'label_desc', $kfrLot->Value('P_packetLabel') );
+        $oForm->SetValue( 'label_n',    30 );
+
         if( !$oForm->Value('nLabels') )  $oForm->SetValue( 'nLabels', 30 );
-        
+
         $oFE = new SEEDFormExpand( $oForm );
-        $s = "<h3>Seed Labels</h3>"
+        $s = "<h4>Format seed packet labels for Avery #5160/8160</h4>"
             ."<form method='post' target='_blank'>"
-                ."<div class='container'>"
-                    .$oFE->ExpandForm(
-                        "|||BOOTSTRAP_TABLE(class='col-md-1' | class='col-md-3' | class='col-md-1' | class='col-md-3')"
-                        ."||| Lot # || [[kLot | | readonly]] || Cultivar name || [[cvName]]"
-                        ."||| Description || [[TextArea:desc]] || || "
-                        ."||| # labels || [[nLabels]] || Skip first || [[offset]]"
-                        ."||| <input type='submit' name='cmd' value='Update'/> || <input type='submit' name='cmd' value='Make Labels'/>"
-                        
-                        )
-                        ."</form></div>";
+                ."<div style='float:left;margin:10px;'>"
+                    .$oFE->ExpandForm( "[[label_head | width:220px ]]<br/>[[TextArea:label_desc | width:220px]]" )
+                ."</div>"
+                ."<div style='float:left;margin:10px'>"
+                    //."<p style='font-size:small'>If this wraps more than the first line, put a period + line break at the start of the description to make room.</p>"
+                    //."<p style='font-size:small'>You can change any information here before printing labels.</p>"
+                    .$oFE->ExpandForm( "|||TABLE()"
+                                      ."||| # labels   &nbsp; || [[label_n      | width:50px]]"
+                                      ."||| Skip first &nbsp; || [[label_offset | width:50px]]" )
+                ."</div>"
+                ."<div style='clear:both;margin:10px'><input type='submit' name='cmd' value='Make Labels'/></div>"
+            ."</form>";
         return $s;
     }
 
-    private function drawPDF_Lables(SEEDCoreForm $oForm){
+    private function drawPDF_Labels(SEEDCoreForm $oForm)
+    {
+        $sHead = $oForm->Value('label_head');
+        $sDesc = $oForm->Value('label_desc');
+        $nLabels = $oForm->ValueInt('label_n');
+        $iOffset = $oForm->ValueInt('label_offset');
+
         $pdf = new MyPDF_Label( '5160' );
         $pdf->Set_Font_Size(8);  // default is 8pt which is pretty small; though this might be too big for long addresses
         $pdf->AddPage();
-        
+
         // Skip the offset number
-        if( ($n = intval($oForm->Value('offset'))) ) {
-            for( $i = 0; $i < $n; ++$i ) {
-                $pdf->AddLabel1();
-            }
+        for( $i = 0; $i < $iOffset; ++$i ) {
+             $pdf->AddLabel1();
         }
-        
+
         // Print the labels
-        for( $i = 0; $i < intval($oForm->Value('nLabels')); ++$i ) {
-            $cvName = $oForm->Value('cvName').(($kLot = $oForm->Value('kLot')) ? " ($kLot)" : "");
-            $desc = $oForm->Value('desc');
+        for( $i = 0; $i < $nLabels; ++$i ) {
             $xMarginText = 18;   // x position of cvname and description (beside logo)
             $yMarginText = 2;    // y position of cvname and description (beside logo)
             $yMarginWWW = 18;    // y position of www text (below logo)
             $fontsizeText = 8;
             $fontsizeWWW = 7;
-            
+
             // move to the next label
             $pdf->AddLabel1();
-            
+
             // set position to the top-left and draw the logo
             $pdf->AddLabel2( 0, 0 );
-            $pdf->Image( SITEROOT."i/img/logo/logoA_v-en-300.jpg", $pdf->GetX(), $pdf->GetY(), 17.14, 17.14 );  // image is 300x300
-            
+            $pdf->Image( "https://seeds.ca/i/img/logo/logoA_v-en-300.jpg", $pdf->GetX(), $pdf->GetY(), 17.14, 17.14 );  // image is 300x300
+
             // set position to the bottom-left and write the web site in bold
             $pdf->AddLabel2( 0, $yMarginWWW );
             $pdf->SetFont( '', 'B', $fontsizeWWW );
             $pdf->AddLabel3( "www.seeds.ca", 0 );
-            
+
             // set position to the top with left padding for the logo, and write the cvname in bold
             $pdf->AddLabel2( $xMarginText, $yMarginText );
             $pdf->SetFont( '', 'B', $fontsizeText );
-            $pdf->AddLabel3( $cvName, $xMarginText );
-            
+            $pdf->AddLabel3( $sHead, $xMarginText );
+
             // set position to the top-left with additional left padding for the logo and one line of top padding for the cvname,
             // and write the description
             $pdf->SetFont( '', '', $fontsizeText );
-            $pdf->AddLabel2( $xMarginText, $yMarginText );
-            $pdf->AddLabel3( "\n".$desc, $xMarginText );
+            $pdf->AddLabel2a( $xMarginText );
+            $pdf->AddLabel3( $sDesc, $xMarginText );
+            //$pdf->AddLabel3( "\n".$sDesc, $xMarginText );      old method reset Y to top and inserted \n here
         }
-        
+
         $pdf->Output();
         exit; // FPDF doesn't exit
     }
-    
+
 }
 
 class MyPDF_Label extends PDF_Label
@@ -125,7 +133,7 @@ class MyPDF_Label extends PDF_Label
     {
         parent::__construct( $format );
     }
-    
+
     function AddLabel1()
     {
         // This is the first part of Add_Label, which moves the label counter forward.
@@ -141,7 +149,7 @@ class MyPDF_Label extends PDF_Label
             }
         }
     }
-    
+
     function AddLabel2( $xPadding = 0, $yPadding = 0 )
     {
         // This is the second part of Add_Label, which positions the fpdf x/y at the top-left of the current label
@@ -149,7 +157,14 @@ class MyPDF_Label extends PDF_Label
         $_PosY = $this->_Margin_Top + $this->_COUNTY*($this->_Height+$this->_Y_Space) + $this->_Padding + $yPadding;
         $this->SetXY($_PosX, $_PosY);
     }
-    
+
+    function AddLabel2a( $xPadding = 0 )
+    {
+        // Just set the X position, using the current Y position after AddLabel3
+        $_PosX = $this->_Margin_Left + $this->_COUNTX*($this->_Width+$this->_X_Space) + $this->_Padding + $xPadding;
+        $this->SetX($_PosX);
+    }
+
     function AddLabel3( $text, $xMargin = 0 )
     {
         // This is the third part of Add_Label, which writes text to the current x/y.
