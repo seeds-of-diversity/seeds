@@ -81,8 +81,8 @@ class MyConsole02TabSet extends Console02TabSet
         return( "<div style='padding:20px'>BBB</div>" );
     }
 
-    function TabSet_main_cultivarsyn_Init()         { $oSVA = $this->TabSetGetSVA( 'main', 'cultivarsyn' );
-                                                      $this->oW = new RosettaCultivarSynonyms( $this->oApp, $oSVA );
+    function TabSet_main_cultivarsyn_Init( Console02TabSet_TabInfo $oT ) {
+                                                      $this->oW = new RosettaCultivarSynonyms( $this->oApp, $oT->oSVA );
                                                       $this->oW->Init(); }
     function TabSet_main_cultivarsyn_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_cultivarsyn_ContentDraw()  { return( $this->oW->ContentDraw() ); }

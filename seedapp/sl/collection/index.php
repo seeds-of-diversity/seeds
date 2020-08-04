@@ -93,7 +93,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_collection_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_collection_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_batch_Init()              { $this->oW = new CollectionBatchOps( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_batch_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new CollectionBatchOps( $this->oApp, $oT->oSVA ); $this->oW->Init(); }
     function TabSet_main_batch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
     function TabSet_main_batch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
 }

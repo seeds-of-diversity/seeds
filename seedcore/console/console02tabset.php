@@ -160,8 +160,11 @@ class Console02TabSet
     {
         /* Override this method or define another that findMethod will find
          */
+
+        $oTabInfo = new Console02TabSet_TabInfo( $this, $tsid, $tabname );
+
         if( ($m = $this->findmethod( $tsid, $tabname, "Init" )) ) {
-            call_user_func( $m, $tsid, $tabname );
+            call_user_func( $m, $oTabInfo );
         }
     }
 
@@ -242,9 +245,10 @@ class Console02TabSet
          */
         $ret = null;
 
-        if( method_exists( $this->oC, "TabSet$method" ) ) {
-            // You added this method to your derivation of Console02
-            $ret = array($this->oC, "TabSet$method" );
+        if( method_exists( $this->oC, "TabSet_$method" ) ) {
+            // You added this method to your derivation of Console02.
+            // The '_' differentiates this method name from the Console02TabSet base methods because args are different
+            $ret = array($this->oC, "TabSet_$method" );
         } else {
             // Maybe you created a method named after the tabset/tabname in a derivation of this class, or of Console02
             $m = "TabSet_{$tsid}_{$tabname}_{$method}";
@@ -258,5 +262,22 @@ class Console02TabSet
         }
 
         return( $ret );
+    }
+}
+
+
+/* Summarize the info about a tab in an object that can be passed around where there is no reference to Console02TabSet
+ */
+class Console02TabSet_TabInfo
+{
+    public $tsid;
+    public $tabname;
+    public $oSVA;
+
+    function __construct( Console02TabSet $oCTS, $tsid, $tabname )
+    {
+        $this->tsid = $tsid;
+        $this->tabname = $tabname;
+        $this->oSVA = $oCTS->TabSetGetSVA( $tsid, $tabname );
     }
 }
