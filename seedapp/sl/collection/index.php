@@ -9,7 +9,7 @@
  * or execute a boot script that includes this script after setting the config parameters
  */
 if( !defined( "SEEDROOT" ) ) {
-    define( "SEEDROOT", "../../" );
+    define( "SEEDROOT", "../../../" );
     define( "SEED_APP_BOOT_REQUIRED", true );
     include_once( SEEDROOT."seedConfig.php" );
 }
@@ -21,9 +21,9 @@ include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
-include_once( "_collection_germtests.php" );
-include_once( "_collection_packetlabels.php" );
-
+include_once( "collectiontab_germtests.php" );
+include_once( "collectiontab_packetlabels.php" );
+include_once( "batchoperations.php" );
 
 $consoleConfig = [
     'CONSOLE_NAME' => "collection",
@@ -240,31 +240,6 @@ Received:   {$this->oComp->oForm->Value("A_x_d_received")}
     }
 }
 
-class CollectionBatchOps
-{
-    private $oApp;
-
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-    }
-
-    function Init()
-    {
-        //parent::Init();
-    }
-
-    function ControlDraw()
-    {
-        return( "" );
-    }
-
-    function ContentDraw()
-    {
-        return( "Put Germination Test entry here" );
-    }
-}
-
 class Collection_Console02Tabset extends Console02TabSet
 {
     private $oApp;
@@ -301,19 +276,3 @@ $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
-exit;
-
-
-
-include_once( SEEDLIB."sl/sldb.php" );
-
-$oSLDB = new SLDBCollection( $oApp );
-$raP = $oSLDB->GetList( "P", "name LIKE '%Green%'" );
-
-$s = "";
-
-foreach( $raP as $ra ) {
-    $s .= "<div style='font-weight:bold;margin-bottom:15px'>{$ra['name']} {$ra['psp']}</div><div style='margin-left:35px;margin-bottom:15px'>${ra['packetLabel']}</div>";
-}
-
-echo $s;
