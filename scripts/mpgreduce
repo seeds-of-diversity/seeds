@@ -14,7 +14,7 @@ OTHERARGS=$6
 #otherargs should be quoted when you type the command line but they're inserted into the ffmeg command non-quoted
 
 if [ -z "$OUTFILE" ]; then
-    OUTFILE=$INFILE.$OUTFMT
+    OUTFILE="$INFILE.$OUTFMT"
 fi
 
 if [ -z "$MAXSIZE" ]; then
