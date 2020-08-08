@@ -1,0 +1,13 @@
+# find all *.jpeg files under the current directory, replace ".jpeg" with ".jpg" in their filenames
+# N.B. there are different versions of "rename" on linux - this uses a common built-in program, NOT the Perl script
+
+if [ "$1" = "go" ]; then
+    RENAME_ARGS=
+else
+    RENAME_ARGS="-n"
+    echo %%%
+    echo %%% no-action mode: use arg \"go\" to do it for real
+    echo %%%
+fi
+
+find . -type f -name '*.jpeg' -print0 | xargs -0 rename $RENAME_ARGS -v jpeg jpg '*.jpeg'
