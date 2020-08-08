@@ -24,7 +24,12 @@ fi
 if [ "$CRF" = "0" ]; then
     CRFARG=
 elif [ -z "$CRF" ]; then
-    CRFARG="-crf 28"
+    if [ "$OUTFMT" = "mp4" ]; then
+        CRFARG="-crf 28"
+    else
+        # bitrate 700K in vpx9 is almost the same as crf 28 in x264; you can also use -b:v 0 -crf NN but the range of NN is different for different codecs
+        CRFARG="-b:v 700K"
+    fi
 else
     CRFARG="-crf $CRF"
 fi
