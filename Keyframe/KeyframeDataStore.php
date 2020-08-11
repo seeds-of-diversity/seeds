@@ -31,6 +31,9 @@ class Keyframe_DataStore extends SEEDDataStore
     function GetKFR()                       { return( $this->kfr ); }
     function SetKFR( KeyframeRecord $kfr )  { $this->kfr = $kfr; }
 
+    // only available in this derivation for fields that accept NULL but not ''. Could add to base class and just set ''
+    function SetNull( $k ) { if( $this->kfr )  $this->kfr->SetNULL( $k ); }
+
     /* Override the Data-side methods.
      * The Application-side methods are normally not overridden.
      */
