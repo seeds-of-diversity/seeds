@@ -82,7 +82,7 @@ class SEEDDataStore
             // the parm is stored in an urlencoded field of the data store
             $fld = $this->raParms['urlparms'][$k];
             $s = $this->DSValue( $fld );
-            $v = SEEDStd_ParmsUrlGet( $s, $k );
+            $v = SEEDCore_ParmsURLGet( $s, $k );
         } else {
             $v = $this->DSValue( $k );
         }
@@ -100,7 +100,7 @@ class SEEDDataStore
             // the parm is stored in an urlencoded field of the data store
             $fld = $this->raParms['urlparms'][$k];
             $s = $this->DSValue( $fld );
-            $s = SEEDStd_ParmsUrlAdd( $s, $k, $v );
+            $s = SEEDCore_ParmsURLAdd( $s, $k, $v );
             $this->DSSetValue( $fld, $s );
         } else {
             $this->DSSetValue( $k, $v );
