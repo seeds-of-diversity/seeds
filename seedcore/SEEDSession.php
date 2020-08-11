@@ -66,16 +66,15 @@ class SEEDSessionVarAccessor
             array( X, Y, Z )   - Values restricted to the given set, default to X.
 
         N.B.: to simplify the detection of a change to "empty" value, such values as 0 and "" must be at $raVal[0]
+
+        N.B. #2: don't assume $raVal is indexed using numeric keys - there might not be $raVal[0] if it's ['a=>"A",'b'=>"B"]
      */
     {
-        if( isset($_REQUEST[$k]) ) {
-            $p = SEEDInput_Str($k);
-            if( empty($p) || (count($raVal)>1 && !in_array($p,$raVal))) {
-                $p = (count($raVal) ? $raVal[0] : "");
-            }
-        } else {
-            $p = @$this->VarGet($k);
-            if( empty($p) )  $p = (count($raVal) ? $raVal[0] : "");
+        $bDefault = false;
+
+        $p = isset($_REQUEST[$k]) ? SEEDInput_Str($k) : $this->VarGet($k);
+        if( empty($p) || (count($raVal)>1 && !in_array($p,$raVal)) ) {
+            $p = count($raVal) ? reset($raVal) : "";    // reset returns the value of the first element
         }
         $this->VarSet($k,$p);
         return( $p );
