@@ -176,7 +176,11 @@ class CollectionListForm extends KeyframeUI_ListFormUI
     function ContentDraw()
     {
         $s = $this->DrawStyle()
-           ."<style></style>"
+           ."<style>
+#data-table tr:nth-last-child(2) .weight {
+    border-bottom: 1px dotted black;
+}
+</style>"
            ."<div class='container-fluid'><div class='row'>"
            ."<div class='col-sm-3'>".$this->drawSummary()."</div>"
            ."<div class='col-sm-9'>".$this->DrawList()."</div>"
@@ -191,22 +195,37 @@ class CollectionListForm extends KeyframeUI_ListFormUI
     {
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
 
-        $s = "<pre>
-{$this->oComp->oForm->Value("S_name_en")} : {$this->oComp->oForm->Value("P_name")} (cv {$this->oComp->oForm->Value("P__key")})
-
-Original name:	{$this->oComp->oForm->Value("P_name")}
-Batch: {$this->oComp->oForm->Value("A_batch_id")}
-Grower/Source:	{$this->oComp->oForm->Value("A_x_member")}
-Harvest:	{$this->oComp->oForm->Value("A_x_d_harvest")}
-Received:   {$this->oComp->oForm->Value("A_x_d_received")}
-
+        $s = "<table id='data-table'>
+<tr>
+    <td>{$this->oComp->oForm->Value("S_name_en")}:</td>
+    <td colspan='2'>{$this->oComp->oForm->Value("P_name")} (cv {$this->oComp->oForm->Value("P__key")})</td>
+</tr>
+<tr>
+    <td>Original name:</td>
+    <td colspan='2'>{$this->oComp->oForm->Value("P_name")}</td>
+</tr>
+<tr>
+    <td>Batch:</td>
+    <td colspan='2'>{$this->oComp->oForm->Value("A_batch_id")}</td>
+</tr>
+<tr>
+    <td>Grower/Source:</td>
+    <td colspan='2'>{$this->oComp->oForm->Value("A_x_member")}</td>
+</tr>
+<tr>
+    <td>Harvest:</td>
+    <td colspan='2'>{$this->oComp->oForm->Value("A_x_d_harvest")}</td>
+</tr>
+<tr>
+    <td>Received:</td>
+    <td colspan='2'>{$this->oComp->oForm->Value("A_x_d_received")}</td>
+</tr>
 ";
         $totalWeight = array_sum(array_column($raLots, "g_weight"));
-        $s .= SEEDCore_ArrayExpandRows($raLots, "SoD-[[inv_number]]    [[g_weight]] g    @ [[location]]\n");
-        $s .= "            ".str_repeat("-",strlen(strval($totalWeight))+2)."\n"
-             ."            {$totalWeight} g";
-
-        $s .= "</pre>";
+        $s .= SEEDCore_ArrayExpandRows($raLots, "<tr><td>SoD-[[inv_number]]</td><td class='weight'>[[g_weight]] g</td><td class='location'>@ [[location]]</td></tr>");
+        $s .= "<tr><td></td><td>{$totalWeight} g</td></tr>";
+        
+        $s .= "</table>";
 
         return( $s );
     }
