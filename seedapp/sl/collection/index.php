@@ -302,4 +302,4 @@ $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
+                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js","collection-batch.js"] ] );

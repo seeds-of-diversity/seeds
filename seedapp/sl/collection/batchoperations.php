@@ -57,17 +57,20 @@ class CollectionBatchOps
         $oFE = new SEEDFormExpand( $oForm );
         $s .= "<form method='post'><input type='submit'/>"
              ."<table>"
-             ."<tr><th>Lot</th><th>Cultivar</th><th>Date</th><th>Number Sown</th><th>Number Germ</th><th>Notes</th></tr>";
-        for( $i = 0; $i < 10; ++$i ) {
+             ."<tr><th>Lot</th><th>Cultivar</th><th>Start Date</th><th>End Date</th><th>Number Sown</th><th>Number Germ</th><th>Notes</th></tr>";
+        for( $i = 0; $i < 5; ++$i ) {
             $s .= $oFE->ExpandForm( "<tr><td style='width:10%'>[[inv_number  | width:100%]]</td>
-                                         <td style='width:15%'>[[cv_name     | width:100% | readonly]]</td>
+                                         <td style='width:15%'>[[cv_name     | width:100% | disabled]]</td>
                                          <td style='width:15%'>[[Date:dStart | width:100%]]</td>
+                                         <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
                                          <td style='width:10%'>[[nSown       | width:100%]]</td>
                                          <td style='width:10%'>[[nGerm_count | width:100%]]</td>
                                          <td style='width:40%'>[[notes       | width:100%]]</td></tr>" );
             $oForm->IncRowNum();
         }
         $s .= "</table></form>";
+
+        $s .= "<div id='collection-batch-germ-container'></div>";
 
         return( $s );
     }
