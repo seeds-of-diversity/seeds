@@ -649,8 +649,9 @@ class KeyframeRecord
     // Note that values and dbValSnap use colalias as their keys
     private $key;
     private $values;
-    private $dbValSnap;        // a snapshot of the _values most recently retrieved from the db.  For change detection.
-    private $valuesNull;       // PutDBRow sets these values to NULL in db (minimally implemented only for creating new rows)
+    private $valuesNull;       // PutDBRow sets these values to NULL in db
+    private $dbValSnap;        // a snapshot of the values most recently retrieved from the db.  For change detection.
+    private $dbNullSnap;       // a snapshot of the valuesNull most recently retrieved from the db.  For change detection.
     private $keyForce = 0;
 
     function KFRel()  { return( $this->kfrel ); }
@@ -670,8 +671,9 @@ class KeyframeRecord
     {
         $this->key = 0;
         $this->values = array();
-        $this->dbValSnap = array();
         $this->valuesNull = [];
+        $this->dbValSnap = array();
+        $this->dbNullSnap = array();
         $this->keyForce = 0;
 
         foreach( $this->kfrel->BaseTableFields() as $k ) {
@@ -688,7 +690,9 @@ class KeyframeRecord
          $kfr->kfrel = $this->kfrel;
          $kfr->key = $this->key;
          $kfr->values = $this->values;
+         $kfr->valuesNull = $this->valuesNull;
          $kfr->dbValSnap = $this->dbValSnap;
+         $kfr->dbNullSnap = $this->dbNullSnap;
          $kfr->keyForce = 0;  // don't copy this
          return( $kfr );
      }
@@ -732,11 +736,15 @@ class KeyframeRecord
     }
     function SetNull( $k )
     /*********************
-        Set this field to NULL in the db. This is only minimally implemented for storing NULLs with PutDBRow
+        Set this field to NULL in the db.
      */
     {
         $this->values[$k] = '';     // so Value() will return an empty string because that's what happens when a NULL is read from the db
         $this->valuesNull[$k] = true;
+    }
+    function IsNull( $k )
+    {
+        return( @$this->valuesNull[$k] ? true: false );
     }
 
     // simulate the function of an S+ type
@@ -905,22 +913,28 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
                 $bDo = true;
             }
             foreach( $this->kfrel->BaseTableFields() as $f ) {
-                if( !in_array( $f['col'], array("_key", "_created", "_created_by", "_updated", "_updated_by") ) ) {
-                    // if the field is in valuesNull, write a db NULL
-                    if( @$this->valuesNull[$f['alias']] ) {
-                        $sClause .= ",{$f['col']}=NULL";
-                        $bDo = true;
-                    } else {
-                        /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
-                         * anyway, this makes kfr log files much more readable.
-                         */
-                        $val = $this->values[$f['alias']];
-                        if( $bSnap && isset($this->dbValSnap[$f['alias']]) && $this->dbValSnap[$f['alias']] == $val ) {
-                            continue;
-                        }
-                        $sClause .= ",{$f['col']}=".$this->putFmtVal( $val, $f['type'] );
-                        $bDo = true;
+                if( in_array( $f['col'], ["_key", "_created", "_created_by", "_updated", "_updated_by"] ) ) continue;
+
+                $a = $f['alias'];
+
+                if( $bSnap ) {
+                    /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
+                     * anyway, this makes kfr log files much more readable.
+                     */
+                    if( ($this->IsNull($a) && @$this->dbNullSnap[$a])                                 // value is NULL and was NULL in db
+                     || (isset($this->dbValSnap[$a]) && $this->dbValSnap[$a] == $this->values[$a]) )  // value is still the same as db
+                    {
+                        continue;
                     }
+                }
+
+                // write changed fields to db
+                if( $this->IsNull($a) ) {
+                    $sClause .= ",{$f['col']}=NULL";
+                    $bDo = true;
+                } else {
+                    $sClause .= ",{$f['col']}=".$this->putFmtVal( $this->values[$a], $f['type'] );
+                    $bDo = true;
                 }
             }
             if( $bDo ) {
@@ -1113,13 +1127,21 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
     /********************************************************
      */
     {
-        if( isset( $ra[$f['alias']] ) ) {
+        $k = $f['alias'];
+
+        if( array_key_exists( $k, $ra ) ) {   // this seems to be the only way to test if a null value is in the array (isset returns false for null-valued variables!)
+            $v = $ra[$k];
+            if( $v === null ) {
+                // db value is NULL
+                $this->valuesNull[$k] = true;
+                $v = '';    // use the code below to set an appropriate type
+            }
             switch( $f['type'] ) {
-                case 'S':   $this->values[$f['alias']] = $ra[$f['alias']];             break;
-                case 'F':   $this->values[$f['alias']] = floatval($ra[$f['alias']]);   break;
+                case 'S':   $this->values[$k] = $v;             break;
+                case 'F':   $this->values[$k] = floatval($v);   break;
                 case 'K':
                 case 'I':
-                default:    $this->values[$f['alias']] = intval($ra[$f['alias']]);     break;
+                default:    $this->values[$k] = intval($v);     break;
             }
 
         } else if( $bForceDefaults ) {
@@ -1166,6 +1188,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
      */
     {
         $this->dbValSnap = $this->values;
+        $this->dbNullSnap = $this->valuesNull;
     }
 }
 
