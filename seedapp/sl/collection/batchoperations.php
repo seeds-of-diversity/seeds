@@ -74,23 +74,36 @@ class CollectionBatchOps
 
     function PreStoreGerm( KeyFrame_DataStore $oDS )
     {
-        if( !($inv = $oDS->ValueInt('inv_number')) ) {
+        if( !($iLot = $oDS->ValueInt('inv_number')) ) {
             $this->oApp->oC->AddUserMsg( "Not processing lot # {$oDS->Value('inv_number')}<br/>" );
             return( false );
         }
-
-        if( !($kfrG = $this->oSLDB->GetKFRCond('I', "inv_number='$inv' AND fk_sl_collection='1'")) ) {
-            $this->oApp->oC->AddUserMsg( "Lot # $inv not found<br/>" );
+        if( !($kfrLot = $this->oSLDB->GetKFRCond('I', "inv_number='$iLot' AND fk_sl_collection='1'")) ) {
+            $this->oApp->oC->AddErrMsg( "Lot # $iLot not found<br/>" );
             return( false );
         }
 
-        if( !$oDS->Value('dStart') ) {
-            $this->oApp->oC->AddUserMsg( "Defaulting Lot # $inv test to today's date<br/>" );
-            $oDS->SetValue( 'dStart', date('Y-m-d') );
+        $oDS->CastInt('nSown');
+        $oDS->CastInt('nGerm');
+
+        if( !$oDS->Value('nSown') ) {
+            $this->oApp->oC->AddErrMsg( "Not processing lot # $iLot : 0 seeds sown<br/>" );
+            return( false );
         }
 
-        $this->oApp->oC->AddUserMsg( "Saving Lot # $inv, date {$oDS->Value('dStart')}, nSown {$oDS->ValueInt('nSown')}, nGerm {$oDS->ValueInt('nGerm_count')}, {$oDS->Value('notes')}");
+        $oDS->SetValue( 'fk_sl_inventory', $kfrLot->Key() );
 
-        return( false );
+        if( !$oDS->Value('dStart') ) {
+            $this->oApp->oC->AddUserMsg( "Defaulting Lot # $iLot test to today's date<br/>" );
+            $oDS->SetValue( 'dStart', date('Y-m-d') );
+        }
+        if( !$oDS->Value('dEnd') ) {
+            // blank date has to be represented as NULL
+            $oDS->SetNull('dEnd');
+        }
+
+        $this->oApp->oC->AddUserMsg( "Saving Lot # $iLot, date {$oDS->Value('dStart')}, nSown {$oDS->ValueInt('nSown')}, nGerm {$oDS->ValueInt('nGerm_count')}, {$oDS->Value('notes')}<br/>");
+
+        return( true );
     }
 }
