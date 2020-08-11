@@ -216,6 +216,7 @@ class SEEDDataStore
         return( $this->DSGetDataObj() );
     }
 
+    function ValueInt( $k )     { return( intval($this->Value($k)) ); }
     function ValueEnt( $k )     { return( SEEDCore_HSC($this->Value($k)) ); }
     function ValueDB( $k )      { return( addslashes($this->Value($k)) ); }
     function IsEmpty( $k )      { $v = $this->Value($k); return( empty($v) ); } // because empty doesn't work on methods
