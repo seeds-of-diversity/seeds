@@ -193,6 +193,13 @@ class CollectionListForm extends KeyframeUI_ListFormUI
 
     private function drawSummary()
     {
+        $s = "";
+
+        if( !$this->oComp->oForm->GetKey() ) {
+            $s = "<p>Please select a seed lot from the list</p>";
+            goto done;
+        }
+
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
 
         $s = "<table id='data-table'>
@@ -227,6 +234,7 @@ class CollectionListForm extends KeyframeUI_ListFormUI
         
         $s .= "</table>";
 
+        done:
         return( $s );
     }
 

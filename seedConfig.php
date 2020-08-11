@@ -85,7 +85,7 @@ if( !defined("W_CORE_URL") ) define( "W_CORE_URL", SEEDW_URL );    //deprecated
  */
 if( !defined("SEEDQ_URL") ) define( "SEEDQ_URL", SEEDAPP."q/" );
 
-if( !defined("SEED_LOG_DIR") )  define( "SEED_LOG_DIR", SEEDROOT."../logs" );
+if( !defined("SEED_LOG_DIR") )  define( "SEED_LOG_DIR", SEEDROOT."../logs/" );
 
 
 // Locations of components that need to be visible to the web browser
