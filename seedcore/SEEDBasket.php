@@ -620,6 +620,7 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
                 $amount = $kfrBPxP->Value('f');
                 break;
         }
+        $amount = floatval($amount);
 
         return( $amount );
     }
