@@ -26,6 +26,10 @@ class CollectionTab_GerminationTests
 
     function ContentDraw()
     {
+        $s = "";
+
+        if( !$this->kInventory ) goto done;
+
         $oForm = new KeyframeForm($this->sldbCollection->GetKfrel("G"), 'G', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]);
         $oForm->Update();
         $oForm->SetKFR($this->sldbCollection->GetKfrel("G")->CreateRecord());
@@ -34,6 +38,8 @@ class CollectionTab_GerminationTests
         $s .= "<tr><td>{$oForm->Date("dStart")}</td><td>{$oForm->Date("dEnd")}</td><td>{$oForm->Text("nSown")}</td><td>{$oForm->Text("nGerm")}</td><td>{$oForm->Text("notes","",['width'=>'100%'])}</td><td><input type='submit' /></td></tr>";
         $s .= SEEDCore_ArrayExpandRows($ra, "<tr style='text-align:center'><td>[[dStart]]</td><td>[[dEnd]]</td><td>[[nSown]]</td><td>[[nGerm]]</td><td style='text-align:left'>[[notes]]</td></tr>");
         $s .= "</table></form>";
+
+        done:
         return( $s );
     }
 

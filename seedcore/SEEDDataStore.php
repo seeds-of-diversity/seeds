@@ -216,9 +216,12 @@ class SEEDDataStore
         return( $this->DSGetDataObj() );
     }
 
+    function ValueInt( $k )     { return( intval($this->Value($k)) ); }
     function ValueEnt( $k )     { return( SEEDCore_HSC($this->Value($k)) ); }
     function ValueDB( $k )      { return( addslashes($this->Value($k)) ); }
     function IsEmpty( $k )      { $v = $this->Value($k); return( empty($v) ); } // because empty doesn't work on methods
+
+    function CastInt( $k )      { $this->SetValue( $k, $this->ValueInt($k) ); return( $this->Value($k) ); }
 
     function SetValuePrepend( $k, $v ) { $this->SetValue( $k, ($v . $this->Value($k)) ); }
     function SetValueAppend( $k, $v )  { $this->SetValue( $k, ($this->Value($k) . $v) ); }
