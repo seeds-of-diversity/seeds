@@ -1,35 +1,56 @@
-if [ ! -n "$4" ]
+if [ ! -n "$2" ]
 then
     echo "$0 mp4|webm infile outfile maxwidth [crf (0 for default; '' for 28)] [other args (quoted)]"
+    echo "crf: constant rate factor - lower is better, range is 0 (lossless) to 51 (very poor), 18 is typically visually lossless"
     exit
 fi
 
 OUTFMT=$1
 INFILE=$2
 OUTFILE=$3
-MAXWIDTH=$4
+MAXSIZE=$4
 CRF=$5
 OTHERARGS=$6
 #otherargs should be quoted when you type the command line but they're inserted into the ffmeg command non-quoted
 
+if [ -z "$OUTFILE" ]; then
+    OUTFILE="$INFILE.$OUTFMT"
+fi
+
+if [ -z "$MAXSIZE" ]; then
+    MAXSIZE=720
+fi
+
 if [ "$CRF" = "0" ]; then
     CRFARG=
 elif [ -z "$CRF" ]; then
-    CRFARG="-crf 28"
+    if [ "$OUTFMT" = "mp4" ]; then
+        CRFARG="-crf 28"
+    else
+        # bitrate 700K in vpx9 is almost the same as crf 28 in x264; you can also use -b:v 0 -crf NN but the range of NN is different for different codecs
+        CRFARG="-b:v 700K"
+    fi
 else
     CRFARG="-crf $CRF"
 fi
 
+
+
+scale="'if(gt(a,4/3),320,-1)':'if(gt(a,4/3),-1,240)'"
+
+
 # these are output args so they have to precede $OUTFILE not $INFILE (particularly the scale filter)
-STDARGS="-hide_banner -preset slower  $CRFARG  -vf scale='min($MAXWIDTH,iw)':-2 "
+#STDARGS="-hide_banner  $CRFARG  -vf scale='min($MAXSIZE,iw)':'-2'"
+# scale: iw=initial width, ih=initial height, a=aspect ratio (iw/ih), -2 means preserve aspect ratio
+STDARGS="-hide_banner  $CRFARG  -vf scale='if(gte(a,1.0),min($MAXSIZE,iw),-2):if(gte(a,1.0),-2,min($MAXSIZE,ih))'"
 
 if [ "$OUTFMT" = "mp4" ]; then 
-    echo ffmpeg -i "$INFILE" -c:v libx264 -codec:a aac  $STDARGS $OTHERARGS "$OUTFILE"
-         ffmpeg -i "$INFILE" -c:v libx264 -codec:a aac  $STDARGS $OTHERARGS "$OUTFILE"
+    echo ffmpeg -i "$INFILE" -c:v libx264 -preset slower -codec:a aac  $STDARGS $OTHERARGS "$OUTFILE"
+         ffmpeg -i "$INFILE" -c:v libx264 -preset slower -codec:a aac  $STDARGS $OTHERARGS "$OUTFILE"
 
 elif [ "$OUTFMT" = "webm" ]; then 
-    echo ffmpeg -i "$INFILE" $STDARGS $OTHERARGS "$OUTFILE"
-         ffmpeg -i "$INFILE" $STDARGS $OTHERARGS "$OUTFILE"
+    echo ffmpeg -i "$INFILE" -c:v libvpx-vp9 -c:a libopus  $STDARGS $OTHERARGS "$OUTFILE"
+         ffmpeg -i "$INFILE" -c:v libvpx-vp9 -c:a libopus  $STDARGS $OTHERARGS "$OUTFILE"
 else
     echo Only mp4 and webm are supported
 fi
