@@ -380,6 +380,19 @@ class SEEDSessionAccount extends SEEDSession
             $this->kfrSession->SetValue( 'ts_expiry', self::TS_LOGOUT );      // this is very far in the past so the session is seen as expired
             $ok = $this->kfrSession->PutDBRow();
             $this->kfrSession = null;
+
+            /* Prevent session hijacking (by fixation) by not leaving the same session open for another user at the logout screen on a public computer.
+             * Although the measures below might not leave that session useful anyway.
+             */
+            setcookie(session_name(),'',0,'/');
+            session_regenerate_id(true);
+
+            /* Destroy session variables here. Otherwise someone else logging in on the same session will get the first user's variables.
+             * This logout happens when a login is done in the middle of a session, e.g. for a page inaccessible by the first login.
+             */
+            session_unset();
+            session_destroy();
+            session_write_close();
         }
         $this->bLogin = false;
         $this->eLoginState = self::SESSION_NONE;
