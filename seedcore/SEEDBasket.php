@@ -746,7 +746,7 @@ class SEEDBasket_Product
             }
 
             // This part is the custom form setup for the productType
-            $s = "<form>"
+            $s = "<form method='post'>"
                 .$oHandler->ProductDefine0( $oFormP )
                 ."<input type='submit'>"
                 ."</form>";
