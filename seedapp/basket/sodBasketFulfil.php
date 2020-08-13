@@ -135,6 +135,15 @@ class SodOrderFulfilUI extends SodOrderFulfil
 
     function GetCurrOrderKey()  { return( $this->pRow ); }
 
+    function Style()
+    {
+        return( "
+            <style>
+            .SodBasketFulfil_basketContents td { font-size:x-small; }
+            </style>
+        ");
+    }
+
     function DrawFormFilters()
     {
         $s = "";
@@ -294,8 +303,6 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          return( $s );
     }
 
-    function DrawBasketTmp( $kB, &$fTotal ) { return( $this->oSoDBasket->ShowBasketContents( $kB, $fTotal ) ); }   // until calling code is moved here
-
     private function linkSendEmail( $kfr )
     {
         $ra = SEEDCore_ParmsURL2RA( $kfr->value('sExtra') );
@@ -372,19 +379,23 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     {
         $s = "";
 
-        if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
-            $fTotal = 0.0;
-            $sContents = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), $fTotal );
-            $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
-            $s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>"
-                 .$sContents
-                 ."</div>";
+        // use this to compute the basket, but only show the details to dev/Bob
+        $bContactNeeded = false;
+        $fTotal = 0.0;
+        $sContents = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), $fTotal, $bContactNeeded );
+
+        if( $bContactNeeded ) {
+            $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
-            $kOrder = $kfr->Key();
+            $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
+            $cSuccess = $fTotal == $kfr->Value('pay_total') ? 'success' : 'danger';
+            //$s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>$sContents</div>";
+            $s .= "<div class='alert alert-$cSuccess'>$sContents</div>";
+
 // data-kOrder is also present in the enclosing <tr>
-            $s .= "<div data-kOrder='$kOrder' class='doBuildBasket'><button>rebuild this basket</button></div>";
+            $s .= "<div data-kOrder='{$kfr->Key()}' class='doBuildBasket'><button>rebuild this basket</button></div>";
         }
         return( $s );
     }
@@ -433,7 +444,7 @@ class SoDOrderBasket
     }
 
 
-    function ShowBasketContents( $kB, &$fTotal )
+    function ShowBasketContents( $kB, &$fTotal, &$bContactNeeded )
     {
         $s = "";
 
@@ -441,10 +452,6 @@ class SoDOrderBasket
 
         $oB = new SEEDBasket_Basket( $this->oSB, $kB );
         $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
-
-//        foreach( $raProd as $oProd ) {
-//            $s .= $oProd->GetName()."<br/>";
-//        }
 
         // Find out if there is a membership or donation in this order.
         $bHasMbrProduct = $bHasDonProduct = false;
@@ -455,17 +462,13 @@ class SoDOrderBasket
 
         $raBContents = $oB->ComputeBasketContents( false );
         if( @$raBContents['raSellers'][1] ) {
-            $s .= "<table ".($bHasMbrProduct ? "class='doShowMembershipForm'" : "")." style='text-align:right'>";
-            $s .= "<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
-            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
-                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" );
-            }
-            $s .= "</table>";
+            $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:right;width:100%'>"
+                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>"
+                 .SEEDCore_ArrayExpandRows( $raBContents['raSellers'][1]['raItems'], "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" )
+                 ."</table>";
         }
 
-        if( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() ) {
-            $s .= "<div class='alert alert-danger'>Contact id is needed</div>";
-        }
+        $bContactNeeded = ( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() );
 
         $fTotal = $raBContents['fTotal'];
 
@@ -550,7 +553,6 @@ class SoDOrder_MbrOrder
 
         if( !$kB ) {
             // fill new basket fields
-            $oB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
 
             foreach( ['buyer_firstname' => 'mail_firstname',
                       'buyer_lastname'  => 'mail_lastname',
@@ -575,6 +577,13 @@ class SoDOrder_MbrOrder
             $kfrMbrOrder->SetValue('kBasket', $kB );
             $kfrMbrOrder->PutDBRow();
         }
+
+        // Copy this field here because the mbrid can be set manually during "Recording" after the basket is created
+        $oB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
+        $oB->PutDBRow();
+
+
+        // Add products in mbrOrder to basket
 
         $raProdKeys = $oB->GetProductsInBasket( ['returnType'=>'keys'] );
 
@@ -624,6 +633,7 @@ class SoDOrder_MbrOrder
             }
         }
 
+/*
         // Book shipping
         if( ($d = floatval($kfrMbrOrder->Value('nPubEverySeed_Shipping'))) ) {
             if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='book' AND name='shipping" )) ) {
@@ -633,6 +643,7 @@ class SoDOrder_MbrOrder
                 }
             }
         }
+*/
 
         // Garlic bulbils
         if( $kfrMbrOrder->UrlParmGet('sExtra', 'bBulbils15') ) {
