@@ -65,6 +65,11 @@ class Console02TabSet
         return( new SEEDSessionVarAccessor( $this->oC->oApp->sess, "console02TabSet_".$this->oC->GetConsoleName()."_${tsid}_${tabname}" ) );
     }
 
+    function TabSetGetSVACurrentTab( $tsid )
+    {
+        return( $this->TabSetGetSVA( $tsid, $this->TabSetGetCurrentTab($tsid) ) );
+    }
+
     function TabSetDraw( $tsid )
     /***************************
         Draw a tabbed form, getting the current tab from the console session vars.

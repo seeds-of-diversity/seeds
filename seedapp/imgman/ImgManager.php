@@ -53,6 +53,12 @@ class SEEDAppImgManager
 
         if( ($cmd = SEEDInput_Str('cmd')) ) {
             $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
+            list($nActionConvert,$nActionKeep,$nActionDelete) = $this->getNActions( $raFiles );
+
+            if( $cmd == 'convert' && $nActionConvert > 200 ) {
+                $s .= "<div class='alert alert-danger'>Too many files to convert</div>";
+                goto skipCmd;
+            }
 
             if( $cmd == 'singlekeep' || $cmd == 'singledelete' ) {
                 if( !($relbase = SEEDInput_Str('relbase')) )  die( "relbase not specified with cmd $cmd" );
@@ -75,28 +81,11 @@ class SEEDAppImgManager
                 }
             }
         }
+        skipCmd:
 
         // re-run this to get any changes made above
         $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
-
-        $nActionConvert = $nActionKeep = $nActionDelete = 0;
-        /* $raFiles = [dir][filebase] => array( 'exts'=> [ext1 => fileinfo, ext2 => fileinfo, ...], 'action' => ... )
-         */
-        foreach( $raFiles as $dir => $raF ) {
-            foreach( $raF as $filebase => $raFVar ) {
-                if( !@$raFVar['action'] )  continue;
-
-                if( $raFVar['action'] == 'CONVERT' ) {
-                    $nActionConvert++;
-                } else if( SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' ) ) {
-                    $nActionKeep++;
-                } else if( SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' ) ) {
-                    $nActionDelete++;
-                } else {
-                    die( "Unexpected action ".$raFVar['action'] );
-                }
-            }
-        }
+        list($nActionConvert,$nActionKeep,$nActionDelete) = $this->getNActions( $raFiles );
 
         $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
                  ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
@@ -135,6 +124,31 @@ class SEEDAppImgManager
         return( $s );
     }
 
+    private function getNActions( $raFiles )
+    /***************************************
+        Count how many actions are recommended
+        $raFiles = [dir][filebase] => array( 'exts'=> [ext1 => fileinfo, ext2 => fileinfo, ...], 'action' => ... )
+     */
+    {
+        $nActionConvert = $nActionKeep = $nActionDelete = 0;
+        foreach( $raFiles as $dir => $raF ) {
+            foreach( $raF as $filebase => $raFVar ) {
+                if( !@$raFVar['action'] )  continue;
+
+                if( $raFVar['action'] == 'CONVERT' ) {
+                    $nActionConvert++;
+                } else if( SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' ) ) {
+                    $nActionKeep++;
+                } else if( SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' ) ) {
+                    $nActionDelete++;
+                } else {
+                    die( "Unexpected action ".$raFVar['action'] );
+                }
+            }
+        }
+        return( [$nActionConvert,$nActionKeep,$nActionDelete] );
+    }
+
     function DrawFiles( $raFiles )
     {
         $s = "<style>#drawfilestable td { padding-right:20px }</style>"
@@ -151,7 +165,7 @@ class SEEDAppImgManager
                 if( $this->bShowOnlyIncomplete ) {
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
                     if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
-                    if( count($raExts)==1 && isset($raExts['webp']) )  continue;    // assume that webp are already reduced and scaled 
+                    if( count($raExts)==1 && isset($raExts['webp']) )  continue;    // assume that webp are already reduced and scaled
                                                                                     // (this is a temporary assumption that will not make sense some day, especially because webp are often better compressed than jpg)
                     if( count($raExts)==1 &&
                         (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) ) &&
