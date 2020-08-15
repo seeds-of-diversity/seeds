@@ -1,8 +1,5 @@
 <?php
 
-include_once( SEEDCORE."console/console02.php" );
-include_once( SEEDLIB."SEEDImg/SEEDImgManLib.php" );
-
 class SEEDAppImgManager
 {
     private $oApp;
@@ -101,7 +98,7 @@ class SEEDAppImgManager
         if( $nActionKeep )     $s .= "<p><a href='?cmd=multikeep' style='color:green'>Click here to execute the $nActionKeep <b>Keep</b> links below</a></p>";
         if( $nActionDelete )   $s .= "<p><a href='?cmd=multidelete' style='color:red'>Click here to execute the $nActionDelete <b>Delete</b> links below</a></p>";
 
-        $s .= "<h3>Files under $currDir</h3>";
+        $s .= "<h3>Files under ".realpath($currDir)."</h3>";
 
         $s .= $this->DrawFiles( $raFiles );
 
@@ -301,5 +298,31 @@ function ImgManagerApp( SEEDAppConsole $oApp, $rootdir, $raConfig )
     $raParms = array( "raScriptFiles" => array( W_CORE."js/SEEDCore.js" ) );
     echo Console02Static::HTMLPage( $oImgApp->Main(), "", 'EN', $raParms );   // sCharset defaults to utf8 and filesystem uses utf8
 }
+
+
+if( !defined( "SEEDROOT" ) ) {
+    define( "SEEDROOT", "../../" );
+    define( "SEED_APP_BOOT_REQUIRED", true );
+    include_once( SEEDROOT."seedConfig.php" );
+}
+
+include_once( SEEDCORE."console/console02.php" );
+include_once( SEEDLIB."SEEDImg/SEEDImgManLib.php" );
+
+if( !isset($oApp) ) {
+    $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => [] ] );
+}
+if( !isset($rootdir) ) {
+    $rootdir = realpath(dirname(__FILE__)."/".SEEDROOT)."/";
+}
+if( !isset($raConfig) ) {
+    $raConfig =
+    [ 'imgmanlib' => [ 'fSizePercentThreshold' => 90.0,    // if filesize is reduced below this threshold, use the new file
+                       'bounding_box' => 1200,             // scale down to 1200x1200 if larger
+                       'jpg_quality' => 85
+    ]];
+}
+
+ImgManagerApp( $oApp, $rootdir, $raConfig );
 
 ?>
