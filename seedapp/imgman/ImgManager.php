@@ -94,7 +94,7 @@ class SEEDAppImgManager
                  ."<div><input type='submit' value='Set Controls'/></div>"
              ."</form></div>";
 
-        if( $nActionConvert )  $s .= "<p><a href='?cmd=convert'>Click here to convert $nActionConvert jpg files to jpeg</a></p>";
+        if( $nActionConvert )  $s .= "<p><a href='?cmd=convert'>Click here to convert $nActionConvert jpg files to {$this->oIML->targetExt}</a></p>";
         if( $nActionKeep )     $s .= "<p><a href='?cmd=multikeep' style='color:green'>Click here to execute the $nActionKeep <b>Keep</b> links below</a></p>";
         if( $nActionDelete )   $s .= "<p><a href='?cmd=multidelete' style='color:red'>Click here to execute the $nActionDelete <b>Delete</b> links below</a></p>";
 
@@ -161,11 +161,11 @@ class SEEDAppImgManager
                 $raExts = $raFVar['exts'];
                 if( $this->bShowOnlyIncomplete ) {
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
-                    if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
+                    // we convert gif to webp or call them 'reduced' if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
                     if( count($raExts)==1 && isset($raExts['webp']) )  continue;    // assume that webp are already reduced and scaled
                                                                                     // (this is a temporary assumption that will not make sense some day, especially because webp are often better compressed than jpg)
                     if( count($raExts)==1 &&
-                        (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) ) &&
+                        (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) || isset($raExts['gif']) ) &&
                         substr($filebase,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
                 }
 
@@ -184,7 +184,7 @@ class SEEDAppImgManager
                 $colour = "";
                 foreach( $raExts as $ext => $raFileinfo ) {
                     $relfurl = urlencode($relfile.".".$ext);
-                    if( $ext == "jpeg" ) {
+                    if( $ext == $this->oIML->targetExt ) {
                         $infoJpeg = $raFileinfo;
                         $sizeJpeg = $raFileinfo['filesize'];
                         $scaleJpeg = $raFileinfo['w'];
