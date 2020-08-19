@@ -48,7 +48,7 @@ class SEEDImgMan
     {
         $ra = array( 'w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0, 'filesize_human'=>0 );
 
-        if( !in_array( strtolower(pathinfo($filename,PATHINFO_EXTENSION)), ['gif','png','jpg','jpeg'] ) ) {
+        if( !in_array( strtolower(pathinfo($filename,PATHINFO_EXTENSION)), ['gif','png','jpg','jpeg','webp'] ) ) {
             goto done;
         }
 

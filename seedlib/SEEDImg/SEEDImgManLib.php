@@ -14,6 +14,8 @@ class SEEDImgManLib
     private $oApp;
     private $oIM;
 
+    public $targetExt = "webp";    // jpeg
+
     private $bDebug = false;    // make this true to show what we're doing
 
     function __construct( SEEDAppSession $oApp, $raConfig )
@@ -68,7 +70,7 @@ class SEEDImgManLib
                 $raExts = $raFVar['exts'];
 
                 foreach( $raExts as $ext => $raFileinfo ) {
-                    if( $ext == "jpeg" ) {
+                    if( $ext == $this->targetExt ) {
                         $raFVar['info']['sizeJpeg'] = $raFileinfo['filesize'];
                         $raFVar['info']['filesize_human_Jpeg'] = $raFileinfo['filesize_human'];
                         $raFVar['info']['scaleJpeg'] = $raFileinfo['w'];
@@ -89,7 +91,7 @@ class SEEDImgManLib
                 }
 
                 // If there is a jpg/JPG but no jpeg, CONVERT
-                if( (isset($raExts['jpg']) || isset($raExts['JPG'])) && !isset($raExts['jpeg']) ) {
+                if( (isset($raExts['jpg']) || isset($raExts['JPG'])) && !isset($raExts[$this->targetExt]) ) {
                     $raFVar['action'] = 'CONVERT';
                 }
 
@@ -121,7 +123,7 @@ class SEEDImgManLib
                 $exec = "convert \"${dir}${filebase}.${ext}\" "
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
-                       ."\"${dir}${filebase}.jpeg\"";
+                       ."\"${dir}${filebase}.{$this->targetExt}\"";
                 if( $this->bDebug ) echo $exec."<br/>";
                 exec( $exec );
                 // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)
@@ -131,7 +133,7 @@ class SEEDImgManLib
                 // We like the original foo.jpg better than the converted foo.jpeg
                 // Delete foo.jpeg and move foo.jpg -> foo.jpeg
                 $movefrom = $dir.$filebase.".".$raFVar['info']['otherExt'];
-                $moveto = $dir.$filebase.".jpeg";
+                $moveto = $dir.$filebase.".{$this->targetExt}";
                 if( file_exists($moveto) ) {
                     if( $this->bDebug )  echo "Delete $moveto<br/>";
                     unlink($moveto);
