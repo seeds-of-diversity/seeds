@@ -220,6 +220,11 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
+    function PurchaseFulfil( SEEDBasket_Purchase $oPurchase )
+    {
+        return( SEEDBasket_Purchase::FULFIL_RESULT_FAILED );    // you can't fulfil a purchase using the base class because it has nothing to record
+    }
+
     function PurchaseDelete( KeyframeRecord $kfrBP )  // this can also receive a kfrBPxP or kfrBPxPxB
     /***********************************************
         Delete the given BP from the current basket.
