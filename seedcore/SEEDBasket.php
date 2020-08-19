@@ -698,13 +698,13 @@ class SEEDBasket_Product
 
     function FormIsAjax()
     {
-        return( ($oHandler = $this->getProductHandler()) && $oHandler->ProductFormIsAjax() );
+        return( ($oHandler = $this->GetHandler()) && $oHandler->ProductFormIsAjax() );
     }
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
     function _setKFR( KeyframeRecord $kfr ) { $this->clearCachedProperties(); $this->kfr = $kfr; }
 
-    private function getProductHandler()
+    function GetHandler()
     {
         if( $this->cache_oHandler )  return( $this->cache_oHandler );
         return( $this->cache_oHandler = $this->oSB->GetProductHandler( $this->kfr->Value('product_type') ) );
@@ -726,7 +726,7 @@ class SEEDBasket_Product
 
         if( !$this->kfr->Value('product_type') ) goto done;
 
-        if( !($oHandler = $this->getProductHandler()) )  goto done;
+        if( !($oHandler = $this->GetHandler()) )  goto done;
 
         if( $oHandler->ProductFormIsAjax() ) {
             $s = $oHandler->ProductFormDrawAjax( $kP );
@@ -807,6 +807,9 @@ class SEEDBasket_Purchase
     private $kfr;
     private $oSB;
 
+    private $oBasket = NULL;
+    private $oProduct = NULL;
+
     function __construct( SEEDBasketCore $oSB, $kBP )
     {
         $this->oSB = $oSB;
@@ -818,6 +821,8 @@ class SEEDBasket_Purchase
     function SetKey( $k )
     {
         $this->kfr = $k ? $this->oSB->oDB->GetBPKFR($k) : $this->oSB->oDB->GetBPKFREmpty();
+        $this->oBasket = NULL;
+        $this->oProduct = NULL;
     }
 
     function StorePurchase( SEEDBasket_Basket $oB, SEEDBasket_Product $oP, $raParms )
@@ -840,6 +845,50 @@ class SEEDBasket_Purchase
 
     function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { $this->kfr->PutDBRow(); }
+
+    private function getBasketObj()
+    {
+        $ok = true;
+
+        if( !$this->oBasket ) {
+            $this->oBasket = new SEEDBasket_Basket( $this->oSB, $this->kfr->Value('fk_SEEDBasket_Basket') );
+            if( !$this->oBasket->GetKey() ) $ok = false;
+        }
+
+        return( $ok );
+    }
+
+    private function getProductObj()
+    {
+        $ok = true;
+
+        if( !$this->oProduct ) {
+            $this->oProduct = new SEEDBasket_Product( $this->oSB, $this->kfr->Value('fk_SEEDBasket_Product') );
+            if( !$this->oProduct->GetKey() ) $ok = false;
+        }
+
+        return( $ok );
+    }
+
+    // non-zero results indicate success
+    const FULFIL_RESULT_FAILED = 0;
+    const FULFIL_RESULT_SUCCESS = 1;
+    const FULFIL_RESULT_ALREADY_FULFILLED = 2;
+
+    function Fulfil()
+    /****************
+        Record that the seller has fulfilled this purchase
+     */
+    {
+        $iRet = self::FULFIL_RESULT_FAILED;
+
+        if( $this->getProductObj() && ($oHandler = $this->oProduct->GetHandler()) ) {
+            $iRet = $oHandler->PurchaseFulfil( $this );
+        }
+
+        done:
+        return( $iRet );
+    }
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
     function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
