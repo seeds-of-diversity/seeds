@@ -10,6 +10,7 @@ class SEEDAppImgManager
     private $currSubdir;
     private $bShowDelLinks;
     private $bShowOnlyIncomplete;
+    private $bSubdirs;
 
     function __construct( SEEDAppConsole $oApp, $raConfig )
     {
@@ -24,9 +25,11 @@ class SEEDAppImgManager
         if( isset($_REQUEST['bControlsSubmitted']) ) {  // this just says that the control form was submitted
             $oApp->oC->oSVA->VarSet( 'imgman_bShowDelLinks', intval(@$_REQUEST['imgman_bShowDelLinks']) );
             $oApp->oC->oSVA->VarSet( 'imgman_bShowOnlyIncomplete', intval(@$_REQUEST['imgman_bShowOnlyIncomplete']) );
+            $oApp->oC->oSVA->VarSet( 'imgman_bSubdirs', intval(@$_REQUEST['imgman_bSubdirs']) );
         }
         $this->bShowDelLinks = $oApp->oC->oSVA->VarGet( 'imgman_bShowDelLinks' );
         $this->bShowOnlyIncomplete = $oApp->oC->oSVA->VarGet( 'imgman_bShowOnlyIncomplete' );
+        $this->bSubdirs = $oApp->oC->oSVA->VarGet( 'imgman_bSubdirs' );
     }
 
     function Main()
@@ -49,7 +52,7 @@ class SEEDAppImgManager
         if( substr($currDir,-1,1) != '/' ) $currDir .= '/';
 
         if( ($cmd = SEEDInput_Str('cmd')) ) {
-            $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
+            $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir, $this->bSubdirs ) );
             list($nActionConvert,$nActionKeep,$nActionDelete) = $this->getNActions( $raFiles );
 
             if( $cmd == 'convert' && $nActionConvert > 200 ) {
@@ -81,12 +84,13 @@ class SEEDAppImgManager
         skipCmd:
 
         // re-run this to get any changes made above
-        $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir ) );
+        $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir, $this->bSubdirs ) );
         list($nActionConvert,$nActionKeep,$nActionDelete) = $this->getNActions( $raFiles );
 
         $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
                  ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
                  ."<div><input type='checkbox' name='imgman_bShowOnlyIncomplete' value='1' ".($this->bShowOnlyIncomplete ? 'checked' : "")."/> Show Only Incomplete Files</div>"
+                 ."<div><input type='checkbox' name='imgman_bSubdirs' value='1' ".($this->bSubdirs ? 'checked' : "")."/> Show Subdirectories</div>"
                  ."<div>"
                      ."<input type='text' name='imgman_currSubdir' id='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/>"
                      ."<button type='button' id='backbutton'>&lt;-</button>"  // type='button' makes it non-submit

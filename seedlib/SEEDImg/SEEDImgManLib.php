@@ -33,15 +33,15 @@ class SEEDImgManLib
 
     function ShowImg( $filename )   { $this->oIM->ShowImg( $filename ); }
 
-    function GetAllImgInDir( $dir )
-    /******************************
+    function GetAllImgInDir( $dir, $bSubdirs = true )
+    /************************************************
         Return [dir][filename][ext] = image info
      */
     {
         $s = "";
 
         $oFile = new SEEDFile();
-        $oFile->Traverse( $dir, array('eFetch'=>'FILE') );
+        $oFile->Traverse( $dir, ['eFetch'=>'FILE', 'bRecurse'=>(bool)$bSubdirs] );  // SEEDCore_SmartVal need this as bool type
 
         $raFiles = array();
         foreach( $oFile->GetTraverseItems() as $k => $ra ) {
