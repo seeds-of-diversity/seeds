@@ -384,7 +384,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $fTotal = 0.0;
         $sContents = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), $fTotal, $bContactNeeded );
 
-        if( $bContactNeeded ) {
+        if( $bContactNeeded && $kfr->value('eStatus')=='Paid' ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
