@@ -172,6 +172,16 @@ class SEEDBasketProductHandler
         return( $kfrP->Value('title_en') );
     }
 
+    function Purchase1( KeyframeRecord $kfrP )
+    /*****************************************
+        Given a product, determine whether it can be added to the current basket.
+        e.g. some combinations of items might not be allowed at the same time
+     */
+    {
+        //if( !($kfrB = $this->oSB->GetCurrentBasketKFR()) )  goto done;
+        return( true );     // return false to disallow purchase
+    }
+
     function Purchase2( KeyframeRecord $kfrP, $raPurchaseParms )
     /***********************************************************
         Given a product, add it to the current basket and return the new kBP

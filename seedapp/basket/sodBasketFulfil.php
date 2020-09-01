@@ -647,7 +647,7 @@ class SoDOrder_MbrOrder
 
         // Garlic bulbils
         if( $kfrMbrOrder->UrlParmGet('sExtra', 'bBulbils15') ) {
-            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='misc' AND name='bulbils15'" )) ) {
+            if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='special1' AND name='bulbils15'" )) ) {
                 if( !in_array($oP->GetKey(), $raProdKeys) ) {
                     $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
                     $oBP->StorePurchase( $oB, $oP, ['n'=>1] );

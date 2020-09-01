@@ -33,6 +33,9 @@ class SEEDBasketProducts_SoD
             'event'      => [ 'label'=>'Event',
                               'classname'=>'SEEDBasketProductHandler_Event',
                               'forceFlds' => ['quant_type'=>'ITEM-1'] ],
+            'special1'   => [ 'label'=>'Special Single Item',
+                              'classname'=>'SEEDBasketProductHandler_Special1',
+                              'forceFlds' => ['quant_type'=>'ITEM-1'] ],
     ];
 }
 
@@ -239,6 +242,80 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
     {
         $oDS->SetValue( 'quant_type', 'MONEY' );
         return( parent::ProductDefine1( $oDS ) );
+    }
+}
+
+class SEEDBasketProductHandler_Special1 extends SEEDBasketProductHandler
+/***********************************************************************
+    Special Single Item
+ */
+{
+    function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
+
+    function ProductDefine0( KeyframeForm $oFormP )
+    {
+        $oFormX = new SEEDFormExpand( $oFormP );
+
+        $s = "<h3>Special Single Item Definition Form</h3>";
+
+        $s .= $oFormX->ExpandForm(
+                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
+                    ."||| Product #     || [[key:]]"
+                    ."||| Seller        || [[text:uid_seller|readonly]]\n"
+                    ."||| Product type  || [[text:product_type|readonly]]\n"
+                    ."||| Quantity type || [[text:quant_type|readonly value=ITEM-1]]\n"
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
+                    ."<br/><br/>\n"
+                    ."||| Title EN      || [[text:title_en | ]]\n"
+                    ."||| Title FR      || [[text:title_fr | ]]\n"
+                    ."||| Name          || [[text:name]]"
+                    ."<br/><br/>\n"
+                    ."||| Price         || [[text:item_price]]\n"
+                    ."||| Price U.S.    || [[text:item_price_US]]\n"
+                     );
+
+        return( $s );
+    }
+
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    {
+        $oDS->SetValue( 'quant_type', 'ITEM-1' );
+        return( parent::ProductDefine1( $oDS ) );
+    }
+
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
+    {
+        switch( $eDetail ) {
+            case SEEDBasketProductHandler::DETAIL_TINY:
+                $s = $kfrP->Expand( "<p>[[title_en]] ([[name]])</p>" );
+                break;
+            default:
+                $s = $kfrP->Expand( "<h4>[[title_en]] ([[name]])</h4>" )
+                    .$this->ExplainPrices( $kfrP );
+        }
+        return( $s );
+    }
+
+    function Purchase1( KeyframeRecord $kfrP )
+    /*****************************************
+        Only one of this product may be in the basket.
+     */
+    {
+        $bOk = false;
+
+        if( ($raBPxP = $this->oSB->oDB->GetPurchasesList( $this->oSB->GetBasketKey() )) ) {
+            foreach( $raBPxP as $ra ) {
+                if( $ra['P_product_type']==$kfr->Value('product_type') && $ra['P_name']==$kfrP->Value('name') ) {
+                    // this product is already in the basket
+                    goto done;
+                }
+            }
+        }
+
+        $bOk = true;
+
+        done:
+        return( $bOk );
     }
 }
 
