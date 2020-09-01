@@ -81,6 +81,7 @@ class QServerRosetta extends SEEDQ
          */
         if( ($kfr = $this->oSLDB->GetKFRC('PxS', "P.name LIKE '%$dbSrch%'")) ) {
             while( $kfr->CursorFetch() ) {
+// QCharSetFromLatin the keys too
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key'),
                      'sSpecies'        => $kfr->Value('S_name_en'),

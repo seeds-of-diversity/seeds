@@ -35,16 +35,13 @@ class CollectionTab_PacketLabels
             exit; // Actually drawPDF_Labels exits, but it's nice to have a reminder of that here
         }
 
+        $s = "";
+
         $oSLDB = new SLDBCollection( $this->oApp );
 
-        if( (!$oForm->Value('cvName') || !$oForm->Value('desc')) && $this->kInventory ) {
-            if( ($kfrLot = $oSLDB->GetKFR( 'IxAxPxS', $this->kInventory )) ) {
-                if( !$oForm->Value('cvName') ) $oForm->SetValue( 'cvName', $kfrLot->Value('P_name').' '.strtolower($kfrLot->Value('S_name_en')) );
-
-                if( !$oForm->Value('desc') ) $oForm->SetValue( 'desc', $kfrLot->Value('P_packetLabel') );
-            }
+        if( !$this->kInventory || !($kfrLot = $oSLDB->GetKFR( 'IxAxPxS', $this->kInventory )) ) {
+            goto done;
         }
-        $oForm->SetValue('kLot', $kfrLot->Value('inv_number'));
 
         // the label header is: Cultivar Species (Lot_number)
         //                      Description
@@ -69,6 +66,8 @@ class CollectionTab_PacketLabels
                 ."</div>"
                 ."<div style='clear:both;margin:10px'><input type='submit' name='cmd' value='Make Labels'/></div>"
             ."</form>";
+
+        done:
         return $s;
     }
 
