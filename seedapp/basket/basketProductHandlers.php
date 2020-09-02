@@ -66,143 +66,33 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler_Item1
     }
 }
 
-class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler
+class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
     function ProductDefine0( KeyFrameForm $oFormP )
     {
-        $oFormX = new SEEDFormExpand( $oFormP );
-
-        $s = "<h3>Donation Definition Form</h3>";
-
-        $s .= $oFormX->ExpandForm(
-                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
-                    ."||| Product #     || [[key:]]"
-                    ."||| Seller        || [[text:uid_seller|readonly]]"
-                    ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly value=MONEY]]"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
-                    ."<br/><br/>"
-                    ."||| Title EN      || [[text:title_en]]"
-                    ."||| Title FR      || [[text:title_fr]]"
-                    ."||| Name          || [[text:name]]"
-                     );
-
-        return( $s );
-    }
-
-    function ProductDefine1( Keyframe_DataStore $oDS )
-    {
-        $oDS->SetValue( 'quant_type', 'MONEY' );
-        return( parent::ProductDefine1( $oDS ) );
+        return( parent::ProductDefine0_MONEY( $oFormP, "Donation" ) );
     }
 }
 
-class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler
+class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler_ItemN
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
     function ProductDefine0( KeyFrameForm $oFormP )
     {
-        $oFormX = new SEEDFormExpand( $oFormP );
-
-        $s = "<h3>Publications Product Form</h3>";
-
-        $s .= $oFormX->ExpandForm(
-                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
-                    ."||| Product #     || [[key:]]"
-                    ."||| Seller        || [[text:uid_seller|readonly]]"
-                    ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly value=ITEM-N]]"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
-                    ."<br/><br/>"
-                    ."||| Title EN      || [[text:title_en]]"
-                    ."||| Title FR      || [[text:title_fr]]"
-                    ."||| Name          || [[text:name]]"
-                    ."||| Images        || [[text:img]]"
-                     ."<br/><br/>"
-                    ."||| Min in basket  || [[text:bask_quant_min]] (0 means no limit)"
-                    ."||| Max in basket  || [[text:bask_quant_max]] (0 means no limit)"
-                    ."<br/><br/>"
-                    ."||| Price          || [[text:item_price]] (e.g. 15 or 15:1-9,12:10-19,10:20+)"
-                    ."||| Discount       || [[text:item_discount]]"
-                    ."||| Shipping       || [[text:item_shipping]]"
-                    ."||| Price U.S.     || [[text:item_price_US]]"
-                    ."||| Discount U.S.  || [[text:item_discount_US]]"
-                    ."||| Shipping U.S.  || [[text:item_shipping_US]]"
-                     );
-
-        return( $s );
+        return( parent::ProductDefine0_ItemN( $oFormP, "Publications" ) );
     }
-
-    function ProductDefine1( Keyframe_DataStore $oDS )
-    {
-        $oDS->SetValue( 'quant_type', 'ITEM-N' );
-        return( parent::ProductDefine1( $oDS ) );
-    }
-
-    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
-    {
-        switch( $eDetail ) {
-            case SEEDBasketProductHandler::DETAIL_TINY:
-                $s = $kfrP->Expand( "<p>[[title_en]] ([[name]])</p>" );
-                break;
-            default:
-                $s = $kfrP->Expand( "<h4>[[title_en]] ([[name]])</h4>" )
-                    .$this->ExplainPrices( $kfrP );
-        }
-        return( $s );
-    }
-
-    function Purchase0( KeyframeRecord $kfrP, $raParms = [] )
-    /*****************************************
-        Given a product, draw the form that a store would show to purchase it.
-        Form parms can be:
-            n     (int)
-            f     (float)
-            sbp_* (string)
-     */
-    {
-        $s = $kfrP->Value('title_en')
-            ."&nbsp;&nbsp;<input type='text' name='sb_n' value='1'/>"
-            ."<input type='hidden' name='sb_product' value='".$kfrP->Value('name')."'/>";
-
-        return( $s );
-    }
-
 }
 
-class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler
+class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler_MONEY
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
     function ProductDefine0( KeyframeForm $oFormP )
     {
-        $oFormX = new SEEDFormExpand( $oFormP );
-
-        $s = "<h3>Misc Payment Definition Form</h3>";
-
-        $s .= $oFormX->ExpandForm(
-                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')"
-                    ."||| Product #     || [[key:]]"
-                    ."||| Seller        || [[text:uid_seller|readonly]]"
-                    ."||| Product type  || [[text:product_type|readonly]]"
-                    ."||| Quantity type || [[text:quant_type|readonly value=MONEY]]"
-                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
-                    ."<br/><br/>"
-                    ."||| Title EN      || [[text:title_en]]"
-                    ."||| Title FR      || [[text:title_fr]]"
-                    ."||| Name          || [[text:name]]"
-                     );
-
-        return( $s );
-    }
-
-    function ProductDefine1( Keyframe_DataStore $oDS )
-    {
-        $oDS->SetValue( 'quant_type', 'MONEY' );
-        return( parent::ProductDefine1( $oDS ) );
+        return( parent::ProductDefine0_MONEY( $oFormP, "Misc Payment" ) );
     }
 }
 
