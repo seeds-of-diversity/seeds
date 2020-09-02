@@ -732,7 +732,7 @@ class SEEDBasket_Product
         if( !($oHandler = $this->GetHandler()) )  goto done;
 
         if( $oHandler->ProductFormIsAjax() ) {
-            $s = $oHandler->ProductFormDrawAjax( $kP );
+            $s = $oHandler->ProductFormDrawAjax( $this->Key() );
         } else {
             /* Create a form with the correct ProductDefine1() and use that to Update any current form submission,
              * then load up the current product (or create a new one) and draw the form for it.
@@ -833,9 +833,8 @@ class SEEDBasket_Purchase
         $this->kfr->SetValue( 'fk_SEEDBasket_Baskets', $oB->GetKey() );
         $this->kfr->SetValue( 'fk_SEEDBasket_Products', $oP->GetKey() );
 
-        $raFld = ['n', 'f', 'eStatus', 'bAccountingDone'];
         foreach( $raParms as $k => $v ) {
-            if( in_array( $k, $raFld ) ) {
+            if( in_array( $k, ['n', 'f', 'eStatus', 'kRef', 'flagsWorkflow'] ) ) {
                 $this->kfr->SetValue( $k, $v );
             } else {
                 $this->kfr->UrlParmSet( 'sExtra', $k, $v );
