@@ -357,15 +357,18 @@ klugeUTF8 = true: return sOut and sErr in utf8
             }
         }
 
-        if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) &&
-            ($kBPNew = $oHandler->Purchase2( $kfrP, $raPurchaseParms )) )
-        {
-            $sOut = $this->DrawBasketContents( ['kBPHighlight'=>$kBPNew], $klugeUTF8 );
-            $bOk = true;
+        if( ($oHandler = $this->getHandler( $kfrP->Value('product_type') )) ) {
+            list($bPurchaseOk,$sErr1) = $oHandler->Purchase1( $kfrP );
+            if( $bPurchaseOk && ($kBPNew = $oHandler->Purchase2( $kfrP, $raPurchaseParms )) ) {
+                $sOut = $this->DrawBasketContents( ['kBPHighlight'=>$kBPNew], $klugeUTF8 );
+                $bOk = true;
+            }
+        } else {
+            $sErr .= $sErr1;
         }
 
         done:
-        return( array( $bOk, $sOut, $sErr ) );
+        return( [$bOk, $sOut, $sErr] );
     }
 
     private function removeProductFromBasket( $kBP, $klugeUTF8 )
