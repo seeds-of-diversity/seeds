@@ -178,8 +178,10 @@ class SEEDBasketProductHandler
         e.g. some combinations of items might not be allowed at the same time
      */
     {
-        //if( !($kfrB = $this->oSB->GetCurrentBasketKFR()) )  goto done;
-        return( true );     // return false to disallow purchase
+        $bOk = true;
+        $sErr = "";
+
+        return( [$bOk,$sErr] );     // return false to disallow purchase and explain why
     }
 
     function Purchase2( KeyframeRecord $kfrP, $raPurchaseParms )
@@ -327,4 +329,57 @@ class SEEDBasketProductHandler
     }
 }
 
-?>
+
+class SEEDBasketProductHandler_Item1 extends SEEDBasketProductHandler
+/***********************************
+    A generic product handler for quant_type ITEM-1
+ */
+{
+    function __construct( SEEDBasketCore $oSB ) { parent::__construct( $oSB ); }
+
+    function ProductDefine0_Item1( KeyframeForm $oFormP, $sItemLabel )
+    {
+        $oFormX = new SEEDFormExpand( $oFormP );
+
+        $s = "<h3>$sItemLabel Definition Form</h3>";
+
+        $s .= $oFormX->ExpandForm(
+                     "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')\n"
+                    ."||| Product #     || [[key:]]"
+                    ."||| Seller        || [[text:uid_seller|readonly]]\n"
+                    ."||| Product type  || [[text:product_type|readonly]]\n"
+                    ."||| Quantity type || [[text:quant_type|readonly value=ITEM-1]]\n"
+                    ."||| Status        || ".$oFormP->Select( 'eStatus', ['ACTIVE','INACTIVE','DELETED'], "", ['bValsCompacted'=>true] )
+                    ."<br/><br/>\n"
+                    ."||| Title EN      || [[text:title_en | ]]\n"
+                    ."||| Title FR      || [[text:title_fr | ]]\n"
+                    ."||| Name          || [[text:name]]"
+                    ."<br/><br/>\n"
+                    ."||| Price         || [[text:item_price]]\n"
+                    ."||| Price U.S.    || [[text:item_price_US]]\n"
+                     );
+
+        return( $s );
+    }
+
+    function ProductDefine1( Keyframe_DataStore $oDS )
+    {
+        $oDS->SetValue( 'quant_type', 'ITEM-1' );
+        return( parent::ProductDefine1( $oDS ) );
+    }
+
+    function ProductDraw( KeyframeRecord $kfrP, $eDetail, $raParms = [] )
+    {
+        switch( $eDetail ) {
+            case SEEDBasketProductHandler::DETAIL_TINY:
+                $s = $kfrP->Expand( "<p>[[title_en]] ([[name]])</p>" );
+                break;
+            default:
+                $s = $kfrP->Expand( "<h4>[[title_en]] ([[name]])</h4>" )
+                    .$this->ExplainPrices( $kfrP );
+        }
+        return( $s );
+    }
+
+
+}
