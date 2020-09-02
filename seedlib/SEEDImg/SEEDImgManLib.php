@@ -35,7 +35,12 @@ class SEEDImgManLib
 
     function GetAllImgInDir( $dir, $bSubdirs = true )
     /************************************************
-        Return [dir][filename][ext] = image info
+        Return [dir][filename_base] = ['r'=> [image info about _r file],
+                                       'o'=> [image info about any other file with same filename_base],
+                                       'action' => recommended action for this filename_base,
+                                       'actionMsg => '']
+        where filename_base is the PATHINFO_FILENAME without any _r suffix
+        and if more than one file has the same filename_base but not _r the first one is recorded and the rest are ignored for now with a warning
      */
     {
         $s = "";
@@ -45,15 +50,44 @@ class SEEDImgManLib
 
         $raFiles = array();
         foreach( $oFile->GetTraverseItems() as $k => $ra ) {
-            $dir = $ra[0];
-            $filename = $ra[1];
-            $filename_base = pathinfo($ra[1],PATHINFO_FILENAME);    // basic filename before the extension
+            $dir = $ra[0];                                          // dir/
+            $filename = $ra[1];                                     // filename.ext
+            $filename_base = pathinfo($ra[1],PATHINFO_FILENAME);    // basic filename before the extension, modulo any _r suffix
+            if( ($isReduced = SEEDCore_EndsWith( $filename_base, "_r" )) ) {
+                $filename_base = substr($filename_base,0,-2);
+            }
+
+            // create empty info array for new names
+            if( !isset($raFiles[$dir][$filename_base]) ) {
+                $raFiles[$dir][$filename_base] = ['r' => ['filename'=>''],  // use filename to determine whether this was found
+                                                  'o' => ['filename'=>''],  // use filename to determine whether this was found
+                                                  'action' => '',
+                                                  'actionMsg' => '' ];
+            }
+
+            if( $isReduced ) {
+                if( $raFiles[$dir][$filename_base]['r']['filename'] ) {
+                    $this->oApp->oC->AddErrMsg( "Duplicate file {$dir}{$filename_base}_r" );
+                } else {
+                    $raFiles[$dir][$filename_base]['r']['filename'] = $filename;
+                    $raFiles[$dir][$filename_base]['r']['info'] = $this->ImgInfo( $dir.$filename );
+                }
+            } else {
+                if( $raFiles[$dir][$filename_base]['o']['filename'] ) {
+                    $this->oApp->oC->AddErrMsg( "Duplicate file {$dir}{$filename_base}" );
+                } else {
+                    $raFiles[$dir][$filename_base]['o']['filename'] = $filename;
+                    $raFiles[$dir][$filename_base]['o']['info'] = $this->ImgInfo( $dir.$filename );
+                }
+            }
+/*
             if( ($ext = pathinfo($ra[1],PATHINFO_EXTENSION)) ) {
-                $raFiles[$dir][$filename_base]['exts'][$ext] = $this->ImgInfo( $dir.$filename );
+                $raFiles[$dir][$filename_base]['exts'][$ext] =
                 $raFiles[$dir][$filename_base]['info'] = array();
                 $raFiles[$dir][$filename_base]['action'] = '';
                 $raFiles[$dir][$filename_base]['actionMsg'] = '';
             }
+*/
         }
         ksort($raFiles);
 
@@ -67,46 +101,38 @@ class SEEDImgManLib
     {
         foreach( $raFiles as $dir => &$raF ) {
             foreach( $raF as $file => &$raFVar ) {
-                $raExts = $raFVar['exts'];
-
-                foreach( $raExts as $ext => $raFileinfo ) {
-                    if( $ext == $this->targetExt ) {
-                        $raFVar['info']['sizeJpeg'] = $raFileinfo['filesize'];
-                        $raFVar['info']['filesize_human_Jpeg'] = $raFileinfo['filesize_human'];
-                        $raFVar['info']['scaleJpeg'] = $raFileinfo['w'];
-                        $raFVar['info']['sScaleX_Jpeg'] = $raFileinfo['w'].' x '.$raFileinfo['h'];
-                    } else {
-                        $raFVar['info']['otherExt'] = $ext;
-                        $raFVar['info']['sizeOther'] = $raFileinfo['filesize'];
-                        $raFVar['info']['filesize_human_Other'] = $raFileinfo['filesize_human'];
-                        $raFVar['info']['scaleOther'] = $raFileinfo['w'];
-                        $raFVar['info']['sScaleX_Other'] = $raFileinfo['w'].' x '.$raFileinfo['h'];
-                    }
-                }
-                if( ($scaleJpeg = @$raFVar['info']['scaleJpeg']) && ($scaleOther = @$raFVar['info']['scaleOther']) ) {
-                    $raFVar['info']['scalePercent'] = floatval($scaleJpeg) / floatval($scaleOther) * 100;
-                }
-                if( ($sizeJpeg = @$raFVar['info']['sizeJpeg']) && ($sizeOther = @$raFVar['info']['sizeOther']) ) {
-                    $raFVar['info']['sizePercent'] = floatval($sizeJpeg) / floatval($sizeOther) * 100;
-                }
-
-                // If there is a jpg/JPG but no jpeg, CONVERT
-                if( (isset($raExts['jpg']) || isset($raExts['JPG'])) && !isset($raExts[$this->targetExt]) ) {
+                // If there is an orig but no reduced version, CONVERT.
+                // If there is a reduced but no orig, do nothing.
+                // If there are both, recommend to KEEP or DELETE.
+                if( $raFVar['o']['filename'] && !$raFVar['r']['filename'] ) {
+                    //(isset($raExts['jpg']) || isset($raExts['JPG'])) && !isset($raExts[$this->targetExt]) ) {
                     $raFVar['action'] = 'CONVERT';
-                }
+                } else
+                if( $raFVar['o']['filename'] && $raFVar['r']['filename'] ) {
+                    $raFVar['analysis']['sizeO'] = $raFVar['o']['info']['filesize'];
+                    $raFVar['analysis']['sizeR'] = $raFVar['r']['info']['filesize'];
+                    $raFVar['analysis']['sizeHumanO'] = $raFVar['o']['info']['filesize_human'];
+                    $raFVar['analysis']['sizeHumanR'] = $raFVar['r']['info']['filesize_human'];
+                    $raFVar['analysis']['scaleO'] = $raFVar['o']['info']['w'];
+                    $raFVar['analysis']['scaleR'] = $raFVar['r']['info']['w'];
+                    $raFVar['analysis']['sScaleO'] = $raFVar['o']['info']['w'].' x '.$raFVar['o']['info']['h'];
+                    $raFVar['analysis']['sScaleR'] = $raFVar['r']['info']['w'].' x '.$raFVar['r']['info']['h'];
 
-                // If there are scales and sizes of two files to compare, recommend an action
-                if( $scaleJpeg && $scaleOther && $sizeJpeg && $sizeOther ) {
-                    if( $raFVar['info']['sizePercent'] <= $this->raConfig['fSizePercentThreshold'] ) {
+                    $raFVar['analysis']['scalePercent'] = floatval($raFVar['analysis']['scaleR']) / floatval($raFVar['analysis']['scaleO']) * 100;
+                    $raFVar['analysis']['sizePercent']  = floatval($raFVar['analysis']['sizeR']) / floatval($raFVar['analysis']['sizeO']) * 100;
+
+                    $sizeR = $raFVar['analysis']['sizeR'];
+                    $sizeO = $raFVar['analysis']['sizeO'];
+                    if( $raFVar['analysis']['sizePercent'] <= $this->raConfig['fSizePercentThreshold'] ) {
                         $raFVar['action'] = 'DELETE_ORIG MAJOR_FILESIZE_REDUCTION';
-                    } else if( $sizeJpeg < $sizeOther ) {
+                    } else if( $sizeR < $sizeO ) {
                         $raFVar['action'] = 'KEEP_ORIG MINOR_FILESIZE_REDUCTION';
-                    } else if( $sizeJpeg > $sizeOther ) {
+                    } else if( $sizeR > $sizeO ) {
                         $raFVar['action'] = 'KEEP_ORIG FILESIZE_INCREASE';
                     } else {
                         $raFVar['action'] = 'KEEP_ORIG FILESIZE_UNCHANGED';
                     }
-                }
+                }//var_dump($raFVar);
             }
         }
 
@@ -119,11 +145,12 @@ class SEEDImgManLib
 
         switch( $action ) {
             case 'CONVERT':
-                $ext = isset($raFVar['exts']['jpg']) ? 'jpg' : 'JPG';
-                $exec = "convert \"${dir}${filebase}.${ext}\" "
+                $sFileFrom = $dir.$raFVar['o']['filename'];
+                $sFileTo = "${dir}${filebase}_r.{$this->targetExt}";
+                $exec = "convert \"${sFileFrom}\" "
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
-                       ."\"${dir}${filebase}.{$this->targetExt}\"";
+                       ."\"{$sFileTo}\"";
                 if( $this->bDebug ) echo $exec."<br/>";
                 exec( $exec );
                 // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)

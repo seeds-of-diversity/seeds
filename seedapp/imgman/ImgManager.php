@@ -49,7 +49,7 @@ class SEEDAppImgManager
         }
 
         $currDir = $this->rootdir.$this->currSubdir;
-        if( substr($currDir,-1,1) != '/' ) $currDir .= '/';
+        if( !SEEDCore_EndsWith( $currDir, '/' ) ) $currDir .= '/';
 
         if( ($cmd = SEEDInput_Str('cmd')) ) {
             $raFiles = $this->oIML->AnalyseImages( $this->oIML->GetAllImgInDir( $currDir, $this->bSubdirs ) );
@@ -162,7 +162,8 @@ class SEEDAppImgManager
 
             $bDrawDir = true;
             foreach( $raF as $filebase => $raFVar ) {
-                $raExts = $raFVar['exts'];
+                //$raExts = $raFVar['exts'];
+                $raExts = [];
                 if( $this->bShowOnlyIncomplete ) {
                     if( count($raExts)==1 && isset($raExts['jpeg']) )  continue;    // don't show files that only have jpeg
                     // we convert gif to webp or call them 'reduced' if( count($raExts)==1 && isset($raExts['gif']) )   continue;    // don't bother showing files that we don't convert
@@ -206,48 +207,62 @@ class SEEDAppImgManager
                     // extra column needed
                     $s .= "<td>&nbsp;</td>";
                 }
+                foreach( ['o','r'] as $i ) {
+                    if( $raFVar[$i]['filename'] ) {
+                        $ext = pathinfo( $raFVar[$i]['filename'], PATHINFO_EXTENSION );
+                        $relfurl = urlencode($reldir.$raFVar[$i]['filename']);
+                        $style = $i=='r' ? "color:green" : "";
+                        $s .= "<td>"
+                                 ."<a href='?n=$relfurl' target='_blank' style='$style'>$ext</a>&nbsp;&nbsp;"
+                                 .($this->bShowDelLinks ? "<a href='?del=$relfurl' style='color:red'>Del</a>" : "")
+                             ."</td>";
+                    } else {
+                        $s .= "<td>&nbsp</td>";
+                    }
+                }
+
 
                 // Third column shows scale
                 $sScale = "";
-                $scaleJpeg = @$raFVar['info']['scaleJpeg'];
-                $scaleOther = @$raFVar['info']['scaleOther'];
+                $scaleR = @$raFVar['analysis']['scaleR'];
+                $scaleO = @$raFVar['analysis']['scaleO'];
 
-                if( $scaleJpeg && $scaleOther ) {
-                    if( $raFVar['info']['scalePercent'] < 100.0 ) {
-                        $sScale = "<span style='color:green'>{$raFVar['info']['sScaleX_Jpeg']}</span> < "
-                                 ." <span>{$raFVar['info']['sScaleX_Other']}</span>";
-                    } else if( $raFVar['info']['scalePercent'] > 100.0 ) {
-                        $sScale = "<span style='color:red'>{$raFVar['info']['sScaleX_Jpeg']}</span> > "
-                                 ." <span>{$raFVar['info']['sScaleX_Other']}</span>";
+                if( $scaleR && $scaleO ) {
+                    if( $raFVar['analysis']['scalePercent'] < 100.0 ) {
+                        $sScale = "<span>{$raFVar['analysis']['sScaleO']}</span> &gt; "
+                                 ." <span style='color:green'>{$raFVar['analysis']['sScaleR']}</span>";
+                    } else if( $raFVar['analysis']['scalePercent'] > 100.0 ) {
+                        $sScale = "<span>{$raFVar['analysis']['sScaleO']}</span> &lt; "
+                                 ." <span style='color:red'>{$raFVar['analysis']['sScaleR']}</span>";
                     } else {
-                        $sScale = $raFVar['info']['sScaleX_Jpeg'];
+                        $sScale = $raFVar['analysis']['sScaleR'];
                     }
-                } else if( $scaleJpeg ) {
-                    $sScale = $raFVar['info']['sScaleX_Jpeg'];
-                } else if( $scaleOther ) {
-                    $sScale = $raFVar['info']['sScaleX_Other'];
+                } else if( $scaleR ) {
+                    $sScale = $raFVar['analysis']['sScaleR'];
+                } else if( $scaleO ) {
+                    $sScale = $raFVar['analysis']['sScaleO'];
                 }
                 $s .= "<td style='font-size:8pt'>$sScale</td>";
 
                 // Fourth column shows filesize
                 $sSize = "";
-                $sizeJpeg = @$raFVar['info']['sizeJpeg'];
-                $sizeOther = @$raFVar['info']['sizeOther'];
-                $fhJpeg = @$raFVar['info']['filesize_human_Jpeg'];
-                $fhOther = @$raFVar['info']['filesize_human_Other'];
-                if( $sizeJpeg && $sizeOther ) {
-                    $percent = intval($raFVar['info']['sizePercent']);
-                    if( $sizeJpeg < $sizeOther ) {
-                        $sSize = "<span style='color:green'>$fhJpeg</span> &lt; <span>$fhOther</span> ($percent)%";
-                    } else if( $sizeJpeg > $sizeOther ) {
-                        $sSize = "<span style='color:red'>$fhJpeg</span> &gt; <span>$fhOther</span> ($percent)%";
+                $sizeR = @$raFVar['analysis']['sizeR'];
+                $sizeO = @$raFVar['analysis']['sizeO'];
+                $fhR = @$raFVar['analysis']['sizeHumanR'];
+                $fhO = @$raFVar['analysis']['sizeHumanO'];
+                if( $sizeR && $sizeO ) {
+                    $percent = intval($raFVar['analysis']['sizePercent']);
+                    if( $sizeR < $sizeO ) {
+                        $sSize = "<span>$fhO</span> &gt; <span style='color:green'>$fhR</span> ($percent)%";
+                    } else if( $sizeR > $sizeO ) {
+                        $sSize = "<span>$fho</span> &lt; <span style='color:red'>$fhR</span> ($percent)%";
                     } else {
-                        $sSize = $fhJpeg;
+                        $sSize = $fhR;
                     }
-                } else if( $sizeJpeg ) {
-                    $sSize = $fhJpeg;
-                } else if( $scaleOther ) {
-                    $sSize = $fhOther;
+                } else if( $sizeR ) {
+                    $sSize = $fhR;
+                } else if( $scaleO ) {
+                    $sSize = $fhO;
                 }
                 $s .= "<td style='font-size:8pt'>$sSize</td>";
 
@@ -258,12 +273,12 @@ class SEEDAppImgManager
 
 $fScalePercentThreshold = 90.0;
                 $sMsg = "";
-                if( $scaleJpeg && $scaleOther && $sizeJpeg && $sizeOther && @$raFVar['action'] ) {
+                if( $scaleR && $scaleO && $sizeR && $sizeO && @$raFVar['action'] ) {
                     list($action,$reason) = explode( ' ', $raFVar['action'] );
                     if( $action == 'DELETE_ORIG' && $reason == 'MAJOR_FILESIZE_REDUCTION' ) {
-                        if( $raFVar['info']['scalePercent'] > $fScalePercentThreshold ) {
+                        if( $raFVar['analysis']['scalePercent'] > $fScalePercentThreshold ) {
                             $sMsg = "$linkDelJpg : Filesize reduced a lot with "
-                                   .($raFVar['info']['scalePercent'] == 100.0 ? "no" : "<b>minor</b>")
+                                   .($raFVar['analysis']['scalePercent'] == 100.0 ? "no" : "<b>minor</b>")
                                    ." loss of scale - delete original JPG";
                             $colour = "orange";
                         } else {
