@@ -397,10 +397,13 @@ CREATE TABLE SEEDBasket_BP (
     fk_SEEDBasket_Products INTEGER NOT NULL,
     n                      INTEGER NOT NULL,        -- the number of items if ITEM type
     f                      DECIMAL(7,2) NOT NULL,   -- the amount if MONEY type
-    eStatus                ENUM('NEW','PAID','FILLED','CANCELLED') NOT NULL DEFAULT 'NEW',
-    bAccountingDone        TINYINT NOT NULL DEFAULT '0',
 
-    sExtra                 TEXT,                -- e.g. urlencoded metadata about the purchase
+    eStatus                ENUM('NEW','PAID','FILLED','CANCELLED') NOT NULL DEFAULT 'NEW',
+    flagsWorkflow          INTEGER NOT NULL DEFAULT 0,  -- 1=accounting done, 2=..., 4=...
+    --bAccountingDone        TINYINT NOT NULL DEFAULT '0',
+
+    kRef                   INTEGER NOT NULL DEFAULT 0,  -- reference to some other table per (P.prod_type,P.name)
+    sExtra                 TEXT,                        -- e.g. urlencoded metadata about the purchase
 
   --  INDEX(fk_SEEDBasket_Products),  does anyone use this?
     INDEX(fk_SEEDBasket_Baskets)
