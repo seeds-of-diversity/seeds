@@ -216,14 +216,16 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $s );
     }
 
-    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false, $raParms = [] )
-    /*****************************************************************
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $raParms = [] )
+    /**************************************************************
         Draw a product in a basket, in more or less detail.
      */
     {
+        $eDetail = SEEDCore_ArraySmartVal1( $raParms, 'eDetail', SEEDBasketProductHandler::DETAIL_TINY );
+
         $kfrP = $this->oSB->oDB->GetProduct( $kfrBPxP->Value('P__key') );
         // ProductDraw returns utf8 by default because it uses MSDQ
-        $s = $this->ProductDraw( $kfrP, SEEDBasketProductHandler::DETAIL_TINY, $raParms );
+        $s = $this->ProductDraw( $kfrP, $eDetail, $raParms );
 
         if( $kfrBPxP->Value('quant_type') == 'ITEM_N' && ($n = $kfrBPxP->Value('n')) > 1 ) {
             $s .= " ($n @ ".$this->oSB->dollar($this->oSB->priceFromRange($kfrBPxP->Value('item_price'), $n)).")";
