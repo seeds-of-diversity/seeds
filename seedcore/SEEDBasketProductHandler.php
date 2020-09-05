@@ -218,9 +218,13 @@ class SEEDBasketProductHandler
         return( $kfrBP ? $kfrBP->Key() : 0 );
     }
 
-    function PurchaseDraw( KeyframeRecord $kfrBPxP, $bDetail = false, $raParms = [] )
-    /*****************************************************************
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $raParms = [] )
+    /**************************************************************
         Draw a product in a basket, in more or less detail.
+
+        raParms:
+            eDetail: SEEDBasketProductHandler::DETAIL_*
+            bUTF8:   output in utf8
      */
     {
         $s = $kfrBPxP->Value( 'P_title_en' );
