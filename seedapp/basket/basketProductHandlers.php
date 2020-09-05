@@ -74,6 +74,15 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
     {
         return( parent::ProductDefine0_MONEY( $oFormP, "Donation" ) );
     }
+
+    function PurchaseDraw( KeyframeRecord $kfrBPxP, $raParms = [] )
+    {
+        $s = parent::PurchaseDraw( $kfrBPxP, $raParms );
+        if( ($kRef = $kfrBPxP->Value('kRef')) )  $s .= " ($kRef)";      // show the mbr_donations _key if it is set
+$s .= " (SET ME PLEASE)";
+
+        return( $s );
+    }
 }
 
 class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler_ItemN
