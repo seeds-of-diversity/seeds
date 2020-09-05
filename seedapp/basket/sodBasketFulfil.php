@@ -380,15 +380,17 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $s = "";
 
         // use this to compute the basket, but only show the details to dev/Bob
-        $bContactNeeded = false;
-        $fTotal = 0.0;
-        $sContents = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), $fTotal, $bContactNeeded );
+        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
         if( $bContactNeeded && $kfr->value('eStatus')=='Paid' ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
+            if( $bDonNotRecorded && $kfr->value('eStatus')=='Paid' ) {
+                $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded <button>Record</button></div>";
+            }
+
             $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
             $cSuccess = $fTotal == $kfr->Value('pay_total') ? 'success' : 'danger';
             //$s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>$sContents</div>";
@@ -444,9 +446,18 @@ class SoDOrderBasket
     }
 
 
-    function ShowBasketContents( $kB, &$fTotal, &$bContactNeeded )
+    function ShowBasketContents( $kB )
+    /*********************************
+        Get sContents:       summary of basket contents
+            fTotal:          total amount
+            bContactNeeded:  uid_buyer required to be set
+            bDonNotRecorded: there is a donation without a kRef to mbr_donations
+     */
     {
         $s = "";
+        $fTotal = 0.0;
+        $bContactNeeded = false;
+        $bDonNotRecorded = false;
 
         if( !$kB )  goto done;
 
@@ -464,7 +475,8 @@ class SoDOrderBasket
         if( @$raBContents['raSellers'][1] ) {
             $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:right;width:100%'>"
                  ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>"
-                 .SEEDCore_ArrayExpandRows( $raBContents['raSellers'][1]['raItems'], "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" )
+                 .SEEDCore_ArrayExpandRows( $raBContents['raSellers'][1]['raItems'],
+                                            "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" )
                  ."</table>";
         }
 
@@ -472,8 +484,16 @@ class SoDOrderBasket
 
         $fTotal = $raBContents['fTotal'];
 
+
+        foreach( $oB->GetPurchasesInBasket() as $pur ) {
+            if( ($oProd = @$raProd[$pur['fk_SEEDBasket_Products']]) && $oProd->GetProductType()=='donation' && !$pur['kRef'] ) {
+                $bDonNotRecorded = true;
+                break;
+            }
+        }
+
         done:
-        return( $s );
+        return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded] );
     }
 
 }
@@ -658,6 +678,22 @@ class SoDOrder_MbrOrder
         $ok = true;
 
         return( $ok );
+    }
+
+    function RecordDonations( int $kOrder )
+    {
+        $ok = false;
+
+        if( ($kfr = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) && ($kB = $kfr->Value('kBasket')) )
+        {
+            $ok = true;
+
+
+
+
+        }
+
+        return( $ok ? 1 : 0 );
     }
 
 }
