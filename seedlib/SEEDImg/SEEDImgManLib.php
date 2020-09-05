@@ -16,7 +16,7 @@ class SEEDImgManLib
 
     public $targetExt = "webp";    // jpeg
 
-    private $bDebug = false;    // make this true to show what we're doing
+    private $bDebug = true;    // make this true to show what we're doing
 
     function __construct( SEEDAppSession $oApp, $raConfig )
     {
@@ -145,35 +145,36 @@ class SEEDImgManLib
 
         switch( $action ) {
             case 'CONVERT':
-                $sFileFrom = $dir.$raFVar['o']['filename'];
-                $sFileTo = "${dir}${filebase}_r.{$this->targetExt}";
-                $exec = "convert \"${sFileFrom}\" "
+                $sFileO = $dir.$raFVar['o']['filename'];
+                $sFileR = "${dir}${filebase}_r.{$this->targetExt}";
+                $exec = "convert \"${sFileO}\" "
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
-                       ."\"{$sFileTo}\"";
+                       ."\"{$sFileR}\"";
                 if( $this->bDebug ) echo $exec."<br/>";
                 exec( $exec );
                 // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)
                 break;
 
             case 'KEEP_ORIG':
-                // We like the original foo.jpg better than the converted foo.jpeg
-                // Delete foo.jpeg and move foo.jpg -> foo.jpeg
-                $movefrom = $dir.$filebase.".".$raFVar['info']['otherExt'];
-                $moveto = $dir.$filebase.".{$this->targetExt}";
-                if( file_exists($moveto) ) {
-                    if( $this->bDebug )  echo "Delete $moveto<br/>";
-                    unlink($moveto);
+                // We like the original foo.jpg better than the converted foo.webp
+                // Delete foo.webp and move foo.jpg -> foo_r.jpg
+                $delR = $dir.$raFVar['r']['filename']; //"${dir}${filebase}_r.{$this->targetExt}";
+                $moveOFrom = $dir.$raFVar['o']['filename'];
+                $moveOTo = $dir.pathinfo($raFVar['o']['filename'], PATHINFO_FILENAME)."_r.".pathinfo($raFVar['o']['filename'], PATHINFO_EXTENSION);
+                if( file_exists($delR) ) {
+                    if( $this->bDebug )  echo "Delete $delR<br/>";
+                    unlink($delR);
                 }
-                if( $this->bDebug )  echo "Move $movefrom to $moveto<br/>";
-                rename( $movefrom, $moveto );
+                if( $this->bDebug )  echo "Move $moveOFrom to $moveOTo<br/>";
+                rename( $moveOFrom, $moveOTo );
                 break;
 
             case 'DELETE_ORIG':
-                $fullname = $dir.$filebase.".".$raFVar['info']['otherExt'];
-                if( file_exists($fullname) ) {
-                    if( $this->bDebug )  echo "Delete $fullname<br/>";
-                    unlink($fullname);
+                $delO = $dir.$raFVar['o']['filename'];
+                if( file_exists($delO) ) {
+                    if( $this->bDebug )  echo "Delete $delO<br/>";
+                    unlink($delO);
                 }
                 break;
 
