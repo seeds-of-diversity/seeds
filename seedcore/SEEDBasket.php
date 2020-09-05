@@ -492,25 +492,33 @@ class SEEDBasket_Basket
     /***************************************
         Return a list of the products currently in the basket.
 
-        returnType = keys, objects (default)
+        raParms:
+            returnType = keys:    array of kProduct
+                         objects: array of kProduct=>oProduct
      */
     {
         $bReturnKeys = @$raParms['returnType'] == 'keys';
 
         $raOut = [];
-        if( $this->kfr && $this->kfr->Key() ) {
-            $raPur = $this->oSB->oDB->GetPurchasesList( $this->kfr->Key() );
-            foreach( $raPur as $ra ) {
-                if( ($kP = $ra['fk_SEEDBasket_Products']) ) {
-                    if( $bReturnKeys ) {
-                        $raOut[] = $kP;
-                    } else {
-                        $raOut[] = new SEEDBasket_Product( $this->oSB, $kP );
-                    }
+        foreach( $this->GetPurchasesInBasket() as $ra ) {
+            if( ($kP = @$ra['fk_SEEDBasket_Products']) ) {
+                if( $bReturnKeys ) {
+                    $raOut[] = $kP;
+                } else {
+                    $raOut[$kP] = new SEEDBasket_Product( $this->oSB, $kP );
                 }
             }
         }
+
         return( $raOut );
+    }
+
+    function GetPurchasesInBasket()
+    /******************************
+        Return array of oPurchase
+     */
+    {
+        return( $this->kfr && $this->kfr->Key() ? $this->oSB->oDB->GetPurchasesList($this->kfr->Key()) : [] );
     }
 
     function DrawBasketContents( $raParms = array(), $klugeUTF8 = false )
@@ -827,6 +835,10 @@ class SEEDBasket_Purchase
         $this->oBasket = NULL;
         $this->oProduct = NULL;
     }
+
+    function GetBasketKey()  { return( $this->kfr->Value('fk_SEEDBasket_Baskets') ); }
+    function GetProductKey() { return( $this->kfr->Value('fk_SEEDBasket_Products') ); }
+    function GetKRef()       { return( $this->kfr->Value('kRef') ); }
 
     function StorePurchase( SEEDBasket_Basket $oB, SEEDBasket_Product $oP, $raParms )
     {
