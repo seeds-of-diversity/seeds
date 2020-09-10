@@ -484,9 +484,9 @@ class SoDOrderBasket
 
         $fTotal = $raBContents['fTotal'];
 
-
+        // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
         foreach( $oB->GetPurchasesInBasket() as $pur ) {
-            if( ($oProd = @$raProd[$pur['fk_SEEDBasket_Products']]) && $oProd->GetProductType()=='donation' && !$pur['kRef'] ) {
+            if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
                 $bDonNotRecorded = true;
                 break;
             }
@@ -684,16 +684,36 @@ class SoDOrder_MbrOrder
     {
         $ok = false;
 
-        if( ($kfr = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) && ($kB = $kfr->Value('kBasket')) )
+        /* Must have a valid SEEDBasket with a uid_buyer so that person can be recorded in mbr_donations
+         */
+        if( ($kfrOrder = $this->oOrder->KfrelOrder()->GetRecordFromDBKey( $kOrder )) &&
+            ($kB = $kfrOrder->Value('kBasket')) &&
+            ($oB = new SEEDBasket_Basket( $this->oSB, $kB )) &&
+            $oB->GetBuyer() )
         {
+            // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
+            foreach( $oB->GetPurchasesInBasket() as $pur ) {
+// check that pur['eStatus'] is not CANCELLED
+                if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
+                    $oMbr = new Mbr_Contacts( $this->oApp );
+                    $kDonation = $oMbr->AddMbrDonation(
+                                        ['kMbr' => $oB->GetBuyer(),
+                                         'date_received' => $kfrOrder->Value('_created'),    // can this be obtained from basket? date of payment or date of order?
+                                         'amount' => $pur['f'],
+                                         'receipt_num' => 0 ] );
+
+                    if( $kDonation ) {
+                        $oPur = new SEEDBasket_Purchase( $this->oSB, $pur['_key'] );
+                        $oPur->SetValue( 'kRef', $kDonation );
+                        $oPur->PutDBRow();
+                    }
+                }
+            }
+
             $ok = true;
-
-
-
-
         }
 
-        return( $ok ? 1 : 0 );
+        return( $ok );
     }
 
 }

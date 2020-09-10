@@ -147,6 +147,23 @@ class Mbr_Contacts
     }
 
 
+    function AddMbrDonation( $ra )
+    {
+        $kDonation = 0;
+
+        if( ($kfr = $this->oDB->KFRel('D')->CreateRecord()) ) {
+            $kfr->SetValue( 'fk_mbr_contacts', $ra['kMbr'] );
+            $kfr->SetValue( 'date_received',   $ra['date_received'] );
+            $kfr->SetValue( 'amount',          $ra['amount'] );
+            $kfr->SetValue( 'receipt_num',     $ra['receipt_num'] );
+            $kfr->SetNull( 'date_issued' );
+            if( $kfr->PutDBRow() ) {
+                $kDonation = $kfr->Key();
+            }
+        }
+        return( $kDonation );
+    }
+
     function BuildDonorTable()
     {
         include_once( "MbrIntegrity.php" );

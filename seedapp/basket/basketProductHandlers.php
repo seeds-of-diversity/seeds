@@ -77,9 +77,8 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
 
     function PurchaseDraw( KeyframeRecord $kfrBPxP, $raParms = [] )
     {
-        $s = parent::PurchaseDraw( $kfrBPxP, $raParms );
-        if( ($kRef = $kfrBPxP->Value('kRef')) )  $s .= " ($kRef)";      // show the mbr_donations _key if it is set
-$s .= " (SET ME PLEASE)";
+        $s = parent::PurchaseDraw( $kfrBPxP, $raParms )
+            .(($kRef = $kfrBPxP->Value('kRef')) ? " ($kRef)" : " (NOT RECORDED)");      // show the mbr_donations _key if it is set
 
         return( $s );
     }

@@ -95,13 +95,8 @@ class MbrIntegrity
                 continue;
             }
 
-            $kfr = $this->oDB->KFRel('D')->CreateRecord();
-            $kfr->SetValue( 'fk_mbr_contacts', $ra['kMbr'] );
-            $kfr->SetValue( 'date_received', $ra['date'] );
-            $kfr->SetValue( 'amount', $ra['amount'] );
-            $kfr->SetValue( 'receipt_num', $ra['receipt_num'] );
-            $kfr->SetNull( 'date_issued' );
-            $kfr->PutDBRow();
+            $oMbr = new Mbr_Contacts( $this->oApp );
+            $oMbr->AddMbrDonation( ['kMbr'=>$ra['kMbr'], 'date_received'=>$ra['date'], 'amount'=>$ra['amount'], 'receipt_num'=>$ra['receipt_num'] ] );
         }
 
         /* Create new mbr_donations records for any orphans found in SEEDBasket (starting 2020-01-01)
@@ -112,12 +107,8 @@ class MbrIntegrity
                 continue;
             }
 
-            $kfr = $this->oDB->KFRel('D')->CreateRecord();
-            $kfr->SetValue( 'fk_mbr_contacts', $ra['kMbr'] );
-            $kfr->SetValue( 'date_received', $ra['date'] );
-            $kfr->SetValue( 'amount', $ra['amount'] );
-            $kfr->SetNull( 'date_issued' );
-            $kfr->PutDBRow();
+            $oMbr = new Mbr_Contacts( $this->oApp );
+            $oMbr->AddMbrDonation( ['kMbr'=>$ra['kMbr'], 'date_received'=>$ra['date'], 'amount'=>$ra['amount'], 'receipt_num'=>0 ] );
         }
 
         $s .= "<p>Adding ".count($raD['raOrphansFromMbrContacts'])." records from mbr_contacts, "
