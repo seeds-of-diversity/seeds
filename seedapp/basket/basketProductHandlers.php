@@ -67,6 +67,13 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler_Item1
 }
 
 class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
+/**************************************
+    A donation is considered fulfilled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
+    The fulfilment system cannot create an mbr_donation until the uid_buyer is identified so we assume that kRef alone indicates fulfilment.
+
+    N.B. Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
+         All this system does is create an mbr_donation and point to it from kRef.
+ */
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
 
@@ -81,6 +88,45 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
             .(($kRef = $kfrBPxP->Value('kRef')) ? " ($kRef)" : " (NOT RECORDED)");      // show the mbr_donations _key if it is set
 
         return( $s );
+    }
+
+    function PurchaseIsFulfilled( SEEDBasket_Purchase $oPurchase )
+    {
+        return( $oPurchase->GetWorkflowFlag(SEEDBasket_Purchase::WORKFLOW_FLAG_RECORDED) && $oPurchase->GetKRef() );
+    }
+
+    function PurchaseFulfil( SEEDBasket_Purchase $oPurchase )
+    {
+        $ret = SEEDBasket_Purchase::FULFIL_RESULT_FAILED;
+
+        // check if already fulfilled
+        if( $this->PurchaseIsFulfilled($oPurchase) ) {
+            $ret = SEEDBasket_Purchase::FULFIL_RESULT_ALREADY_FULFILLED;
+            goto done;
+        }
+
+        // check if able to fulfil
+        if( !$oPurchase->GetKey() || $oPurchase->GetEStatus() == 'CANCELLED' ||
+            !($oB = $oPurchase->GetBasketObj()) || !($kBuyer = $oB->GetBuyer()) ) goto done;
+
+// Date paid is not necessarily the date the order was made.  We might enter cheque orders long after they are received.
+$dateReceived = $oB->GetDate();
+
+        $oMbr = new Mbr_Contacts( $this->oSB->oApp );
+        $kDonation = $oMbr->AddMbrDonation(
+                        ['kMbr' => $kBuyer,
+                         'date_received' => $dateReceived,
+                         'amount' => $oPurchase->GetF(),
+                         'receipt_num' => 0 ] );
+
+        if( $kDonation ) {
+            $oPurchase->SetValue( 'kRef', $kDonation );
+            $oPurchase->SaveRecord();
+            $ret = SEEDBasket_Purchase::FULFIL_RESULT_SUCCESS;
+        }
+
+        done:
+        return( $ret );
     }
 }
 

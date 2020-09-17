@@ -236,7 +236,18 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
+    function PurchaseIsFulfilled( SEEDBasket_Purchase $oPurchase )
+    /*************************************************************
+        Return true if this purchase has already been fulfilled
+     */
+    {
+        return( false );
+    }
+
     function PurchaseFulfil( SEEDBasket_Purchase $oPurchase )
+    /********************************************************
+        The seller wants to record that this purchase has been fulfilled.
+     */
     {
         return( SEEDBasket_Purchase::FULFIL_RESULT_FAILED );    // you can't fulfil a purchase using the base class because it has nothing to record
     }

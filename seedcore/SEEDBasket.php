@@ -481,6 +481,7 @@ class SEEDBasket_Basket
     }
 
     function GetBuyer()  { return( $this->kfr ? $this->kfr->Value('uid_buyer') : "" ); }
+    function GetDate()   { return( $this->kfr ? $this->kfr->Value('_created') : "" ); }     // not sure this is always what you want
 
     function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
@@ -831,14 +832,36 @@ class SEEDBasket_Purchase
 
     function SetKey( $k )
     {
-        $this->kfr = $k ? $this->oSB->oDB->GetBPKFR($k) : $this->oSB->oDB->GetBPKFREmpty();
+        $this->kfr = $k ? $this->oSB->oDB->GetPurchaseKFR($k) : $this->oSB->oDB->GetPURKFREmpty();  // GetPurchaseKFR is PURxP
         $this->oBasket = NULL;
         $this->oProduct = NULL;
     }
 
     function GetBasketKey()  { return( $this->kfr->Value('fk_SEEDBasket_Baskets') ); }
     function GetProductKey() { return( $this->kfr->Value('fk_SEEDBasket_Products') ); }
+    function GetN()          { return( $this->kfr->Value('n') ); }
+    function GetF()          { return( $this->kfr->Value('f') ); }
+    function GetEStatus()    { return( $this->kfr->Value('eStatus') ); }
     function GetKRef()       { return( $this->kfr->Value('kRef') ); }
+
+    /* Workflow flags: product handlers can assign any meaning to any flag bits but here are some that they might like to use in standard ways
+     */
+    const WORKFLOW_FLAG_ACCOUNTED = 1;
+    const WORKFLOW_FLAG_RECORDED = 2;
+    const WORKFLOW_FLAG_MAILED = 4;
+    function GetWorkflowFlag( int $flag )
+    {
+        return( $this->kfr ? ($this->kfr->value('flagsWorkflow') & $flag) : 0 );
+    }
+    function SetWorkflowFlag( int $flag )
+    {
+        if( $this->kfr )  $this->kfr->SetValue( 'flagsWorkflow', ($this->kfr->value('flagsWorkflow') | $flag) );
+    }
+
+    function GetProductHandler()
+    {
+        return( $this->kfr && $this->kfr->value('P_product_type') ? $this->oSB->GetProductHandler( $this->kfr->value('P_product_type') ) : null );
+    }
 
     function StorePurchase( SEEDBasket_Basket $oB, SEEDBasket_Product $oP, $raParms )
     {
@@ -857,31 +880,28 @@ class SEEDBasket_Purchase
         return( $this->kfr->Key() );
     }
 
-    function SetValue( $k, $v ) { $this->kfr->SetValue( $k, $v ); }
-    function PutDBRow()         { $this->kfr->PutDBRow(); }
+    function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
+    function PutDBRow()         { $this->SaveRecord(); } // deprecate
+    function SaveRecord()       { if( $this->kfr ) $this->kfr->PutDBRow(); }
 
-    private function getBasketObj()
+    function GetBasketObj()
     {
-        $ok = true;
-
-        if( !$this->oBasket ) {
-            $this->oBasket = new SEEDBasket_Basket( $this->oSB, $this->kfr->Value('fk_SEEDBasket_Basket') );
-            if( !$this->oBasket->GetKey() ) $ok = false;
+        if( !$this->oBasket && ($kB = $this->kfr->Value('fk_SEEDBasket_Baskets')) ) {
+            $oB = new SEEDBasket_Basket( $this->oSB, $kB );
+            if( $oB && $oB->GetKey() ) $this->oBasket = $oB;
         }
 
-        return( $ok );
+        return( $this->oBasket );
     }
 
-    private function getProductObj()
+    function GetProductObj()
     {
-        $ok = true;
-
-        if( !$this->oProduct ) {
-            $this->oProduct = new SEEDBasket_Product( $this->oSB, $this->kfr->Value('fk_SEEDBasket_Product') );
-            if( !$this->oProduct->GetKey() ) $ok = false;
+        if( !$this->oProduct && ($kP = $this->kfr->Value('fk_SEEDBasket_Products')) ) {
+            $oP = new SEEDBasket_Product( $this->oSB, $kP );
+            if( $oP && $oP->GetKey() ) $this->oProduct = $oP;
         }
 
-        return( $ok );
+        return( $this->oProduct );
     }
 
     // non-zero results indicate success
@@ -889,19 +909,20 @@ class SEEDBasket_Purchase
     const FULFIL_RESULT_SUCCESS = 1;
     const FULFIL_RESULT_ALREADY_FULFILLED = 2;
 
+    function IsFulfilled()
+    /*********************
+        Return true if the seller has already fulfilled this purchase
+     */
+    {
+        return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseIsFulfilled($this) : false );
+    }
+
     function Fulfil()
     /****************
         Record that the seller has fulfilled this purchase
      */
     {
-        $iRet = self::FULFIL_RESULT_FAILED;
-
-        if( $this->getProductObj() && ($oHandler = $this->oProduct->GetHandler()) ) {
-            $iRet = $oHandler->PurchaseFulfil( $this );
-        }
-
-        done:
-        return( $iRet );
+        return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseFulfil($this) : self::FULFIL_RESULT_FAILED );
     }
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()

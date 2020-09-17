@@ -446,8 +446,8 @@ class SoDOrderBasket
     }
 
 
-    function ShowBasketContents( $kB )
-    /*********************************
+    function ShowBasketContents( $kB, $bFulfilControls = false )
+    /***********************************************************
         Get sContents:       summary of basket contents
             fTotal:          total amount
             bContactNeeded:  uid_buyer required to be set
@@ -462,6 +462,7 @@ class SoDOrderBasket
         if( !$kB )  goto done;
 
         $oB = new SEEDBasket_Basket( $this->oSB, $kB );
+// you can do this with GetPurchasesInBasket too, and simplify some code below
         $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
 
         // Find out if there is a membership or donation in this order.
@@ -479,6 +480,16 @@ class SoDOrderBasket
                                             "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" )
                  ."</table>";
         }
+        if( $bFulfilControls ) {
+            foreach( $oB->GetPurchasesInBasket() as $pur ) {
+                if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
+                    $button = "<button>Accept donation</button>";
+                } else {
+                    $button = "<button>Undo</button>";
+                }
+                $s .= "<tr><td valign='top' style='padding-right:5px'>{$pur['P_title_en']}</td><td valign='top'>$button</td></tr>";
+            }
+        }
 
         $bContactNeeded = ( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() );
 
@@ -495,7 +506,6 @@ class SoDOrderBasket
         done:
         return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded] );
     }
-
 }
 
 class SoDOrder_MbrOrder
@@ -693,27 +703,13 @@ class SoDOrder_MbrOrder
         {
             // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
             foreach( $oB->GetPurchasesInBasket() as $pur ) {
-// check that pur['eStatus'] is not CANCELLED
                 if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
-                    $oMbr = new Mbr_Contacts( $this->oApp );
-                    $kDonation = $oMbr->AddMbrDonation(
-                                        ['kMbr' => $oB->GetBuyer(),
-                                         'date_received' => $kfrOrder->Value('_created'),    // can this be obtained from basket? date of payment or date of order?
-                                         'amount' => $pur['f'],
-                                         'receipt_num' => 0 ] );
-
-                    if( $kDonation ) {
-                        $oPur = new SEEDBasket_Purchase( $this->oSB, $pur['_key'] );
-                        $oPur->SetValue( 'kRef', $kDonation );
-                        $oPur->PutDBRow();
-                    }
+                    $oPur = new SEEDBasket_Purchase( $this->oSB, $pur['_key'] );
+                    $ok = ($oPur->Fulfil() == SEEDBasket_Purchase::FULFIL_RESULT_SUCCESS);
                 }
             }
-
-            $ok = true;
         }
 
         return( $ok );
     }
-
 }
