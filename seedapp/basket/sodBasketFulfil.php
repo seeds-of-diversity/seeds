@@ -481,13 +481,13 @@ class SoDOrderBasket
                  ."</table>";
         }
         if( $bFulfilControls ) {
-            foreach( $oB->GetPurchasesInBasket() as $pur ) {
-                if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
+            foreach( $oB->GetPurchasesInBasket() as $oPur ) {
+                if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
                     $button = "<button>Accept donation</button>";
                 } else {
                     $button = "<button>Undo</button>";
                 }
-                $s .= "<tr><td valign='top' style='padding-right:5px'>{$pur['P_title_en']}</td><td valign='top'>$button</td></tr>";
+                $s .= "<tr><td valign='top' style='padding-right:5px'>{$oPur->Value('P_title_en')}</td><td valign='top'>$button</td></tr>";
             }
         }
 
@@ -496,8 +496,8 @@ class SoDOrderBasket
         $fTotal = $raBContents['fTotal'];
 
         // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
-        foreach( $oB->GetPurchasesInBasket() as $pur ) {
-            if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
+        foreach( $oB->GetPurchasesInBasket() as $oPur ) {
+            if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
                 $bDonNotRecorded = true;
                 break;
             }
@@ -702,9 +702,8 @@ class SoDOrder_MbrOrder
             $oB->GetBuyer() )
         {
             // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
-            foreach( $oB->GetPurchasesInBasket() as $pur ) {
-                if( $pur['P_product_type']=='donation' ) {
-                    $oPur = new SEEDBasket_Purchase_donation( $this->oSB, $pur['_key'] );
+            foreach( $oB->GetPurchasesInBasket() as $oPur ) {
+                if( $oPur->GetProductType()=='donation' ) {
                     $ok = ($oPur->Fulfil() == SEEDBasket_Purchase::FULFIL_RESULT_SUCCESS);  // checks IsFulfilled() internally
                 }
             }

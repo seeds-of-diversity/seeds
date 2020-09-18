@@ -44,6 +44,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetList( 'P', $sCond, $raKFParms ) ); }
     function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
 
+// deprecate, use SEEDBasket_Baskets::GetPurchasesInBasket
     function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('PURxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
     function GetPurchasesKFRC( $kB, $raKFParms = array() ) { return( $this->GetKFRC('PURxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
 

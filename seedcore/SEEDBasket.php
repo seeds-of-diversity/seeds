@@ -485,7 +485,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
         // if prodType hint was given as an arg, make sure it was correct
         if( $bCheckProdMatch && $oProd->GetProductType() != $prodType ) {
             // error message?
-            $oProd = null;
+            $oProd = new SEEDBasket_Product( $this, $kP, $raConfig );   // will probably not do the right thing, but unlikely to do a bad thing
         }
 
         return( $oProd );
@@ -516,12 +516,12 @@ klugeUTF8 = true: return sOut and sErr in utf8
         $classname = $prodType && class_exists($c = "SEEDBasket_Purchase_$prodType") ? $c : "SEEDBasket_Purchase";
 
         // create the object
-        $oPur = new $classname( $this, $kP );
+        $oPur = new $classname( $this, $kPur );
 
         // if prodType hint was given as an arg, make sure it was correct
         if( $bCheckProdMatch && $oPur->GetProductType() != $prodType ) {
             // error message?
-            $oPur = null;
+            $oPur = new SEEDBasket_Purchase( $this, $kPur, $raConfig );   // will probably not do the right thing, but unlikely to do a bad thing
         }
 
         return( $oPur );
@@ -572,11 +572,12 @@ class SEEDBasket_Basket
         $bReturnKeys = @$raParms['returnType'] == 'keys';
 
         $raOut = [];
-        foreach( $this->GetPurchasesInBasket() as $ra ) {
-            if( ($kP = @$ra['fk_SEEDBasket_Products']) ) {
+        foreach( $this->GetPurchasesInBasket() as $oPur ) {
+            if( ($kP = $oPur->GetProductKey()) ) {
                 if( $bReturnKeys ) {
                     $raOut[] = $kP;
                 } else {
+// use SEEDBasketCore::GetProductObj()
                     $raOut[$kP] = new SEEDBasket_Product( $this->oSB, $kP );
                 }
             }
@@ -587,10 +588,18 @@ class SEEDBasket_Basket
 
     function GetPurchasesInBasket()
     /******************************
-        Return array of oPurchase
+        Return array of SEEDBasket_Purchase_{prodType}
      */
     {
-        return( $this->kfr && $this->kfr->Key() ? $this->oSB->oDB->GetPurchasesList($this->kfr->Key()) : [] );
+        $raObjPur = [];
+
+        if( $this->kfr && $this->kfr->Key() ) {
+            foreach( $this->oSB->oDB->GetPurchasesList($this->kfr->Key()) as $ra ) {
+                $raObjPur[] = $this->oSB->GetPurchaseObj( $ra['_key'], $ra['P_product_type'] );
+            }
+        }
+
+        return( $raObjPur );
     }
 
     function DrawBasketContents( $raParms = array(), $klugeUTF8 = false )
@@ -917,7 +926,7 @@ class SEEDBasket_Purchase
 
     function GetProductType(){ return( $this->kfr->Value('P_product_type') ); }
 
-    protected function Value( $k ) { return( $this->kfr->Value($k) ); }
+    function Value( $k ) { return( $this->kfr->Value($k) ); }
 
     /* Workflow flags: product handlers can assign any meaning to any flag bits but here are some that they might like to use in standard ways
      */
