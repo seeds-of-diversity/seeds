@@ -455,6 +455,77 @@ klugeUTF8 = true: return sOut and sErr in utf8
         $ra = $this->oDB->GetProductList( $sCond );
         return( @$ra[0]['_key'] ? new SEEDBasket_Product( $this, $ra[0]['_key'] ) : null );
     }
+
+    function GetProductObj( int $kP, $prodType = "", $raConfig = [] )
+    /****************************************************************
+        Get a SEEDBasket_Product_{prodType} object for the given product
+
+        $kP = 0, $prodType = "" : create an empty SEEDBasket_Product
+        $kP = 0, $prodType<> "" : create an empty SEEDBasket_Product_{prodType}
+        $kP<> 0, $prodType = "" : look up the product, find the prodType, then create a SEEDBasket_Product_{prodType} for $kP
+        $kP<> 0, $prodType<> "" : create a SEEDBasket_Product_{prodType} for $kP using given prodType to skip the lookup, and make sure it's correct
+     */
+    {
+        $oProd = null;
+        $bCheckProdMatch = ($kP && $prodType);  // loading an existing product with a prodType hint, so at the end make sure the hint was correct
+
+        // if an existing product and no prodType given, look it up
+        if( $kP && !$prodType ) {
+            // look up the product's product_type so the correct derived class can be created
+            $oProd = new SEEDBasket_Product( $this, $kP, $raConfig );
+            $prodType = $oProd->GetProductType();
+        }
+
+        // find the class name to instantiate
+        $classname = $prodType && class_exists($c = "SEEDBasket_Product_$prodType") ? $c : "SEEDBasket_Product";
+
+        // create the object
+        $oProd = new $classname( $this, $kP, $raConfig );
+
+        // if prodType hint was given as an arg, make sure it was correct
+        if( $bCheckProdMatch && $oProd->GetProductType() != $prodType ) {
+            // error message?
+            $oProd = null;
+        }
+
+        return( $oProd );
+    }
+
+    function GetPurchaseObj( int $kPur, $prodType = "" )
+    /***************************************************
+        Get a SEEDBasket_Purchase_{prodType} object for the given purchase
+
+        $kPur = 0, $prodType = "" : create an empty SEEDBasket_Purchase
+        $kPur = 0, $prodType<> "" : create an empty SEEDBasket_Purchase_{prodType}
+        $kPur<> 0, $prodType = "" : look up the purchase/product, find the prodType, then create a SEEDBasket_Purchase_{prodType} for $kPur
+        $kPur<> 0, $prodType<> "" : create a SEEDBasket_Purchase_{prodType} for $kPur using given prodType to skip the lookup, and make sure it's correct
+     */
+    {
+        $oPur = null;
+
+        $bCheckProdMatch = ($kPur && $prodType);  // loading an existing purchase with a prodType hint, so at the end make sure the hint was correct
+
+        // if an existing purchase and no prodType given, look it up
+        if( $kPur && !$prodType ) {
+            // look up the product's product_type so the correct derived class can be created
+            $oPur = new SEEDBasket_Purchase( $this, $kPur );
+            $prodType = $oPur->GetProductType();
+        }
+
+        // find the class name to instantiate
+        $classname = $prodType && class_exists($c = "SEEDBasket_Purchase_$prodType") ? $c : "SEEDBasket_Purchase";
+
+        // create the object
+        $oPur = new $classname( $this, $kP );
+
+        // if prodType hint was given as an arg, make sure it was correct
+        if( $bCheckProdMatch && $oPur->GetProductType() != $prodType ) {
+            // error message?
+            $oPur = null;
+        }
+
+        return( $oPur );
+    }
 }
 
 
@@ -817,7 +888,7 @@ class SEEDBasket_Purchase
  */
 {
     private $kfr;
-    private $oSB;
+    protected $oSB;
 
     private $oBasket = NULL;
     private $oProduct = NULL;
@@ -843,6 +914,10 @@ class SEEDBasket_Purchase
     function GetF()          { return( $this->kfr->Value('f') ); }
     function GetEStatus()    { return( $this->kfr->Value('eStatus') ); }
     function GetKRef()       { return( $this->kfr->Value('kRef') ); }
+
+    function GetProductType(){ return( $this->kfr->Value('P_product_type') ); }
+
+    protected function Value( $k ) { return( $this->kfr->Value($k) ); }
 
     /* Workflow flags: product handlers can assign any meaning to any flag bits but here are some that they might like to use in standard ways
      */
@@ -913,8 +988,8 @@ class SEEDBasket_Purchase
     /*********************
         Return true if the seller has already fulfilled this purchase
      */
-    {
-        return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseIsFulfilled($this) : false );
+    {   return( false );    // handled only by derived classes
+        //return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseIsFulfilled($this) : false );
     }
 
     function Fulfil()

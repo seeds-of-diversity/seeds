@@ -703,9 +703,9 @@ class SoDOrder_MbrOrder
         {
             // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
             foreach( $oB->GetPurchasesInBasket() as $pur ) {
-                if( $pur['P_product_type']=='donation' && !$pur['kRef'] ) {
-                    $oPur = new SEEDBasket_Purchase( $this->oSB, $pur['_key'] );
-                    $ok = ($oPur->Fulfil() == SEEDBasket_Purchase::FULFIL_RESULT_SUCCESS);
+                if( $pur['P_product_type']=='donation' ) {
+                    $oPur = new SEEDBasket_Purchase_donation( $this->oSB, $pur['_key'] );
+                    $ok = ($oPur->Fulfil() == SEEDBasket_Purchase::FULFIL_RESULT_SUCCESS);  // checks IsFulfilled() internally
                 }
             }
         }
