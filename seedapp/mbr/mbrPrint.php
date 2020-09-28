@@ -147,6 +147,32 @@ if( SEEDInput_Str('cmd') == 'printDonationSlips' ) {
 </div>
  */
 
+if( SEEDInput_Str('cmd') == 'printSFG2020Slips' ) {
+    $o3UpDonors = new Mbr3UpSFG2020( $oApp, $yCurr );
+    $oPrint     = new SEEDPrint3UpHTML();
+
+    $o3UpMbr->Load();
+    $o3UpDonors->Load();
+
+    $sTmpl = $o3UpDonors->GetTemplate();
+    $raRows = $o3UpDonors->GetRows();
+    // For some reason the first page is printed slightly lower than the others so it can be cut off at the bottom line,
+    // and it has to be cut differently, and the second page is forced blank.
+    // Instead of fixing this, insert three bogus slips and waste the first two pages
+    $raRows = [ ['firstname'=>'nobody'], ['firstname'=>'nobody'], ['firstname'=>'nobody'] ] + $raRows;
+    $oPrint->Do3Up( $raRows, $sTmpl );
+
+    $sHead = $oPrint->GetHead();
+    $sBody = $oPrint->GetBody();
+
+    echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
+
+    exit;
+
+}
+
+
+
 
 class MyConsole02TabSet extends Console02TabSet
 {
@@ -326,6 +352,118 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['co
 
 //echo Console01Static::HTMLPage( $sBody, $sHead, "EN", array( 'bBootstrap' => false,    // we want to control the CSS completely, thanks anyway Bootstrap
 //                                                             'sCharset'=>'utf8' ) );
+
+
+class Mbr3UpSFG2020
+{
+    private $oApp;
+    private $lang = "EN";
+    private $year;
+
+    private $raData = array();
+
+    function __construct( SEEDAppConsole $oApp, $year )
+    {
+        $this->oApp = $oApp;
+        $this->year = $year;
+    }
+
+    function GetRows()
+    {
+        return( $this->raData );
+    }
+
+    function Load()
+    {
+
+        $yStart = $this->year - 2;              // include donors from two years ago
+        $yEnd = $this->year;                    // until this year
+
+$this->oApp->kfdb->SetDebug(2);
+
+        $oMbr = new Mbr_Contacts($this->oApp);
+
+
+//        $raMbr1 = $this->oApp->kfdb->QueryRowsRA1(
+//            "SELECT * FROM seeds2.mbr_contacts M LEFT JOIN seeds2.mbr_donations D ON (M._key=D.fk_mbr_contacts) WHERE "
+$cond =                 "M._status='0' AND M.province='ON' AND "         // country='Canada'
+                ."M.address IS NOT NULL AND M.address<>'' AND "   // address is blanked out if mail comes back RTS
+                ."NOT M.bNoDonorAppeals AND "
+                ."(year(M.expires)>='$yStart' "
+              //." OR (M.donation_date is not null AND year(M.donation_date)>='$yStart') "  obsolete
+                ." OR (D.date_received is not null AND year(D.date_received)>='$yStart') "
+                .") ";
+//                ."ORDER by cast(M.donation as decimal)+cast(D.amount as decimal) desc,lastname,firstname" );
+
+//        $raMbr2 = $this->oApp->kfdb->QueryRowsRA(
+//            "SELECT * from seeds2.mbr_contacts WHERE _key in (".implode(',',$raMbr1).")" );
+
+        $raMbr1 = $oMbr->oDB->GetList( 'M_D', $cond, ['sSortCol'=>"cast(M.donation as decimal)+cast(D.amount as decimal)", 'bSortDown'=>true] );
+
+        $raMbr = [];
+        foreach( $raMbr1 as $ra )
+        {
+            $this->raData[] = $ra + ['SEEDPrint:addressblock' => MbrDrawAddressBlockFromRA( $ra )];
+        }
+    }
+
+    function GetTemplate()
+    {
+        $lang = $this->lang;
+
+$sTitle       = $lang=='EN' ? "Yes, I would like to help schools create outdoor classrooms!"
+                            : "Oui, je veux contribuer &agrave; sauvegarder la diversit&eacute; semenci&egrave;re du Canada!";
+$sWantOneTime = $lang=='EN' ? "I want to make a one-time donation of" : "Je d&eacute;sire faire un don unique de";
+$sWantMonthly = $lang=='EN' ? "I want to make a monthly donation of" : "Je d&eacute;sire faire un une contribution <u>mensuelle</u> de";
+$sOther       = $lang=='EN' ? "Other" : "Autre";
+
+$sRight       = $lang=='EN' ? "<p>Your charitable donation this year will help save hundreds of rare plant varieties next year.
+  Seeds of Diversity will use your donation to find seeds that need rescuing, and organize seed savers across the country to grow them in 2020.</p>
+  <p>You can also make your donation online at <b><u>www.seeds.ca/donate</u></b>.</p>"
+                            : "<p>Votre don de charit&eacute; de cette ann&eacute;e aidera &agrave; sauver des centaines de vari&eacute;t&eacute;s rares l'an prochain.
+  Semences du patrimoine utilisera votre don pour trouver des semences qui ont besoin d'&ecirc;tre secourues, et pour trouver des conservateurs de semences &agrave; travers le Canada afin de les cultiver en 2020.</p>
+  <p>Vous pouvez &eacute;galement faire un don en ligne au <b><u>www.semences.ca/don</u></b>.</p>";
+
+$sAddrChanged = $lang=='EN' ? "Has your address or contact information changed?"
+                            : "Votre adresse ou vos coordonn&eacute;es ont-elles chang&eacute;?";
+$sEmail       = $lang=='EN' ? "Email": "Courriel";
+$sPhone       = $lang=='EN' ? "Phone": "T&eacute;l&eacute;phone";
+$sMember      = $lang=='EN' ? "Member" : "Membre";
+
+$sFooter      = $lang=='EN' ? "Seeds of Diversity is a registered charitable organization. We provide receipts for donations of $20 and over. Our charitable registration number is 89650 8157 RR0001."
+                            : "Les Semences du patrimoine sont un organisme de bienfaisance enregistr&eacute;. Nous faisons parvenir un re&ccedil;u &agrave; fins d'imp&ocirc;t pour tous les dons de 20 $ et plus.<br/>Notre num&eacute;ro d'enregistrement est 89650 8157 RR0001";
+
+//<img style='float:right;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-en-bw-300x.png'/>
+
+// 2018-11 changed right: from 0.125in to 0.375in to prevent the right side cut off. 0.3in for the logo to make room for text at top
+$s = "
+<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
+<div class='s_title'>$sTitle</div>
+<div class='s_form'>
+  <table>
+  <tr><td>&#9744; $sWantOneTime</td><td>&#9744; $20</td><td>&#9744; $50</td><td>&#9744; $100</td><td>&#9744; $200</td><td>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>          </span></td></tr>
+  <tr><td>&#9744; $sWantMonthly</td><td>&#9744; $10</td><td>&#9744; $20</td><td colspan='2'>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>           </span></td></tr>
+  </table>
+</div>
+<div class='s_right' style='position:absolute;right:0.375in;top:1.125in;width:4.25in'>
+  $sRight
+  <div style='border:1px solid #aaa;background-color:#f4f4f4;margin-left:0.75in;padding:0.125in'>
+    <div>$sAddrChanged</div>
+    <div style='margin-top:0.125in'>
+    $sEmail: [[email]]<br/>
+    $sPhone: [[phone]]</div>
+  </div>
+  <div style='font-size:8pt;margin-top:0.05in;float:right'>$sMember [[_key]]</div>
+</div>
+<div class='s_note' style='position:absolute;bottom:0.125in;left:0.325in;text-alignment:left'>
+  $sFooter
+</div>
+";
+
+        return( $s );
+    }
+}
+
 
 class Mbr3UpDonors
 {
