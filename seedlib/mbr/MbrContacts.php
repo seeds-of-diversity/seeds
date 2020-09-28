@@ -214,6 +214,16 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                         "Type"  => 'Join',
                         "Fields" => 'Auto']
             ]];
+        $defM_D =
+            ["Tables" => [
+                "M" => ["Table" => "seeds2.mbr_contacts",
+                        "Type"  => 'Base',
+                        "Fields" => 'Auto'],
+                "D" => ["Table" => "seeds2.mbr_donations",
+                        "Type"  => "LeftJoin",
+                        "LeftJoinOn" => "D.fk_mbr_contacts=M._key",
+                        "Fields" => 'Auto']
+            ]];
 
 
         $parms = $logdir ? ['logfile'=>$logdir."mbr_contacts.log"] : [];
@@ -221,6 +231,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $raKfrel['M'] = new Keyframe_Relation( $kfdb, $defM, $uid, $parms );
         $raKfrel['D'] = new Keyframe_Relation( $kfdb, $defD, $uid, $parms );
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
+        $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
 
         return( $raKfrel );
     }
