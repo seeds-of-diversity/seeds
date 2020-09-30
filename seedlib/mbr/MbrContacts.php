@@ -109,6 +109,68 @@ class Mbr_Contacts
         return( $s );
     }
 
+    function DrawAddressBlock( $kMbr, $format = 'html', $prefix = '' )
+    {
+        // get record where _key=$kMbr
+        // $ra = ValuesRA()
+        //return( $this->DrawAddressBlockFromRA( $ra, $format, $prefix ) );
+    }
+
+    static function DrawAddressBlockFromRA( $raMbr, $fmt = 'HTML', $prefix = '' )
+    /****************************************************************************
+        Draw a contact's address block in the given format (HTML or PDF).
+        $prefix is an optional prefix on the $raMbr keys e.g. "M_"
+     */
+    {
+        if( $fmt == 'HTML' ) {
+            // The container should use style='white-space: nowrap' to prevent breaking in weird places e.g the middle of a postal code
+            //                      and style='margin:...' to pad around the address block (no margin is set here)
+            $topMargin = "";
+            $leftMargin = "";
+            $lnbreak = "<br/>";
+        } else if( $fmt == 'PDF' ) {
+            // PDF_Label gives no margin: leading \n is for top margin, spaces for left margin
+            //
+            // Maybe some complex formatting is possible using FPDF::GetStringWidth() e.g. breaking after a very long city+prov to put postcode on next line
+            $topMargin = "\n";
+            $leftMargin = "  ";
+            $lnbreak = "\n";
+        } else {
+            return( "" );
+        }
+
+        // firstname(s)/lastname(s)
+        $f1 = $raMbr[$prefix.'firstname']; $f2 = $raMbr[$prefix.'firstname2'];
+        $l1 = $raMbr[$prefix.'lastname'];  $l2 = $raMbr[$prefix.'lastname2'];
+
+        if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
+            $name = trim("$f1 $l1");
+        } else if( !$f1 && !$l1 ) {         // name2 only
+            $name = trim("$f2 $l2");
+        } else if( $l1 == $l2 ) {           // both names, lastname is the same
+            $name = trim("$f1 & $f2 $l2");
+        } else {                            // both names, lastnames are different
+            $name = trim("$f1 $l1 & $f2 $l2");
+        }
+
+        if( ($company = $raMbr[$prefix.'company']) ) {
+            if( $name ) $name .= $lnbreak.$leftMargin;
+            $name .= $company;
+        }
+        if( ($dept = $raMbr[$prefix.'dept']) ) {
+            if( $name ) $name .= $lnbreak.$leftMargin;
+            $name .= $dept;
+        }
+
+        $text = $topMargin.$leftMargin.$name.$lnbreak
+                          .$leftMargin.$raMbr[$prefix.'address'].$lnbreak
+                          .$leftMargin.$raMbr[$prefix.'city']." ".$raMbr[$prefix.'province']." ".$raMbr[$prefix.'postcode'];
+        if( !in_array( ($country = $raMbr[$prefix.'country']), ['','Canada','CANADA'] ) ) {
+            $text .= $lnbreak.$leftMargin.$country;
+        }
+        return( $text );
+    }
+
     function GetAllValues( $mbrid )   // mbrid can be _key or email
     {
         return( is_numeric($mbrid) ? $this->oDB->GetRecordVals( 'M', $mbrid )
