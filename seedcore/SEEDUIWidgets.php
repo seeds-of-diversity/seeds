@@ -530,7 +530,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
             }
             $s .= "<tr class='sfuiListRow sfuiListRow$rowClass'>";
             foreach( $raParms['cols'] as $raCol ) {
-                $v = $raRow[$raCol['col']];
+                $v = @$raRow[$raCol['col']];
 
                 $sColStyle = "cursor:pointer;";
                 if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
