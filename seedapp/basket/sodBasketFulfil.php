@@ -382,12 +382,13 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         // use this to compute the basket, but only show the details to dev/Bob
         list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
-        if( $bContactNeeded && $kfr->value('eStatus')=='Paid' ) {
+        if( $bContactNeeded && $kfr->value('eStatus') != 'Cancelled' ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
-            if( $bDonNotRecorded && $kfr->value('eStatus')=='Paid' ) {
+
+            if( $bDonNotRecorded && $kfr->value('eStatus') != 'Cancelled' ) {
                 $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded <button>Record</button></div>";
             }
 
@@ -481,14 +482,18 @@ class SoDOrderBasket
                  ."</table>";
         }
         if( $bFulfilControls ) {
+            $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:left;width:100%'>";
+
             foreach( $oB->GetPurchasesInBasket() as $oPur ) {
                 if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
+                    // $button = "<button data-kOrder='{$kOrder}' class='doRecordDonation'>Accept donation</button>";  don't have kOrder here
                     $button = "<button>Accept donation</button>";
                 } else {
                     $button = "<button>Undo</button>";
                 }
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$oPur->Value('P_title_en')}</td><td valign='top'>$button</td></tr>";
             }
+            $s .= "</table>";
         }
 
         $bContactNeeded = ( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() );
@@ -601,6 +606,10 @@ class SoDOrder_MbrOrder
                 $oB->SetValue( $k, $kfrMbrOrder->Value($v) );
             }
             $oB->SetValue( 'buyer_lang', $kfrMbrOrder->Value('mail_lang') ? "F" : "E" );   // mail_lang: 0=english, 1=french
+
+            // new basket has the same create date as the mbrOrder - things like donation.date_received depend on this
+            $oB->SetValue( '_created', $kfrMbrOrder->Value('_created') );
+
             $oB->PutDBRow();
             $kB = $oB->Key();
 
