@@ -66,6 +66,7 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
             continue;
         }
 
+// use MbrContacts::DrawAddressBlock
         $vars = [
             'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]")
                           .( ($name2 = trim($kfr->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
@@ -381,7 +382,7 @@ class Mbr3UpSFG2020
         $yStart = $this->year - 2;              // include donors from two years ago
         $yEnd = $this->year;                    // until this year
 
-$this->oApp->kfdb->SetDebug(2);
+//$this->oApp->kfdb->SetDebug(2);
 
         $oMbr = new Mbr_Contacts($this->oApp);
 
@@ -413,18 +414,14 @@ $cond =                 "M._status='0' AND M.province='ON' AND "         // coun
     {
         $lang = $this->lang;
 
-$sTitle       = $lang=='EN' ? "Yes, I would like to help schools create outdoor classrooms!"
-                            : "Oui, je veux contribuer &agrave; sauvegarder la diversit&eacute; semenci&egrave;re du Canada!";
+$sTitle       = "Yes, I want to help kids learn about food and gardening in schools!";
 $sWantOneTime = $lang=='EN' ? "I want to make a one-time donation of" : "Je d&eacute;sire faire un don unique de";
-$sWantMonthly = $lang=='EN' ? "I want to make a monthly donation of" : "Je d&eacute;sire faire un une contribution <u>mensuelle</u> de";
 $sOther       = $lang=='EN' ? "Other" : "Autre";
 
-$sRight       = $lang=='EN' ? "<p>Your charitable donation this year will help save hundreds of rare plant varieties next year.
-  Seeds of Diversity will use your donation to find seeds that need rescuing, and organize seed savers across the country to grow them in 2020.</p>
-  <p>You can also make your donation online at <b><u>www.seeds.ca/donate</u></b>.</p>"
-                            : "<p>Votre don de charit&eacute; de cette ann&eacute;e aidera &agrave; sauver des centaines de vari&eacute;t&eacute;s rares l'an prochain.
-  Semences du patrimoine utilisera votre don pour trouver des semences qui ont besoin d'&ecirc;tre secourues, et pour trouver des conservateurs de semences &agrave; travers le Canada afin de les cultiver en 2020.</p>
-  <p>Vous pouvez &eacute;galement faire un don en ligne au <b><u>www.semences.ca/don</u></b>.</p>";
+$sRight       = "<p>Your charitable donation will help kids of all ages to learn food and gardening skills in safe, outdoor School Food Gardens -
+  healthy food, nutrition, sustainable food practices, and much more. We'll even make web-based activities for the
+  kids who are learning online from home this year.</p>
+  <p>You can also make your donation online at <b><u>www.seeds.ca/donate</u></b>.</p>";
 
 $sAddrChanged = $lang=='EN' ? "Has your address or contact information changed?"
                             : "Votre adresse ou vos coordonn&eacute;es ont-elles chang&eacute;?";
@@ -443,8 +440,8 @@ $s = "
 <div class='s_title'>$sTitle</div>
 <div class='s_form'>
   <table>
+  <tr><td>&nbsp;</td></tr>
   <tr><td>&#9744; $sWantOneTime</td><td>&#9744; $20</td><td>&#9744; $50</td><td>&#9744; $100</td><td>&#9744; $200</td><td>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>          </span></td></tr>
-  <tr><td>&#9744; $sWantMonthly</td><td>&#9744; $10</td><td>&#9744; $20</td><td colspan='2'>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>           </span></td></tr>
   </table>
 </div>
 <div class='s_right' style='position:absolute;right:0.375in;top:1.125in;width:4.25in'>
