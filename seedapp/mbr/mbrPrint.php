@@ -67,7 +67,9 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
         }
 
         $vars = [
-            'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]").$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
+            'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]")
+                          .( ($name2 = trim($kfr->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
+                          .$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
             'donorAddr' => $kfr->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
             'donorReceiptNum' => $nReceipt,
             'donorAmount'  => $kfr->Value('amount'),
