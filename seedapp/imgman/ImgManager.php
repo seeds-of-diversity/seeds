@@ -35,6 +35,7 @@ class SEEDAppImgManager
 
     // controls
     private $currSubdir;
+    private $bUsePFork;
     private $bShowDelLinks;
     private $bShowOnlyIncomplete;
     private $bSubdirs;
@@ -50,13 +51,15 @@ class SEEDAppImgManager
         // how do you turn off a checkbox with SmartGPC (unchecked comes back as unset which means use the previous value)
         //$this->bShowDelLinks = $oApp->oC->oSVA->SmartGPC( 'imgman_bShowDelLinks', array(0,1) );
         if( isset($_REQUEST['bControlsSubmitted']) ) {  // this just says that the control form was submitted
-            $oApp->oC->oSVA->VarSet( 'imgman_bShowDelLinks', intval(@$_REQUEST['imgman_bShowDelLinks']) );
-            $oApp->oC->oSVA->VarSet( 'imgman_bShowOnlyIncomplete', intval(@$_REQUEST['imgman_bShowOnlyIncomplete']) );
-            $oApp->oC->oSVA->VarSet( 'imgman_bSubdirs', intval(@$_REQUEST['imgman_bSubdirs']) );
+            $oApp->oC->oSVA->VarSet( 'imgman_bShowDelLinks',       SEEDInput_Int('imgman_bShowDelLinks') );
+            $oApp->oC->oSVA->VarSet( 'imgman_bShowOnlyIncomplete', SEEDInput_Int('imgman_bShowOnlyIncomplete') );
+            $oApp->oC->oSVA->VarSet( 'imgman_bSubdirs',            SEEDInput_Int('imgman_bSubdirs') );
+            $oApp->oC->oSVA->VarSet( 'imgman_bUsePFork',           SEEDInput_Int('imgman_bUsePFork') );
         }
         $this->bShowDelLinks = $oApp->oC->oSVA->VarGet( 'imgman_bShowDelLinks' );
         $this->bShowOnlyIncomplete = $oApp->oC->oSVA->VarGet( 'imgman_bShowOnlyIncomplete' );
         $this->bSubdirs = $oApp->oC->oSVA->VarGet( 'imgman_bSubdirs' );
+        $this->bUsePFork = $oApp->oC->oSVA->VarGet( 'imgman_bUsePFork' );
     }
 
     function Main()
@@ -97,7 +100,7 @@ class SEEDAppImgManager
                         ($cmd == 'multikeep' && SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' )) ||
                         ($cmd == 'multidelete' && SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' )) )
                     {
-                        $this->oIML->DoAction( $dir, $filebase, $raFVar );
+                        $this->oIML->DoAction( $dir, $filebase, $raFVar, $this->bUsePFork && $raFVar['action'] == 'CONVERT' );
                     }
 
                     if( ($cmd == 'singlekeep' && SEEDCore_StartsWith($raFVar['action'],'KEEP_ORIG') && $dir.$filebase == $searchForFilebase) ||
@@ -115,9 +118,10 @@ class SEEDAppImgManager
         list($nActionConvert,$nActionKeep,$nActionDelete) = $this->getNActions( $raFiles );
 
         $s .= "<div style='float:right'><form method='post'><input type='hidden' name='bControlsSubmitted' value='1'/>"
-                 ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
                  ."<div><input type='checkbox' name='imgman_bShowOnlyIncomplete' value='1' ".($this->bShowOnlyIncomplete ? 'checked' : "")."/> Show Only Incomplete Files</div>"
                  ."<div><input type='checkbox' name='imgman_bSubdirs' value='1' ".($this->bSubdirs ? 'checked' : "")."/> Show Subdirectories</div>"
+                 ."<div><input type='checkbox' name='imgman_bUsePFork' value='1' ".($this->bUsePFork ? 'checked' : "")."/> Use Multiprocessors</div>"
+                 ."<div><input type='checkbox' name='imgman_bShowDelLinks' value='1' ".($this->bShowDelLinks ? 'checked' : "")."/> Show Del Links</div>"
                  ."<div>"
                      ."<input type='text' name='imgman_currSubdir' id='imgman_currSubdir' value='".SEEDCore_HSC($this->currSubdir)."' size='30'/>"
                      ."<button type='button' id='backbutton'>&lt;-</button>"  // type='button' makes it non-submit
