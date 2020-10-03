@@ -16,7 +16,7 @@ class SEEDImgManLib
 
     public $targetExt = "webp";    // jpeg
 
-    private $bDebug = true;    // make this true to show what we're doing
+    private $bDebug = false;    // make this true to show what we're doing
 
     function __construct( SEEDAppSession $oApp, $raConfig )
     {

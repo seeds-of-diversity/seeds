@@ -129,7 +129,7 @@ class SEEDAppImgManager
         if( $nActionKeep )     $s .= "<p><a href='?cmd=multikeep' style='color:green'>Click here to execute the $nActionKeep <b>Keep</b> links below</a></p>";
         if( $nActionDelete )   $s .= "<p><a href='?cmd=multidelete' style='color:red'>Click here to execute the $nActionDelete <b>Delete</b> links below</a></p>";
 
-        $s .= "<h3>Files under ".realpath($currDir)."</h3>";
+        $s .= ($realDir=realPath($currDir)) ? "<h3>Files under $realDir</h3>" : "<h3 style='color:red'>Can't find $currDir</h3>";
 
         $s .= $this->DrawFiles( $raFiles );
 
