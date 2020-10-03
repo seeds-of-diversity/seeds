@@ -2,7 +2,7 @@
 
 /* SEEDImgManLib.php
  *
- * Copyright (c) 2010-2018 Seeds of Diversity Canada
+ * Copyright (c) 2010-2020 Seeds of Diversity Canada
  *
  * The basics of an Image Management interface.
  */
@@ -16,7 +16,7 @@ class SEEDImgManLib
 
     public $targetExt = "webp";    // jpeg
 
-    private $bDebug = true;    // make this true to show what we're doing
+    private $bDebug = false;    // make this true to show what we're doing
 
     function __construct( SEEDAppSession $oApp, $raConfig )
     {

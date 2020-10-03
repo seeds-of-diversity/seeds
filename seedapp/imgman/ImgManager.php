@@ -192,6 +192,7 @@ class SEEDAppImgManager
             $reldir = substr($dir,strlen($this->rootdir));
 
             $bDrawDir = true;
+            $whatYouSaved = 0;
             foreach( $raF as $filebase => $raFVar ) {
                 //$raExts = $raFVar['exts'];
                 $raExts = [];
@@ -211,7 +212,7 @@ class SEEDAppImgManager
 
                 // this dir has files to show so draw it
                 if( $bDrawDir ) {
-                    $s .= "<tr><td colspan='5' style='font-weight:bold'><br/><a href='?imgman_currSubdir=".urlencode($reldir)."'>$dir</a></td></tr>";
+                    $s .= "<tr><td colspan='7' style='font-weight:bold'><br/><a href='?imgman_currSubdir=".urlencode($reldir)."'>$dir</a>[[whatYouSaved]]</td></tr>";
                     $bDrawDir = false;
                 }
 
@@ -294,6 +295,7 @@ class SEEDAppImgManager
                     } else {
                         $sSize = $fhR;
                     }
+                    $whatYouSaved += $sizeO - $sizeR;
                 } else if( $sizeR ) {
                     $sSize = $fhR;
                 } else if( $scaleO ) {
@@ -336,6 +338,7 @@ $fScalePercentThreshold = 90.0;
                 $s .= "<td style='color:$colour'>$sMsg</td>"
                      ."</tr>";
             }
+            $s = str_replace( "[[whatYouSaved]]", ($whatYouSaved ? (" (".SEEDCore_HumanFileSize($whatYouSaved)." saved)") : ""), $s );
         }
 
         $s .= "</table>";
