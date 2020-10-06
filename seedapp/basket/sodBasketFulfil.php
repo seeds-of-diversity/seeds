@@ -444,7 +444,7 @@ class SoDOrderBasket
 
 
 // SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'sbdb_config'=>$config_KFDB['seeds']['kfdbDatabase']] );
+            ['logdir'=>$oApp->logdir, 'sbdb_config'=>['db'=>$config_KFDB['seeds']['kfdbDatabase'] ] ] );
     }
 
     function ShowBasketContents( $kB, $bFulfilControls = false )
