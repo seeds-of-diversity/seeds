@@ -129,6 +129,7 @@ function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
  */
 {
     foreach( $ra as $k => $v ) {
+        if( !(is_string($v) || is_numeric($v)) ) continue;  // you can't reference objects or arrays in your template
         $sTemplate = str_replace( "[[$k]]", ($bEnt ? SEEDCore_HSC($v) : $v), $sTemplate );
     }
     return( $sTemplate );
@@ -161,6 +162,7 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
     $i = 0;
     $iLast = count($ra) - 1;
     foreach( $ra as $k => $v ) {
+        if( !(is_string($v) || is_numeric($v)) ) continue;  // you can't reference objects or arrays in your template
         $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
@@ -192,6 +194,7 @@ function SEEDCore_ArrayExpandSeriesWithKey( $ra, $sTemplate, $bEnt = true, $raPa
     $i = 0;
     $iLast = count($ra) - 1;
     foreach( $ra as $k=> $v ) {
+        if( !(is_string($v) || is_numeric($v)) ) continue;  // you can't reference objects or arrays in your template
         $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
                 (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
                                                                     : $sTemplate );
