@@ -150,5 +150,19 @@ function SEEDConfig_NewAppConsole( $raConfig = array() )
 
     $oApp = new SEEDAppConsole( $config_KFDB[$db] + $raP );
 
+    // Set error reporting as abpve but also for admin users
+    if( SEED_isLocal || defined("SEED_display_errors")
+        // this is only possible after $oApp created
+        || in_array($oApp->sess->GetUID(), [1,1499]) )
+    {
+        error_reporting(E_ALL | E_STRICT);
+        ini_set('display_errors', 1);
+        ini_set('html_errors', 1);
+        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+        // this is only possible after $oApp created
+        $oApp->kfdb->SetDebug(1);
+    }
+
     return( $oApp );
 }

@@ -2,7 +2,7 @@
 
 /* SEEDApp
  *
- * Copyright (c) 2017-2019 Seeds of Diversity Canada
+ * Copyright (c) 2017-2020 Seeds of Diversity Canada
  *
  * Common classes and functions useful across Seed Apps
  */
@@ -65,7 +65,7 @@ class SEEDAppDB extends SEEDAppBase
 
 class SEEDAppSession extends SEEDAppDB
 /*******************
-    Create and hold a KeyframeDB and a SEEDSession
+    Create and hold a KeyframeDatabase and a SEEDSession
  */
 {
 //  public $lang is inherited
@@ -81,6 +81,9 @@ class SEEDAppSession extends SEEDAppDB
 }
 
 class SEEDAppSessionAccount extends SEEDAppSession
+/**************************
+    Create a KeyframeDatabase and a SEEDSessionAccount (the inherited SEEDSession is overwritten by this)
+ */
 {
 //  public $lang is inherited
 //  public $logdir is inherited
