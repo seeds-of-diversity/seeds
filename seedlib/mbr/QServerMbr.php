@@ -272,7 +272,7 @@ class QServerMbr extends SEEDQ
         if( !($nMinChars = intval(@$raParms['nMinChars'])) )  $nMinChars = 3;
         if( strlen( ($sSearch = @$raParms['sSearch']) ) < $nMinChars )  goto done;
 
-        $raM = $this->oApp->kfdb->QueryRowsRA( "SELECT * FROM seeds2.mbr_contacts WHERE _status='0' AND "
+        $raM = $this->oApp->kfdb->QueryRowsRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _status='0' AND "
                                                 ."(_key='$sSearch' OR "
                                                  ."firstname LIKE '%$sSearch%' OR "
                                                  ."lastname  LIKE '%$sSearch%' OR "

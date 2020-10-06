@@ -23,7 +23,7 @@ class SLSourcesCVUpload
     private $oApp;
     private $eReplace;
     private $kUpload;
-    private $tmpTable = "seeds.sl_tmp_cv_sources";
+    private $tmpTable = "seeds_1.sl_tmp_cv_sources";
 
     function __construct( SEEDAppConsole $oApp, $eReplace, $kUpload = 0 )
     {
@@ -200,7 +200,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         // to sl_cv_sources are deemed to be matches. If their keys are different, that is a mistake in data entry.
         // The Upload procedure should correct this (by copying the old keys to the tmp table) before re-computing the ops.
         // Note that this is the only place where C._key is conveniently known, so it is stored in op_data for later
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='.',T.op_data=C._key "
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds_1.sl_cv_sources C SET T.op='.',T.op_data=C._key "
                                    ."WHERE $condBase AND "
                                          ."($condDataBasicSame OR $condDataBasicSameFkSp) AND C.fk_sl_sources>='3' "
                                          ."AND C._key<>T.k" );
@@ -212,26 +212,26 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T SET T.op='N' WHERE $condBase AND T.k='0'" );
 
         // M (tmp.k<>0 but doesn't exist in sl_cv_sources)
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T LEFT JOIN seeds.sl_cv_sources C ON (T.k=C._key) "
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T LEFT JOIN seeds_1.sl_cv_sources C ON (T.k=C._key) "
                                     ."SET T.op='M' WHERE $condBase AND T.k<>0 AND C._key IS NULL" );
 
         // U (data and year changed)
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='U' "
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds_1.sl_cv_sources C SET T.op='U' "
                                    ."WHERE $condUpdateCase AND "
                                          ."NOT $condDataSame AND C.year<>T.year" );
 
         // V (data changed but year the same)
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='V' "
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds_1.sl_cv_sources C SET T.op='V' "
                                    ."WHERE $condUpdateCase AND "
                                          ."NOT $condDataSame AND C.year=T.year" );
 
         // Y (only the year changed)
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='Y' "
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds_1.sl_cv_sources C SET T.op='Y' "
                                    ."WHERE $condUpdateCase AND "
                                          ."$condDataSame AND C.year<>T.year" );
 
         // - (perfect match on all columns including year)
-        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds.sl_cv_sources C SET T.op='-' "
+        $this->oApp->kfdb->Execute( "UPDATE {$this->tmpTable} T,seeds_1.sl_cv_sources C SET T.op='-' "
                                    ."WHERE $condUpdateCase AND "
                                          ."$condDataSame AND C.year=T.year" );
 
@@ -242,7 +242,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         if( $this->eReplace != self::ReplaceVerbatimRows ) {
             $this->oApp->kfdb->Execute(
                 "INSERT INTO {$this->tmpTable} (k,kUpload,op) "
-                ."SELECT SRCCV._key,{$this->kUpload},'X' FROM seeds.sl_cv_sources SRCCV LEFT JOIN {$this->tmpTable} T2 "
+                ."SELECT SRCCV._key,{$this->kUpload},'X' FROM seeds_1.sl_cv_sources SRCCV LEFT JOIN {$this->tmpTable} T2 "
                     ."ON SRCCV._key=T2.k WHERE T2.k IS NULL AND "
                     .($this->eReplace == self::ReplaceWholeCSCI
                         // if replacing all companies then delete all rows that are missing in tmpTable (except seed banks)
@@ -271,7 +271,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
     function CalculateUploadReport()
     /*******************************
-        Report on the current build status of seeds.sl_tmp_cv_sources
+        Report on the current build status of seeds_1.sl_tmp_cv_sources
 
         If kUpload==0 just report on the whole table, assuming there is only one update happening and we're too disorganized to keep track anyway
      */
@@ -335,7 +335,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                          ."WHERE table_schema='seeds' and table_name='sl_tmp_cv_sources'") == 'latin1' )
         {
             $raReport['raCaseInsensitiveFail'] =
-                    $kfdb->QueryRowsRA( "SELECT T.k as k,S.ocv as S_ocv,T.ocv as T_ocv FROM seeds.sl_cv_sources S,{$dbtable} T "
+                    $kfdb->QueryRowsRA( "SELECT T.k as k,S.ocv as S_ocv,T.ocv as T_ocv FROM seeds_1.sl_cv_sources S,{$dbtable} T "
                                        ."WHERE $kUploadCond AND S._key=T.k "
                                        ." AND T.op='-' "                                                     // apparently identical
                                        ." AND S.ocv collate utf8_bin<>T.ocv collate latin1_general_cs" );    // but not with case-sensitive collation
@@ -481,7 +481,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         // N = new rows (k==0)
         $ok = $this->oApp->kfdb->Execute(
-                "INSERT INTO seeds.sl_cv_sources "
+                "INSERT INTO seeds_1.sl_cv_sources "
                    ."(fk_sl_sources,fk_sl_pcv,fk_sl_species,company_name,osp,ocv,bOrganic,bulk,year,notes,_created,_updated,_created_by,_updated_by) "
                ."SELECT fk_sl_sources,fk_sl_pcv,fk_sl_species,company,osp,ocv,organic,bulk,year,notes,now(),now(),'$uid','$uid' "
                ."FROM {$this->tmpTable} WHERE op='N'" );
@@ -494,7 +494,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         // M = new rows (k<>0)
         $ok = $this->oApp->kfdb->Execute(
-                "INSERT INTO seeds.sl_cv_sources "
+                "INSERT INTO seeds_1.sl_cv_sources "
                    ."(_key,fk_sl_sources,fk_sl_pcv,fk_sl_species,company_name,osp,ocv,bOrganic,bulk,year,notes,_created,_updated,_created_by,_updated_by) "
                ."SELECT k,fk_sl_sources,fk_sl_pcv,fk_sl_species,company,osp,ocv,organic,bulk,year,notes,now(),now(),'$uid','$uid' "
                ."FROM {$this->tmpTable} WHERE op='M'" );
@@ -507,7 +507,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         // U,V,Y = rows with updated columns (k<>0)
         $ok = $this->oApp->kfdb->Execute(
-                "UPDATE seeds.sl_cv_sources C,{$this->tmpTable} T "
+                "UPDATE seeds_1.sl_cv_sources C,{$this->tmpTable} T "
                ."SET C.fk_sl_sources=T.fk_sl_sources,C.fk_sl_pcv=T.fk_sl_pcv,C.fk_sl_species=T.fk_sl_species,"
                    ."C.company_name=T.company,C.osp=T.osp,C.ocv=T.ocv,C.bOrganic=T.organic,C.bulk=T.bulk,C.year=T.year,C.notes=T.notes,_updated=now(),_updated_by='$uid' "
                ."WHERE C._key=T.k AND T.op in ('U','V','Y')" );
@@ -520,7 +520,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         // D,X = deleted rows
         $ok = $this->oApp->kfdb->Execute(
-                "DELETE C FROM seeds.sl_cv_sources C,{$this->tmpTable} T "
+                "DELETE C FROM seeds_1.sl_cv_sources C,{$this->tmpTable} T "
                ."WHERE C._key=T.k AND T.op in ('D','X')" );
         if( $ok ) {
             $sOk .= "<div class='alert alert-success'>Deleted ".$this->oApp->kfdb->GetAffectedRows()." rows identified for removal</div>";
@@ -539,8 +539,8 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
         This could be any table with an auto-inc.
      */
     {
-        if( ($k = $this->oApp->kfdb->InsertAutoInc( "INSERT INTO seeds.sl_cv_sources (_key) VALUES (NULL)" )) ) {
-            $this->oApp->kfdb->Execute( "DELETE FROM seeds.sl_cv_sources WHERE _key='$k'" );
+        if( ($k = $this->oApp->kfdb->InsertAutoInc( "INSERT INTO seeds_1.sl_cv_sources (_key) VALUES (NULL)" )) ) {
+            $this->oApp->kfdb->Execute( "DELETE FROM seeds_1.sl_cv_sources WHERE _key='$k'" );
         }
         return( $k );
     }
@@ -566,7 +566,7 @@ class SLSourcesCVArchive
     {
         $y = false;
 
-        $raYears = $this->oApp->kfdb->QueryRowsRA( "SELECT year FROM seeds.sl_cv_sources WHERE fk_sl_sources>=3 GROUP BY 1" );
+        $raYears = $this->oApp->kfdb->QueryRowsRA( "SELECT year FROM seeds_1.sl_cv_sources WHERE fk_sl_sources>=3 GROUP BY 1" );
         if( count($raYears) == 1 ) {
             $y = $raYears[0]['year'];
         }
@@ -589,17 +589,17 @@ class SLSourcesCVArchive
         }
 
         // delete sl_cv_sources_archive records of year $y
-        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sl_cv_sources_archive WHERE year='$y'" );
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds_1.sl_cv_sources_archive WHERE year='$y'" );
 
         $bOk = $this->oApp->kfdb->Execute(
-                "INSERT INTO seeds.sl_cv_sources_archive "
+                "INSERT INTO seeds_1.sl_cv_sources_archive "
                     ."(sl_cv_sources_key,fk_sl_sources,fk_sl_pcv,fk_sl_species,osp,ocv,bOrganic,bulk,year,notes,"
                     ."op,"  // obsolete but requires a default value
                     ."_created,_updated,_created_by,_updated_by) "
                ."SELECT C._key,C.fk_sl_sources,C.fk_sl_pcv,C.fk_sl_species,C.osp,C.ocv,C.bOrganic,C.bulk,C.year,C.notes,"
                     ."'',"
             ."_created,_updated,_created_by,_updated_by "
-               ."FROM seeds.sl_cv_sources C "
+               ."FROM seeds_1.sl_cv_sources C "
                ."WHERE C.fk_sl_sources >= 3 AND year='$y'" );
         if( $bOk ) {
             $sOk .= "<div class='alert alert-success'>Archived ".$this->oApp->kfdb->GetAffectedRows()." rows for year $y</div>";
@@ -650,12 +650,12 @@ class SLSourcesCVArchive
         $uid = $this->oW->sess->GetUID();
 
         $ok = $this->oW->kfdb->Execute(
-                "INSERT INTO seeds.sl_cv_sources_archive "
+                "INSERT INTO seeds_1.sl_cv_sources_archive "
                     ."(sl_cv_sources_key,fk_sl_sources,fk_sl_pcv,fk_sl_species,osp,ocv,bOrganic,year,notes,op,"
                     ." _created,_updated,_created_by,_updated_by) "
                ."SELECT C._key,C.fk_sl_sources,C.fk_sl_pcv,C.fk_sl_species,C.osp,C.ocv,C.bOrganic,C.year,C.notes,T.op,"
                       ."now(),now(),'$uid','$uid' "
-               ."FROM seeds.sl_cv_sources C, {$this->tmpTable} T "
+               ."FROM seeds_1.sl_cv_sources C, {$this->tmpTable} T "
                ."WHERE C._key=T.k AND kUpload='{$this->kUpload}' AND T.op IN ('U','Y','D','X')" );
         if( !$ok ) {
             $sErr = $this->oW->kfdb->GetErrMsg();

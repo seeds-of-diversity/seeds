@@ -169,7 +169,7 @@ class QServerSLCollectionReports extends SEEDQ
             // Now get every psp/cv from sl_cv_sources where fk_sl_pcv=0 and add those to the list
             if( ($dbc = $this->oApp->kfdb->CursorOpen(
                     "SELECT osp,ocv,S.name_en as S_name_en,S.name_fr as S_name_fr,S.psp as S_psp,S._key as S__key,count(*) as c "
-                   ."FROM seeds.sl_cv_sources SrcCV LEFT JOIN seeds.sl_species S ON (SrcCV.fk_sl_species=S._key) "
+                   ."FROM seeds_1.sl_cv_sources SrcCV LEFT JOIN seeds_1.sl_species S ON (SrcCV.fk_sl_species=S._key) "
                    ."WHERE SrcCV.fk_sl_sources>='3' AND SrcCV._status='0' AND SrcCV.fk_sl_pcv='0' "
                    ."GROUP BY osp,ocv,S.name_en,S.name_fr,S.psp,S._key")) )
             {
@@ -197,7 +197,7 @@ class QServerSLCollectionReports extends SEEDQ
                 } else {
                     // this row came from the csci where fk_sl_pcv=0
 /*
-                    $nCSCI = $this->oQ->kfdb->Query1( "SELECT count(*) FROM seeds.sl_cv_sources "
+                    $nCSCI = $this->oQ->kfdb->Query1( "SELECT count(*) FROM seeds_1.sl_cv_sources "
                                                      ."WHERE _status='0' AND fk_sl_sources>='3' "
                                                      ."AND (fk_sl_species='".intval($ra['S__key'])."' OR osp='".addslashes($ra['S_psp'])."') "
                                                      ."AND ocv='".addslashes($ra['P_name'])."'" );
@@ -247,7 +247,7 @@ class QServerSLCollectionReports extends SEEDQ
         $fAdoption = $ra['fAdoption'];  // ok to show the amount publicly
 
         // Get the number of csci companies that have the given pcv
-        $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
+        $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds_1.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
 
         $raOut = ['cv'          => $raPCV['P__key'],
                   'species'     => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
@@ -349,7 +349,7 @@ class QServerSLCollectionReports extends SEEDQ
 
         // It's okay to show the adoption amount publicly. Adoption info only makes sense for kCollection==1
         if( $bAdoption && $kCollection == 1 ) {
-            $raOut['fAdoption'] = $this->oApp->kfdb->Query1( "SELECT SUM(amount) FROM seeds.sl_adoption WHERE fk_sl_pcv='$kPCV' AND _status='0'" );
+            $raOut['fAdoption'] = $this->oApp->kfdb->Query1( "SELECT SUM(amount) FROM seeds_1.sl_adoption WHERE fk_sl_pcv='$kPCV' AND _status='0'" );
         }
 
         /* This method returns everything with QCharset, so avoid double-converting in client code.
@@ -373,7 +373,7 @@ class QServerSLCollectionReports extends SEEDQ
 
         // Get the pcv of every adopted variety
         $raDRows = $this->oApp->kfdb->QueryRowsRA( "SELECT P._key as P__key,P.name as P_name,S.psp as S_psp,SUM(D.amount) as amount "
-                                             ."FROM seeds.sl_adoption D,seeds.sl_pcv P,seeds.sl_species S "
+                                             ."FROM seeds_1.sl_adoption D,seeds_1.sl_pcv P,seeds_1.sl_species S "
                                              ."WHERE D.amount AND D.fk_sl_pcv=P._key AND P.fk_sl_species=S._key "
                                              ."AND D._status='0' AND P._status='0' AND S._status='0' "
                                              ."GROUP BY P._key ORDER BY S.psp,P.name" );

@@ -22,7 +22,7 @@ class SodOrder
     function KfrelOrder() { return( $this->kfrel ); }
 
     private $kdefOrder =
-        [ "Tables" => [ "O" => [ "Table" => 'seeds.mbr_order_pending',
+        [ "Tables" => [ "O" => [ "Table" => 'seeds_1.mbr_order_pending',
                                  "Fields" => array( array("col"=>"mail_firstname",  "type"=>"S"),
                                                     array("col"=>"mail_lastname",   "type"=>"S"),
                                                     array("col"=>"mail_company",    "type"=>"S"),
@@ -438,14 +438,14 @@ class SoDOrderBasket
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
+        global $config_KFDB;
         $this->oApp = $oApp;
         $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
 
 
 // SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
+            ['logdir'=>$oApp->logdir, 'sbdb_config'=>$config_KFDB['seeds']['kfdbDatabase']] );
     }
-
 
     function ShowBasketContents( $kB, $bFulfilControls = false )
     /***********************************************************
@@ -476,22 +476,25 @@ class SoDOrderBasket
         $raBContents = $oB->ComputeBasketContents( false );
         if( @$raBContents['raSellers'][1] ) {
             $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:right;width:100%'>"
-                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>"
-                 .SEEDCore_ArrayExpandRows( $raBContents['raSellers'][1]['raItems'],
-                                            "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" )
-                 ."</table>";
-        }
-        if( $bFulfilControls ) {
-            $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:left;width:100%'>";
+                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
+            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
+                if( !($oPur = $ra['oPur']) ) continue;
 
-            foreach( $oB->GetPurchasesInBasket() as $oPur ) {
-                if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
-                    // $button = "<button data-kOrder='{$kOrder}' class='doRecordDonation'>Accept donation</button>";  don't have kOrder here
-                    $button = "<button>Accept donation</button>";
-                } else {
-                    $button = "<button>Undo</button>";
+                $sButtons = "";
+                if( $bFulfilControls && $oPur->IsFulfilmentActive() ) {
+                    switch( $oPur->GetProductType() ) {
+                        case 'donation':
+                            $sButtons = !$oPur->IsFulfilled()
+                                ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil'>Accept donation</button>"
+                                : "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfilUndo'>Undo</button>";
+                            break;
+                    }
                 }
-                $s .= "<tr><td valign='top' style='padding-right:5px'>{$oPur->Value('P_title_en')}</td><td valign='top'>$button</td></tr>";
+
+                $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
+                         ."<td valign='top'>{$oPur->GetPrice()}</td>"
+                         .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sButtons</td>" : "")
+                     ."</tr>";
             }
             $s .= "</table>";
         }
@@ -532,6 +535,17 @@ class SoDOrder_MbrOrder
             ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
     }
 
+
+    function ProcessCmd( $cmd, $raParms )
+    /************************************
+        Process sb- JX commands
+     */
+    {
+        // returns array containing 'bHandled'=>false/true
+        return( $this->oSB->Cmd( $cmd, $raParms ) );
+    }
+
+
     function UpdateBasketsForAllOrders()
     {
         $nUpdated = 0;
@@ -560,7 +574,7 @@ class SoDOrder_MbrOrder
     {
         /* SoD products
 
-            INSERT INTO seeds.SEEDBasket_Products
+            INSERT INTO seeds_1.SEEDBasket_Products
                 (_key,_created,_created_by,_updated,_updated_by,_status,
                  uid_seller,eStatus,img,v_t1,v_t2,v_t3,sExtra,
                  product_type,quant_type,item_price,item_price_us,bask_quant_min,bask_quant_max,name,title_en,title_fr)
