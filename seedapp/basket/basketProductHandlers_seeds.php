@@ -60,7 +60,7 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
 
         $s = "<h3>".($oKForm->GetKey() ? ("Edit: ".$oKForm->Value('type')." - ".$oKForm->ValueEnt('variety')) : "New Seed Offer")."</h3>";
 
-        $sMbrCode = $oKForm->KFRel()->KFDB()->Query1("SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id=".$oKForm->Value('uid_seller') );
+        $sMbrCode = $oKForm->KFRel()->KFDB()->Query1("SELECT mbr_code FROM seeds_1.sed_curr_growers WHERE mbr_id=".$oKForm->Value('uid_seller') );
 
         $nSize = 30;
         $raTxtParms = array('size'=>$nSize);
