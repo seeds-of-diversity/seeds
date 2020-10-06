@@ -2,7 +2,7 @@
 
 /* SEEDImgManLib.php
  *
- * Copyright (c) 2010-2018 Seeds of Diversity Canada
+ * Copyright (c) 2010-2020 Seeds of Diversity Canada
  *
  * The basics of an Image Management interface.
  */
@@ -16,7 +16,7 @@ class SEEDImgManLib
 
     public $targetExt = "webp";    // jpeg
 
-    private $bDebug = true;    // make this true to show what we're doing
+    private $bDebug = false;    // make this true to show what we're doing
 
     function __construct( SEEDAppSession $oApp, $raConfig )
     {
@@ -139,7 +139,7 @@ class SEEDImgManLib
         return( $raFiles );
     }
 
-    function DoAction( $dir, $filebase, $raFVar )
+    function DoAction( $dir, $filebase, $raFVar, $bBackground = false )
     {
         list($action) = explode( ' ', $raFVar['action'] );    // because KEEP_ORIG and DELETE_ORIG multiplex their action information
 
@@ -150,7 +150,9 @@ class SEEDImgManLib
                 $exec = "convert \"${sFileO}\" "
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
-                       ."\"{$sFileR}\"";
+                       ."\"{$sFileR}\""
+                       // to convert in background put & at end of command line; exec() will wait to collect output unless the output is redirected somewhere
+                       .($bBackground ? "> /dev/null &" : "");
                 if( $this->bDebug ) echo $exec."<br/>";
                 exec( $exec );
                 // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)

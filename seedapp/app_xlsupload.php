@@ -11,6 +11,17 @@
  *      2) Put data in a spreadsheet; upload to xlsupload table (created automatically) and then manipulate in the database.
  */
 
+
+/* Allow this file to be executed directly if _config file exists
+ */
+if( !defined( "SEEDROOT" ) ) {
+    define( "SEEDROOT", "../" );
+    define( "SEED_APP_BOOT_REQUIRED", true );
+    include_once( SEEDROOT."seedConfig.php" );
+}
+
+
+
 $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2', 'sessPermsRequired'=>''] );  // login required on seeds2, but no particular perms
 
 $s = "";

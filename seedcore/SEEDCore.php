@@ -2,7 +2,7 @@
 
 /* SEEDCore
  *
- * Copyright (c) 2016-2017 Seeds of Diversity Canada
+ * Copyright (c) 2016-2020 Seeds of Diversity Canada
  *
  * Basic functions useful in most applications
  */
@@ -143,7 +143,7 @@ function SEEDCore_ArrayExpandIfNotEmpty( $ra, $k, $sTemplate, $bEnt = true )
  */
 {
     $v = @$ra[$k];
-    return( $v ? str_replace( "[[]]", ($bEnt ? SEEDStd_HSC($v) : $v), $sTemplate ) : "" );
+    return( $v ? str_replace( "[[]]", ($bEnt ? SEEDCore_HSC($v) : $v), $sTemplate ) : "" );
 }
 
 /**
