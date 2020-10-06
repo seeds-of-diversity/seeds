@@ -403,6 +403,19 @@ $cond =                 "M._status='0' AND M.province='ON' AND "         // coun
 
         $raMbr1 = $oMbr->oDB->GetList( 'M_D', $cond, ['sSortCol'=>"cast(M.donation as decimal)+cast(D.amount as decimal)", 'bSortDown'=>true] );
 
+$ra2=[];
+foreach( $raMbr1 as $ra )
+{
+    if( !isset($ra2[$ra['_key']]) ) {
+        $ra2[$ra['_key']] = ['n'=>1,'name'=>"{$ra['firstname']} {$ra['lastname']} {$ra['company']}"];
+    } else {
+        $ra2[$ra['_key']]['n']++;
+    }
+}
+foreach( $ra2 as $k => $ra ) {
+    if( $ra['n'] > 1 ) echo "Duplicate x {$ra['n']} : {$k} {$ra['name']}<br/>";
+}
+exit;
         $raMbr = [];
         foreach( $raMbr1 as $ra )
         {
