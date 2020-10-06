@@ -68,7 +68,7 @@ class Mbr_Contacts
         $bShowProvince          = @$raParms['SHOW_PROVINCE'];
         $bShowCityProvince      = @$raParms['SHOW_CITY_PROVINCE'];
 
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province FROM seeds_2.mbr_contacts WHERE _key='$k'" );
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province FROM seeds2.mbr_contacts WHERE _key='$k'" );
 
         // firstname(s)/lastname(s)
         $f1 = $ra['firstname']; $f2 = $ra['firstname2'];
@@ -257,31 +257,31 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
         $defM =
             ["Tables" => [
-                "M" => ["Table" => "seeds_2.mbr_contacts",
+                "M" => ["Table" => "seeds2.mbr_contacts",
                         "Type"  => 'Base',
                         "Fields" => 'Auto']
             ]];
         $defD =
             ["Tables" => [
-                "D" => ["Table" => "seeds_2.mbr_donations",
+                "D" => ["Table" => "seeds2.mbr_donations",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
             ]];
         $defDxM =
             ["Tables" => [
-                "D" => ["Table" => "seeds_2.mbr_donations",
+                "D" => ["Table" => "seeds2.mbr_donations",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
-                "M" => ["Table" => "seeds_2.mbr_contacts",
+                "M" => ["Table" => "seeds2.mbr_contacts",
                         "Type"  => 'Join',
                         "Fields" => 'Auto']
             ]];
         $defM_D =
             ["Tables" => [
-                "M" => ["Table" => "seeds_2.mbr_contacts",
+                "M" => ["Table" => "seeds2.mbr_contacts",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
-                "D" => ["Table" => "seeds_2.mbr_donations",
+                "D" => ["Table" => "seeds2.mbr_donations",
                         "Type"  => "LeftJoin",
                         "LeftJoinOn" => "D.fk_mbr_contacts=M._key",
                         "Fields" => 'Auto']
@@ -300,7 +300,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
 
     const SqlCreate_Donations = "
-        CREATE TABLE IF NOT EXISTS seeds_2.mbr_donations (
+        CREATE TABLE IF NOT EXISTS seeds2.mbr_donations (
 
                 _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
                 _created    DATETIME,

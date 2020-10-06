@@ -43,18 +43,18 @@ class MSDLib
 
         if( !$this->PermAdmin() ) goto done;
 
-        $this->oApp->kfdb->Execute( "UPDATE seeds_1.SEEDBasket_Products P,seeds_1.SEEDBasket_ProdExtra PE "
+        $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_Products P,seeds.SEEDBasket_ProdExtra PE "
                                    ."SET PE.v=UPPER(TRIM(v)) "
                                    ."WHERE P.product_type='seeds' AND P._key=PE.fk_SEEDBasket_Products AND PE.k='species'" );
 
         /* Update offer counts in grower table (should happen after every edit)
          */
         $i = 0;
-        if( ($dbc = $this->oMSDCore->oApp->kfdb->CursorOpen( "SELECT mbr_id FROM seeds_1.sed_curr_growers" )) ) {
+        if( ($dbc = $this->oMSDCore->oApp->kfdb->CursorOpen( "SELECT mbr_id FROM seeds.sed_curr_growers" )) ) {
             while( $ra = $this->oMSDCore->oApp->kfdb->CursorFetch($dbc) ) {
                 $sCond = "mbr_id='{$ra['mbr_id']}' AND _status='0' AND NOT bSkip AND NOT bDelete";
 
-                $sql = "SELECT count(*) FROM seeds_1.SEEDBasket_Products P,seeds_1.SEEDBasket_ProdExtra PE "
+                $sql = "SELECT count(*) FROM seeds.SEEDBasket_Products P,seeds.SEEDBasket_ProdExtra PE "
                       ."WHERE P._key=PE.fk_SEEDBasket_Products AND P._status='0' AND P.product_type='seeds' AND "
                             ."P.uid_seller='{$ra['mbr_id']}' AND P.eStatus='ACTIVE' AND PE.k='category' ";
 
@@ -68,7 +68,7 @@ class MSDLib
                 $nMisc   = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='misc'" );
 
                 $this->oMSDCore->oApp->kfdb->Execute(
-                        "UPDATE seeds_1.sed_curr_growers "
+                        "UPDATE seeds.sed_curr_growers "
                        ."SET nTotal='$nTotal',nFlower='$nFlower',nFruit='$nFruit',"
                        ."nGrain='$nGrain',nHerb='$nHerb',nTree='$nTree',nVeg='$nVeg',nMisc='$nMisc' "
                        ."WHERE mbr_id='{$ra['mbr_id']}'");
@@ -92,15 +92,15 @@ class MSDLib
         $ok = true;
         $s = "";
 
-        $this->oApp->kfdb->Execute( "DELETE FROM seeds_1.sed_growers WHERE year='$year'" );
-        $this->oApp->kfdb->Execute( "DELETE FROM seeds_1.sed_seeds WHERE year='$year'" );
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sed_growers WHERE year='$year'" );
+        $this->oApp->kfdb->Execute( "DELETE FROM seeds.sed_seeds WHERE year='$year'" );
 
         /* Archive growers
          */
         $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,notes, _created,_created_by,_updated,_updated_by";
-        $sql = "INSERT INTO seeds_1.sed_growers (_key,_status, year, $fields )"
+        $sql = "INSERT INTO seeds.sed_growers (_key,_status, year, $fields )"
               ."SELECT NULL,0, '$year', $fields "
-              ."FROM seeds_1.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
+              ."FROM seeds.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
         if( $this->oApp->kfdb->Execute($sql) ) {
             $s .= "<h4 style='color:green'>Growers Successfully Archived</h4>"
                  ."<p style='margin-left:30px'><pre>$sql</pre></p>";
@@ -147,7 +147,7 @@ class MSDLib
 
         /* Archive seeds
          */
-        $sql = "INSERT INTO seeds_1.sed_seeds (_key,_created,_created_by,_updated,_updated_by, $sInsertFields ) $sSelectSql";
+        $sql = "INSERT INTO seeds.sed_seeds (_key,_created,_created_by,_updated,_updated_by, $sInsertFields ) $sSelectSql";
 
         if( $this->oApp->kfdb->Execute($sql) ) {
             $s .= "<h4 style='color:green'>Seeds Successfully Archived</h3>"

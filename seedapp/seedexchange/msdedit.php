@@ -8,13 +8,13 @@
  */
 
 /*
-update seeds_1.SEEDBasket_ProdExtra set v='flowers' where v='FLOWERS AND WILDFLOWERS' and k='category';
-update seeds_1.SEEDBasket_ProdExtra set v='vegetables' where v='VEGETABLES' and k='category';
-update seeds_1.SEEDBasket_ProdExtra set v='fruit' where v='FRUIT' and k='category';
-update seeds_1.SEEDBasket_ProdExtra set v='herbs' where v='HERBS AND MEDICINALS' and k='category';
-update seeds_1.SEEDBasket_ProdExtra set v='grain' where v='GRAIN' and k='category';
-update seeds_1.SEEDBasket_ProdExtra set v='trees' where v='TREES AND SHRUBS' and k='category';
-update seeds_1.SEEDBasket_ProdExtra set v='misc' where v='MISC' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='flowers' where v='FLOWERS AND WILDFLOWERS' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='vegetables' where v='VEGETABLES' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='fruit' where v='FRUIT' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='herbs' where v='HERBS AND MEDICINALS' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='grain' where v='GRAIN' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='trees' where v='TREES AND SHRUBS' and k='category';
+update seeds.SEEDBasket_ProdExtra set v='misc' where v='MISC' and k='category';
  */
 
 
@@ -67,7 +67,7 @@ class MSDAppSeedEdit
             if( !$uidSeller )  $uidSeller = $this->oSB->oApp->sess->GetUID();
         }
         if( $uidSeller ) {
-            $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds_1.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
+            $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
                      .SEEDCore_utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
         } else {
             $sList .= "<h3>All Growers</h3>";

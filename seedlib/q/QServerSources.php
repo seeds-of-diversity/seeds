@@ -194,7 +194,7 @@ class QServerSourceCV extends SEEDQ
 
 if( ($k = intval(@$raParms['kPcvKluge'])) ) {
 // kluge: some kPcv are fakes, actually SRCCV._key+10,000,000 representing the ocv at that row
-    if( ($ra = $this->oApp->kfdb->QueryRA("SELECT fk_sl_species,ocv FROM seeds_1.sl_cv_sources WHERE _key='".($k-10000000)."'")) ) {
+    if( ($ra = $this->oApp->kfdb->QueryRA("SELECT fk_sl_species,ocv FROM seeds.sl_cv_sources WHERE _key='".($k-10000000)."'")) ) {
         $raCond[] = "SRCCV.fk_sl_species='".addslashes($ra['fk_sl_species'])."' AND SRCCV.ocv='".addslashes($ra['ocv'])."'";
     }
 }
@@ -351,7 +351,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
 
                 if( ($kSp = intval($ra[4])) ) {
                     if( !($sp = @$spCache[$kSp]) ) {
-                        $sp = $this->oApp->kfdb->Query1( "SELECT name_en FROM seeds_1.sl_species WHERE _key='$kSp'" );
+                        $sp = $this->oApp->kfdb->Query1( "SELECT name_en FROM seeds.sl_species WHERE _key='$kSp'" );
                         $spCache[$kSp] = $sp;
                     }
                 } else {
@@ -408,12 +408,12 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                     ($kPCV = intval(substr($r,5))) )
                 {
                     if( $kPCV >= 10000000 ) {
-                        list($kSp,$sCV) = $this->oApp->kfdb->QueryRA( "SELECT fk_sl_species,ocv FROM seeds_1.sl_cv_sources WHERE _key='".($kPCV-10000000)."'" );
+                        list($kSp,$sCV) = $this->oApp->kfdb->QueryRA( "SELECT fk_sl_species,ocv FROM seeds.sl_cv_sources WHERE _key='".($kPCV-10000000)."'" );
                     } else {
-                        list($kSp,$sCV) = $this->oApp->kfdb->QueryRA( "SELECT fk_sl_species,name FROM seeds_1.sl_pcv WHERE _key='$kPCV'" );
+                        list($kSp,$sCV) = $this->oApp->kfdb->QueryRA( "SELECT fk_sl_species,name FROM seeds.sl_pcv WHERE _key='$kPCV'" );
                     }
                     if( $kSp && $sCV ) {
-                        $psp = $this->oApp->kfdb->Query1( "SELECT psp FROM seeds_1.sl_species WHERE _key='$kSp'" );
+                        $psp = $this->oApp->kfdb->Query1( "SELECT psp FROM seeds.sl_species WHERE _key='$kSp'" );
                         $raTmp[$psp."|".$sCV] = intval(@$raTmp[$psp."|".$sCV]) + 1;
                     }
                 }

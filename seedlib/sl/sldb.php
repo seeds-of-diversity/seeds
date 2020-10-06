@@ -227,7 +227,6 @@ class SLDBBase extends Keyframe_NamedRelations
  */
 {
     protected $tDef = array();      // table defs for building kfreldefs. Derived classes just add more.
-    protected $dbname = "seeds_1";
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
@@ -238,15 +237,15 @@ class SLDBBase extends Keyframe_NamedRelations
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {
         $raKfrel = array();
-        $this->tDef['C']  = array( "Table" => "{$this->dbname}.sl_collection", "Fields" => _sldb_defs::fldSLCollection() );
-        $this->tDef['I']  = array( "Table" => "{$this->dbname}.sl_inventory",  "Fields" => _sldb_defs::fldSLInventory() );
-        $this->tDef['A']  = array( "Table" => "{$this->dbname}.sl_accession",  "Fields" => _sldb_defs::fldSLAccession() );
-        $this->tDef['D']  = array( "Table" => "{$this->dbname}.sl_adoption",   "Fields" => _sldb_defs::fldSLAdoption() );
-        $this->tDef['G']  = array( "Table" => "{$this->dbname}.sl_germ",       "Fields" => _sldb_defs::fldSLGerm() );
-        $this->tDef['P']  = array( "Table" => "{$this->dbname}.sl_pcv",        "Fields" => _sldb_defs::fldSLPCV() );
-        $this->tDef['S']  = array( "Table" => "{$this->dbname}.sl_species",    "Fields" => _sldb_defs::fldSLSpecies() );
-        $this->tDef['PY'] = array( "Table" => "{$this->dbname}.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
-        $this->tDef['SY'] = array( "Table" => "{$this->dbname}.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
+        $this->tDef['C']  = array( "Table" => "seeds.sl_collection", "Fields" => _sldb_defs::fldSLCollection() );
+        $this->tDef['I']  = array( "Table" => "seeds.sl_inventory",  "Fields" => _sldb_defs::fldSLInventory() );
+        $this->tDef['A']  = array( "Table" => "seeds.sl_accession",  "Fields" => _sldb_defs::fldSLAccession() );
+        $this->tDef['D']  = array( "Table" => "seeds.sl_adoption",   "Fields" => _sldb_defs::fldSLAdoption() );
+        $this->tDef['G']  = array( "Table" => "seeds.sl_germ",       "Fields" => _sldb_defs::fldSLGerm() );
+        $this->tDef['P']  = array( "Table" => "seeds.sl_pcv",        "Fields" => _sldb_defs::fldSLPCV() );
+        $this->tDef['S']  = array( "Table" => "seeds.sl_species",    "Fields" => _sldb_defs::fldSLSpecies() );
+        $this->tDef['PY'] = array( "Table" => "seeds.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
+        $this->tDef['SY'] = array( "Table" => "seeds.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
 
         $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
         $raKfrel['C'] = $this->newKfrel( $kfdb, $uid, array( "C" => $this->tDef['C'] ), $sLogfile );
@@ -334,18 +333,18 @@ class SLDBCollection extends SLDBRosetta
 
         $raKfrel['A_P'] = $this->newKfrel( $kfdb, $uid,
                 array( 'A' => $this->tDef['A'],
-                       'P' => array( "Table" => "{$this->dbname}.sl_pcv",
+                       'P' => array( "Table" => "seeds.sl_pcv",
                                      "Type"  => "LeftJoin",
                                      "JoinOn" => "A.fk_sl_pcv=P._key",
                                      "Fields" => _sldb_defs::fldSLPCV() ) ),
                 $sLogfile );
 
         $raKfrel['IxA_P'] = $this->newKfrel( $kfdb, $uid,
-                array( 'I' => array( "Table" => "{$this->dbname}.sl_inventory",
+                array( 'I' => array( "Table" => "seeds.sl_inventory",
                                      "Fields" => _sldb_defs::fldSLInventory() ),
-                       'A' => array( "Table" => "{$this->dbname}.sl_accession",
+                       'A' => array( "Table" => "seeds.sl_accession",
                                      "Fields" => _sldb_defs::fldSLAccession() ),
-                       'P' => array( "Table" => "{$this->dbname}.sl_pcv",
+                       'P' => array( "Table" => "seeds.sl_pcv",
                                      "Type"  => "LeftJoin",
                                      "JoinOn" => "A.fk_sl_pcv=P._key",
                                      "Fields" => _sldb_defs::fldSLPCV() ) ),
@@ -371,9 +370,9 @@ class SLDBSources extends SLDBRosetta
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
         // add these table definitions to the tDef list
-        $this->tDef['SRC']    = array( "Table" => "{$this->dbname}.sl_sources",            "Fields" => _sldb_defs::fldSLSources() );
-        $this->tDef['SRCCV']  = array( "Table" => "{$this->dbname}.sl_cv_sources",         "Fields" => _sldb_defs::fldSLSourcesCV() );
-        $this->tDef['SRCCVA'] = array( "Table" => "{$this->dbname}.sl_cv_sources_archive", "Fields" => _sldb_defs::fldSLSourcesCVArchive() );
+        $this->tDef['SRC']    = array( "Table" => "seeds.sl_sources",            "Fields" => _sldb_defs::fldSLSources() );
+        $this->tDef['SRCCV']  = array( "Table" => "seeds.sl_cv_sources",         "Fields" => _sldb_defs::fldSLSourcesCV() );
+        $this->tDef['SRCCVA'] = array( "Table" => "seeds.sl_cv_sources_archive", "Fields" => _sldb_defs::fldSLSourcesCVArchive() );
 
 
         $sLogfile = $logdir ? "{$logdir}slsources.log" : "";
@@ -390,9 +389,9 @@ class SLDBSources extends SLDBRosetta
 
         // SRC is required to exist during upload procedure, but this is useful for edge cases during uploading and integrity testing
         $raKfrel['SRCCV_SRC'] = $this->newKfrel( $kfdb, $uid,
-                [ 'SRCCV' => [ "Table" => "{$this->dbname}.sl_cv_sources",
+                [ 'SRCCV' => [ "Table" => "seeds.sl_cv_sources",
                                "Fields" => _sldb_defs::fldSLSourcesCV() ],
-                  'SRC' =>   [ "Table" => "{$this->dbname}.sl_sources",
+                  'SRC' =>   [ "Table" => "seeds.sl_sources",
                                "Fields" => _sldb_defs::fldSLSources(),
                                "Type"  => "LeftJoin",
                                "LeftJoinOn" => "SRCCV.fk_sl_sources=SRC._key" ] ],
@@ -400,11 +399,11 @@ class SLDBSources extends SLDBRosetta
 
         // every SrcCV must have a Src, but it might not have a PCV
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
-                array( 'SRCCV' => array( "Table" => "{$this->dbname}.sl_cv_sources",
+                array( 'SRCCV' => array( "Table" => "seeds.sl_cv_sources",
                                          "Fields" => _sldb_defs::fldSLSourcesCV() ),
-                       'SRC' =>   array( "Table" => "{$this->dbname}.sl_sources",
+                       'SRC' =>   array( "Table" => "seeds.sl_sources",
                                          "Fields" => _sldb_defs::fldSLSources() ),
-                       'P' =>     array( "Table" => "{$this->dbname}.sl_pcv",
+                       'P' =>     array( "Table" => "seeds.sl_pcv",
                                          "Type"  => "LeftJoin",
                                          "LeftJoinOn" => "SRCCV.fk_sl_pcv=P._key",
                                          "Fields" => _sldb_defs::fldSLPCV() ) ),
@@ -413,9 +412,9 @@ class SLDBSources extends SLDBRosetta
 //kluge: Since fk_sl_pcv is often 0, SRCCVxPxS cannot be used to get a list of species from SRCCV.
 //       SRCCV.fk_sl_species is non-canonical so replace this with SRCCVxPxS when fk_sl_pcv is done right.
 $raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
-    array( 'SRCCV' => array( "Table" => "{$this->dbname}.sl_cv_sources",
+    array( 'SRCCV' => array( "Table" => "seeds.sl_cv_sources",
                              "Fields" => _sldb_defs::fldSLSourcesCV() ),
-           'S' =>     array( "Table" => "{$this->dbname}.sl_species",
+           'S' =>     array( "Table" => "seeds.sl_species",
                              "Type"  => "Join",
                              "JoinOn" => "SRCCV.fk_sl_species=S._key",
                              "Fields" => _sldb_defs::fldSLSpecies() ) ),
@@ -424,18 +423,18 @@ $raKfrel['SRCCVxS'] = $this->newKfrel( $kfdb, $uid,
 //kluge: This should be obtained by SRCCVAxSRCxPxS because SRCCVA would not normally have fk_sl_species, but for now this is how we do it
 //       Also make sure you use SRC._status=-1 (ignore _status) because some archived srccv records will have "deleted" companies
 $raKfrel['SRCCVAxS'] = $this->newKfrel( $kfdb, $uid,
-    array( 'SRCCVA' => array( "Table" => "{$this->dbname}.sl_cv_sources_archive",
+    array( 'SRCCVA' => array( "Table" => "seeds.sl_cv_sources_archive",
                               "Fields" => _sldb_defs::fldSLSourcesCVArchive() ),
-           'S' =>      array( "Table" => "{$this->dbname}.sl_species",
+           'S' =>      array( "Table" => "seeds.sl_species",
                              "Fields" => _sldb_defs::fldSLSpecies() ) ),
     $sLogfile );
 $raKfrel['SRCCVAxSRC_S'] = $this->newKfrel( $kfdb, $uid,
-    array( 'SRCCVA' => array( "Table" => "{$this->dbname}.sl_cv_sources_archive",
+    array( 'SRCCVA' => array( "Table" => "seeds.sl_cv_sources_archive",
                               "Fields" => _sldb_defs::fldSLSourcesCVArchive() ),
-           'SRC' =>    array( "Table" => "{$this->dbname}.sl_sources",
+           'SRC' =>    array( "Table" => "seeds.sl_sources",
                               "Type"  => "Join",
                               "Fields" => _sldb_defs::fldSLSources() ),
-           'S' =>      array( "Table" => "{$this->dbname}.sl_species",
+           'S' =>      array( "Table" => "seeds.sl_species",
                              "Type"  => "LeftJoin",
                              "LeftJoinOn" => "SRCCVA.fk_sl_species=S._key",
                              "Fields" => _sldb_defs::fldSLSpecies() ) ),
@@ -529,7 +528,7 @@ CREATE TABLE sl_cv_sources_archive (
 ";
 
 const SEEDS_DB_TABLE_SL_TMP_CV_SOURCES = "
-CREATE TABLE seeds_1.sl_tmp_cv_sources (
+CREATE TABLE seeds.sl_tmp_cv_sources (
     -- These columns are required in the spreadsheet
     -- osp and ocv are named this way to enable compatible code with SLSourceRosetta
     k             integer not null default 0,            -- sl_cv_sources._key, preserved here for re-integration

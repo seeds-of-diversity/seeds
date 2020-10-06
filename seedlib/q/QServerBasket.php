@@ -11,14 +11,9 @@ include_once( "Q.php" );
 
 class QServerBasket extends SEEDQ
 {
-    private $oSB;
-
     function __construct( SEEDAppConsole $oApp, $raConfig )
     {
         parent::__construct( $oApp, $raConfig );
-        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
-// SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
     }
 
     function Cmd( $cmd, $parms )
@@ -31,34 +26,34 @@ class QServerBasket extends SEEDQ
         switch( $cmd ) {
             case "basketProdUnfill":
                 if( $kBP ) {
-                    $this->oApp->kfdb->Execute( "UPDATE seeds_1.SEEDBasket_BP SET eStatus='PAID' WHERE _key='$kBP'" );
+                    $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_BP SET eStatus='PAID' WHERE _key='$kBP'" );
                     $rQ['bOk'] = true;
                 }
                 break;
 
             case "basketProdCancel":
                 if( $kBP ) {
-                    $this->oApp->kfdb->Execute( "UPDATE seeds_1.SEEDBasket_BP SET eStatus='CANCELLED' WHERE _key='$k'" );
+                    $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_BP SET eStatus='CANCELLED' WHERE _key='$k'" );
                     $rQ['bOk'] = true;
                 }
                 break;
 
             case "basketProdUncancel":
                 if( $kBP ) {
-                    $this->oApp->kfdb->Execute( "UPDATE seeds_1.SEEDBasket_BP SET eStatus='PAID' WHERE _key='$k'" );
+                    $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_BP SET eStatus='PAID' WHERE _key='$k'" );
                     $rQ['bOk'] = true;
                 }
                 break;
 
             case "basketPurchaseAccount":
                 if( $kBP ) {
-                    $this->oApp->kfdb->Execute( "UPDATE seeds_1.SEEDBasket_BP SET flagsWorkflow=flagsWorkflow | 1 WHERE _key='$kBP'" );
+                    $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_BP SET flagsWorkflow=flagsWorkflow | 1 WHERE _key='$kBP'" );
                     $rQ['bOk'] = true;
                 }
                 break;
             case "basketPurchaseUnaccount":
                 if( $kBP ) {
-                    $this->oApp->kfdb->Execute( "UPDATE seeds_1.SEEDBasket_BP SET flagsWorkflow=flagsWorkflow & ~1 WHERE _key='$kBP'" );
+                    $this->oApp->kfdb->Execute( "UPDATE seeds.SEEDBasket_BP SET flagsWorkflow=flagsWorkflow & ~1 WHERE _key='$kBP'" );
                     $rQ['bOk'] = true;
                 }
                 break;

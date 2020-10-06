@@ -23,7 +23,7 @@ class SLDescReadOnly
     {
         $s = "";
 
-        $ra = $this->kfdb->QueryRA( "SELECT * FROM seeds_1.sl_desc_cfg_tags WHERE tag='".addslashes($sTag)."'" );
+        $ra = $this->kfdb->QueryRA( "SELECT * FROM seeds.sl_desc_cfg_tags WHERE tag='".addslashes($sTag)."'" );
         if( !@$ra['tag'] ) {
             $s = "<span style='color:red'>CD tag '$sTag' not found</span>";
         } else if( !$ra['q_en'] ) {

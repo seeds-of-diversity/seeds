@@ -338,7 +338,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
     {
         $s = "";
 
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _key='$kMbr'" );
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kMbr'" );
         $s .= "<p>Mbr database:<br/>donation_receipt: {$ra['donation_receipt']}</p>";
 
         return( $s );
@@ -388,7 +388,7 @@ class Mbr3UpSFG2020
 
 
 //        $raMbr1 = $this->oApp->kfdb->QueryRowsRA1(
-//            "SELECT * FROM seeds_2.mbr_contacts M LEFT JOIN seeds_2.mbr_donations D ON (M._key=D.fk_mbr_contacts) WHERE "
+//            "SELECT * FROM seeds2.mbr_contacts M LEFT JOIN seeds2.mbr_donations D ON (M._key=D.fk_mbr_contacts) WHERE "
 $cond =                 "M._status='0' AND M.province='ON' AND "         // country='Canada'
                 ."M.address IS NOT NULL AND M.address<>'' AND "   // address is blanked out if mail comes back RTS
                 ."NOT M.bNoDonorAppeals AND "
@@ -399,7 +399,7 @@ $cond =                 "M._status='0' AND M.province='ON' AND "         // coun
 //                ."ORDER by cast(M.donation as decimal)+cast(D.amount as decimal) desc,lastname,firstname" );
 
 //        $raMbr2 = $this->oApp->kfdb->QueryRowsRA(
-//            "SELECT * from seeds_2.mbr_contacts WHERE _key in (".implode(',',$raMbr1).")" );
+//            "SELECT * from seeds2.mbr_contacts WHERE _key in (".implode(',',$raMbr1).")" );
 
         $raMbr1 = $oMbr->oDB->GetList( 'M_D', $cond, ['sSortCol'=>"cast(M.donation as decimal)+cast(D.amount as decimal)", 'bSortDown'=>true] );
 
@@ -545,16 +545,16 @@ class Mbr3UpDonors
         $sCondNonDonorMemberEN = "$dNo AND $lEN";
         $sCondNonDonorMemberFR = "$dNo AND $lFR";
 
-        $this->raDonorEN    = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondDonorEN order by cast(donation as decimal),lastname,firstname" );
-        $this->raDonorFR    = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondDonorFR order by cast(donation as decimal),lastname,firstname" );
-        $this->raNonDonorEN = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberEN order by lastname,firstname" );
-        $this->raNonDonorFR = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberFR order by lastname,firstname" );
+        $this->raDonorEN    = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND $sCondDonorEN order by cast(donation as decimal),lastname,firstname" );
+        $this->raDonorFR    = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND $sCondDonorFR order by cast(donation as decimal),lastname,firstname" );
+        $this->raNonDonorEN = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberEN order by lastname,firstname" );
+        $this->raNonDonorFR = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberFR order by lastname,firstname" );
         $this->raDonor    = $this->lang=='EN' ? $this->raDonorEN    : $this->raDonorFR;
         $this->raNonDonor = $this->lang=='EN' ? $this->raNonDonorEN : $this->raNonDonorFR;
 
         foreach( $this->getGroups() as $k => $ra )
         {
-            $this->raData[$k] = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND ".implode(' AND ',$ra['cond'])." order by {$ra['order']}" );
+            $this->raData[$k] = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND ".implode(' AND ',$ra['cond'])." order by {$ra['order']}" );
             // now for each row in the result, insert the address block in the row
             $ra1 = array();
             foreach( $this->raData[$k] as $k1=>$ra1 ) {
@@ -757,8 +757,8 @@ class Mbr3UpMemberRenewals
                   ."NOT bNoDonorAppeals AND "                   // they probably see this as the same thing
                   ."expires IS NOT NULL AND year(expires) IN ($yLastYear,$yBeforeThat)";
 
-        $this->raMbrEN = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $lEN order by lastname,firstname" );
-        $this->raMbrFR = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $lFR order by lastname,firstname" );
+        $this->raMbrEN = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND $lEN order by lastname,firstname" );
+        $this->raMbrFR = $this->kfdb->QueryRowsRA("SELECT * FROM seeds2.mbr_contacts WHERE $dGlobal AND $lFR order by lastname,firstname" );
 
         $this->raMbr   = $this->lang=='EN' ? $this->raMbrEN : $this->raMbrFR;
         foreach( $this->raMbr as &$ra ) {

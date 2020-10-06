@@ -12,7 +12,7 @@ class EventsDB extends Keyframe_NamedRelations
         $raKfrel = array();
 
         $def = ["Tables" => [
-                    "E" => ["Table" => "seeds_1.ev_events",
+                    "E" => ["Table" => "seeds.ev_events",
                             "Type"  => 'Base',
                             "Fields" => 'Auto'
                ]]];

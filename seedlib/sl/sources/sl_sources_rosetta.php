@@ -30,7 +30,7 @@ class SLSourceCV_Build
         /* Company name is only stored in sl_tmp_cv_sources to save space in the larger tables.
          * That means you can't clear fk_sl_sources in the permanent tables and expect it to be rebuilt.
          */
-        if( $dbtable == 'seeds_1.sl_tmp_cv_sources' ) {
+        if( $dbtable == 'seeds.sl_tmp_cv_sources' ) {
             self::BuildSourcesIndex( $kfdb, $dbtable, @$raParms['bIncludeOldSources'] ? ['iStatusSrc'=>-1] : [] );
             $s .= "<p>Rebuilt source keys in upload table.</p>";
         }
@@ -78,7 +78,7 @@ class SLSourceCV_Build
         This could be extended to sl_cv_sources_archive if computing power allows.
      */
     {
-        if( $dbtable == 'seeds_1.sl_cv_sources' ) {
+        if( $dbtable == 'seeds.sl_cv_sources' ) {
             $kfdb->Execute( "UPDATE $dbtable SET sound_soundex='',sound_metaphone=''" );
         }
     }
@@ -99,10 +99,10 @@ class SLSourceCV_Build
         $iStatusSrc = intval(@$raParms['iStatusSrc']);
 
         //self::checkTable( $dbtable );
-        ($dbtable == "seeds_1.sl_tmp_cv_sources") or die( "Can't build sources for table $dbtable - only allowed for seeds_1.sl_tmp_cv_sources" );
+        ($dbtable == "seeds.sl_tmp_cv_sources") or die( "Can't build sources for table $dbtable - only allowed for seeds.sl_tmp_cv_sources" );
 
         $ok =
-        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds_1.sl_sources Src "
+        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_sources Src "
                        ."SET SrcCV.fk_sl_sources=Src._key "
                        ."WHERE SrcCV._status='0' ".($iStatusSrc == -1 ? "" : "AND Src._status='$iStatusSrc' ")
                        ."AND SrcCV.fk_sl_sources='0' "
@@ -122,7 +122,7 @@ class SLSourceCV_Build
 
         $ok =
         // sl_species
-        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds_1.sl_species S "
+        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_species S "
                        ."SET SrcCV.fk_sl_species=S._key "
                        ."WHERE SrcCV._status='0' AND S._status='0' "
                        ."AND SrcCV.fk_sl_species='0' "
@@ -132,7 +132,7 @@ class SLSourceCV_Build
                        .($sCond ? " AND ($sCond)" : "" ) )
         &&
         // sl_species_syn
-        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds_1.sl_species_syn SY "
+        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_species_syn SY "
                        ."SET SrcCV.fk_sl_species=SY.fk_sl_species "
                        ."WHERE SrcCV._status='0' AND SY._status='0' "
                        ."AND SrcCV.fk_sl_species='0' "
@@ -155,7 +155,7 @@ class SLSourceCV_Build
         // Also skip rows where cultivar is empty, because we don't support unnamed cultivars in Rosetta. Sorry, you can't search for those in the seed finder.
         $ok =
         // sl_pcv
-        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds_1.sl_pcv P "
+        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_pcv P "
                        ."SET SrcCV.fk_sl_pcv=P._key "
                        ."WHERE SrcCV._status='0' AND P._status='0' "
                        ."AND SrcCV.fk_sl_species AND SrcCV.fk_sl_pcv='0' "
@@ -166,7 +166,7 @@ class SLSourceCV_Build
 
         &&
         // sl_pcv_syn
-        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds_1.sl_pcv P,seeds_1.sl_pcv_syn PY "
+        $kfdb->Execute( "UPDATE $dbtable SrcCV,seeds.sl_pcv P,seeds.sl_pcv_syn PY "
                        ."SET SrcCV.fk_sl_pcv=PY.fk_sl_pcv "
                        ."WHERE SrcCV._status='0' AND P._status='0' AND PY._status='0' "
                        ."AND SrcCV.fk_sl_species AND SrcCV.fk_sl_pcv='0' "
@@ -185,18 +185,18 @@ class SLSourceCV_Build
         This could be extended to sl_cv_sources_archive if computing power allows.
      */
     {
-        if( $dbtable == 'seeds_1.sl_cv_sources' ) {
-//        $kfdb->Execute( "UPDATE seeds_1.sl_cv_sources SET sound_soundex=soundex(ocv) WHERE sound_soundex=''" );
-//        $kfdb->Execute( "UPDATE seeds_1.sl_cv_sources SET sound_metaphone=metaphone(ocv) WHERE sound_metaphone=''" );
+        if( $dbtable == 'seeds.sl_cv_sources' ) {
+//        $kfdb->Execute( "UPDATE seeds.sl_cv_sources SET sound_soundex=soundex(ocv) WHERE sound_soundex=''" );
+//        $kfdb->Execute( "UPDATE seeds.sl_cv_sources SET sound_metaphone=metaphone(ocv) WHERE sound_metaphone=''" );
 
-//        $this->oW->kfdb->Execute( "UPDATE seeds_1.sl_pcv SET sound_soundex=soundex(name) WHERE sound_soundex=''" );
-//        $this->oW->kfdb->Execute( "UPDATE seeds_1.sl_pcv SET sound_metaphone=metaphone(name) WHERE sound_metaphone=''" );
+//        $this->oW->kfdb->Execute( "UPDATE seeds.sl_pcv SET sound_soundex=soundex(name) WHERE sound_soundex=''" );
+//        $this->oW->kfdb->Execute( "UPDATE seeds.sl_pcv SET sound_metaphone=metaphone(name) WHERE sound_metaphone=''" );
         }
     }
 
     static private function checkTable( $dbtable )
     {
-        in_array( $dbtable, array("seeds_1.sl_cv_sources", "seeds_1.sl_cv_sources_archive", "seeds_1.sl_tmp_cv_sources") )  or  die( "$dbtable not allowed" );
+        in_array( $dbtable, array("seeds.sl_cv_sources", "seeds.sl_cv_sources_archive", "seeds.sl_tmp_cv_sources") )  or  die( "$dbtable not allowed" );
     }
 }
 
