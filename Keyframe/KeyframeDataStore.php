@@ -2,7 +2,7 @@
 
 /* KeyframeDataStore
  *
- * Copyright 2010-2018 Seeds of Diversity Canada
+ * Copyright 2010-2020 Seeds of Diversity Canada
  *
  * Implement a SEEDDataStore using a KeyframeRecord
  */
@@ -44,9 +44,9 @@ class Keyframe_DataStore extends SEEDDataStore
     {
         if( $this->kfr && in_array($op, array('d','h','r')) ) {
             // delete, hide, or reset the row's _status
-            $this->kfr->StatusSet( $op=='d' ? KFRECORD_STATUS_DELETED :
-                                   $op=='h' ? KFRECORD_STATUS_HIDDEN  :
-                                              KFRECORD_STATUS_NORMAL );
+            $this->kfr->StatusSet(  $op=='d' ? KFRECORD_STATUS_DELETED :
+                                   ($op=='h' ? KFRECORD_STATUS_HIDDEN  :
+                                               KFRECORD_STATUS_NORMAL) );
         }
     }
 
@@ -82,5 +82,3 @@ class Keyframe_DataStore extends SEEDDataStore
 
     function DSGetDataObj() { return( $this->kfr ); }
 }
-
-?>
