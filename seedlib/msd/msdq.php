@@ -332,7 +332,7 @@ class MSDQ extends SEEDQ
         // and REVIEW is currently identical to EDIT so they coded as EDIT below
         if( $eView == 'REVIEW' )  $eView = 'EDIT';
 
-        $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
+        $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds_1.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
 
         $raSeed = $this->oMSDCore->GetSeedRAFromKfr( $kfrS, array('bUTF8'=>$this->bUTF8) );
 

@@ -157,7 +157,7 @@ class Events_event
         $s = "";
 
         if( $this->kfr ) {
-            $raMbrVol = ($kVol = $this->kfr->Value('vol_kMbr')) ? $this->oE->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kVol'" ) : [];
+            $raMbrVol = ($kVol = $this->kfr->Value('vol_kMbr')) ? $this->oE->oApp->kfdb->QueryRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _key='$kVol'" ) : [];
             $s .= @$raMbrVol['_key'] ? "{$raMbrVol['firstname']} {$raMbrVol['lastname']} in {$raMbrVol['city']} ({$raMbrVol['_key']})" : "";
         }
 

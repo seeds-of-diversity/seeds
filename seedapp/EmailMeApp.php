@@ -127,7 +127,7 @@ class EmailMeApp
         Look up a member's email from their key. Override to use a different lookup (like if you're not a Seeds of Diversity application).
      */
     {
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$k'" );
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _key='$k'" );
         $email = $ra['email'] ? SEEDCore_ArrayExpand( $ra, "[[firstname]] [[lastname]] <[[email]]>" ) : "";
         return( $email );
     }

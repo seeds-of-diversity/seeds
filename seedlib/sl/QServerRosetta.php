@@ -190,14 +190,14 @@ class QServerRosetta extends SEEDQ
             // Get a list of sources for this cultivar
             $raOut['raSrc'] = $this->cultivarOverviewGetSources( "fk_sl_pcv='$kPcv'" );
 
+            $dbname = "seeds_1";
+            $ra['nAcc']    = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_accession WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
+            $ra['nAdopt']  = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_adoption WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
+            $ra['nDesc']   = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_varinst WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
 
-            $ra['nAcc']    = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_accession WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
-            $ra['nAdopt']  = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_adoption WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
-            $ra['nDesc']   = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_varinst WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
-
-            $ra['nSrcCv1'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='1'" );
-            $ra['nSrcCv2'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='2'" );
-            $ra['nSrcCv3'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources>='3'" );
+            $ra['nSrcCv1'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='1'" );
+            $ra['nSrcCv2'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='2'" );
+            $ra['nSrcCv3'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources>='3'" );
 
             $ra['nTotal'] = $ra['nAcc'] + $ra['nAdopt'] + $ra['nDesc'] +
                             $ra['nSrcCv1'] + $ra['nSrcCv2'] + $ra['nSrcCv3'];

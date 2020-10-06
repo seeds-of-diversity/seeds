@@ -40,11 +40,11 @@ class SLProfilesDB extends Keyframe_NamedRelations
         // If the accession is recorded but not the kPCV, get that for the next test
         if( ($kAcc = $raIn[$prefix.'fk_sl_accession']) && !$raIn[$prefix.'fk_sl_pcv'] ) {
 // kAcc is actually going to be the lot number
-//            $raIn[$prefix.'fk_sl_pcv'] = $this->GetKFDB()->Query1( "SELECT fk_sl_pcv FROM seeds.sl_accession WHERE _key='$kAcc'" );
+//            $raIn[$prefix.'fk_sl_pcv'] = $this->GetKFDB()->Query1( "SELECT fk_sl_pcv FROM seeds_1.sl_accession WHERE _key='$kAcc'" );
         }
         // If the kPCV is known, get the sp and cv from that
         if( ($kPCV = $raIn[$prefix.'fk_sl_pcv']) &&
-            ($ra = $this->GetKFDB()->QueryRA( "SELECT psp,name FROM seeds.sl_pcv WHERE _key='$kPCV'" )) )
+            ($ra = $this->GetKFDB()->QueryRA( "SELECT psp,name FROM seeds_1.sl_pcv WHERE _key='$kPCV'" )) )
         {
             $sp = @$ra['psp'];
             $cv = @$ra['name'];
@@ -71,27 +71,27 @@ class SLProfilesDB extends Keyframe_NamedRelations
         /* Profile records tables
          */
         $kdefSite = array( "Tables" =>
-            array( "Site" => array( "Table" => "seeds.mbr_sites",       "Fields" => "Auto" ) ) );
+            array( "Site" => array( "Table" => "seeds_1.mbr_sites",       "Fields" => "Auto" ) ) );
         $kdefVI   = array( "Tables" =>
-            array( "VI"   => array( "Table" => "seeds.sl_varinst",      "Fields" => "Auto" ) ) );
+            array( "VI"   => array( "Table" => "seeds_1.sl_varinst",      "Fields" => "Auto" ) ) );
         $kdefObs  = array( "Tables" =>
-            array( "Obs"  => array( "Table" => "seeds.sl_desc_obs",     "Fields" => "Auto" ) ) );
+            array( "Obs"  => array( "Table" => "seeds_1.sl_desc_obs",     "Fields" => "Auto" ) ) );
 
         $kdefVISite = array( "Tables" =>
-            array( "VI"   => array( "Table" => "seeds.sl_varinst",      "Fields" => "Auto" ),
-                   "Site" => array( "Table" => "seeds.mbr_sites",       "Fields" => "Auto" ) ) );
+            array( "VI"   => array( "Table" => "seeds_1.sl_varinst",      "Fields" => "Auto" ),
+                   "Site" => array( "Table" => "seeds_1.mbr_sites",       "Fields" => "Auto" ) ) );
 
         $kdefObsVISite = array( "Tables" =>
-            array( "Obs"  => array( "Table" => "seeds.sl_desc_obs",     "Fields" => "Auto" ),
-                   "VI"   => array( "Table" => "seeds.sl_varinst",      "Fields" => "Auto" ),
-                   "Site" => array( "Table" => "seeds.mbr_sites",       "Fields" => "Auto" ) ) );
+            array( "Obs"  => array( "Table" => "seeds_1.sl_desc_obs",     "Fields" => "Auto" ),
+                   "VI"   => array( "Table" => "seeds_1.sl_varinst",      "Fields" => "Auto" ),
+                   "Site" => array( "Table" => "seeds_1.mbr_sites",       "Fields" => "Auto" ) ) );
 
         /* Descriptor config tables
          */
         $kdefCfgTags = array( "Tables" =>
-            array( "CfgTags" => array( "Table" => "seeds.sl_desc_cfg_tags", "Fields" => "Auto" ) ) );
+            array( "CfgTags" => array( "Table" => "seeds_1.sl_desc_cfg_tags", "Fields" => "Auto" ) ) );
         $kdefCfgM = array( "Tables" =>
-            array( "CfgM"    => array( "Table" => "seeds.sl_desc_cfg_m",    "Fields" => "Auto" ) ) );
+            array( "CfgM"    => array( "Table" => "seeds_1.sl_desc_cfg_m",    "Fields" => "Auto" ) ) );
 
 
         $raParms = array( 'logfile' => $logdir."slprofiles.log" );

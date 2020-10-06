@@ -207,7 +207,7 @@ class MbrEbulletinDB extends Keyframe_NamedRelations
         $raKfrel = array();
 
         $def = ["Tables" => [
-                    "B" => ["Table" => "seeds.bull_list",
+                    "B" => ["Table" => "seeds_1.bull_list",
                             "Type"  => 'Base',
                             "Fields" => 'Auto'
                ]]];

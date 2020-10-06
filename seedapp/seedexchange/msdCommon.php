@@ -74,7 +74,7 @@ private $_lastType = "";
     {
         $sOut = "";
 
-        $this->kfrelG = new Keyframe_Relation( $this->oSB->oDB->KFDB(), array('Tables'=>array('G'=>array("Table" => 'seeds.sed_curr_growers',"Fields" => "Auto"))), array() );
+        $this->kfrelG = new Keyframe_Relation( $this->oSB->oDB->KFDB(), array('Tables'=>array('G'=>array("Table" => 'seeds_1.sed_curr_growers',"Fields" => "Auto"))), array() );
 
         $bNoSections = (@$raParms['bNoSections'] == true);  // true: you have to write the category/type headers yourself
 
