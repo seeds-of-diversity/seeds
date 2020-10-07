@@ -442,9 +442,8 @@ class SoDOrderBasket
         $this->oApp = $oApp;
         $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
 
-
-// SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'sbdb_config'=>['db'=>$config_KFDB['seeds']['kfdbDatabase'] ] ] );
+// SBC should use oApp->logdir instead
+            ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
     }
 
     function ShowBasketContents( $kB, $bFulfilControls = false )
@@ -532,7 +531,7 @@ class SoDOrder_MbrOrder
 
 
 // SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
+            ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
     }
 
 

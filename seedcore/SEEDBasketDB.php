@@ -16,8 +16,13 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
     function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig = array() )
     {
+        /* $raConfig['sbdb'] is the config_KFDB name of the db holding SEEDBasket tables
+         * Default is $kfdb->GetDB()
+         * $kfdb can be a different db, but it has to be able to read 'sbdb'
+         */
         $this->kfdb = $kfdb;
-        $this->db = @$raConfig['db'] ?: $kfdb->GetDB();         // generally this should be specified because oApp can be created for a different db above code that calls this
+        global $config_KFDB;
+        $this->db = @$raConfig['sbdb'] ? $config_KFDB[$raConfig['sbdb']]['kfdbDatabase'] : $kfdb->GetDB();
         $this->raCustomProductKfrelDefs = @$raConfig['raCustomProductKfrelDefs'] ?: array();
         parent::__construct( $kfdb, $uid, $logdir );
     }

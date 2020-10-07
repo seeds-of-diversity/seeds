@@ -7,7 +7,6 @@
 
 include_once( SEEDLIB."msd/msdcore.php" );
 
-
 class MSDQ extends SEEDQ
 {
     private $oMSDCore;
@@ -18,7 +17,7 @@ class MSDQ extends SEEDQ
         raConfig: config_OverrideUidSeller = the uid_seller for multi-grower app, only allowed if sess->CanWrite('MSDOffice')
                   config_currYear          = the MSD year for new listings
                   config_bAllowCanSeedRead = override the canSeedRead check so a process can generate a grower's seed list without being logged in (e.g. bulk email generator)
-                  config_sbdb              = the db name where SEEDBasket lives (defaults to oApp->kfdb)
+                  config_sbdb              = the config_KFDB db name where SEEDBasket lives (defaults to oApp->kfdb)
      */
     {
         parent::__construct( $oApp, $raConfig );

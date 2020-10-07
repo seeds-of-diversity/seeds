@@ -55,9 +55,9 @@ class MSDAppSeedEdit
 // Do this via MSDLib because MSDApp isn't supposed to know about MSDCore.
 // Also, it's necessary to specify the db where SEEDBasket lives because sometimes (mbr_basket) this oApp is seeds2.
 // BTW, oSB->oSBDB knows this so why can't MSDCore/MSDLib just take oSB
-        $oMSDCore = new MSDCore( $this->oSB->oApp, ['sbdb'=>'seeds'] );
+        $oMSDCore = new MSDCore( $this->oSB->oApp, ['sbdb'=>'seeds1'] );
 // this whole method should be in msdlib anyway
-        $oMSDLib = new MSDLib( $this->oSB->oApp, ['sbdb'=>'seeds'] );
+        $oMSDLib = new MSDLib( $this->oSB->oApp, ['sbdb'=>'seeds1'] );
         if( $oMSDLib->PermOfficeW() ) {
             if( !$uidSeller && !$kSp ) {
                 $sList = "<h3>Please choose a Grower above and/or a Species at the left</h3>";
@@ -99,7 +99,7 @@ drawScreen:
         );
         $oTmpl = SEEDTemplateMaker( $raTmplParms );
 
-        $oDraw = new MSDCommonDraw( $this->oSB, ['sbdb'=>'seeds'] );
+        $oDraw = new MSDCommonDraw( $this->oSB, ['sbdb'=>'seeds1'] );
         $msdList = $oDraw->DrawMSDList();
 
         $s = $oTmpl->ExpandTmpl( 'msdSpeciesListScript', array() )
@@ -445,10 +445,10 @@ basketScript;
         $sList = "";
         $raSeeds = array();
 
-        $oMSDCore = new MSDCore( $this->oSB->oApp, ['sbdb'=>'seeds'] );     // oApp can be seeds2 e.g. mbr_basket
+        $oMSDCore = new MSDCore( $this->oSB->oApp, ['sbdb'=>'seeds1'] );     // oApp can be seeds2 e.g. mbr_basket
 
         // Get the list of seed offers for the given seller/species
-        $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>true, 'config_sbdb'=>'seeds'] );
+        $oMSDQ = new MSDQ( $this->oSB->oApp, ['config_bUTF8'=>true, 'config_sbdb'=>'seeds1'] );
         $rQ = $oMSDQ->Cmd( 'msdSeedList-GetData', ['kUidSeller'=>$uidSeller,'kSp'=>$kSp,'eStatus'=>"ALL"] );
         if( $rQ['bOk'] ) {
             $raSeeds = $rQ['raOut'];

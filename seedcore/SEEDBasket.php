@@ -73,17 +73,18 @@ class SEEDBasketCore
         $this->oApp = $oApp;
         $this->sess = $sess;
 
-        // save this for below; should be encapsulated into SEEDBasketDB
-        if( @$raParms['sbdb_config'] ) {
-            $this->dbname = $raParms['sbdb_config']['db'];
+        // save this for below; sql requiring dbname should be encapsulated into SEEDBasketDB
+        if( @$raParms['sbdb'] ) {
+            global $config_KFDB;
+            $this->dbname = $config_KFDB[$raParms['sbdb']]['kfdbDatabase'];
         } else {
-            $this->dbname = @$raParms['db'];
+            $this->dbname = $kfdb->GetDB();
         }
 
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(),
             //get this from oApp
             @$raParms['logdir'],
-            @$raParms['sbdb_config'] ?: ['db'=>@$raParms['db']] );  // deprecate 'db' use sbdb_config instead
+            $raParms );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;

@@ -18,7 +18,7 @@ class QServerBasket extends SEEDQ
         parent::__construct( $oApp, $raConfig );
         $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
 // SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
+            ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
     }
 
     function Cmd( $cmd, $parms )

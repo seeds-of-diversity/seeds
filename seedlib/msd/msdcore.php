@@ -23,7 +23,7 @@ class MSDCore
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
-        raConfig: sbdb     = name of db where the MSD's SEEDBasket lives. Defaults to 'seeds'.
+        raConfig: sbdb     = config_KFDB name of db where the MSD's SEEDBasket lives. Defaults to 'seeds1'.
                              This cannot be taken from oApp because sometimes you authenticate on a different db.
                   currYear = the current year for entering MSD entries
      */
@@ -35,7 +35,7 @@ class MSDCore
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
                                          // create these kfrels in oSBDB
                                          ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
-                                          'db' => @$raConfig['sbdb'] ?: 'seeds'
+                                          'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'
                                          ] );
 
         $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
