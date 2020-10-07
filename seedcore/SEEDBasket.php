@@ -70,13 +70,22 @@ class SEEDBasketCore
 
     function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
     {
+        /* raParms:
+         *     sbdb_config              => raConfig for SEEDBasketDB
+         *     sbdb                     => logical name of SEEDBasket's db (can also be sbdb_config.sbdb)
+         *     fn_sellerNameFromUid     => callback to get the seller's name from the uid_seller
+         */
         $this->oApp = $oApp;
         $this->sess = $sess;
 
-        // save this for below; sql requiring dbname should be encapsulated into SEEDBasketDB
-        if( @$raParms['sbdb'] ) {
+        // sbdb can be specified in two places
+        $raSBDBConfig = @$raParms['sbdb_config'] ?: [];
+        if( @$raParms['sbdb'] ) $raSBDBConfig['sbdb'] = $raParms['sbdb'];
+
+        // save the db name for below; sql requiring dbname should be encapsulated into SEEDBasketDB
+        if( ($sbdb = @$raSBDBConfig['sbdb']) ) {
             global $config_KFDB;
-            $this->dbname = $config_KFDB[$raParms['sbdb']]['kfdbDatabase'];
+            $this->dbname = $config_KFDB[$sbdb]['kfdbDatabase'];
         } else {
             $this->dbname = $kfdb->GetDB();
         }
@@ -84,7 +93,7 @@ class SEEDBasketCore
         $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(),
             //get this from oApp
             @$raParms['logdir'],
-            $raParms );
+            $raSBDBConfig );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;

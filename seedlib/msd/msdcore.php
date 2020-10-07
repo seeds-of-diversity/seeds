@@ -557,7 +557,7 @@ class MSDBasketCore extends SEEDBasketCore
                               'logdir'=>SITE_LOG_ROOT,      // SEEDBasketCore should get this from oApp instead
                               'sbdb_config' =>
                                      ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
-                                      'db' => @$raConfig['sbdb'] ?: 'seeds'
+                                      'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'
                                      ]
                              ]
                            );
