@@ -129,6 +129,7 @@ function SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt = true )
  */
 {
     foreach( $ra as $k => $v ) {
+        if( $v === null ) $v = "";
         if( !(is_string($v) || is_numeric($v)) ) continue;  // you can't reference objects or arrays in your template
         $sTemplate = str_replace( "[[$k]]", ($bEnt ? SEEDCore_HSC($v) : $v), $sTemplate );
     }
