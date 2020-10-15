@@ -612,6 +612,7 @@ class SEEDBasket_Basket
 
     function GetBuyer()  { return( $this->kfr ? $this->kfr->Value('uid_buyer') : "" ); }
     function GetDate()   { return( $this->kfr ? $this->kfr->Value('_created') : "" ); }     // not sure this is always what you want
+    function GetEStatus(){ return( $this->kfr ? $this->kfr->Value('eStatus') : "" ); }
 
     function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
@@ -1069,14 +1070,21 @@ class SEEDBasket_Purchase
 // NEW
 // NEW, PAID
 
-    function IsFulfilmentActive()
-    /****************************
+//*** Purchases don't get PAID status, baskets do
+
+    function IsFulfilmentAllowed()
+    /*****************************
         Indicates whether this purchase is ready for Fulfil/FulfilUndo.
-        Not cancelled, not unpaid.
      */
     {
-return( $this->kfr && in_array( $this->kfr->value('eStatus'), ['PAID','FILLED', 'NEW'] ) );     // purchases don't get PAID status, baskets do
-        return( $this->kfr && in_array( $this->kfr->value('eStatus'), ['PAID','FILLED'] ) );
+        // this base condition can be made more stringent per product_type
+        return( $this->GetKey() &&
+                $this->GetEStatus() != 'CANCELLED' &&            // maybe just use basket.eStatus
+                ($oB = $this->GetBasketObj()) &&
+//                in_array($oB->GetEStatus(), ['Paid','Filled'])   // Cancelled baskets have to be uncancelled before fulfilment operations allowed
+// allowing Open temporarily because basket.eStatus is not updated yet
+                in_array($oB->GetEStatus(), ['Open','Paid','Filled'])
+            );
     }
 
     function IsFulfilled()

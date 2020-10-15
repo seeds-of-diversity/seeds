@@ -140,7 +140,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         return( "
             <style>
-            .SodBasketFulfil_basketContents td { font-size:x-small; }
+            .SodBasketFulfil_basketContents td { padding-left:10px; font-size:x-small; }
             </style>
         ");
     }
@@ -480,20 +480,25 @@ class SoDOrderBasket
             foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
                 if( !($oPur = $ra['oPur']) ) continue;
 
-                $sButtons = "";
-                if( $bFulfilControls && $oPur->IsFulfilmentActive() ) {
+                $sColFulfil1 = "";
+                $sColFulfil2 = "";
+                if( $bFulfilControls && $oPur->IsFulfilmentAllowed() ) {
                     switch( $oPur->GetProductType() ) {
                         case 'donation':
-                            $sButtons = !$oPur->IsFulfilled()
-                                ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil' onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>Accept donation</button>"
-                                : "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfilUndo'>Undo</button>";
+                            $sColFulfil1 = $oPur->IsFulfilled()
+                                            ? "recorded donation #{$oPur->GetKRef()}"
+                                              // data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil'
+                                            : "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>Accept donation</button>";
+                            $sColFulfil2 = $oPur->IsFulfilled()
+                                            ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfilUndo'>Undo</button>"
+                                            : "";
                             break;
                     }
                 }
 
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
                          ."<td valign='top'>{$oPur->GetPrice()}</td>"
-                         .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sButtons</td>" : "")
+                         .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sColFulfil1</td><td valign='top' style='text-align:left'> $sColFulfil2</td>" : "")
                      ."</tr>";
             }
             $s .= "</table>";

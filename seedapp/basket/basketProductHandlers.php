@@ -101,12 +101,17 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
     }
 
     /**************************************
-        A donation is considered fulfilled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
+        A donation is considered fulfiled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
         The fulfilment system cannot create an mbr_donation until the uid_buyer is identified so we assume that kRef alone indicates fulfilment.
 
         N.B. Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
              All this system does is create an mbr_donation and point to it from kRef.
      */
+    function IsFulfilmentAllowed()
+    {
+        return( parent::IsFulfilmentAllowed() && $this->GetBasketObj()->GetBuyer() );  // require ui_buyer to be set
+    }
+
     function IsFulfilled()
     {
         return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_RECORDED) && $this->GetKRef() );
@@ -116,22 +121,23 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
     {
         $ret = self::FULFIL_RESULT_FAILED;
 
+        // check if fulfilment is allowed
+        if( !$this->IsFulfilmentAllowed() ) goto done;
+
         // check if already fulfilled
         if( $this->IsFulfilled() ) {
             $ret = self::FULFIL_RESULT_ALREADY_FULFILLED;
             goto done;
         }
 
-        // check if able to fulfil
-        if( !$this->GetKey() || $this->GetEStatus() == 'CANCELLED' ||
-            !($oB = $this->GetBasketObj()) || !($kBuyer = $oB->GetBuyer()) ) goto done;
+        $oB = $this->GetBasketObj();    // succeeds because of the check above
 
 // Date paid is not necessarily the date the order was made.  We might enter cheque orders long after they are received.
 $dateReceived = $oB->GetDate();
 
         $oMbr = new Mbr_Contacts( $this->oSB->oApp );
         $kDonation = $oMbr->AddMbrDonation(
-                        ['kMbr' => $kBuyer,
+                        ['kMbr' => $oB->GetBuyer(),
                          'date_received' => $dateReceived,
                          'amount' => $this->GetF(),
                          'receipt_num' => 0 ] );
