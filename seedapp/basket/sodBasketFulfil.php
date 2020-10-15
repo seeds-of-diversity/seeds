@@ -4,6 +4,7 @@
  * This should all be converted to use SEEDBasket and its fulfilment system.
  */
 
+include_once( SEEDLIB."q/QServerBasket.php" );
 include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
 
 
@@ -484,7 +485,7 @@ class SoDOrderBasket
                     switch( $oPur->GetProductType() ) {
                         case 'donation':
                             $sButtons = !$oPur->IsFulfilled()
-                                ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil'>Accept donation</button>"
+                                ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil' onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>Accept donation</button>"
                                 : "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfilUndo'>Undo</button>";
                             break;
                     }
@@ -527,11 +528,7 @@ class SoDOrder_MbrOrder
         $this->oApp = $oApp;
         $this->oOrder = new SodOrder( $oApp );
 
-        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
-
-
-// SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
+        $this->oSB = new SEEDBasketCore( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
     }
 
 
@@ -540,8 +537,18 @@ class SoDOrder_MbrOrder
         Process sb- JX commands
      */
     {
-        // returns array containing 'bHandled'=>false/true
-        return( $this->oSB->Cmd( $cmd, $raParms ) );
+        // handle the basic sb- commands
+        $oQ = new QServerBasket( $this->oApp, [] );
+        $rQ = $oQ->Cmd( $cmd, $raParms );
+        if( $rQ['bHandled'] ) return( $rQ );
+
+        $rQ = SEEDQ::GetEmptyRQ();
+        switch( $cmd ) {
+            default:
+                break;
+        }
+
+        return( $rQ );
     }
 
 
