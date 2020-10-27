@@ -123,7 +123,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
         $this->pAction = SEEDInput_Str( 'action' );
 
         // Filters
-        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed",
+        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed", "Bob",
                                                                        MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED ] )) )
         {
             // "" defaults to either Not-accounted or Not-mailed depending on whom you are
@@ -161,13 +161,14 @@ class SodOrderFulfilUI extends SodOrderFulfil
                         array( "Not Accounted" => "Not-accounted",
                                "Not Recorded"  => "Not-recorded",
                                "Not Mailed"    => "Not-mailed",
+                               "Bob's Review"  => 'Bob',
                                "Filled"        => MBRORDER_STATUS_FILLED,
                                "Cancelled"     => MBRORDER_STATUS_CANCELLED,
                                "All"           => "All",
                         ),
                         $this->fltStatus,
                         array( "selectAttrs" => "onChange='submit();'" ) );
-        if( in_array( $this->fltStatus, ["All", MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
+        if( in_array( $this->fltStatus, ["All", 'Bob', MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
             $s .= SEEDCore_NBSP("",5)
                  .SEEDForm_Select2( 'fltYear',
                             $raYearOpt,
@@ -213,6 +214,11 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 $cond = "eStatus2='0' AND eStatus NOT IN ('".MBRORDER_STATUS_NEW."','".MBRORDER_STATUS_CANCELLED."')";
                 $bSortDown = false;
                 break;
+            case 'Bob':
+                $label = "Bob's Review";
+                $cond = $this->getYearCond()." AND eStatus='Paid'";
+                $bSortDown = true;
+                break;
             case "All":
             default:
                 $label = "All {$this->fltYear}";
@@ -239,6 +245,15 @@ class SodOrderFulfilUI extends SodOrderFulfil
     function DrawOrderSummaryRow( KeyframeRecord $kfr, $sConciseSummary, $raOrder )
     {
         $s = "";
+
+        // kluge Bob Review by skipping rows that don't meet the criteria
+        if( $this->fltStatus == 'Bob' ) {
+            list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
+
+            if( !$bContactNeeded && !$bDonNotRecorded && $fTotal == $kfr->Value('pay_total') ) goto done;   // this row does not need review
+        }
+
+
 
         if( in_array( $kfr->value('eStatus'), [ MBRORDER_STATUS_PAID, MBRORDER_STATUS_FILLED ] ) ) {
             $style = "style='color:green;background-color:#efe'";
@@ -301,6 +316,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
 
+         done:
          return( $s );
     }
 
@@ -383,14 +399,14 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         // use this to compute the basket, but only show the details to dev/Bob
         list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
-        if( $bContactNeeded && $kfr->value('eStatus') != 'Cancelled' ) {
+        if( $bContactNeeded && $kfr->value('eStatus') == 'Paid' ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
 
-            if( $bDonNotRecorded && $kfr->value('eStatus') != 'Cancelled' ) {
-                $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded <button>Record</button></div>";
+            if( $bDonNotRecorded && $kfr->value('eStatus') == 'Paid' ) {
+                $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded</div>";
             }
 
             $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
