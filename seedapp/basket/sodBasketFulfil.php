@@ -254,11 +254,12 @@ class SodOrderFulfilUI extends SodOrderFulfil
         }
 
 
-
-        if( in_array( $kfr->value('eStatus'), [ MBRORDER_STATUS_PAID, MBRORDER_STATUS_FILLED ] ) ) {
-            $style = "style='color:green;background-color:#efe'";
-        } else {
-            $style = "";
+        switch( $kfr->value('eStatus') ) {
+            case MBRORDER_STATUS_NEW:       $style = "style='background-color:#eee'";               break;
+            case MBRORDER_STATUS_PAID:
+            case MBRORDER_STATUS_FILLED:    $style = "style='color:green;background-color:#efe'";   break;
+            case MBRORDER_STATUS_CANCELLED: $style = "style='color:#844; background-color:#eee'";   break;
+            default:                        $style = "";
         }
 
 // kluge to make the membership labels easier to differentiate
@@ -307,7 +308,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          .$this->doneRecordingButton( $kfr );
 
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
-         ."<td valign='top'>$sOrderNum</td>"
+         ."<td valign='top' $style>$sOrderNum</td>"
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
@@ -399,20 +400,21 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         // use this to compute the basket, but only show the details to dev/Bob
         list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
-        if( $bContactNeeded && $kfr->value('eStatus') == 'Paid' ) {
+        $bGood = in_array( $kfr->value('eStatus'), ['Paid','Filled'] );
+
+        if( $bGood && $bContactNeeded ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
 
-            if( $bDonNotRecorded && $kfr->value('eStatus') == 'Paid' ) {
-                $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded</div>";
+            if( $bGood && $bDonNotRecorded ) {
+                $s .= "<div class='alert alert-danger'>The donation is not recorded</div>";
             }
 
-            $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
-            $cSuccess = $fTotal == $kfr->Value('pay_total') ? 'success' : 'danger';
-            //$s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>$sContents</div>";
-            $s .= "<div class='alert alert-$cSuccess'>$sContents</div>";
+            $c = $bGood ? ($fTotal == $kfr->Value('pay_total') ? 'alert alert-success' : 'alert alert-danger') : "";
+
+            $s .= "<div class='$c'>$sContents</div>";
 
 // data-kOrder is also present in the enclosing <tr>
             $s .= "<div data-kOrder='{$kfr->Key()}' class='doBuildBasket'><button>rebuild this basket</button></div>";
