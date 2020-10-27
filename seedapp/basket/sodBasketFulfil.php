@@ -482,7 +482,7 @@ class SoDOrderBasket
 
                 $sColFulfil1 = "";
                 $sColFulfil2 = "";
-                if( $bFulfilControls && $oPur->IsFulfilmentAllowed() ) {
+                if( $bFulfilControls && $oPur->CanFulfil() ) {
                     switch( $oPur->GetProductType() ) {
                         case 'donation':
                             $sColFulfil1 = $oPur->IsFulfilled()

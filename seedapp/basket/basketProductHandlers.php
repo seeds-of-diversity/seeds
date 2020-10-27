@@ -107,9 +107,9 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
         N.B. Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
              All this system does is create an mbr_donation and point to it from kRef.
      */
-    function IsFulfilmentAllowed()
+    function CanFulfil()
     {
-        return( parent::IsFulfilmentAllowed() && $this->GetBasketObj()->GetBuyer() );  // require ui_buyer to be set
+        return( parent::CanFulfil() && $this->GetBasketObj()->GetBuyer() );  // require ui_buyer to be set
     }
 
     function IsFulfilled()
@@ -122,7 +122,7 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
         $ret = self::FULFIL_RESULT_FAILED;
 
         // check if fulfilment is allowed
-        if( !$this->IsFulfilmentAllowed() ) goto done;
+        if( !$this->CanFulfil() ) goto done;
 
         // check if already fulfilled
         if( $this->IsFulfilled() ) {

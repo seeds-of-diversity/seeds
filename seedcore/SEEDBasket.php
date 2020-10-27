@@ -1055,7 +1055,11 @@ class SEEDBasket_Purchase
     // non-zero results indicate success
     const FULFIL_RESULT_FAILED = 0;
     const FULFIL_RESULT_SUCCESS = 1;
-    const FULFIL_RESULT_ALREADY_FULFILLED = 2;
+    const FULFIL_RESULT_ALREADY_FULFILLED = 2;  // consider this successful if trying to fulfil
+
+    const FULFILUNDO_RESULT_FAILED = 0;         // either !CanFilfulUndo() or a failure
+    const FULFILUNDO_RESULT_SUCCESS = 1;
+    const FULFILUNDO_RESULT_NOT_FULFILLED = 2;  // consider this successful if trying to undo
 
 // need to standardize how eStatus, flagsWorkflow, fulfil/undo really relate to each other
 // maybe IsFulfilled() is just eStatus==FILLED, but there are different and multiple stages of fulfilment (recording, mailing, receipting) for each product
@@ -1072,9 +1076,18 @@ class SEEDBasket_Purchase
 
 //*** Purchases don't get PAID status, baskets do
 
-    function IsFulfilmentAllowed()
-    /*****************************
-        Indicates whether this purchase is ready for Fulfil/FulfilUndo.
+    function IsFulfilled()
+    /*********************
+        Return true if the seller has already fulfilled this purchase
+     */
+    {
+        return( false );    // handled only by derived classes
+        //return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseIsFulfilled($this) : false );
+    }
+
+    function CanFulfil()
+    /*******************
+        Indicates whether this purchase is ready for Fulfil()
      */
     {
         // this base condition can be made more stringent per product_type
@@ -1087,21 +1100,29 @@ class SEEDBasket_Purchase
             );
     }
 
-    function IsFulfilled()
-    /*********************
-        Return true if the seller has already fulfilled this purchase
-     */
-    {
-        return( false );    // handled only by derived classes
-        //return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseIsFulfilled($this) : false );
-    }
-
     function Fulfil()
     /****************
         Record that the seller has fulfilled this purchase
      */
     {
+        /* deprecate: use derivation instead */
         return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseFulfil($this) : self::FULFIL_RESULT_FAILED );
+    }
+
+    function CanFulfilUndo()
+    /***********************
+        Indicates whether the fulfilment can be reversed, or is it too late.
+     */
+    {
+        return( false );
+    }
+
+    function FulfilUndo()
+    /********************
+        Reverse the fulfilment if possible
+     */
+    {
+        return( self::FULFILUNDO_RESULT_FAILED );
     }
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
