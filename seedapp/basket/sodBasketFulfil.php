@@ -480,22 +480,25 @@ class SoDOrderBasket
             foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
                 if( !($oPur = $ra['oPur']) ) continue;
 
-                $sColFulfil1 = "";
-                $sColFulfil2 = "";
-                if( $bFulfilControls && $oPur->CanFulfil() ) {
+                $sColFulfil1 = "";      // first col is a fulfil button or fulfilment record
+                $sColFulfil2 = "";      // second col is an undo button if fulfilled and canfulfilundo
+                if( $bFulfilControls ) {
+                    // using [onclick=fn(kBP)] instead of [data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil']
+                    // because inconvenient to reconnect event listener when basketDetail redrawn
+                    $sFulfilButtonLabel = $sFulfilNote = "";
                     switch( $oPur->GetProductType() ) {
                         case 'donation':
-                            $sColFulfil1 = $oPur->IsFulfilled()
-                                            ? "recorded donation #{$oPur->GetKRef()}"
-                                              // data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil'
-                                            : "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>Accept donation</button>";
-                            $sColFulfil2 = $oPur->IsFulfilled()
-                                            ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfilUndo'>Undo</button>"
-                                            : "";
+                            $sFulfilButtonLabel = "Accept donation";
+                            $sFulfilNote = "recorded donation #{$oPur->GetKRef()}";
                             break;
                     }
+                    $sColFulfil1 = $oPur->IsFulfilled()
+                                    ? $sFulfilNote
+                                    : ($oPur->CanFulfil() ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>" : "");
+                    $sColFulfil2 = $oPur->CanFulfilUndo()
+                                    ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfilUndo(\$(this),{$oPur->GetKey()})'>Undo</button>"
+                                    : "";
                 }
-
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
                          ."<td valign='top'>{$oPur->GetPrice()}</td>"
                          .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sColFulfil1</td><td valign='top' style='text-align:left'> $sColFulfil2</td>" : "")

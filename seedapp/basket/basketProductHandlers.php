@@ -104,17 +104,18 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
         A donation is considered fulfiled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
         The fulfilment system cannot create an mbr_donation until the uid_buyer is identified so we assume that kRef alone indicates fulfilment.
 
-        N.B. Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
-             All this system does is create an mbr_donation and point to it from kRef.
-     */
-    function CanFulfil()
-    {
-        return( parent::CanFulfil() && $this->GetBasketObj()->GetBuyer() );  // require ui_buyer to be set
-    }
+        Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
 
+        Fulfilment can therefore only be undone if the donation has no receipt number.
+     */
     function IsFulfilled()
     {
-        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_RECORDED) && $this->GetKRef() );
+        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_RECORDED) && $this->GetKRef() );     // kRef is the mbr_donations._key
+    }
+
+    function CanFulfil()
+    {
+        return( $this->_canFulfilOrUndo() && $this->GetBasketObj()->GetBuyer() && !$this->IsFulfilled() );
     }
 
     function Fulfil()
@@ -149,6 +150,47 @@ $dateReceived = $oB->GetDate();
 
             $ret = self::FULFIL_RESULT_SUCCESS;
         }
+
+        done:
+        return( $ret );
+    }
+
+    function CanFulfilUndo()
+    {
+        $oMbr = new Mbr_Contacts( $this->oSB->oApp );
+
+        // you can undo filfilment if the mbr_donations record referenced by kRef doesn't have a receipt number yet
+        return( $this->_canFulfilOrUndo() && $this->IsFulfilled() &&
+                ($kRef = $this->GetKRef()) &&
+                ($kfrD = $oMbr->oDB->GetKfr('D',$kRef)) && !$kfrD->Value('receipt_num') );
+    }
+
+    function FulfilUndo()
+    {
+        $ret = self::FULFILUNDO_RESULT_FAILED;
+
+        // check if fulfilled
+        if( !$this->IsFulfilled() ) {
+            $ret = self::FULFILUNDO_RESULT_NOT_FULFILLED;
+            goto done;
+        }
+
+        // check if fulfil undo is allowed
+        if( !$this->CanFulfilUndo() ) goto done;
+
+        // delete the mbr_donations record
+        $oMbr = new Mbr_Contacts( $this->oSB->oApp );
+        $kfrD = $oMbr->oDB->GetKfr( 'D', $this->GetKRef() );
+        $kfrD->StatusSet( KeyframeRecord::STATUS_DELETED );
+        $kfrD->SetValue( 'notes', date('Y-m-d').": user {$this->oSB->oApp->sess->GetUID()} did FulfilUndo() on purchase {$this->GetKey()}\n".$kfrD->Value('notes') );
+        $kfrD->PutDBRow();
+
+        // clear fulfilment
+        $this->SetValue( 'kRef', 0 );
+        $this->UnsetWorkflowFlag( self::WORKFLOW_FLAG_RECORDED );
+        $this->SaveRecord();
+
+        $ret = self::FULFILUNDO_RESULT_SUCCESS;
 
         done:
         return( $ret );

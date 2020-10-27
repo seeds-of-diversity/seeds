@@ -1005,6 +1005,11 @@ class SEEDBasket_Purchase
     {
         if( $this->kfr )  $this->kfr->SetValue( 'flagsWorkflow', ($this->kfr->value('flagsWorkflow') | $flag) );
     }
+    function UnsetWorkflowFlag( int $flag )
+    {
+        if( $this->kfr )  $this->kfr->SetValue( 'flagsWorkflow', ($this->kfr->value('flagsWorkflow') & ~$flag) );
+    }
+
 
     function GetProductHandler()
     {
@@ -1090,6 +1095,14 @@ class SEEDBasket_Purchase
         Indicates whether this purchase is ready for Fulfil()
      */
     {
+        return( false );    // $this->_canFulfilOrUndo()    don't allow UI to show fulfil buttons for purchases that don't have derived classes
+    }
+
+    protected function _canFulfilOrUndo()
+    /************************************
+        The state of the purchase is suitable for changing fulfilment status.
+     */
+    {
         // this base condition can be made more stringent per product_type
         return( $this->GetKey() &&
                 $this->GetEStatus() != 'CANCELLED' &&            // maybe just use basket.eStatus
@@ -1114,7 +1127,7 @@ class SEEDBasket_Purchase
         Indicates whether the fulfilment can be reversed, or is it too late.
      */
     {
-        return( false );
+        return( false ); // $this->_canFulfilOrUndo()   don't allow UI to show Undo buttons for purchases that don't have derived classes
     }
 
     function FulfilUndo()
