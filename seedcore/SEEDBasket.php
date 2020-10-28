@@ -989,6 +989,7 @@ class SEEDBasket_Purchase
 
 
     function GetProductType(){ return( $this->kfr->Value('P_product_type') ); }
+    function GetProductName(){ return( $this->kfr->Value('P_name') ); }
 
     function Value( $k ) { return( $this->kfr->Value($k) ); }
 
