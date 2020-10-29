@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# copy this file to ~/back1, change these credentials, and make cron run it daily
+USER1=seeds
+PASS1=seeds
+DB1=seeds
+
+USER2=seeds
+PASS2=seeds
+DB2=seeds2
+
+DIR=/home/bob/_back1/
+SEEDS=/home/seeds/seeds/
+
+
+DATE=$(date +"%y%m%d")
+
+dump_tables1 () {
+    echo "Dumping $1 : $2"
+    /usr/bin/mysqldump -u $USER1 --password=$PASS1 --default-character-set=latin1 -N --result-file=${DIR}${1}${DATE}.sql $DB1 $2
+}
+dump_tables2 () {
+    echo "Dumping $1 : $2"
+    /usr/bin/mysqldump -u $USER2 --password=$PASS2 --default-character-set=latin1 -N --result-file=${DIR}${1}${DATE}.sql $DB2 $2
+}
+
+
+declare -a tables1=(
+               "ev:              ev_events"                                                                                          
+               "rl:              rl_companies"                                                                                       
+               "bull:            bull_list"                                                                                          
+               "csci:            csci_seeds csci_company csci_seeds_archive"                                                         
+               "doclib:          doclib_document"                                                                                    
+               "sed:             sed_growers sed_seeds"                                                                              
+               "sedcurr:         sed_curr_growers sed_curr_seeds"                                                                    
+               "docrep1_:        docrep_docs docrep_docdata docrep_docxdata"                                                         
+               "mbrorder:        mbr_order_pending"                                                                                  
+               "pollcan:         pollcan_flowers pollcan_insects pollcan_insectsxflowers pollcan_sites pollcan_users pollcan_visits" 
+               "sl:              sl_collection sl_accession sl_inventory sl_adoption sl_germ"                                         
+               "slrosetta:       sl_species sl_species_syn sl_species_map sl_pcv sl_pcv_syn sl_pcv_meta"                             
+               "sldesc:          mbr_sites sl_varinst sl_desc_obs sl_desc_cfg_forms sl_desc_cfg_tags sl_desc_cfg_m"                  
+               "slsources:       sl_sources"                                                                                         
+               "slcvsrc:         sl_cv_sources"                                                                                      
+               "slcvsrcarch:     sl_cv_sources_archive"                                                                              
+               "SEEDLocal1_:     SEEDLocal"                                                                                          
+               "SEEDPerms1_:     SEEDPerms SEEDPerms_Classes"                                                                        
+               "SEEDMetaTable1_: SEEDMetaTable_StringBucket SEEDMetaTable_TablesLite SEEDMetaTable_TablesLite_Rows"                  
+               "SEEDSession1_:   SEEDSession_Users SEEDSession_Groups SEEDSession_UsersXGroups SEEDSession_Perms"                    
+               "SEEDBasket:      SEEDBasket_Baskets SEEDBasket_Products SEEDBasket_ProdExtra SEEDBasket_BP"                          
+  )
+  
+declare -a tables2=(
+               "mbr:             mbr_contacts mbr_donations"                                                        
+               "mbrmail:         mbr_mail_send mbr_mail_send_recipients"                                            
+               "gcgc:            gcgc_growers gcgc_varieties gcgc_gxv"                                              
+               "tasks:           task_tasks"                                                                        
+               "docrep2_:        docrep_docs docrep_docdata docrep_docxdata"                                        
+               "SEEDLocal2_:     SEEDLocal"                                                                         
+               "SEEDMetaTable2_: SEEDMetaTable_StringBucket SEEDMetaTable_TablesLite SEEDMetaTable_TablesLite_Rows" 
+               "SEEDPerms2_:     SEEDPerms SEEDPerms_Classes"                                                       
+               "SEEDSession2_:   SEEDSession_Users SEEDSession_Groups SEEDSession_UsersXGroups SEEDSession_Perms"   
+  )
+  
+for i in "${tables1[@]}"
+do
+    IFS=':'; j=($i); unset IFS;
+    dump_tables1 "${j[0]}" "${j[1]}"
+done
+
+for i in "${tables2[@]}"
+do
+    IFS=':'; j=($i); unset IFS;
+    dump_tables2 "${j[0]}" "${j[1]}"
+done
+
+php -f ${SEEDS}seedapp/backup/myBackup.php
