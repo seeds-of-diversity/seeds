@@ -1,0 +1,3 @@
+# this creates commands to rename all ' ' to '_' in files *
+for i in *; do echo $i | awk '{print "mv \"" $0 "\" \\" ; gsub(/ /,"_",$0); print "\""$0"\""}'; done > a
+
