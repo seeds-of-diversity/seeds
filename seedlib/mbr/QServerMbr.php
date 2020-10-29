@@ -191,6 +191,8 @@ class QServerMbr extends SEEDQ
             bGetPrintedMSD   : only if they receive the printed MSD
             bGetDonorAppeals : only if they accept donor appeals
             yMbrExpires      : comma separated years of membership expiry; '+' suffix indicates greater than or equal e.g. 2020+
+            provinceIn       : space separated provinces e.g. "AB SK MB"
+            postcodeIn       : space separated postcode prefixes e.g. "M L N1 N2 K9"
             lang             : filter by language {EN,FR,default both/any}
      */
     {
@@ -234,6 +236,14 @@ class QServerMbr extends SEEDQ
             if( $sExp ) $raCond[] = "($sExp)";
         }
 
+        if( ($p = @$raParms['provinceIn']) && ($ra = explode(' ',$p))) {
+            array_walk( $ra, function(&$v, $k) { $v = "'".addslashes($v)."'"; } );
+            $raCond[] = "province IN (".implode(',', $ra).")";
+
+// postcodeIn is not implemented: if both are defined it should be raCond[] = (province IN (...) OR postcode IN (...))
+
+        }
+
         if( ($p = SEEDCore_ArraySmartVal( $raParms, 'lang', ['','EN','FR'] )) ) {
             $p = addslashes(substr($p,0,1));        // E or F
             $raCond[] = "lang in ('','B','$p')";    // '' or B means they want both so any input will match them
@@ -272,7 +282,7 @@ class QServerMbr extends SEEDQ
         if( !($nMinChars = intval(@$raParms['nMinChars'])) )  $nMinChars = 3;
         if( strlen( ($sSearch = @$raParms['sSearch']) ) < $nMinChars )  goto done;
 
-        $raM = $this->oApp->kfdb->QueryRowsRA( "SELECT * FROM seeds2.mbr_contacts WHERE _status='0' AND "
+        $raM = $this->oApp->kfdb->QueryRowsRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _status='0' AND "
                                                 ."(_key='$sSearch' OR "
                                                  ."firstname LIKE '%$sSearch%' OR "
                                                  ."lastname  LIKE '%$sSearch%' OR "

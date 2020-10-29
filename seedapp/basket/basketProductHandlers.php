@@ -6,6 +6,7 @@
  */
 
 include_once( SEEDCORE."SEEDBasket.php" );
+include_once( SEEDLIB."sl/sldb.php" );      // for donation.seed-adoption
 
 class SEEDBasketProducts_SoD
 /***************************
@@ -104,17 +105,31 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
         A donation is considered fulfilled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
         The fulfilment system cannot create an mbr_donation until the uid_buyer is identified so we assume that kRef alone indicates fulfilment.
 
-        N.B. Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
-             All this system does is create an mbr_donation and point to it from kRef.
+        Fulfilment does not create a receipt number, nor record that a receipt is mailed. Both of those are done by a separate system.
+        Fulfilment can therefore only be undone if the donation has no receipt number.
+
+        Adoptions are treated identically to donations, except an sl_adoption record is created on fulfil and deleted on fulfilUndo,
+        with sl_adoption.kDonation pointing to the mbr_donation.
+        The fk_sl_pcv is set to zero on fulfilment, so undo is only possible if it is still zero.
      */
     function IsFulfilled()
     {
-        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_RECORDED) && $this->GetKRef() );
+        // general and adoption are identical here
+        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_RECORDED) && $this->GetKRef() );     // kRef is the mbr_donations._key
+    }
+
+    function CanFulfil()
+    {
+        // general and adoption are identical here
+        return( $this->_canFulfilOrUndo() && $this->GetBasketObj()->GetBuyer() && !$this->IsFulfilled() );
     }
 
     function Fulfil()
     {
         $ret = self::FULFIL_RESULT_FAILED;
+
+        // check if fulfilment is allowed
+        if( !$this->CanFulfil() ) goto done;
 
         // check if already fulfilled
         if( $this->IsFulfilled() ) {
@@ -122,16 +137,14 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
             goto done;
         }
 
-        // check if able to fulfil
-        if( !$this->GetKey() || $this->GetEStatus() == 'CANCELLED' ||
-            !($oB = $this->GetBasketObj()) || !($kBuyer = $oB->GetBuyer()) ) goto done;
+        $oB = $this->GetBasketObj();    // succeeds because of the check above
 
 // Date paid is not necessarily the date the order was made.  We might enter cheque orders long after they are received.
 $dateReceived = $oB->GetDate();
 
         $oMbr = new Mbr_Contacts( $this->oSB->oApp );
         $kDonation = $oMbr->AddMbrDonation(
-                        ['kMbr' => $kBuyer,
+                        ['kMbr' => $oB->GetBuyer(),
                          'date_received' => $dateReceived,
                          'amount' => $this->GetF(),
                          'receipt_num' => 0 ] );
@@ -141,8 +154,79 @@ $dateReceived = $oB->GetDate();
             $this->SetWorkflowFlag( self::WORKFLOW_FLAG_RECORDED );
             $this->SaveRecord();
 
+            if( $this->GetProductName() == 'seed-adoption' ) {
+                // adoptions are recorded by creating an sl_adoption that refers to the mbr_donation._key
+                $oSLDB = new SLDBBase( $this->oSB->oApp );
+                $kfrD = $oSLDB->KFRel('D')->CreateRecord();
+                $kfrD->SetValue( 'kDonation', $kDonation );
+                $kfrD->SetValue( 'fk_mbr_contacts', $oB->GetBuyer() );
+                $kfrD->SetValue( 'amount', $this->GetF() );
+                $kfrD->SetValue( 'd_donation', $dateReceived );
+                $kfrD->PutDBRow();
+            }
+
             $ret = self::FULFIL_RESULT_SUCCESS;
         }
+
+        done:
+        return( $ret );
+    }
+
+    function CanFulfilUndo()
+    {
+        $oMbr = new Mbr_Contacts( $this->oSB->oApp );
+
+        // you can undo filfilment if the mbr_donations record referenced by kRef doesn't have a receipt number yet
+        $ok = ( $this->_canFulfilOrUndo() && $this->IsFulfilled() &&
+                ($kRef = $this->GetKRef()) &&
+                ($kfrD = $oMbr->oDB->GetKfr('D',$kRef)) && !$kfrD->Value('receipt_num') );
+
+        if( $ok && $this->GetProductName() == 'seed-adoption' ) {
+            // you can only undo an adoption if fk_sl_pcv hasn't been set yet
+            $oSLDB = new SLDBBase( $this->oSB->oApp );
+            if( ($kfrAdopt = $oSLDB->GetKFRCond( 'D', "kDonation='{$this->GetKRef()}'" )) ) {
+                $ok = $kfrAdopt->Value('fk_sl_pcv') == 0;
+            }
+        }
+
+        return( $ok );
+    }
+
+    function FulfilUndo()
+    {
+        $ret = self::FULFILUNDO_RESULT_FAILED;
+
+        // check if fulfilled
+        if( !$this->IsFulfilled() ) {
+            $ret = self::FULFILUNDO_RESULT_NOT_FULFILLED;
+            goto done;
+        }
+
+        // check if fulfil undo is allowed
+        if( !$this->CanFulfilUndo() ) goto done;
+
+        // if seed-adoption, delete the sl_adoption record
+        if( $this->GetProductName() == 'seed-adoption' ) {
+            $oSLDB = new SLDBBase( $this->oSB->oApp );
+            if( ($kfrAdopt = $oSLDB->GetKFRCond( 'D', "kDonation='{$this->GetKRef()}'" )) ) {
+                $kfrAdopt->StatusSet( KeyframeRecord::STATUS_DELETED );
+                $kfrAdopt->PutDBRow();
+            }
+        }
+
+        // delete the mbr_donations record
+        $oMbr = new Mbr_Contacts( $this->oSB->oApp );
+        $kfrD = $oMbr->oDB->GetKfr( 'D', $this->GetKRef() );
+        $kfrD->StatusSet( KeyframeRecord::STATUS_DELETED );
+        $kfrD->SetValue( 'notes', date('Y-m-d').": user {$this->oSB->oApp->sess->GetUID()} did FulfilUndo() on purchase {$this->GetKey()}\n".$kfrD->Value('notes') );
+        $kfrD->PutDBRow();
+
+        // clear fulfilment
+        $this->SetValue( 'kRef', 0 );
+        $this->UnsetWorkflowFlag( self::WORKFLOW_FLAG_RECORDED );
+        $this->SaveRecord();
+
+        $ret = self::FULFILUNDO_RESULT_SUCCESS;
 
         done:
         return( $ret );

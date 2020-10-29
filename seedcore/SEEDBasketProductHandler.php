@@ -236,7 +236,7 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
-    function PurchaseIsFulfilled( SEEDBasket_Purchase $oPurchase )
+    function PurchaseIsFulfilled( SEEDBasket_Purchase $oPurchase )  /* deprecate: use SEEDBasket_Purchase::IsFulfilled()
     /*************************************************************
         Return true if this purchase has already been fulfilled
      */
@@ -264,7 +264,7 @@ class SEEDBasketProductHandler
         if( !$this->oSB->BasketIsOpen() ) goto done;
 // should this verify that the BP belongs to this basket? Every derivation would have to, unless the Core checks this and everyone promises not to call here independently
 
-        $bOk = $kfrBP->KFrel()->KFDB()->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE _key='".$kfrBP->Key()."'" );
+        $bOk = $kfrBP->KFrel()->KFDB()->Execute( "DELETE FROM seeds_1.SEEDBasket_BP WHERE _key='".$kfrBP->Key()."'" );
 
         done:
         return( $bOk );

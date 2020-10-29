@@ -16,8 +16,13 @@ class SEEDBasketDB extends Keyframe_NamedRelations
 
     function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig = array() )
     {
+        /* $raConfig['sbdb'] is the config_KFDB name of the db holding SEEDBasket tables
+         * Default is $kfdb->GetDB()
+         * $kfdb can be a different db, but it has to be able to read 'sbdb'
+         */
         $this->kfdb = $kfdb;
-        $this->db = @$raConfig['db'] ?: $kfdb->GetDB();         // generally this should be specified because oApp can be created for a different db above code that calls this
+        global $config_KFDB;
+        $this->db = @$raConfig['sbdb'] ? $config_KFDB[$raConfig['sbdb']]['kfdbDatabase'] : $kfdb->GetDB();
         $this->raCustomProductKfrelDefs = @$raConfig['raCustomProductKfrelDefs'] ?: array();
         parent::__construct( $kfdb, $uid, $logdir );
     }
@@ -223,7 +228,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
         foreach( $this->raCustomProductKfrelDefs as $kfName => $raPE ) {
             $kdef = $kdefProducts;
             foreach( $raPE as $k ) {
-                $kdef['Tables']['PE_'.$k] = [ "Table" => 'seeds.SEEDBasket_ProdExtra',
+                $kdef['Tables']['PE_'.$k] = [ "Table" => "{$this->db}.SEEDBasket_ProdExtra",
                                               "Type" => 'LeftJoin',
                                               "JoinOn" => "PE_{$k}.fk_SEEDBasket_Products=P._key AND PE_{$k}.k='$k'",
                                               "Fields" => "Auto" ];
@@ -415,15 +420,15 @@ CREATE TABLE SEEDBasket_BP (
 
 /* Test data
 
-INSERT INTO seeds.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
+INSERT INTO seeds_1.SEEDBasket_Baskets ( buyer_firstname, buyer_lastname, eStatus) VALUES ( 'Bob', 'Wildfong', 'PAID' );
 
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
-INSERT INTO seeds.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
+INSERT INTO seeds_1.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'donation','ACTIVE','Donation','donation','MONEY',0,-1,-1);
+INSERT INTO seeds_1.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'book','ACTIVE','How to Save Your Own Seeds, 6th edition','ssh6-en','ITEM-N',1,-1,15);
+INSERT INTO seeds_1.SEEDBasket_Products ( uid_seller,product_type,eStatus,title_en,name,quant_type,bask_quant_min,bask_quant_max,item_price ) VALUES (1,'membership','ACTIVE','Membership - One Year','mbr25','ITEM-1',1,1,25);
 
-INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
-INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
-INSERT INTO seeds.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID');
+INSERT INTO seeds_1.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,1,0,123.45,'PAID');
+INSERT INTO seeds_1.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,2,5,0,'PAID');
+INSERT INTO seeds_1.SEEDBasket_BP (fk_SEEDBasket_Baskets,fk_SEEDBasket_Products,n,f,eStatus) VALUES (1,3,1,0,'PAID');
 
 
  */

@@ -166,7 +166,7 @@ class MSDLibReport
         // use obsolete code to create a DocRepDB on seeds2
         include_once( SEEDCOMMON."doc/docUtil.php" );
         include_once( STDINC."DocRep/DocRepWiki.php" );
-        $kfdb2 = SiteKFDB( 'seeds2' );
+        $kfdb2 = SiteKFDB( 'seeds_2' );
         $oDocRepDB = New_DocRepDB_WithMyPerms( $kfdb2, $this->oMSDLib->oApp->sess->GetUID(), array('bReadonly'=>true, 'db'=>'seeds2') );
         $oDocRepWiki = new DocRepWiki( $oDocRepDB, "" );
 
@@ -232,7 +232,7 @@ class MSDLibReport
         if( ($kfrG = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( $cond, ["sSortCol"=>"M.country,G.mbr_code"]) ) ) {
             while( $kfrG->CursorFetch() ) {
                 $kMbr = $kfrG->Value('mbr_id');
-                $raMbr = $this->oMSDLib->oApp->kfdb->QueryRA( "SELECT * FROM seeds2.mbr_contacts WHERE _key='$kMbr'" );
+                $raMbr = $this->oMSDLib->oApp->kfdb->QueryRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _key='$kMbr'" );
 
                 // optionally restrict output to growers who don't have email addresses
                 if( $bNoEmail && $raMbr['email'] ) continue;
@@ -398,7 +398,7 @@ class MSDLibReport
 
                 $yExpires = intval(substr($kfrG->Value('M_expires'),0,4));
 //TODO: standardize special expires codes
-                $ra['expires'] = ($yExpires == 2020 ? "Complimentary" :
+                $ra['expires'] = ($yExpires == 2300 ? "Complimentary" :
                                  ($yExpires == 2100 ? "AUTO" :
                                  ($yExpires == 2200 ? "Lifetime" : $yExpires)));
 

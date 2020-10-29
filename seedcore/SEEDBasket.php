@@ -66,14 +66,37 @@ class SEEDBasketCore
     private $raParms = array();
     private $kfrBasketCurr = null;       // always access this via GetCurrentBasketKFR/GetBasketKey
 
-    function __construct( KeyframeDatabase $kfdb, SEEDSession $sess, SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
+    private $dbname;
+
+    function __construct( KeyframeDatabase $kfdb = null, SEEDSession $sess = null,      // deprecate these -- null means use oApp
+                          SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
     {
+        /* raParms:
+         *     sbdb_config              => raConfig for SEEDBasketDB
+         *     sbdb                     => logical name of SEEDBasket's db (can also be sbdb_config.sbdb)
+         *     fn_sellerNameFromUid     => callback to get the seller's name from the uid_seller
+         */
+// deprecate these, use oApp instead
+if( !$kfdb ) $kfdb = $oApp->kfdb;
+if( !$sess ) $sess = $oApp->sess;
+
         $this->oApp = $oApp;
         $this->sess = $sess;
-        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(),
-            //get this from oApp
-            @$raParms['logdir'],
-            @$raParms['sbdb_config'] ?: ['db'=>@$raParms['db']] );  // deprecate 'db' use sbdb_config instead
+
+        // sbdb can be specified in two places
+        $raSBDBConfig = @$raParms['sbdb_config'] ?: [];
+        if( @$raParms['sbdb'] ) $raSBDBConfig['sbdb'] = $raParms['sbdb'];
+
+        // save the db name for below; sql requiring dbname should be encapsulated into SEEDBasketDB
+        if( ($sbdb = @$raSBDBConfig['sbdb']) ) {
+            global $config_KFDB;
+            $this->dbname = $config_KFDB[$sbdb]['kfdbDatabase'];
+        } else {
+            $this->dbname = $kfdb->GetDB();
+        }
+
+        $this->oDB = new SEEDBasketDB( $kfdb, $this->GetUID_SB(), $oApp->logdir ?: @$raParms['logdir'], // deprecate raParms['logdir']
+                                       $raSBDBConfig );
         $this->raHandlerDefs = $raHandlerDefs;
         $this->GetCurrentBasketKFR();
         $this->raParms = $raParms;
@@ -167,7 +190,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
                 $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             } else if( ($uid = $this->sess->GetUID()) &&
 // get the db name from SEEDBasketDB
-                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM seeds.SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
+                       ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM {$this->dbname}.SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
             {
                 $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             }
@@ -404,7 +427,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
 
         if( !$this->BasketIsOpen() || !($kB = $this->GetBasketKey()) )  goto done;
 // get the db name from SEEDBasketDB
-        $bOk = $this->oDB->kfdb->Execute( "DELETE FROM seeds.SEEDBasket_BP WHERE fk_SEEDBasket_Baskets='$kB'" );
+        $bOk = $this->oDB->kfdb->Execute( "DELETE FROM {$this->dbname}.SEEDBasket_BP WHERE fk_SEEDBasket_Baskets='$kB'" );
 
         done:
         $s = $this->DrawBasketContents( [], $klugeUTF8 );
@@ -526,6 +549,42 @@ klugeUTF8 = true: return sOut and sErr in utf8
 
         return( $oPur );
     }
+
+    static function PriceFromRange( $sRange, $n )
+    /********************************************
+        Return the price of $n items given an item range
+        e.g. 5                          $5 each
+             5:1,4.5:2,4.1:3-5,4:6+     $5 for 1, $4.50 each for 2, $4.1 for 3-5, $4 for 6 or more
+     */
+    {
+        $f = 0.00;
+
+        if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
+            // There is just a single price for all quantities
+            $f = $sRange;
+        } else {
+            $raRanges = explode( ',', $sRange );
+            foreach( $raRanges as $r ) {
+                $r = trim($r);
+
+                // $r has to be price:N or price:M-N or price:M+
+                list($price,$sQRange) = explode( ":", $r );
+                if( strpos( '-', $sQRange) !== false ) {
+                    list($sQ1,$sQ2) = explode( '-', $sQRange );
+                    if( $n >= intval($sQ1) && $n <= intval($sQ2) )  $f = $price;
+                } else if( substr( $sQRange, -1, 1 ) == "+" ) {
+                    $sQ1 = $sQRange;
+                    if( $n >= intval($sQ1) )  $f = $price;
+                } else {
+                    $sQ1 = $sQRange;
+                    if( $n == intval($sQ1) ) $f = $price;
+                }
+
+                if( $f ) break;
+            }
+        }
+        return( floatval($f) );
+    }
 }
 
 
@@ -553,6 +612,7 @@ class SEEDBasket_Basket
 
     function GetBuyer()  { return( $this->kfr ? $this->kfr->Value('uid_buyer') : "" ); }
     function GetDate()   { return( $this->kfr ? $this->kfr->Value('_created') : "" ); }     // not sure this is always what you want
+    function GetEStatus(){ return( $this->kfr ? $this->kfr->Value('eStatus') : "" ); }
 
     function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
@@ -670,12 +730,14 @@ $s .= "<style>
                 $oHandler = $this->oSB->GetProductHandler( $kfrBPxP->Value('P_product_type') );
                 $sItem = $oHandler->PurchaseDraw( $kfrBPxP, ['bUTF8'=>$klugeUTF8] );
                 $raOut['raSellers'][$uidSeller]['fTotal'] += $fAmount;
-                $raOut['raSellers'][$uidSeller]['raItems'][] = array( 'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount );
+                $raOut['raSellers'][$uidSeller]['raItems'][] = [
+                    'kBP'=>$kfrBPxP->Key(), 'sItem'=>$sItem, 'fAmount'=>$fAmount,
+                    'oPur'=>$this->oSB->GetPurchaseObj( $kfrBPxP->Value('_key'), $kfrBPxP->Value('P_product_type') ) ];
 
                 // derived class adjustment
 // k is non-zero if the user is a current grower member
 if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
-    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM seeds.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
+    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM seeds_1.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
         if( floatval($kfrBPxP->Value('P_item_price')) == 12.00 ) {
             $discount = -2.0;
         } else {
@@ -694,6 +756,7 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
         return( $raOut );
     }
 
+// deprecated: use SEEDBasket_Purchase::GetPrice()
     private function getAmount( KeyframeRecord $kfrBPxP )
     {
         $amount = 0.0;
@@ -719,34 +782,9 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
 
     function priceFromRange( $sRange, $n )
     {
-        $f = 0.00;
-
-        if( strpos( $sRange, ',' ) === false && strpos( $sRange, ':' ) === false ) {
-            // There is just a single price for all quantities
-            $f = $sRange;
-        } else {
-            $raRanges = explode( ',', $sRange );
-            foreach( $raRanges as $r ) {
-                $r = trim($r);
-
-                // $r has to be price:N or price:M-N or price:M+
-                list($price,$sQRange) = explode( ":", $r );
-                if( strpos( '-', $sQRange) !== false ) {
-                    list($sQ1,$sQ2) = explode( '-', $sQRange );
-                    if( $n >= intval($sQ1) && $n <= intval($sQ2) )  $f = $price;
-                } else if( substr( $sQRange, -1, 1 ) == "+" ) {
-                    $sQ1 = $sQRange;
-                    if( $n >= intval($sQ1) )  $f = $price;
-                } else {
-                    $sQ1 = $sQRange;
-                    if( $n == intval($sQ1) ) $f = $price;
-                }
-
-                if( $f ) break;
-            }
-        }
-        return( floatval($f) );
+        return( SEEDBasketCore::PriceFromRange( $sRange, $n ) );
     }
+
 }
 
 class SEEDBasket_Product
@@ -924,7 +962,34 @@ class SEEDBasket_Purchase
     function GetEStatus()    { return( $this->kfr->Value('eStatus') ); }
     function GetKRef()       { return( $this->kfr->Value('kRef') ); }
 
+    function GetPrice()
+    {
+        $amount = 0.0;
+
+        if( !$this->kfr ) goto done;
+
+        switch( $this->kfr->Value('P_quant_type') ) {
+            case 'ITEM-1':
+                $amount = $this->kfr->Value('P_item_price');
+                break;
+
+            case 'ITEM-N':
+                $n = $this->kfr->Value('n');
+                $amount = SEEDBasketCore::PriceFromRange( $this->kfr->Value('P_item_price'), $n ) * $n;
+                break;
+
+            case 'MONEY':
+                $amount = $this->kfr->Value('f');
+                break;
+        }
+
+        done:
+        return( floatval($amount) );
+    }
+
+
     function GetProductType(){ return( $this->kfr->Value('P_product_type') ); }
+    function GetProductName(){ return( $this->kfr->Value('P_name') ); }
 
     function Value( $k ) { return( $this->kfr->Value($k) ); }
 
@@ -941,6 +1006,11 @@ class SEEDBasket_Purchase
     {
         if( $this->kfr )  $this->kfr->SetValue( 'flagsWorkflow', ($this->kfr->value('flagsWorkflow') | $flag) );
     }
+    function UnsetWorkflowFlag( int $flag )
+    {
+        if( $this->kfr )  $this->kfr->SetValue( 'flagsWorkflow', ($this->kfr->value('flagsWorkflow') & ~$flag) );
+    }
+
 
     function GetProductHandler()
     {
@@ -991,14 +1061,57 @@ class SEEDBasket_Purchase
     // non-zero results indicate success
     const FULFIL_RESULT_FAILED = 0;
     const FULFIL_RESULT_SUCCESS = 1;
-    const FULFIL_RESULT_ALREADY_FULFILLED = 2;
+    const FULFIL_RESULT_ALREADY_FULFILLED = 2;  // consider this successful if trying to fulfil
+
+    const FULFILUNDO_RESULT_FAILED = 0;         // either !CanFilfulUndo() or a failure
+    const FULFILUNDO_RESULT_SUCCESS = 1;
+    const FULFILUNDO_RESULT_NOT_FULFILLED = 2;  // consider this successful if trying to undo
+
+// need to standardize how eStatus, flagsWorkflow, fulfil/undo really relate to each other
+// maybe IsFulfilled() is just eStatus==FILLED, but there are different and multiple stages of fulfilment (recording, mailing, receipting) for each product
+
+// completed workflows (end with FILLED or CANCELLED):
+// NEW, PAID, FILLED
+// NEW, CANCELLED
+// NEW, PAID, CANCELLED (refund)
+// NEW, PAID, FILLED, CANCELLED (fulfilUndo, refund)
+
+// uncompleted workflows:
+// NEW
+// NEW, PAID
+
+//*** Purchases don't get PAID status, baskets do
 
     function IsFulfilled()
     /*********************
         Return true if the seller has already fulfilled this purchase
      */
-    {   return( false );    // handled only by derived classes
+    {
+        return( false );    // handled only by derived classes
         //return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseIsFulfilled($this) : false );
+    }
+
+    function CanFulfil()
+    /*******************
+        Indicates whether this purchase is ready for Fulfil()
+     */
+    {
+        return( false );    // $this->_canFulfilOrUndo()    don't allow UI to show fulfil buttons for purchases that don't have derived classes
+    }
+
+    protected function _canFulfilOrUndo()
+    /************************************
+        The state of the purchase is suitable for changing fulfilment status.
+     */
+    {
+        // this base condition can be made more stringent per product_type
+        return( $this->GetKey() &&
+                $this->GetEStatus() != 'CANCELLED' &&            // maybe just use basket.eStatus
+                ($oB = $this->GetBasketObj()) &&
+//                in_array($oB->GetEStatus(), ['Paid','Filled'])   // Cancelled baskets have to be uncancelled before fulfilment operations allowed
+// allowing Open temporarily because basket.eStatus is not updated yet
+                in_array($oB->GetEStatus(), ['Open','Paid','Filled'])
+            );
     }
 
     function Fulfil()
@@ -1006,7 +1119,24 @@ class SEEDBasket_Purchase
         Record that the seller has fulfilled this purchase
      */
     {
+        /* deprecate: use derivation instead */
         return( ($oHandler = $this->GetProductHandler()) ? $oHandler->PurchaseFulfil($this) : self::FULFIL_RESULT_FAILED );
+    }
+
+    function CanFulfilUndo()
+    /***********************
+        Indicates whether the fulfilment can be reversed, or is it too late.
+     */
+    {
+        return( false ); // $this->_canFulfilOrUndo()   don't allow UI to show Undo buttons for purchases that don't have derived classes
+    }
+
+    function FulfilUndo()
+    /********************
+        Reverse the fulfilment if possible
+     */
+    {
+        return( self::FULFILUNDO_RESULT_FAILED );
     }
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()

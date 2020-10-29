@@ -55,7 +55,7 @@ class MSDLibIntegrity
                        'failLabel' => "Grower ids duplicated",
                        'failShowRow' => "mbr_id=[[mbr_id]]",
                        'testSql' =>
-                           "SELECT G1.mbr_id as mbr_id FROM seeds.sed_curr_growers G1,seeds.sed_curr_growers G2 "
+                           "SELECT G1.mbr_id as mbr_id FROM seeds_1.sed_curr_growers G1,seeds_1.sed_curr_growers G2 "
                           ."WHERE G1.mbr_id=G2.mbr_id AND G1._key<G2._key",
                      ),
 
@@ -65,7 +65,7 @@ class MSDLibIntegrity
                        'failLabel' => "Grower codes blank",
                        'failShowRow' => "mbr_id=[[mbr_id]]",
                        'testSql' =>
-                           "SELECT mbr_id FROM seeds.sed_curr_growers WHERE mbr_code='' OR mbr_code IS NULL",
+                           "SELECT mbr_id FROM seeds_1.sed_curr_growers WHERE mbr_code='' OR mbr_code IS NULL",
                      ),
 
             'integ_gmbr_code_unique1' =>
@@ -74,7 +74,7 @@ class MSDLibIntegrity
                        'failLabel' => "Grower codes duplicated",
                        'failShowRow' => "mbr_code=[[mbr_code]]",
                        'testSql' =>
-                           "SELECT G1.mbr_code as mbr_code FROM seeds.sed_curr_growers G1,seeds.sed_curr_growers G2 "
+                           "SELECT G1.mbr_code as mbr_code FROM seeds_1.sed_curr_growers G1,seeds_1.sed_curr_growers G2 "
                           ."WHERE G1.mbr_code=G2.mbr_code AND G1._key<G2._key",
                      ),
 
@@ -86,7 +86,7 @@ class MSDLibIntegrity
                        'bNonFatal' => true,
                        'testSql' =>
                            "SELECT G.mbr_id as mbr_id,G.year as G_year,G2.year as G2_year,G.mbr_code as G_mbr_code,G2.mbr_code as G2_mbr_code "
-                          ."FROM seeds.sed_curr_growers G, seeds.sed_growers G2 "
+                          ."FROM seeds_1.sed_curr_growers G, seeds_1.sed_growers G2 "
                           ."WHERE (G.mbr_id=G2.mbr_id) AND G.mbr_code <> G2.mbr_code ORDER BY G.mbr_id",
                      ),
 
@@ -98,11 +98,11 @@ class MSDLibIntegrity
                        'bNonFatal' => true,
                        'testSql' =>
                            "SELECT G.mbr_code as mc, G.mbr_id as mid1, G2.mbr_id as mid2, 'current' as y1, G2.year as y2, M1.firstname as fn1,M1.lastname as ln1,M2.firstname as fn2,M2.lastname as ln2 "
-                              ."FROM seeds.sed_curr_growers G, seeds.sed_growers G2, seeds2.mbr_contacts M1, seeds2.mbr_contacts M2 "
+                              ."FROM seeds_1.sed_curr_growers G, seeds_1.sed_growers G2, seeds_2.mbr_contacts M1, seeds_2.mbr_contacts M2 "
                               ."WHERE G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id"
                           ." UNION "
                           ."SELECT G.mbr_code as mc, G.mbr_id as mid1, G2.mbr_id as mid2, 'current' as y1, 'current' as y2, M1.firstname as fn1,M1.lastname as ln1,M2.firstname as fn2,M2.lastname as ln2 "
-                              ."FROM seeds.sed_curr_growers G, seeds.sed_curr_growers G2, seeds2.mbr_contacts M1, seeds2.mbr_contacts M2 "
+                              ."FROM seeds_1.sed_curr_growers G, seeds_1.sed_curr_growers G2, seeds_2.mbr_contacts M1, seeds_2.mbr_contacts M2 "
                               ."WHERE G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id ORDER BY 1",
                      ),
 
@@ -112,7 +112,7 @@ class MSDLibIntegrity
                        'failLabel' => "Growers are not in mbr_contacts",
                        'failShowRow' => "mbr_id=[[mbr_id]]",
                        'testSql' =>
-                           "SELECT G.mbr_id as mbr_id FROM seeds.sed_curr_growers G LEFT JOIN seeds2.mbr_contacts M "
+                           "SELECT G.mbr_id as mbr_id FROM seeds_1.sed_curr_growers G LEFT JOIN seeds_2.mbr_contacts M "
                           ."ON (G.mbr_id=M._key) WHERE M._key IS NULL OR G.mbr_id=0 OR M._status<>0",
                      ),
 
@@ -123,11 +123,11 @@ class MSDLibIntegrity
                        'failShowRow' => "kSeed [[kS]] : mbr_id=[[mbr_id]], [[cat]] - [[type]] - [[var]]",
                        'testSql' =>
 /*                           "SELECT S._key as kS, S.mbr_id as mbr_id, S.category as cat, S.type as type, S.variety as var "
-                          ."FROM seeds.sed_curr_seeds S LEFT JOIN seeds.sed_curr_growers G ON (S.mbr_id=G.mbr_id) "
+                          ."FROM seeds_1.sed_curr_seeds S LEFT JOIN seeds_1.sed_curr_growers G ON (S.mbr_id=G.mbr_id) "
                           ."WHERE S._status=0 AND (G.mbr_id IS NULL OR G._status<>0)",
 */
                            "SELECT P._key as kS,P.uid_seller as mbr_id "
-                          ."FROM seeds.SEEDBasket_Products P LEFT JOIN seeds.sed_curr_growers G ON (P.uid_seller=G.mbr_id) "
+                          ."FROM seeds_1.SEEDBasket_Products P LEFT JOIN seeds_1.sed_curr_growers G ON (P.uid_seller=G.mbr_id) "
                           ."WHERE P.product_type='seeds' AND P._status='0' AND (G.mbr_id IS NULL OR G._status<>0)",
                      ),
 
@@ -142,7 +142,7 @@ class MSDLibIntegrity
                        'failShowRow' => "mbr_id [[m]] : [[mc]]",
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM seeds.sed_curr_growers G "
+                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM seeds_1.sed_curr_growers G "
                           ."WHERE NOT (G.bDoneMbr OR G.bDoneOffice) AND $sGNoSkipDel",
                 ),
 
@@ -153,11 +153,11 @@ class MSDLibIntegrity
                        'failLabel' => "Deleted growers have non-deleted seeds (solution: delete the seeds)",
                        'failShowRow' => "mbr_id [[m]] : [[mc]]",
                        'testSql' =>
-                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM seeds.sed_curr_growers G, seeds.SEEDBasket_Products S "
+                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM seeds_1.sed_curr_growers G, seeds_1.SEEDBasket_Products S "
                           ."WHERE G.mbr_id=S.uid_seller AND S.product_type='seeds' AND G.bDelete AND S.eStatus<>'DELETED' GROUP BY G.mbr_id,G.mbr_code",
                        'remedyLabel' => "Delete seeds for deleted growers",
                        'remedySql' =>
-                           "UPDATE seeds.SEEDBasket_Products S, seeds.sed_curr_growers G SET S.eStatus='DELETED' "
+                           "UPDATE seeds_1.SEEDBasket_Products S, seeds_1.sed_curr_growers G SET S.eStatus='DELETED' "
                           ."WHERE S.product_type='seeds' AND S.uid_seller=G.mbr_id AND G.bDelete",
                 ),
 
@@ -168,11 +168,11 @@ class MSDLibIntegrity
                        'failShowRow' => "mbr_id [[m]] : [[mc]]",
                        'testSql' =>
                            "SELECT G.mbr_id as m,G.mbr_code as mc "
-                          ."FROM seeds.sed_curr_growers G, seeds.SEEDBasket_Products S "
+                          ."FROM seeds_1.sed_curr_growers G, seeds_1.SEEDBasket_Products S "
                           ."WHERE G.mbr_id=S.uid_seller AND S.product_type='seeds' AND G.bSkip AND S.eStatus NOT IN ('INACTIVE','DELETED') GROUP BY G.mbr_id,G.mbr_code",
                        'remedyLabel' => "Skip seeds for skipped growers",
                        'remedySql' =>
-                           "UPDATE seeds.SEEDBasket_Products S, seeds.sed_curr_growers G SET S.eStatus='INACTIVE' "
+                           "UPDATE seeds_1.SEEDBasket_Products S, seeds_1.sed_curr_growers G SET S.eStatus='INACTIVE' "
                           ."WHERE S.product_type='seeds' AND S.eStatus='ACTIVE' AND S.uid_seller=G.mbr_id AND G.bSkip",
                 ),
 
@@ -183,12 +183,12 @@ class MSDLibIntegrity
                           'failShowRow' => "mbr_id [[m]] : [[mc]]",
                           'testSql' =>
                               "SELECT G.mbr_id as m, G.mbr_code as mc "
-                             ."FROM seeds.sed_curr_growers G WHERE $sGNoSkipDel "
-                             ."AND NOT EXISTS (SELECT * FROM seeds.SEEDBasket_Products S WHERE G.mbr_id=S.uid_seller AND $sSActive)",
+                             ."FROM seeds_1.sed_curr_growers G WHERE $sGNoSkipDel "
+                             ."AND NOT EXISTS (SELECT * FROM seeds_1.SEEDBasket_Products S WHERE G.mbr_id=S.uid_seller AND $sSActive)",
                           'remedyLabel' => "Skip active growers who have no active seeds",
                           'remedySql' =>
-                              "UPDATE seeds.sed_curr_growers G SET G.bSkip=1 WHERE $sGNoSkipDel "
-                             ."AND NOT EXISTS (SELECT * FROM seeds.SEEDBasket_Products S WHERE G.mbr_id=S.uid_seller AND $sSActive)",
+                              "UPDATE seeds_1.sed_curr_growers G SET G.bSkip=1 WHERE $sGNoSkipDel "
+                             ."AND NOT EXISTS (SELECT * FROM seeds_1.SEEDBasket_Products S WHERE G.mbr_id=S.uid_seller AND $sSActive)",
                 ),
 
             /* Check that the data is normalized
@@ -200,7 +200,7 @@ class MSDLibIntegrity
                        'failShowRow' => "[[m]] : [[mc]]",
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM seeds.sed_curr_growers G WHERE LENGTH(G.mbr_code)<>8 AND G.mbr_code<>'SODC/SDPC'",
+                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM seeds_1.sed_curr_growers G WHERE LENGTH(G.mbr_code)<>8 AND G.mbr_code<>'SODC/SDPC'",
                      ),
 
             'data_cat_sp_var_exist' =>
@@ -212,12 +212,12 @@ class MSDLibIntegrity
                        'failShowRow' => "[[k]] is ([[cat]],[[sp]],[[var]])",
                        'testSql' =>
                            "SELECT P._key as k,PE1.v as cat,PE2.v as sp,PE3.v as var "
-                          ."FROM seeds.SEEDBasket_Products P LEFT JOIN seeds.SEEDBasket_ProdExtra PE1 "
+                          ."FROM seeds_1.SEEDBasket_Products P LEFT JOIN seeds_1.SEEDBasket_ProdExtra PE1 "
                                // yields NULL PE fields if category undefined or deleted
                                ."ON (P._key=PE1.fk_SEEDBasket_Products AND PE1.k='category' AND PE1._status='0') "
-                               ."LEFT JOIN seeds.SEEDBasket_ProdExtra PE2 "
+                               ."LEFT JOIN seeds_1.SEEDBasket_ProdExtra PE2 "
                                ."ON (P._key=PE2.fk_SEEDBasket_Products AND PE2.k='species' AND PE2._status='0') "
-                               ."LEFT JOIN seeds.SEEDBasket_ProdExtra PE3 "
+                               ."LEFT JOIN seeds_1.SEEDBasket_ProdExtra PE3 "
                                ."ON (P._key=PE3.fk_SEEDBasket_Products AND PE3.k='variety' AND PE3._status='0') "
                           // not limited to ACTIVE records because it shouldn't be
                           ."WHERE P._status='0' AND P.product_type='seeds' AND "
@@ -232,7 +232,7 @@ class MSDLibIntegrity
                        'failShowRow' => "[[n]] seeds have category '[[category]]'",
                        'testSql' =>
                            "SELECT PE.v as category,count(*) as n "
-                          ."FROM seeds.SEEDBasket_Products P, seeds.SEEDBasket_ProdExtra PE "
+                          ."FROM seeds_1.SEEDBasket_Products P, seeds_1.SEEDBasket_ProdExtra PE "
                           ."WHERE P._key=PE.fk_SEEDBasket_Products AND PE.k='category' AND "
                                 // not limited to ACTIVE records because it shouldn't be
                                 ."P._status='0' AND PE._status='0' AND P.product_type='seeds' AND "
@@ -247,7 +247,7 @@ class MSDLibIntegrity
                        'failShowRow' => "category=[[category]], variety=[[variety]]",
                        'testSql' =>
                            "SELECT PE1.v as category,PE3.v as variety "
-                          ."FROM seeds.SEEDBasket_Products P,seeds.SEEDBasket_ProdExtra PE1,seeds.SEEDBasket_ProdExtra PE2,seeds.SEEDBasket_ProdExtra PE3 "
+                          ."FROM seeds_1.SEEDBasket_Products P,seeds_1.SEEDBasket_ProdExtra PE1,seeds_1.SEEDBasket_ProdExtra PE2,seeds_1.SEEDBasket_ProdExtra PE3 "
                           ."WHERE P._key=PE1.fk_SEEDBasket_Products AND PE1.k='category' AND PE1._status='0' AND "
                                 ."P._key=PE2.fk_SEEDBasket_Products AND PE2.k='species' AND PE2._status='0' AND "
                                 ."P._key=PE3.fk_SEEDBasket_Products AND PE3.k='variety' AND PE3._status='0' AND "
@@ -261,10 +261,10 @@ class MSDLibIntegrity
                        'testType' => 'n0',
                        'failLabel' => "[[n]] rows in sed_curr_growers that are neither bSkip nor bDelete, but don't have the current year",
                        'testSql' =>
-                           "SELECT count(*) FROM seeds.sed_curr_growers G WHERE G.year<>'$yearCurrent' AND $sGNoSkipDel",
+                           "SELECT count(*) FROM seeds_1.sed_curr_growers G WHERE G.year<>'$yearCurrent' AND $sGNoSkipDel",
                        'remedyLabel' => "Set current year for growers",
                        'remedySql' =>
-                           "UPDATE seeds.sed_curr_growers G SET G.year='$yearCurrent' WHERE $sGNoSkipDel",
+                           "UPDATE seeds_1.sed_curr_growers G SET G.year='$yearCurrent' WHERE $sGNoSkipDel",
                      ),
 
             'data_year_seeds' =>
@@ -272,22 +272,22 @@ class MSDLibIntegrity
                        'testType' => 'n0',
                        'failLabel' => "[[n]] rows in sed_curr_seeds that are neither bSkip nor bDelete, but don't have the current year",
                        'testSql' =>
-                           "SELECT count(*) FROM seeds.SEEDBasket_Products P LEFT JOIN seeds.SEEDBasket_ProdExtra PE "
+                           "SELECT count(*) FROM seeds_1.SEEDBasket_Products P LEFT JOIN seeds_1.SEEDBasket_ProdExtra PE "
                                                ."ON (P._key=PE.fk_SEEDBasket_Products AND PE.k='year' AND PE._status='0') "
                           ."WHERE P._status='0' AND P.product_type='seeds' AND P.eStatus='ACTIVE' AND "
                                 ."(PE.v IS NULL OR PE.v<>'$yearCurrent')",
                        'remedyLabel' => "Set current year for seeds",
                        'remedySql' =>
                            // update PE.v where exists but not current year
-                           "UPDATE seeds.SEEDBasket_Products P LEFT JOIN seeds.SEEDBasket_ProdExtra PE "
+                           "UPDATE seeds_1.SEEDBasket_Products P LEFT JOIN seeds_1.SEEDBasket_ProdExtra PE "
                                                ."ON (P._key=PE.fk_SEEDBasket_Products AND PE.k='year' AND PE._status='0') "
                           ."SET PE.v='$yearCurrent' "
                           ."WHERE P._status='0' AND P.product_type='seeds' AND P.eStatus='ACTIVE' AND "
                                 ."PE._key IS NOT NULL AND PE.v<>'$yearCurrent' ;"
                           // insert PE because the year row is missing
-                          ."INSERT INTO seeds.SEEDBasket_ProdExtra (fk_SEEDBasket_Products,k,v) "
+                          ."INSERT INTO seeds_1.SEEDBasket_ProdExtra (fk_SEEDBasket_Products,k,v) "
                           ."SELECT P._key,'year','$yearCurrent' "
-                          ."FROM seeds.SEEDBasket_Products P LEFT JOIN seeds.SEEDBasket_ProdExtra PE "
+                          ."FROM seeds_1.SEEDBasket_Products P LEFT JOIN seeds_1.SEEDBasket_ProdExtra PE "
                           ."ON (P._key=PE.fk_SEEDBasket_Products AND PE.k='year' AND PE._status='0') "
                           ."WHERE P._status='0' AND P.product_type='seeds' AND P.eStatus='ACTIVE' AND "
                                 ."PE._key IS NULL",
@@ -300,7 +300,7 @@ class MSDLibIntegrity
                        'failLabel' => "Grower total count does not match sum of Flower,Fruit,Grain,Herb,Tree,Veg,Misc counts",
                        'failShowRow' => "[[m]] : [[mc]]",
                        'testSql' =>
-                           "SELECT G.mbr_id as m, G.mbr_code as mc FROM seeds.sed_curr_growers G WHERE $sGNoSkipDel AND "
+                           "SELECT G.mbr_id as m, G.mbr_code as mc FROM seeds_1.sed_curr_growers G WHERE $sGNoSkipDel AND "
                           ."G.nTotal <> G.nFlower + G.nFruit + G.nGrain + G.nHerb + G.nTree + G.nVeg + G.nMisc",
                      ),
 
@@ -310,9 +310,9 @@ class MSDLibIntegrity
                        'failLabel' => "Grower total count does not match number of seeds offered",
                        'failShowRow' => "[[m]] : [[mc]] does not really have [[nTotal]] active seed listings",
                        'testSql' =>
-                           "SELECT G.mbr_id as m, G.mbr_code as mc, G.nTotal as nTotal FROM seeds.sed_curr_growers G "
+                           "SELECT G.mbr_id as m, G.mbr_code as mc, G.nTotal as nTotal FROM seeds_1.sed_curr_growers G "
                               ."WHERE $sGNoSkipDel AND "
-                              ."G.nTotal <> (SELECT count(*) FROM seeds.SEEDBasket_Products S WHERE S.uid_seller=G.mbr_id AND $sSActive)",
+                              ."G.nTotal <> (SELECT count(*) FROM seeds_1.SEEDBasket_Products S WHERE S.uid_seller=G.mbr_id AND $sSActive)",
                      ),
 
             'data_count_sumsGandS' =>
@@ -320,8 +320,8 @@ class MSDLibIntegrity
                        'testType' => 'n0',
                        'failLabel' => "Sum of grower totals - count of seeds = [[n]]",
                        'testSql' =>
-                           "SELECT (SELECT sum(G.nTotal) FROM seeds.sed_curr_growers G WHERE $sGNoSkipDel) "
-                              ." - (SELECT count(*) FROM seeds.SEEDBasket_Products S WHERE $sSActive) as n",
+                           "SELECT (SELECT sum(G.nTotal) FROM seeds_1.sed_curr_growers G WHERE $sGNoSkipDel) "
+                              ." - (SELECT count(*) FROM seeds_1.SEEDBasket_Products S WHERE $sSActive) as n",
                      ),
 
 
@@ -335,9 +335,9 @@ class MSDLibIntegrity
                        'bNonFatal' => true,
                        'testSql' =>
                            "SELECT PE1sp.v as sp,PE1cat.v as cat1,PE2cat.v as cat2,P1._key as kP1,P2._key as kP2 "
-                          ."FROM seeds.SEEDBasket_Products P1, seeds.SEEDBasket_Products P2,"
-                               ."seeds.SEEDBasket_ProdExtra PE1cat,seeds.SEEDBasket_ProdExtra PE1sp,"
-                               ."seeds.SEEDBasket_ProdExtra PE2cat,seeds.SEEDBasket_ProdExtra PE2sp "
+                          ."FROM seeds_1.SEEDBasket_Products P1, seeds_1.SEEDBasket_Products P2,"
+                               ."seeds_1.SEEDBasket_ProdExtra PE1cat,seeds_1.SEEDBasket_ProdExtra PE1sp,"
+                               ."seeds_1.SEEDBasket_ProdExtra PE2cat,seeds_1.SEEDBasket_ProdExtra PE2sp "
                           ."WHERE P1.product_type='seeds' AND P1._status='0' AND P1.eStatus='ACTIVE' AND "
                                 ."P2.product_type='seeds' AND P2._status='0' AND P2.eStatus='ACTIVE' AND "
                                 ."P1._key < P2._key AND "
@@ -360,9 +360,9 @@ class MSDLibIntegrity
                        'bNonFatal' => true,
                        'testSql' =>
                            "SELECT G.mbr_id as m,G.mbr_code as mc,PE1sp.v as sp,PE1var.v as var,P1._key as kP1,P2._key as kP2 "
-                          ."FROM seeds.sed_curr_growers G,seeds.SEEDBasket_Products P1,seeds.SEEDBasket_Products P2,"
-                               ."seeds.SEEDBasket_ProdExtra PE1sp,seeds.SEEDBasket_ProdExtra PE1var,"
-                               ."seeds.SEEDBasket_ProdExtra PE2sp,seeds.SEEDBasket_ProdExtra PE2var "
+                          ."FROM seeds_1.sed_curr_growers G,seeds_1.SEEDBasket_Products P1,seeds_1.SEEDBasket_Products P2,"
+                               ."seeds_1.SEEDBasket_ProdExtra PE1sp,seeds_1.SEEDBasket_ProdExtra PE1var,"
+                               ."seeds_1.SEEDBasket_ProdExtra PE2sp,seeds_1.SEEDBasket_ProdExtra PE2var "
                           ."WHERE P1.product_type='seeds' AND P1._status='0' AND P1.eStatus='ACTIVE' AND "
                                 ."P2.product_type='seeds' AND P2._status='0' AND P2.eStatus='ACTIVE' AND "
                                 ."P1._key < P2._key AND "
@@ -386,9 +386,9 @@ class MSDLibIntegrity
                        'bNonFatal' => true,
                        'testSql' =>
                            "SELECT PE1var.v as var,PE1sp.v as sp1,PE2sp.v as sp2 " //,P1._key as kP1,P2._key as kP2 "
-                          ."FROM seeds.SEEDBasket_Products P1, seeds.SEEDBasket_Products P2,"
-                               ."seeds.SEEDBasket_ProdExtra PE1sp,seeds.SEEDBasket_ProdExtra PE1var,"
-                               ."seeds.SEEDBasket_ProdExtra PE2sp,seeds.SEEDBasket_ProdExtra PE2var "
+                          ."FROM seeds_1.SEEDBasket_Products P1, seeds_1.SEEDBasket_Products P2,"
+                               ."seeds_1.SEEDBasket_ProdExtra PE1sp,seeds_1.SEEDBasket_ProdExtra PE1var,"
+                               ."seeds_1.SEEDBasket_ProdExtra PE2sp,seeds_1.SEEDBasket_ProdExtra PE2var "
                           ."WHERE P1.product_type='seeds' AND P1._status='0' AND P1.eStatus='ACTIVE' AND "
                                 ."P2.product_type='seeds' AND P2._status='0' AND P2.eStatus='ACTIVE' AND "
                                 ."P1._key < P2._key AND "
@@ -413,9 +413,9 @@ class MSDLibIntegrity
                        'testType' => 'rows0',
                        'failLabel' => "Seeds deleted but not kfr-deleted",
                        'failShowRow' => "kSeed [[_key]] : mbr_id=[[mbr_id]], [[category]] - [[type]] - [[variety]]",
-                       'testSql' => "SELECT _key,mbr_id,category,type,variety FROM seeds.sed_curr_seeds WHERE bDelete AND _status=0 ORDER BY mbr_id,category,type,variety",
+                       'testSql' => "SELECT _key,mbr_id,category,type,variety FROM seeds_1.sed_curr_seeds WHERE bDelete AND _status=0 ORDER BY mbr_id,category,type,variety",
                        'remedyLabel' => 'Kfr-delete all deleted seeds',
-                       'remedySql' => "UPDATE seeds.sed_curr_seeds SET _status=1 WHERE bDelete"
+                       'remedySql' => "UPDATE seeds_1.sed_curr_seeds SET _status=1 WHERE bDelete"
                      ),
 
             'delete_old_growers' =>
@@ -423,9 +423,9 @@ class MSDLibIntegrity
                        'testType' => 'rows0',
                        'failLabel' => "Growers deleted but not kfr-deleted",
                        'failShowRow' => "Grower [[mc]] ([[m]])",
-                       'testSql' => "SELECT mbr_code as mc, mbr_id as m FROM seeds.sed_curr_growers WHERE bDelete AND _status=0 ORDER BY mbr_code",
+                       'testSql' => "SELECT mbr_code as mc, mbr_id as m FROM seeds_1.sed_curr_growers WHERE bDelete AND _status=0 ORDER BY mbr_code",
                        'remedyLabel' => 'Kfr-delete all deleted growers',
-                       'remedySql' => "UPDATE seeds.sed_curr_growers SET _status=1 WHERE bDelete"
+                       'remedySql' => "UPDATE seeds_1.sed_curr_growers SET _status=1 WHERE bDelete"
                      ),
 
             /* Purge the records that have been set to _status=1
@@ -434,18 +434,18 @@ class MSDLibIntegrity
                 array( 'title' => "Check for deleted seeds",
                        'testType' => 'n0',
                        'failLabel' => "[[n]] seed records are at _status=1 ready to purge",
-                       'testSql' => "SELECT count(*) FROM seeds.sed_curr_seeds WHERE _status=1",
+                       'testSql' => "SELECT count(*) FROM seeds_1.sed_curr_seeds WHERE _status=1",
                        'remedyLabel' => 'Purge all deleted seed records',
-                       'remedySql' => "DELETE FROM seeds.sed_curr_seeds WHERE _status=1"
+                       'remedySql' => "DELETE FROM seeds_1.sed_curr_seeds WHERE _status=1"
                      ),
 
             'purge_deleted_growers' =>
                 array( 'title' => "Check for deleted growers",
                        'testType' => 'n0',
                        'failLabel' => "[[n]] grower records are at _status=1 ready to purge",
-                       'testSql' => "SELECT count(*) FROM seeds.sed_curr_growers WHERE _status=1",
+                       'testSql' => "SELECT count(*) FROM seeds_1.sed_curr_growers WHERE _status=1",
                        'remedyLabel' => 'Purge all deleted grower records',
-                       'remedySql' => "DELETE FROM seeds.sed_curr_growers WHERE _status=1"
+                       'remedySql' => "DELETE FROM seeds_1.sed_curr_growers WHERE _status=1"
                      ),
 
             /* Clear the workflow flags for a new data entry session
@@ -454,25 +454,25 @@ class MSDLibIntegrity
                 array( 'title' => "Check flags clear - bDone,bDoneMbr,bDoneOffice",
                        'testType' => 'n0',
                        'failLabel' => "[[n]] grower records have bDone, bDoneMbr, or bDoneOffice flag set",
-                       'testSql' => "SELECT count(*) FROM seeds.sed_curr_growers WHERE bDone OR bDoneMbr OR bDoneOffice",
+                       'testSql' => "SELECT count(*) FROM seeds_1.sed_curr_growers WHERE bDone OR bDoneMbr OR bDoneOffice",
                        'remedyLabel' => 'Clear grower.bDone,bDoneMbr,bDoneOffice',
-                       'remedySql' => "UPDATE seeds.sed_curr_growers SET bDone=0,bDoneMbr=0,bDoneOffice=0"
+                       'remedySql' => "UPDATE seeds_1.sed_curr_growers SET bDone=0,bDoneMbr=0,bDoneOffice=0"
                      ),
             'clearflags_bChanged_growers' =>
                 array( 'title' => "Check flags clear - bChanged for growers",
                        'testType' => 'n0',
                        'failLabel' => "[[n]] grower records have bChanged flag",
-                       'testSql' => "SELECT count(*) FROM seeds.sed_curr_growers WHERE bChanged",
+                       'testSql' => "SELECT count(*) FROM seeds_1.sed_curr_growers WHERE bChanged",
                        'remedyLabel' => 'Clear curr_grower.bChanged',
-                       'remedySql' => "UPDATE seeds.sed_curr_growers SET bChanged=0"
+                       'remedySql' => "UPDATE seeds_1.sed_curr_growers SET bChanged=0"
                      ),
             'clearflags_bChanged_seeds' =>
                 array( 'title' => "Check flags clear - bChanged for seeds",
                        'testType' => 'n0',
                        'failLabel' => "[[n]] seeds records have bChanged flag",
-                       'testSql' => "SELECT count(*) FROM seeds.sed_curr_seeds WHERE bChanged",
-                       'remedyLabel' => 'Clear curr_seeds.bChanged',
-                       'remedySql' => "UPDATE seeds.sed_curr_seeds SET bChanged=0"
+                       'testSql' => "SELECT count(*) FROM seeds_1.sed_curr_seeds WHERE bChanged",
+                       'remedyLabel' => 'Clear curr_seeds_1.bChanged',
+                       'remedySql' => "UPDATE seeds_1.sed_curr_seeds SET bChanged=0"
                      ),
 
         ] );

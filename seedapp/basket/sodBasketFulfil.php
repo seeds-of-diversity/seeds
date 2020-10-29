@@ -4,6 +4,7 @@
  * This should all be converted to use SEEDBasket and its fulfilment system.
  */
 
+include_once( SEEDLIB."q/QServerBasket.php" );
 include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
 
 
@@ -22,7 +23,7 @@ class SodOrder
     function KfrelOrder() { return( $this->kfrel ); }
 
     private $kdefOrder =
-        [ "Tables" => [ "O" => [ "Table" => 'seeds.mbr_order_pending',
+        [ "Tables" => [ "O" => [ "Table" => 'seeds_1.mbr_order_pending',
                                  "Fields" => array( array("col"=>"mail_firstname",  "type"=>"S"),
                                                     array("col"=>"mail_lastname",   "type"=>"S"),
                                                     array("col"=>"mail_company",    "type"=>"S"),
@@ -122,7 +123,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
         $this->pAction = SEEDInput_Str( 'action' );
 
         // Filters
-        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed",
+        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed", "Bob",
                                                                        MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED ] )) )
         {
             // "" defaults to either Not-accounted or Not-mailed depending on whom you are
@@ -139,7 +140,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         return( "
             <style>
-            .SodBasketFulfil_basketContents td { font-size:x-small; }
+            .SodBasketFulfil_basketContents td { padding-left:10px; font-size:x-small; }
             </style>
         ");
     }
@@ -160,13 +161,14 @@ class SodOrderFulfilUI extends SodOrderFulfil
                         array( "Not Accounted" => "Not-accounted",
                                "Not Recorded"  => "Not-recorded",
                                "Not Mailed"    => "Not-mailed",
+                               "Bob's Review"  => 'Bob',
                                "Filled"        => MBRORDER_STATUS_FILLED,
                                "Cancelled"     => MBRORDER_STATUS_CANCELLED,
                                "All"           => "All",
                         ),
                         $this->fltStatus,
                         array( "selectAttrs" => "onChange='submit();'" ) );
-        if( in_array( $this->fltStatus, ["All", MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
+        if( in_array( $this->fltStatus, ["All", 'Bob', MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
             $s .= SEEDCore_NBSP("",5)
                  .SEEDForm_Select2( 'fltYear',
                             $raYearOpt,
@@ -212,6 +214,11 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 $cond = "eStatus2='0' AND eStatus NOT IN ('".MBRORDER_STATUS_NEW."','".MBRORDER_STATUS_CANCELLED."')";
                 $bSortDown = false;
                 break;
+            case 'Bob':
+                $label = "Bob's Review";
+                $cond = $this->getYearCond()." AND eStatus='Paid'";
+                $bSortDown = true;
+                break;
             case "All":
             default:
                 $label = "All {$this->fltYear}";
@@ -239,10 +246,20 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         $s = "";
 
-        if( in_array( $kfr->value('eStatus'), [ MBRORDER_STATUS_PAID, MBRORDER_STATUS_FILLED ] ) ) {
-            $style = "style='color:green;background-color:#efe'";
-        } else {
-            $style = "";
+        // kluge Bob Review by skipping rows that don't meet the criteria
+        if( $this->fltStatus == 'Bob' ) {
+            list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
+
+            if( !$bContactNeeded && !$bDonNotRecorded && $fTotal == $kfr->Value('pay_total') ) goto done;   // this row does not need review
+        }
+
+
+        switch( $kfr->value('eStatus') ) {
+            case MBRORDER_STATUS_NEW:       $style = "style='background-color:#eee'";               break;
+            case MBRORDER_STATUS_PAID:
+            case MBRORDER_STATUS_FILLED:    $style = "style='color:green;background-color:#efe'";   break;
+            case MBRORDER_STATUS_CANCELLED: $style = "style='color:#844; background-color:#eee'";   break;
+            default:                        $style = "";
         }
 
 // kluge to make the membership labels easier to differentiate
@@ -291,7 +308,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          .$this->doneRecordingButton( $kfr );
 
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
-         ."<td valign='top'>$sOrderNum</td>"
+         ."<td valign='top' $style>$sOrderNum</td>"
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
@@ -300,6 +317,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
 
+         done:
          return( $s );
     }
 
@@ -382,20 +400,21 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         // use this to compute the basket, but only show the details to dev/Bob
         list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
-        if( $bContactNeeded && $kfr->value('eStatus') != 'Cancelled' ) {
+        $bGood = in_array( $kfr->value('eStatus'), ['Paid','Filled'] );
+
+        if( $bGood && $bContactNeeded ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
 
-            if( $bDonNotRecorded && $kfr->value('eStatus') != 'Cancelled' ) {
-                $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded <button>Record</button></div>";
+            if( $bGood && $bDonNotRecorded ) {
+                $s .= "<div class='alert alert-danger'>The donation is not recorded</div>";
             }
 
-            $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
-            $cSuccess = $fTotal == $kfr->Value('pay_total') ? 'success' : 'danger';
-            //$s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>$sContents</div>";
-            $s .= "<div class='alert alert-$cSuccess'>$sContents</div>";
+            $c = $bGood ? ($fTotal == $kfr->Value('pay_total') ? 'alert alert-success' : 'alert alert-danger') : "";
+
+            $s .= "<div class='$c'>$sContents</div>";
 
 // data-kOrder is also present in the enclosing <tr>
             $s .= "<div data-kOrder='{$kfr->Key()}' class='doBuildBasket'><button>rebuild this basket</button></div>";
@@ -438,14 +457,13 @@ class SoDOrderBasket
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
+        global $config_KFDB;
         $this->oApp = $oApp;
         $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
 
-
-// SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
+// SBC should use oApp->logdir instead
+            ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
     }
-
 
     function ShowBasketContents( $kB, $bFulfilControls = false )
     /***********************************************************
@@ -476,22 +494,33 @@ class SoDOrderBasket
         $raBContents = $oB->ComputeBasketContents( false );
         if( @$raBContents['raSellers'][1] ) {
             $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:right;width:100%'>"
-                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>"
-                 .SEEDCore_ArrayExpandRows( $raBContents['raSellers'][1]['raItems'],
-                                            "<tr><td valign='top' style='padding-right:5px'>[[sItem]]</td><td valign='top'>[[fAmount]]</td></tr>" )
-                 ."</table>";
-        }
-        if( $bFulfilControls ) {
-            $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:left;width:100%'>";
+                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
+            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
+                if( !($oPur = $ra['oPur']) ) continue;
 
-            foreach( $oB->GetPurchasesInBasket() as $oPur ) {
-                if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
-                    // $button = "<button data-kOrder='{$kOrder}' class='doRecordDonation'>Accept donation</button>";  don't have kOrder here
-                    $button = "<button>Accept donation</button>";
-                } else {
-                    $button = "<button>Undo</button>";
+                $sColFulfil1 = "";      // first col is a fulfil button or fulfilment record
+                $sColFulfil2 = "";      // second col is an undo button if fulfilled and canfulfilundo
+                if( $bFulfilControls ) {
+                    // using [onclick=fn(kBP)] instead of [data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil']
+                    // because inconvenient to reconnect event listener when basketDetail redrawn
+                    $sFulfilButtonLabel = $sFulfilNote = "";
+                    switch( $oPur->GetProductType() ) {
+                        case 'donation':
+                            $sFulfilButtonLabel = "Accept donation";
+                            $sFulfilNote = "recorded donation #{$oPur->GetKRef()}";
+                            break;
+                    }
+                    $sColFulfil1 = $oPur->IsFulfilled()
+                                    ? $sFulfilNote
+                                    : ($oPur->CanFulfil() ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>" : "");
+                    $sColFulfil2 = $oPur->CanFulfilUndo()
+                                    ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfilUndo(\$(this),{$oPur->GetKey()})'>Undo</button>"
+                                    : "";
                 }
-                $s .= "<tr><td valign='top' style='padding-right:5px'>{$oPur->Value('P_title_en')}</td><td valign='top'>$button</td></tr>";
+                $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
+                         ."<td valign='top'>{$oPur->GetPrice()}</td>"
+                         .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sColFulfil1</td><td valign='top' style='text-align:left'> $sColFulfil2</td>" : "")
+                     ."</tr>";
             }
             $s .= "</table>";
         }
@@ -525,12 +554,29 @@ class SoDOrder_MbrOrder
         $this->oApp = $oApp;
         $this->oOrder = new SodOrder( $oApp );
 
-        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
-
-
-// SBC should use oApp instead
-            ['logdir'=>$oApp->logdir, 'db'=>'seeds'] );
+        $this->oSB = new SEEDBasketCore( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
     }
+
+
+    function ProcessCmd( $cmd, $raParms )
+    /************************************
+        Process sb- JX commands
+     */
+    {
+        // handle the basic sb- commands
+        $oQ = new QServerBasket( $this->oApp, [] );
+        $rQ = $oQ->Cmd( $cmd, $raParms );
+        if( $rQ['bHandled'] ) return( $rQ );
+
+        $rQ = SEEDQ::GetEmptyRQ();
+        switch( $cmd ) {
+            default:
+                break;
+        }
+
+        return( $rQ );
+    }
+
 
     function UpdateBasketsForAllOrders()
     {
@@ -560,7 +606,7 @@ class SoDOrder_MbrOrder
     {
         /* SoD products
 
-            INSERT INTO seeds.SEEDBasket_Products
+            INSERT INTO seeds_1.SEEDBasket_Products
                 (_key,_created,_created_by,_updated,_updated_by,_status,
                  uid_seller,eStatus,img,v_t1,v_t2,v_t3,sExtra,
                  product_type,quant_type,item_price,item_price_us,bask_quant_min,bask_quant_max,name,title_en,title_fr)
