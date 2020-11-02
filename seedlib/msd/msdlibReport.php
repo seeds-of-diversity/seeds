@@ -40,6 +40,7 @@ class MSDLibReport
                 break;
 
             case 'SeptSeeds':
+                header( "Content-type: text/html; charset=utf-8");
                 $s .= $this->styleReport()
                      .$this->septSeeds( $bNoEmail );
                 break;
@@ -197,6 +198,8 @@ class MSDLibReport
         Seed listings per grower.  When you print this from the browser, each grower should start on a new page.
 
         Parms: g=1234 - just show the given grower
+
+        Output is utf8
      */
     {
         $s = "";
@@ -211,16 +214,16 @@ class MSDLibReport
 
 // TODO: replace this with MSDQ::msdlist-stats
         $cond = "_status=0 and not bDelete";
-        $s .= "<H2>Listings for the ".(date("Y")+1)." Member Seed Directory</H2>"
-            ."<DIV style='background-color:#f8f8f8'>"
+        $s .= "<h2>Listings for the ".(date("Y")+1)." Member Seed Directory</h2>"
+            ."<div style='background-color:#f8f8f8'>"
             .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_growers where $cond" )." Growers<BR/>"
-            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond and not bSkip" )." Seed Listings ("
-            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond" )." including skips)<BR/>"
-            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond and not bSkip" )." Types ("
-            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
-            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond and not bSkip" )." Varieties ("
-            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
-            ."</DIV>";
+//            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond and not bSkip" )." Seed Listings ("
+//            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(*) FROM sed_curr_seeds   where $cond" )." including skips)<BR/>"
+//            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond and not bSkip" )." Types ("
+//            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
+//            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond and not bSkip" )." Varieties ("
+//            .$this->oMSDLib->oApp->kfdb->Query1( "SELECT count(distinct type,variety) FROM sed_curr_seeds where $cond" )." including skips)<BR/>"
+            ."</div>";
 
         $nGrowers = $nSeeds = 0;
 
@@ -243,15 +246,15 @@ class MSDLibReport
                 }
 
                 $s .= "<div class='mbr'>"
-                        ."<H3>".$kfrG->value('mbr_code')." - ".$raMbr['firstname']." ".$raMbr['lastname']." ".$raMbr['company']."</H3>"
-                        ."<H4>Listings for Seeds of Diversity's ".$this->oMSDLib->GetCurrYear()." Member Seed Directory</H4>"
-                        ."<UL class='inst'>"
-                        ."<LI>Please make corrections in red ink.</LI>"
-                        ."<LI>To permanently remove a listing, draw a large 'X' through it.</LI>"
-                        ."<LI>To temporarily remove a listing from the ".$this->oMSDLib->GetCurrYear()." directory, but keep it on this list next fall, check \"Skip a Year\".</LI>"
-                        ."</UL>";
+                        .SEEDCore_utf8_encode( "<h3>".$kfrG->value('mbr_code')." - ".$raMbr['firstname']." ".$raMbr['lastname']." ".$raMbr['company']."</h3>" )
+                        ."<h4>Listings for Seeds of Diversity's ".$this->oMSDLib->GetCurrYear()." Member Seed Directory</h4>"
+                        ."<ul class='inst'>"
+                        ."<li>Please make corrections in red ink.</li>"
+                        ."<li>To permanently remove a listing, draw a large 'X' through it.</li>"
+                        ."<li>To temporarily remove a listing from the ".$this->oMSDLib->GetCurrYear()." directory, but keep it on this list next fall, check \"Skip a Year\".</li>"
+                        ."</ul>";
 
-                foreach( $rQ['raOut'] as $raS ) {
+                foreach( $rQ['raOut'] as $raS ) {   // this is utf8
                     $s .= $this->septSeedsDrawListing( $raS, $kfrG->value('mbr_code') );
                 }
 
