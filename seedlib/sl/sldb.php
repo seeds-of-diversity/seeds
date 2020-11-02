@@ -66,7 +66,8 @@ class _sldb_defs
 
     static function fldSLAdoption()
     {
-        return( array( array( "col"=>"fk_mbr_contacts",     "type"=>"K" ),
+        return( array( array( "col"=>"kDonation",           "type"=>"K" ),  // fk_mbr_donations with an outer join
+                       array( "col"=>"fk_mbr_contacts",     "type"=>"K" ),
                        array( "col"=>"donor_name",          "type"=>"S" ),
                        array( "col"=>"public_name",         "type"=>"S" ),
                        array( "col"=>"amount",              "type"=>"F" ),

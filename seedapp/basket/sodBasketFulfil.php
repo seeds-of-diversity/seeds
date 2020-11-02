@@ -123,7 +123,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
         $this->pAction = SEEDInput_Str( 'action' );
 
         // Filters
-        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed",
+        if( !($this->fltStatus = $oApp->sess->SmartGPC( 'fltStatus', [ "", "All", "Not-accounted", "Not-recorded", "Not-mailed", "Bob",
                                                                        MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED ] )) )
         {
             // "" defaults to either Not-accounted or Not-mailed depending on whom you are
@@ -161,13 +161,14 @@ class SodOrderFulfilUI extends SodOrderFulfil
                         array( "Not Accounted" => "Not-accounted",
                                "Not Recorded"  => "Not-recorded",
                                "Not Mailed"    => "Not-mailed",
+                               "Bob's Review"  => 'Bob',
                                "Filled"        => MBRORDER_STATUS_FILLED,
                                "Cancelled"     => MBRORDER_STATUS_CANCELLED,
                                "All"           => "All",
                         ),
                         $this->fltStatus,
                         array( "selectAttrs" => "onChange='submit();'" ) );
-        if( in_array( $this->fltStatus, ["All", MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
+        if( in_array( $this->fltStatus, ["All", 'Bob', MBRORDER_STATUS_FILLED, MBRORDER_STATUS_CANCELLED] ) ) {
             $s .= SEEDCore_NBSP("",5)
                  .SEEDForm_Select2( 'fltYear',
                             $raYearOpt,
@@ -213,6 +214,11 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 $cond = "eStatus2='0' AND eStatus NOT IN ('".MBRORDER_STATUS_NEW."','".MBRORDER_STATUS_CANCELLED."')";
                 $bSortDown = false;
                 break;
+            case 'Bob':
+                $label = "Bob's Review";
+                $cond = $this->getYearCond()." AND eStatus='Paid'";
+                $bSortDown = true;
+                break;
             case "All":
             default:
                 $label = "All {$this->fltYear}";
@@ -240,10 +246,20 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         $s = "";
 
-        if( in_array( $kfr->value('eStatus'), [ MBRORDER_STATUS_PAID, MBRORDER_STATUS_FILLED ] ) ) {
-            $style = "style='color:green;background-color:#efe'";
-        } else {
-            $style = "";
+        // kluge Bob Review by skipping rows that don't meet the criteria
+        if( $this->fltStatus == 'Bob' ) {
+            list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
+
+            if( !$bContactNeeded && !$bDonNotRecorded && $fTotal == $kfr->Value('pay_total') ) goto done;   // this row does not need review
+        }
+
+
+        switch( $kfr->value('eStatus') ) {
+            case MBRORDER_STATUS_NEW:       $style = "style='background-color:#eee'";               break;
+            case MBRORDER_STATUS_PAID:
+            case MBRORDER_STATUS_FILLED:    $style = "style='color:green;background-color:#efe'";   break;
+            case MBRORDER_STATUS_CANCELLED: $style = "style='color:#844; background-color:#eee'";   break;
+            default:                        $style = "";
         }
 
 // kluge to make the membership labels easier to differentiate
@@ -292,7 +308,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          .$this->doneRecordingButton( $kfr );
 
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
-         ."<td valign='top'>$sOrderNum</td>"
+         ."<td valign='top' $style>$sOrderNum</td>"
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
@@ -301,6 +317,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
 
+         done:
          return( $s );
     }
 
@@ -383,20 +400,21 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         // use this to compute the basket, but only show the details to dev/Bob
         list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
-        if( $bContactNeeded && $kfr->value('eStatus') != 'Cancelled' ) {
+        $bGood = in_array( $kfr->value('eStatus'), ['Paid','Filled'] );
+
+        if( $bGood && $bContactNeeded ) {
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
 
-            if( $bDonNotRecorded && $kfr->value('eStatus') != 'Cancelled' ) {
-                $s .= "<div data-kOrder='{$kfr->Key()}' class='doRecordDonation alert alert-danger'>The donation is not recorded <button>Record</button></div>";
+            if( $bGood && $bDonNotRecorded ) {
+                $s .= "<div class='alert alert-danger'>The donation is not recorded</div>";
             }
 
-            $cBorder = $fTotal == $kfr->Value('pay_total') ? 'green' : 'red';
-            $cSuccess = $fTotal == $kfr->Value('pay_total') ? 'success' : 'danger';
-            //$s .= "<div style='margin:5px;padding:5px;background-color:#ddd;border:1px solid $cBorder'>$sContents</div>";
-            $s .= "<div class='alert alert-$cSuccess'>$sContents</div>";
+            $c = $bGood ? ($fTotal == $kfr->Value('pay_total') ? 'alert alert-success' : 'alert alert-danger') : "";
+
+            $s .= "<div class='$c'>$sContents</div>";
 
 // data-kOrder is also present in the enclosing <tr>
             $s .= "<div data-kOrder='{$kfr->Key()}' class='doBuildBasket'><button>rebuild this basket</button></div>";
@@ -480,22 +498,25 @@ class SoDOrderBasket
             foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
                 if( !($oPur = $ra['oPur']) ) continue;
 
-                $sColFulfil1 = "";
-                $sColFulfil2 = "";
-                if( $bFulfilControls && $oPur->IsFulfilmentAllowed() ) {
+                $sColFulfil1 = "";      // first col is a fulfil button or fulfilment record
+                $sColFulfil2 = "";      // second col is an undo button if fulfilled and canfulfilundo
+                if( $bFulfilControls ) {
+                    // using [onclick=fn(kBP)] instead of [data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil']
+                    // because inconvenient to reconnect event listener when basketDetail redrawn
+                    $sFulfilButtonLabel = $sFulfilNote = "";
                     switch( $oPur->GetProductType() ) {
                         case 'donation':
-                            $sColFulfil1 = $oPur->IsFulfilled()
-                                            ? "recorded donation #{$oPur->GetKRef()}"
-                                              // data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil'
-                                            : "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>Accept donation</button>";
-                            $sColFulfil2 = $oPur->IsFulfilled()
-                                            ? "<button data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfilUndo'>Undo</button>"
-                                            : "";
+                            $sFulfilButtonLabel = "Accept donation";
+                            $sFulfilNote = "recorded donation #{$oPur->GetKRef()}";
                             break;
                     }
+                    $sColFulfil1 = $oPur->IsFulfilled()
+                                    ? $sFulfilNote
+                                    : ($oPur->CanFulfil() ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>" : "");
+                    $sColFulfil2 = $oPur->CanFulfilUndo()
+                                    ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfilUndo(\$(this),{$oPur->GetKey()})'>Undo</button>"
+                                    : "";
                 }
-
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
                          ."<td valign='top'>{$oPur->GetPrice()}</td>"
                          .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sColFulfil1</td><td valign='top' style='text-align:left'> $sColFulfil2</td>" : "")

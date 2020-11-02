@@ -236,7 +236,7 @@ class SEEDBasketProductHandler
         return( $s );
     }
 
-    function PurchaseIsFulfilled( SEEDBasket_Purchase $oPurchase )
+    function PurchaseIsFulfilled( SEEDBasket_Purchase $oPurchase )  /* deprecate: use SEEDBasket_Purchase::IsFulfilled()
     /*************************************************************
         Return true if this purchase has already been fulfilled
      */

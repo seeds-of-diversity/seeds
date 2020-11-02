@@ -401,7 +401,7 @@ class MSDLibReport
 
                 $yExpires = intval(substr($kfrG->Value('M_expires'),0,4));
 //TODO: standardize special expires codes
-                $ra['expires'] = ($yExpires == 2020 ? "Complimentary" :
+                $ra['expires'] = ($yExpires == 2300 ? "Complimentary" :
                                  ($yExpires == 2100 ? "AUTO" :
                                  ($yExpires == 2200 ? "Lifetime" : $yExpires)));
 

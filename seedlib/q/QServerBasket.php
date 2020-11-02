@@ -31,9 +31,9 @@ class QServerBasket extends SEEDQ
             case 'sb--purchaseFulfil':
                 // $k is SEEDBasket_BP._key in this case
                 if( $k && ($oPur = $this->oSB->GetPurchaseObj( $k ))
-&& $this->canfulfil( $oPur )   // test permissions and ownership of this purchase
+&& $this->permsfulfil( $oPur )   // test permissions and ownership of this purchase
                 ) {
-                    switch( $oPur->Fulfil() ) { // checks IsFulfilled() internally
+                    switch( $oPur->Fulfil() ) { // checks CanFulfil() and IsFulfilled() internally
                         case SEEDBasket_Purchase::FULFIL_RESULT_SUCCESS:
                             $rQ['bOk'] = true;
                             break;
@@ -44,6 +44,24 @@ class QServerBasket extends SEEDQ
                 }
                 $rQ['bHandled'] = true;
                 break;
+
+            case 'sb--purchaseFulfilUndo':
+                // $k is SEEDBasket_BP._key in this case
+                if( $k && ($oPur = $this->oSB->GetPurchaseObj( $k ))
+&& $this->permsfulfil( $oPur )   // test permissions and ownership of this purchase
+                ) {
+                    switch( $oPur->FulfilUndo() ) { // checks CanFulfilUndo() and IsFulfilled() internally
+                        case SEEDBasket_Purchase::FULFILUNDO_RESULT_SUCCESS:
+                            $rQ['bOk'] = true;
+                            break;
+                        case SEEDBasket_Purchase::FULFILUNDO_RESULT_NOT_FULFILLED:
+                            $rQ['sErr'] = "Purchase not fulfilled, cannot undo";
+                            break;
+                    }
+                }
+                $rQ['bHandled'] = true;
+                break;
+
 
             case "basketProdUnfill":    // do not use
                 if( $kBP ) {
@@ -84,7 +102,7 @@ class QServerBasket extends SEEDQ
         return( $rQ );
     }
 
-    private function canfulfil( SEEDBasket_Purchase $oPur )
+    private function permsfulfil( SEEDBasket_Purchase $oPur )
     {
         return( true );
     }
