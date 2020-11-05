@@ -11,7 +11,7 @@
 
 include_once( SEEDCORE."SEEDTemplateMaker.php" );
 
-class MasterTemplate
+class SoDMasterTemplate
 {
     private $oApp;
     private $oTmpl;
@@ -83,7 +83,28 @@ class MasterTemplate
                 break;
 
             case 'msd':
-                // move msd handler from siteTemplate
+                /* [[msd:seedlist|kMbr]]
+                 *     Show all seeds offered by kMbr, including skipped and deleted.
+                 *     MSDQ is configured to override read access on seeds so the bulk emailer can show each grower their skipped and deleted seeds.
+                 */
+                include_once( SEEDLIB."msd/msdq.php" );
+                if( $raTag['target'] == 'seedlist' ) {
+                    if( !($kMbr = intval($raTag['raParms'][1])) ) {
+                        if( SEED_isLocal ) $s = "<div class='alert alert-danger'>**msd:seedlist** kMbr not defined</div>";
+                        goto done;
+                    }
+
+                    if( !($sSeedListStyle = $this->oTmpl->GetVar('sSeedListStyle')) ) {
+                        $sSeedListStyle="font-family:verdana,arial,helvetica,sans serif;margin-bottom:15px";
+                    }
+                    $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( [] );   // seeds1 and no perms required
+                    $o = new MSDQ( $oApp, ['config_bUTF8'=>false, 'config_bAllowCanSeedRead'=>true] );
+                    $rQ = $o->Cmd( 'msdSeedList-Draw', ['kUidSeller'=>$kMbr, 'eStatus'=>'ALL'] );
+                    $s =
+                    "<style>.sed_seed_skip {background-color:#ccc} .sed_seed {margin:10px}</style>"
+                    .$rQ['sOut'];
+                    $bHandled = true;
+                }
                 break;
 
             case 'cd':

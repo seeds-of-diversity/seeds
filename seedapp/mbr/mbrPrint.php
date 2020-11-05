@@ -54,7 +54,7 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
         goto printDonationReceiptAbort;
     }
 
-    $oMT = new MasterTemplate( $oApp, ['raSEEDTemplateMakerParms'=>['fTemplates'=>[SEEDAPP."templates/donation_receipt.html"]]] );
+    $oMT = new SoDMasterTemplate( $oApp, ['raSEEDTemplateMakerParms'=>['fTemplates'=>[SEEDAPP."templates/donation_receipt.html"]]] );
 
     list($raReceipts) = SEEDCore_ParseRangeStr( $rngReceipt );
 
