@@ -9,6 +9,8 @@
 
 include_once( SEEDCORE."SEEDBasket.php" );
 include_once( SEEDLIB."mbr/MbrContacts.php" );
+include_once( SEEDAPP."basket/basketProductHandlers.php" ); // SEEDBasketProducts_SoD
+
 
 class MSDCore
 /************
