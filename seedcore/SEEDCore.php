@@ -266,6 +266,16 @@ Not so useful anymore:
     return( (empty($raParms[$k]) && !$bEmptyAllowed ) ? $pDefault : $raParms[$k] );
 }
 
+function SEEDCore_ArraySmartBool( $raParms, $k, $pDefault )
+/**********************************************************
+    It's a common case to look for a boolean parm in an array, that might need a default value.
+    SmartVal1 is perfect for this, except it's confusing that $bEmptyAllowed has to
+    be true - otherwise a valid false parm is overridden by the pDefault
+ */
+{
+    return( SEEDCore_ArraySmartVal1( $raParms, $k, $pDefault, true ) );
+}
+
 
 /**
  * $v is constrained to the set of $raAllowed. Return $v if it is in the array or $raAllowed[0] if not
