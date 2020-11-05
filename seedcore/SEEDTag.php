@@ -27,10 +27,12 @@ class SEEDTagParser
 {
     protected $raParms = array();
     private $oDSVars = array();
+    private $bEatUnknownTags = true;
     private $bDebug = false;    // true: write error messages to the output
 
     function __construct( $raParms = array(), SEEDDataStore $oDSVars = null ) {
         $this->raParms = $raParms;
+        $this->bEatUnknownTags = SEEDCore_ArraySmartBool( $raParms, 'bEatUnknownTags', true );
 
         // use a global shared datastore, or make a local one
         $this->oDSVars = $oDSVars ? $oDSVars : new SEEDDataStore();
@@ -182,7 +184,12 @@ case 'setvarmap2': // use this temporarily until DocRepWiki doesn't eat var - it
 
             case 'debug_var_dump':   $ra = $this->oDSVars->GetValuesRA(); var_dump($ra); break;
 
-            default:          return( "" );
+            default:
+                if( !$this->bEatUnknownTags ) {
+                    // the constructor chose to pass unknown tags so re-render this one
+                    return( "[[{$raTag['tag']}:{$p0}|{$p1}|{$p2}|{$p3}]]" );
+                }
+                return( "" );
         }
     }
 
