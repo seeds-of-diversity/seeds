@@ -44,12 +44,21 @@ class SoDMasterTemplate
          *
          * The BasicResolver is enabled by default.
          */
-        $raTmplParms = SEEDCore_ArraySmartVal1( $raParms, 'raSEEDTemplateMakerParms', array() );    // empty array is the default value
+        $raTmplParms = SEEDCore_ArraySmartVal1( $raParms, 'raSEEDTemplateMakerParms', [] );    // empty array is the default value
 
         $raTmplParms['fTemplates'][] = SEEDAPP."templates/seeds_sessionaccount.html";
 
-        $raTmplParms['raResolvers'][] = ['fn' => [$this,'ResolveTag'],
-                                         'raParms' => SEEDCore_ArraySmartVal1( $raParms, 'raResolverParms', array() )   // empty array is the default value
+        $raTmplParms['raResolvers'] = [
+            // handler for SEEDContent:
+            ['fn' => [$this,'ResolveTagSEEDContent'],
+             'raParms' => SEEDCore_ArraySmartVal1( $raParms, 'raResolverParms', [] )   // empty array is the default value
+            ],
+
+            // handler for misc tags: msd, etc
+            ['fn' => [$this,'ResolveTagMisc'],
+             'raParms' => SEEDCore_ArraySmartVal1( $raParms, 'raResolverParms', [] )   // empty array is the default value
+            ],
+
         ];
 
         // Add DocRepTagHandler
@@ -70,18 +79,65 @@ class SoDMasterTemplate
 
     function GetTmpl()  { return( $this->oTmpl ); }
 
-    function ResolveTag( $raTag, SEEDTagParser $oTagDummy_same_as_this_oTmpl_oSeedTag, $raParms = array() )
-    /******************************************************************************************************
+    function ResolveTagSEEDContent( $raTag, SEEDTagParser $oTagDummy_same_as_this_oTmpl_oSeedTag, $raParms = [] )
+    /************************************************************************************************************
+        [[SEEDContent: tag]]
+
+        Page content for our web site
+     */
+    {
+        $s = "";
+        $bHandled = false;
+
+        if( $raTag['tag'] != 'SEEDContent' )  goto done;
+
+        $pathSelf = method_exists('\Drupal\Core\Url', 'fromRoute') ? \Drupal\Core\Url::fromRoute('<current>')->toString() : $this->oApp->PathToSelf();
+
+        switch( strtolower($raTag['target']) ) {
+            case 'home-en':
+                $s .= "Home English";
+                $bHandled = true;
+                break;
+
+            case 'home-fr':
+                $s .= "Home French";
+                $bHandled = true;
+                break;
+
+            case 'home-edit':
+                $s .= "<h3>Configure Home Page</h3>";
+                $bHandled = true;
+                break;
+
+
+            case 'events':
+                // move events handler from siteTemplate
+                $bHandled = true;
+                break;
+
+
+            case 'cd':
+                // move crop profiles handler from siteTemplate
+                $bHandled = true;
+                break;
+
+            default:
+                $bHandled = false;
+        }
+
+        done:
+        return( [$bHandled,$s] );
+    }
+
+    function ResolveTagMisc( $raTag, SEEDTagParser $oTagDummy_same_as_this_oTmpl_oSeedTag, $raParms = [] )
+    /*****************************************************************************************************
+        [[misc tags:]]
      */
     {
         $s = "";
         $bHandled = true;
 
         switch( strtolower($raTag['tag']) ) {
-            case 'events':
-                // move events handler from siteTemplate
-                break;
-
             case 'msd':
                 /* [[msd:seedlist|kMbr]]
                  *     Show all seeds offered by kMbr, including skipped and deleted.
@@ -105,10 +161,6 @@ class SoDMasterTemplate
                     .$rQ['sOut'];
                     $bHandled = true;
                 }
-                break;
-
-            case 'cd':
-                // move crop profiles handler from siteTemplate
                 break;
 
             default:
