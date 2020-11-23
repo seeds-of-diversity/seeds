@@ -1390,11 +1390,11 @@ class Keyframe_NamedRelations
         $this->raKfrel = $this->initKfrel( $kfdb, $uid, $logdir );  // override this protected function to create an array('A'=>kfrelA, 'B'=>kfrelB)
     }
 
-    function GetKfrel( $sRel ) { return( @$this->raKfrel[$sRel] ); }
-    function GetKFDB()         { return( $this->kfdb ); }
+    function GetKfrel( $sRel ) : Keyframe_Relation { return( @$this->raKfrel[$sRel] ); }
+    function GetKFDB()         : KeyframeDatabase  { return( $this->kfdb ); }
 
-    function KFRel( $sRel )    { return( $this->GetKfrel($sRel) ); }    // not sure which I like better but KeyframeRecord has this
-    function KFDB()            { return( $this->GetKFDB() ); }
+    function KFRel( $sRel )    : Keyframe_Relation { return( $this->GetKfrel($sRel) ); }    // not sure which I like better but KeyframeRecord has this
+    function KFDB()            : KeyframeDatabase  { return( $this->GetKFDB() ); }
 
     function GetKFR( $sRel, $k )
     /***************************
