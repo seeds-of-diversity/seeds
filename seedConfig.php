@@ -98,7 +98,7 @@ require_once SEEDROOT."vendor/autoload.php";
 
 include_once( SEEDCORE."SEEDApp.php" );
 
-function SEEDConfig_NewAppConsole_LoginNotRequired( $raConfig )
+function SEEDConfig_NewAppConsole_LoginNotRequired( $raConfig ) : SEEDAppConsole
 /**************************************************************
     Create a new SEEDAppConsole that doesn't require a login.
     sess->IsLogin() will be true if the user is logged in, and sess->CanRead/Write can be checked.
@@ -114,7 +114,7 @@ function SEEDConfig_NewAppConsole_LoginNotRequired( $raConfig )
 }
 
 
-function SEEDConfig_NewAppConsole( $raConfig = array() )
+function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
 /*******************************************************
     SEEDApp should encapsulate all the system context that is external to SEEDROOT.
     This function standardizes the global parameters that define the system context, and that must be defined
