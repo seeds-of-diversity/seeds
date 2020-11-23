@@ -177,15 +177,19 @@ class CollectionListForm extends KeyframeUI_ListFormUI
     {
         $s = $this->DrawStyle()
            ."<style>
-#data-table tr:nth-last-child(2) .weight {
-    border-bottom: 1px dotted black;
-}
-</style>"
+                #summary-table tr:nth-last-child(2) .weight {
+                    border-bottom: 1px dotted black;
+                }
+                #summary-table td { padding-right:10px }
+             </style>"
            ."<div class='container-fluid'><div class='row'>"
            ."<div class='col-sm-3'>".$this->drawSummary()."</div>"
            ."<div class='col-sm-9'>".$this->DrawList()."</div>"
            ."</div></div>"
-           ."<div>".$this->drawCollectionSubtabs()."</div>";
+           ."<div style='margin-top:15px'>"
+               ."<h4 style='margin-left:30px'>Lot # {$this->oComp->oForm->Value('inv_number')}</h4>"
+               .$this->drawCollectionSubtabs()
+           ."</div>";
            //."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
 
         return( $s );
@@ -201,38 +205,31 @@ class CollectionListForm extends KeyframeUI_ListFormUI
         }
 
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
-
-        $s = "<table id='data-table'>
-<tr>
-    <td>{$this->oComp->oForm->Value("S_name_en")}:</td>
-    <td colspan='2'>{$this->oComp->oForm->Value("P_name")} (cv {$this->oComp->oForm->Value("P__key")})</td>
-</tr>
-<tr>
-    <td>Original name:</td>
-    <td colspan='2'>{$this->oComp->oForm->Value("P_name")}</td>
-</tr>
-<tr>
-    <td>Batch:</td>
-    <td colspan='2'>{$this->oComp->oForm->Value("A_batch_id")}</td>
-</tr>
-<tr>
-    <td>Grower/Source:</td>
-    <td colspan='2'>{$this->oComp->oForm->Value("A_x_member")}</td>
-</tr>
-<tr>
-    <td>Harvest:</td>
-    <td colspan='2'>{$this->oComp->oForm->Value("A_x_d_harvest")}</td>
-</tr>
-<tr>
-    <td>Received:</td>
-    <td colspan='2'>{$this->oComp->oForm->Value("A_x_d_received")}</td>
-</tr>
-";
         $totalWeight = array_sum(array_column($raLots, "g_weight"));
-        $s .= SEEDCore_ArrayExpandRows($raLots, "<tr><td>SoD-[[inv_number]]</td><td class='weight'>[[g_weight]] g</td><td class='location'>@ [[location]]</td></tr>");
-        $s .= "<tr><td></td><td>{$totalWeight} g</td></tr>";
 
-        $s .= "</table>";
+        $s = "<table id='summary-table'>
+                <tr>
+                    <td colspan='3'><strong>{$this->oComp->oForm->Value("S_name_en")} {$this->oComp->oForm->Value("P_name")}</strong> (cv {$this->oComp->oForm->Value("P__key")})</td>
+                </tr><tr>
+                    <td>Original name:</td>
+                    <td colspan='2'>{$this->oComp->oForm->Value("P_name")}</td>
+                </tr><tr>
+                    <td>Batch:</td>
+                    <td colspan='2'>{$this->oComp->oForm->Value("A_batch_id")}</td>
+                </tr><tr>
+                    <td>Grower/Source:</td>
+                    <td colspan='2'>{$this->oComp->oForm->Value("A_x_member")}</td>
+                </tr><tr>
+                    <td>Harvest:</td>
+                    <td colspan='2'>{$this->oComp->oForm->Value("A_x_d_harvest")}</td>
+                </tr><tr>
+                    <td>Received:</td>
+                    <td colspan='2'>{$this->oComp->oForm->Value("A_x_d_received")}</td>
+                </tr>"
+            .SEEDCore_ArrayExpandRows( $raLots,
+                                       "<tr><td>SoD-[[inv_number]]</td><td class='weight'>[[g_weight]] g</td><td class='location'>@ [[location]]</td></tr>" )
+              ."<tr><td>&nbsp;</td><td>{$totalWeight} g</td></tr>"
+            ."</table>";
 
         done:
         return( $s );
@@ -303,3 +300,6 @@ $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js","collection-batch.js"] ] );
+
+echo "<script>SEEDCore_CleanBrowserAddress();</script>";
+
