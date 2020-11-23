@@ -182,6 +182,7 @@ class MSDLibReport
 
         foreach( $raG as $ra ) {
             // optionally restrict output to growers who don't have email addresses
+//this also excludes any members where email='' and unlisted_email=1
             if( $bNoEmail && $ra['email'] ) continue;
 
             $oDocRepWiki->SetVars( $ra );
