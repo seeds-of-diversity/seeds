@@ -69,7 +69,7 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
-$oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['consoleConfig'=>$consoleConfig] );
+$oApp = SEEDConfig_NewAppConsole( ['consoleConfig'=>$consoleConfig, 'sessPermsRequired'=>["W SL"]] );
 $oApp->kfdb->SetDebug(1);
 
 SEEDPRG();
@@ -231,7 +231,7 @@ class CollectionListForm extends KeyframeUI_ListFormUI
         $totalWeight = array_sum(array_column($raLots, "g_weight"));
         $s .= SEEDCore_ArrayExpandRows($raLots, "<tr><td>SoD-[[inv_number]]</td><td class='weight'>[[g_weight]] g</td><td class='location'>@ [[location]]</td></tr>");
         $s .= "<tr><td></td><td>{$totalWeight} g</td></tr>";
-        
+
         $s .= "</table>";
 
         done:
