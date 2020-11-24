@@ -69,7 +69,7 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
-$oApp = SEEDConfig_NewAppConsole( ['consoleConfig'=>$consoleConfig, 'sessPermsRequired'=>["W SL"]] );
+$oApp = SEEDConfig_NewAppConsole( ['consoleConfig'=>$consoleConfig, 'sessPermsRequired'=>["W SLCollection", "A SL", "|"]] );
 $oApp->kfdb->SetDebug(1);
 
 SEEDPRG();

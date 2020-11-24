@@ -332,6 +332,7 @@ class SLDBCollection extends SLDBRosetta
         $raKfrel['AxPxS']     = $this->newKfrel2( $kfdb, $uid, array('A','P','S'), $sLogfile );
         $raKfrel['IxAxPxS']   = $this->newKfrel2( $kfdb, $uid, array('I','A','P','S'), $sLogfile );
         $raKfrel['IxGxAxPxS'] = $this->newKfrel2( $kfdb, $uid, array('I','G','A','P','S'), $sLogfile );
+        $raKfrel['GxIxAxPxS'] = $this->newKfrel2( $kfdb, $uid, array('G','I','A','P','S'), $sLogfile );
 
         $raKfrel['A_P'] = $this->newKfrel( $kfdb, $uid,
                 array( 'A' => $this->tDef['A'],

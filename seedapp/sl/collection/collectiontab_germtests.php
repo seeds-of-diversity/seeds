@@ -29,6 +29,8 @@ class CollectionTab_GerminationTests
               .germRowInput input {margin-top:5px;}
               </style>";
 
+        $s .= "<h3>Is nGerm the number or the percent in the db?</h3>";
+
         if( !$this->kInventory ) goto done;
 
         $oForm = new KeyframeForm($this->sldbCollection->GetKfrel("G"), 'G', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]);
@@ -36,7 +38,7 @@ class CollectionTab_GerminationTests
         $oForm->SetKFR( $this->sldbCollection->GetKfrel("G")->CreateRecord() );
         $s .= "<form method='post'>"
              .$oForm->Hidden( "fk_sl_inventory", ['value'=>$this->kInventory] )
-             ."<table><tr><th>Start Date</th><th>End Date</th><th># Seeds Sown</th><th>Germination %</th><th>Notes</th></tr>"
+             ."<table><tr><th>Start Date</th><th>End Date</th><th># Seeds Sown</th><th># Seeds Germinated</th><th>Notes</th></tr>"
              .$this->germRowInput( $oForm );
 
         $raKfrG = $this->sldbCollection->GetKfrel('G')->GetRecordSet( "fk_sl_inventory='{$this->kInventory}'",
