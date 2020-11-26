@@ -61,6 +61,20 @@ class QServerSourceCV extends SEEDQ
             }
         }
 
+        /* Species offered by seed companies (one row per species)
+         * Filter by species criteria and seed company criteria.
+         */
+        if( $cmd == 'srcSpecies' ) {
+            $rQ['bHandled'] = true;
+            $raParms = $this->normalizeParms( $parms );
+
+            $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
+
+            if( ($ra = $this->getSpecies( $raParms )) ) {
+                $rQ['bOk'] = true;
+                $rQ['raOut'] = $ra;
+            }
+        }
 
         /* Download ESF/CSCI statistics based on the log files
          */
@@ -155,7 +169,7 @@ class QServerSourceCV extends SEEDQ
 
     private function condSrcCVCursor( $raParms )
     /*******************************************
-        Convert normalized parms into sql condition for SRCCVxSRC
+        Convert normalized parms into sql condition for SRCCVxSRC or SRCCVxSRCx*
      */
     {
         $raCond = [];
@@ -227,6 +241,126 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             ksort($raOut);
         }
 
+        return( $raOut );
+    }
+
+    private function getSpecies( $raParms )
+    /**************************************
+        Return sorted list of species available from given sources
+
+            raParms:
+                (see normalizeParms)
+                bSoDSL   : default=false    include species in the SoD seed library
+                bSoDMSD  : default=false    include species in the SoD member seed directory
+
+                outFmt   : NameKey : return array( name => _key )
+                           KeyName : return array( _key => name )
+                           Name    : return array( name )
+                           Key     : return array( _key )
+
+                opt_spMap    : the namespace of sl_species_map for which map.appnames and map.keys are returned (default: sl_species names and keys)
+     */
+    {
+        $raOut = [];
+
+        $condDB = "";   // default is to read all sl_cv_sources
+
+        if( @$raParms['bAll'] ) {       // not implemented in normalizeParms?
+            $bReadSLCV = true;
+            $raParms['bSoDSL'] = true;
+            $raParms['bSoDMSD'] = true;
+        } else {
+            $raParms['bSoDSL']  = intval(@$raParms['bSoDSL']);
+            $raParms['bSoDMSD'] = intval(@$raParms['bSoDMSD']);
+
+            $condDB = $this->condSrcCVCursor($raParms);
+
+            $bReadSLCV = $raParms['bAllComp'] || $raParms['rngSrc'];
+        }
+
+        if( $bReadSLCV ) {
+//$this->oSLDBSrc->kfdb->SetDebug(2);
+            if( ($kfr = $this->oSLDBSrc->GetKFRC( "SRCCVxS", $condDB,
+                                                  ['sGroupAliases'=>'S__key,S_name_en,S_name_fr,S_iname_en,S_iname_fr'] )) )
+                                                  //['raFieldsOverride'=>['S__key'=>"S._key",'S_name_en'=>"S.name_en",'S_name_fr'=>"S.name_fr"],
+                                                  // 'sGroupCol'=>'S._key,S.name_en,S.name_fr'] )) )
+            {
+                while( $kfr->CursorFetch() ) {
+                    if( $raParms['outFmt'] != 'Key' ) {
+                        $sp = '';
+                        if( $this->oApp->lang == 'FR' ) {
+                            $sp = (@$raParms['opt_bIndex'] && ($sp = $kfr->Value('S_iname_fr'))) ? $sp : $kfr->Value('S_name_fr');
+                        }
+                        if( !$sp ) {
+                            $sp = (@$raParms['opt_bIndex'] && ($sp = $kfr->Value('S_iname_en'))) ? $sp : $kfr->Value('S_name_en');
+                        }
+                        $sp = $this->QCharsetFromLatin($sp);
+                    }
+                    switch( $raParms['outFmt'] ) {
+                        case "Key":     $raOut[] = $kfr->Value('S__key');      break;
+                        case "Name":    $raOut[] = $sp;                        break;
+                        case "KeyName": $raOut[$kfr->Value('S__key')] = $sp;   break;
+                        case "NameKey": $raOut[$sp] = $kfr->Value('S__key');   break;
+                    }
+                }
+            }
+
+            /* If a species map is specified, use it to map sl_species._key/name to map._key/name
+             * (when there are multiple map rows with the same fk_sl_species, any map._key of those
+             *  rows is equivalently valid to identify the map relation)
+             */
+            if( @$raParms['opt_spMap'] ) {
+                // Get the map rows, keyed by fk_sl_species.
+                // If multiple rows have the same fk_sl_species they will overwrite each other so one
+                // random row will remain (any map._key is equivalent)
+                $raMap = array();
+                $raR = $this->oApp->kfdb->QueryRowsRA( "SELECT _key,fk_sl_species,appname_en,appname_fr "
+                                                      ."FROM seeds_1.sl_species_map WHERE ns='".addslashes($raParms['opt_spMap'])."'" );
+                foreach( $raR as $ra ) {
+                    $raMap[$ra['fk_sl_species']] = $ra;
+                }
+
+                // overwrite any fk_sl_species matches with the map key/name
+                $raOld = $raOut;
+                $raOut = array();
+                if( $raParms['outFmt'] == 'KeyName' ) {
+                    foreach( $raOld as $kSp => $sSpName ) {
+                        if( @$raMap[$kSp] ) {
+                            // found a mapped species
+                            $kOut = 'spapp'.$raMap[$kSp]['_key'];   // sl_species_map._key
+                            $nameOut = $this->QCharsetFromLatin($this->oApp->lang == 'FR' ? $raMap['appname_fr'] : $raMap['appname_en']);
+                            $raOut[$kOut] = $nameOut;
+                        } else {
+                            // non-mapped species
+                            $raOut['spk'.$kSp] = $sSpName;
+                        }
+                    }
+                }
+
+                if( $raParms['outFmt'] == 'NameKey' ) {
+                    foreach( $raOld as $sSpName => $kSp ) {
+                        if( @$raMap[$kSp] ) {
+                            // found a mapped species
+                            $kOut = 'spapp'.$raMap[$kSp]['_key'];   // sl_species_map._key
+                            $nameOut = $this->QCharsetFromLatin($this->oApp->lang == 'FR' ? $raMap['appname_fr'] : $raMap['appname_en']);
+                            $raOut[$nameOut] = $kOut;
+                        } else {
+                            // non-mapped species
+                            $raOut[$sSpName] = 'spk'.$kSp;
+                        }
+                    }
+                }
+            }
+
+            /* Sort by name (there could be a parm to disable this but why)
+             */
+            switch( $raParms['outFmt'] ) {
+                case "Key":                       break;
+                case "Name":    sort($raOut);     break;
+                case "KeyName": asort($raOut);    break;
+                case "NameKey": ksort($raOut);    break;
+            }
+        }
         return( $raOut );
     }
 
@@ -452,7 +586,10 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             sProvinces              (e.g. 'QC SK NB') : filter to companies located in the given province(s)
             sRegions                (e.g. 'QC AT') : filter to companies located in the regions BC, PR=prairies, ON, QC, AT=Atlantic Canada
             kfrcParms               array of parms for kfrc
+            outFmt                  "Key","Name","KeyName","NameKey"
             sMode                   arbitrary mode for command
+
+            opt_*                   anything with this prefix is copied to the output
 
         Normalized:
             rngSrc                  a SEEDRange of sl_sources._key (including special sources 1 and/or 2)
@@ -469,7 +606,10 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             kPcvKluge               a way of referring to a non-indexed cultivar (kPcv>10,000,000)
             sSrchPKluge             since not all ocv are in sl_pcv, rngPcv cannot represent all sSrcP matches
 
+            outFmt                  "Key","Name","KeyName","NameKey"
             sMode                   arbitrary mode for command
+
+            opt_*                   anything with this prefix is copied to the output
      */
     {
 //var_dump($parms);
@@ -477,6 +617,14 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
 
         // mode possibly used by command
         $raParms['sMode'] = @$parms['sMode'];
+
+        // some commands specify different output formats
+        $raParms['outFmt'] = SEEDCore_SmartVal( @$parms['outFmt'], ["Key","Name","KeyName","NameKey"] );
+
+        // all parms with opt_* prefix are copied to the output
+        foreach( $parms as $k => $v ) {
+            if( SEEDCore_StartsWith( $k, 'opt_' ) )  $raParms[$k] = $v;
+        }
 
         // Species
         $ra = @$parms['raSp'] ?: array();
@@ -536,15 +684,14 @@ if( ($k = intval(@$parms['kPcv'])) && $k > 10000000 ) $raParms['kPcvKluge'] = $k
          */
         if( ($bPGRC = @$parms['bPGRC']) )  $raSrc[] = 1;
         if( ($bNPGS = @$parms['bNPGS']) )  $raSrc[] = 2;
-        $raParms['bAllComp'] = intval(@$parms['bAllComp']);
 
-        if( !$raParms['bAllComp'] ) {
+        $raParms['rngSrc'] = "";
+        if( !($raParms['bAllComp'] = intval(@$parms['bAllComp'])) ) {
             if( count($raSrc) ) {
                 // load the normalized range with the seedbanks and companies collected above
                 $raParms['rngSrc'] = SEEDCore_MakeRangeStr( $raSrc );
             } else {
                 // no seed banks or companies specified, so default to bAllComp
-                $raParms['rngSrc'] = "";
                 $raParms['bAllComp'] = true;
             }
         }
@@ -611,13 +758,13 @@ if( ($k = intval(@$parms['kPcv'])) && $k > 10000000 ) $raParms['kPcvKluge'] = $k
       <p style='margin-left:30px'>cmd=srcSpecies&[parameters...]<p>
       <ul style='margin-left:30px'>
         <li>bAllComp : override other parameters, include species from every seed company</li>
-        <li>rngComp (a range string) : include species from a range of seed companies (not implemented)</li>
-        <li>bAll : override other parameters, include species from every possible source (not implemented)</li>
-        <li>bPGRC : include species in the PGRC collection (not implemented)</li>
-        <li>bNPGS : include species in the NPGC collection (not implemented)</li>
+        <li>rngSrc (a range string) : include species from a range of seed companies</li>
+        <li>bAll : override other parameters, include species from every possible source</li>
+        <li>bPGRC : include species in the PGRC collection</li>
+        <li>bNPGS : include species in the NPGC collection</li>
         <li>bSoDSL : include species in the SoD seed library (not implemented)</li>
         <li>bSoDMSD : include species in the SoD member seed directory (not implemented)</li>
-        <li>bOrganic (boolean) : limit results to certified organic seeds (not implemented)</li>
+        <li>bOrganic (boolean) : limit results to certified organic seeds</li>
         <li>bBulk (boolean) : limit results to supplies available in bulk quantity</li>
         <li>sProvinces (string e.g. 'QC SK NB') : return companies located in the given province(s)</li>
         <li>sRegions (string e.g. 'QC AT') : return companies located in the given regions BC, PR=prairies, ON, QC, AT=Atlantic Canada</li>
