@@ -229,15 +229,7 @@ class SEEDXlsWrite
         Sheet numbers are origin-0, rows are origin-1
      */
     {
-// replace this all with WriteRow($iSheet, '1', $raCols)
-        $oSheet = $this->oXls->setActiveSheetIndex( $iSheet );
-
-        // Set the headers in row 1
-        $c = 'A';
-        foreach( $raCols as $dbfield => $label ) {
-            $oSheet->setCellValue($c.'1', $label );
-            $c = chr(ord($c)+1);    // Change A to B, B to C, etc
-        }
+        $this->WriteRow($iSheet, 1, $raCols);
     }
 
     function WriteRow( $iSheet, $iRow, $raCols )
