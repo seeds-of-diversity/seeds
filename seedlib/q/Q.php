@@ -72,9 +72,9 @@ class Q
         else
 
         if( SEEDCore_StartsWith( $cmd, 'collreport' ) ) {
-//            include_once( "_QServerCollectionReport.php" );
-//            $o = new QServerCollectionReport( $this->oApp, $this->raConfig );
-//            $rQ = $o->Cmd( $cmd, $parms );
+            include_once( SEEDLIB."sl/QServerSLCollectionReports.php" );
+            $o = new QServerSLCollectionReports( $this->oApp, $this->raConfig );
+            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
 
