@@ -66,9 +66,14 @@ switch( $qfmt ) {
         if( $rQ['bOk'] ) {
             include_once( SEEDCORE."SEEDXLSX.php" );
 
-            $oXLSX = new SEEDXlsWrite();
+            $oXLSX = new SEEDXlsWrite( ['title'=>$title,
+                                        'filename'=>$name.'.xlsx',
+                                        'creator'=>$oApp->sess->GetName(),
+                                        'author'=>$oApp->sess->GetName()] );
 
-            $iRow = 0;
+            $oXLSX->WriteHeader( 0, array_keys($rQ['raOut'][0]) );
+
+            $iRow = 2;  // rows are origin-1 so this is the row below the header
             foreach( $rQ['raOut'] as $ra ) {
                 $oXLSX->WriteRow( 0, $iRow++, $ra );
             }
