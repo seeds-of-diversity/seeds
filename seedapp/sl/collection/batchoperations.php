@@ -132,12 +132,13 @@ class CollectionBatchOps
             return( false );
         }
 
+        // if dStart not defined default to today
         if( !$oDS->Value('dStart') ) {
             $this->oApp->oC->AddUserMsg( "Defaulting Lot # $iLot test to today's date<br/>" );
             $oDS->SetValue( 'dStart', date('Y-m-d') );
         }
+        // if dEnd not defined yet it has to be NULL in the db because DATE doesn't allow ''
         if( !$oDS->Value('dEnd') ) {
-            // blank date has to be represented as NULL
             $oDS->SetNull('dEnd');
         }
 

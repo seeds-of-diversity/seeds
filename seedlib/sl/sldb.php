@@ -99,7 +99,8 @@ class _sldb_defs
                        array( "col"=>"dStart",              "type"=>"S" ),
                        array( "col"=>"dEnd",                "type"=>"S" ),
                        array( "col"=>"nSown",               "type"=>"I" ),
-                       array( "col"=>"nGerm",               "type"=>"I" ),
+                       array( "col"=>"nGerm",               "type"=>"I" ),      // percent
+                       array( "col"=>"nGerm_count",         "type"=>"I" ),      // temporary until nGerm contains count instead of %
                        array( "col"=>"notes",               "type"=>"S" ) )
               );
     }
