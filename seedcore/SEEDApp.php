@@ -61,6 +61,14 @@ class SEEDAppDB extends SEEDAppBase
             die( $this->kfdb->GetErrMsg() );
         }
     }
+
+    function GetDBName( $logicalName )
+    {
+        // kluge to make sure db code can prefix tables with the correct database name
+        global $config_KFDB;
+
+        return( $config_KFDB[$logicalName]['kfdbDatabase'] );
+    }
 }
 
 class SEEDAppSession extends SEEDAppDB

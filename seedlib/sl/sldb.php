@@ -228,10 +228,11 @@ class SLDBBase extends Keyframe_NamedRelations
  */
 {
     protected $tDef = array();      // table defs for building kfreldefs. Derived classes just add more.
-    protected $dbname = "seeds_1";
+    protected $dbname;
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
+        $this->dbname = @$raConfig['dbname'] ?: $oApp->GetDBName('seeds1');
         $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
     }
@@ -531,7 +532,7 @@ CREATE TABLE sl_cv_sources_archive (
 ";
 
 const SEEDS_DB_TABLE_SL_TMP_CV_SOURCES = "
-CREATE TABLE seeds_1.sl_tmp_cv_sources (
+CREATE TABLE sl_tmp_cv_sources (
     -- These columns are required in the spreadsheet
     -- osp and ocv are named this way to enable compatible code with SLSourceRosetta
     k             integer not null default 0,            -- sl_cv_sources._key, preserved here for re-integration
