@@ -10,6 +10,8 @@ class CollectionBatchOps
 
     private $oSLDB;
 
+    private $sGermFeedback = "";
+
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
     {
         $this->oApp = $oApp;
@@ -59,13 +61,17 @@ class CollectionBatchOps
              ."<table>"
              ."<tr><th>Lot</th><th>Cultivar</th><th>Start Date</th><th>End Date</th><th>Number Sown</th><th>Number Germ</th><th>Notes</th></tr>";
         for( $i = 0; $i < 5; ++$i ) {
+            // blank looks nicer than zero
+            $oForm->SetValue('nSown', '');
+            $oForm->SetValue('nGerm_count', '');
+
             $s .= $oFE->ExpandForm( "<tr>[[hiddenkey:]]
                                          <td style='width:10%'>[[XLotNum     | width:100% | class='gtLotNum']]</td>
                                          <td style='width:15%'>[[XCvName     | width:100% | class='gtCVName' disabled]]</td>
                                          <td style='width:15%'>[[Date:dStart | width:100%]]</td>
                                          <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
                                          <td style='width:10%'>[[nSown       | width:100%]]</td>
-                                         <td style='width:10%'>[[nGerm       | width:100%]]</td>
+                                         <td style='width:10%'>[[nGerm_count | width:100%]]</td>
                                          <td style='width:40%'>[[notes       | width:100%]]</td></tr>" );
             $oForm->IncRowNum();
         }
@@ -81,13 +87,17 @@ class CollectionBatchOps
 
                 $oForm->SetValue( 'XLotNum', 'I_inv_number_already_set' );
                 $oForm->SetValue( 'XCvName', $oForm->Value('S_name_en').' '.$oForm->Value('P_name') );
-            $s .= $oFE->ExpandForm( "<tr>[[hiddenkey:]]
+
+                // blank looks nicer than zero
+                if( !$oForm->Value('nGerm_count') ) $oForm->SetValue('nGerm_count', '');
+
+                $s .= $oFE->ExpandForm( "<tr>[[hiddenkey:]]
                                          <td style='width:10%'>[[I_inv_number| width:100% | disabled]]</td>
                                          <td style='width:15%'>[[XCvName     | width:100% | disabled]]</td>
                                          <td style='width:15%'>[[Date:dStart | width:100%]]</td>
                                          <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
                                          <td style='width:10%'>[[nSown       | width:100%]]</td>
-                                         <td style='width:10%'>[[nGerm       | width:100%]]</td>
+                                         <td style='width:10%'>[[nGerm_count | width:100%]]</td>
                                          <td style='width:40%'>[[notes       | width:100%]]</td></tr>" );
             $oForm->IncRowNum();
 
@@ -96,7 +106,14 @@ class CollectionBatchOps
 
         $s .= "</table></form>";
 
-        $s .= "<p style='margin-top:30px'>Required: Lot #, Number seeds sown.</p><p>Start date defaults to today. Records shown until End Date set.</p>";
+        $s .= "<p style='margin-top:30px'>{$this->sGermFeedback}</p>";
+
+        $s .= "<p style='margin-top:30px;padding:10px;background-color:#ddd'>
+                 1. Enter Lot #, number of seeds sown.<br/>
+                 2. On first count enter number germinated.<br/>
+                 3. If further counts, update number germinated<br/>
+                 4. When all counts are done, set end date. Only records without end dates are shown here.
+               </p>";
 
         return( $s );
     }
@@ -113,7 +130,7 @@ class CollectionBatchOps
 
             if( !($iLot = $oDS->ValueInt('XLotNum')) ) {
                 // somebody typed a non-integer?
-                $this->oApp->oC->AddUserMsg( "Not processing lot # {$oDS->Value('XLotNum')}<br/>" );
+                $this->oApp->oC->AddErrMsg( "Not processing lot # {$oDS->Value('XLotNum')}<br/>" );
                 return( false );
             }
             if( !($kfrLot = $this->oSLDB->GetKFRCond('I', "inv_number='$iLot' AND fk_sl_collection='1'")) ) {
@@ -125,7 +142,7 @@ class CollectionBatchOps
         }
 
         $oDS->CastInt('nSown');
-        $oDS->CastInt('nGerm');
+        $oDS->CastInt('nGerm_count');
 
         if( !$oDS->Value('nSown') ) {
             $this->oApp->oC->AddErrMsg( "Not recording record for lot # $iLot : 0 seeds sown<br/>" );
@@ -134,7 +151,8 @@ class CollectionBatchOps
 
         // if dStart not defined default to today
         if( !$oDS->Value('dStart') ) {
-            $this->oApp->oC->AddUserMsg( "Defaulting Lot # $iLot test to today's date<br/>" );
+            //$this->oApp->oC->AddUserMsg( "Defaulting Lot # $iLot test to today's date<br/>" );
+            $this->sGermFeedback .= "Defaulting Lot # $iLot test to today's date<br/>";
             $oDS->SetValue( 'dStart', date('Y-m-d') );
         }
         // if dEnd not defined yet it has to be NULL in the db because DATE doesn't allow ''
@@ -142,8 +160,20 @@ class CollectionBatchOps
             $oDS->SetNull('dEnd');
         }
 
-        //$this->oApp->oC->AddUserMsg( "Saving Lot # $iLot, date {$oDS->Value('dStart')}, nSown {$oDS->ValueInt('nSown')}, nGerm {$oDS->ValueInt('nGerm_count')}, {$oDS->Value('notes')}<br/>");
+// temp: nGerm is %, should be the count
+        $oDS->SetValue( 'nGerm', $this->germPercent($oDS->Value('nSown'), $oDS->Value('nGerm_count')) );
+
+        // if dEnd is set this record will not be shown in the list anymore
+        if( $oDS->Value('dEnd') ) {
+            $this->sGermFeedback .= "Saving Lot # $iLot, {$oDS->Value('dStart')} to {$oDS->Value('dEnd')}, "
+                  ."germ {$oDS->ValueInt('nGerm_count')}/{$oDS->ValueInt('nSown')} ({$oDS->ValueInt('nGerm')}%) {$oDS->Value('notes')}<br/>";
+        }
 
         return( true );
+    }
+
+    private function germPercent( $nSown, $nGerm_count )
+    {
+        return( $nSown ? intval(floatval($nGerm_count) / floatval($nSown) * 100.00) : 0 );
     }
 }

@@ -16,6 +16,8 @@ function collectionBatchGermForm()
 class collectionBatch {
     constructor() {}
     
+    static qUrl = "https://www.seeds.ca/app/q/index.php";
+    
     static getCVName( jLotInput )
     {
         //alert( jLotInput.val() );
@@ -26,7 +28,7 @@ class collectionBatch {
                        nInv  : jLotInput.val()
                      };
 
-        SEEDJXAsync2( "http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php", jxData, 
+        SEEDJXAsync2( this.qUrl, jxData, 
                       function(o) {
                           console.log(o);
                           if( o['bOk'] ) {

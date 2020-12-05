@@ -299,7 +299,10 @@ $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js","collection-batch.js"] ] );
+                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",$oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );
 
 echo "<script>SEEDCore_CleanBrowserAddress();</script>";
 
+if( SEED_isLocal ) {
+    echo "<script>collectionBatch.qUrl = 'http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php';</script>";
+}

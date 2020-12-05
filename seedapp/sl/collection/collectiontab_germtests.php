@@ -102,7 +102,7 @@ class CollectionTab_GerminationTests
             $oDS->SetNull('dEnd');
         }
 // temp: nGerm is %, should be the count
-        $oDS->SetValue( 'nGerm', $this->germPercent($oDS->Value('nSown'), $oDS->Value('nSown')) );
+        $oDS->SetValue( 'nGerm', $this->germPercent($oDS->Value('nSown'), $oDS->Value('nGerm_count')) );
 
 // could set fk_sl_inventory here instead of sending it via http
 
