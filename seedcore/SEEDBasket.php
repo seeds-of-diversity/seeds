@@ -737,7 +737,7 @@ $s .= "<style>
                 // derived class adjustment
 // k is non-zero if the user is a current grower member
 if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
-    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM seeds_1.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
+    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
         if( floatval($kfrBPxP->Value('P_item_price')) == 12.00 ) {
             $discount = -2.0;
         } else {

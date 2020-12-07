@@ -16,14 +16,15 @@ class SodOrder
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
-        $this->kfrel = new Keyframe_Relation( $oApp->kfdb, $this->kdefOrder, $oApp->sess->GetUID(),
+        $this->kfrel = new Keyframe_Relation( $oApp->kfdb, $this->kdefOrder(), $oApp->sess->GetUID(),
                                               ['logfile' => $oApp->logdir."SodBasketFulfil.log"] );
     }
 
     function KfrelOrder() { return( $this->kfrel ); }
 
-    private $kdefOrder =
-        [ "Tables" => [ "O" => [ "Table" => 'seeds_1.mbr_order_pending',
+    private function kdefOrder()
+    { return(
+        [ "Tables" => [ "O" => [ "Table" => "{$this->oApp->GetDBName('seeds1')}.mbr_order_pending",
                                  "Fields" => array( array("col"=>"mail_firstname",  "type"=>"S"),
                                                     array("col"=>"mail_lastname",   "type"=>"S"),
                                                     array("col"=>"mail_company",    "type"=>"S"),
@@ -61,7 +62,8 @@ class SodOrder
                                                     array("col"=>"kBasket",         "type"=>"I"),
                                                     array("col"=>"ePayType",        "type"=>"S", "default"=>'PayPal'),
                                                     array("col"=>"sExtra",          "type"=>"S") )
-        ]]];
+        ]]] );
+    }
 }
 
 

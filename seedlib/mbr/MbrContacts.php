@@ -68,7 +68,8 @@ class Mbr_Contacts
         $bShowProvince          = @$raParms['SHOW_PROVINCE'];
         $bShowCityProvince      = @$raParms['SHOW_CITY_PROVINCE'];
 
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province FROM seeds_2.mbr_contacts WHERE _key='$k'" );
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province "
+                                         ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
 
         // firstname(s)/lastname(s)
         $f1 = $ra['firstname']; $f2 = $ra['firstname2'];
@@ -232,8 +233,6 @@ class Mbr_Contacts
 
         $s = "";
 
-$this->oApp->kfdb->SetDebug(1);
-
         $oInteg = new MbrIntegrity( $this->oApp );
         $s = $oInteg->ReportDonations();
 
@@ -255,33 +254,34 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
     {
         $raKfrel = array();
 
+        $dbname2 = $this->oApp->GetDBName('seeds2');
         $defM =
             ["Tables" => [
-                "M" => ["Table" => "seeds_2.mbr_contacts",
+                "M" => ["Table" => "{$dbname2}.mbr_contacts",
                         "Type"  => 'Base',
                         "Fields" => 'Auto']
             ]];
         $defD =
             ["Tables" => [
-                "D" => ["Table" => "seeds_2.mbr_donations",
+                "D" => ["Table" => "{$dbname2}.mbr_donations",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
             ]];
         $defDxM =
             ["Tables" => [
-                "D" => ["Table" => "seeds_2.mbr_donations",
+                "D" => ["Table" => "{$dbname2}.mbr_donations",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
-                "M" => ["Table" => "seeds_2.mbr_contacts",
+                "M" => ["Table" => "{$dbname2}.mbr_contacts",
                         "Type"  => 'Join',
                         "Fields" => 'Auto']
             ]];
         $defM_D =
             ["Tables" => [
-                "M" => ["Table" => "seeds_2.mbr_contacts",
+                "M" => ["Table" => "{$dbname2}.mbr_contacts",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
-                "D" => ["Table" => "seeds_2.mbr_donations",
+                "D" => ["Table" => "{$dbname2}.mbr_donations",
                         "Type"  => "LeftJoin",
                         "LeftJoinOn" => "D.fk_mbr_contacts=M._key",
                         "Fields" => 'Auto']
