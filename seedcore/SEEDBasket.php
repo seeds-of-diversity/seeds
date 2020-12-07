@@ -961,6 +961,9 @@ class SEEDBasket_Purchase
     function GetF()          { return( $this->kfr->Value('f') ); }
     function GetEStatus()    { return( $this->kfr->Value('eStatus') ); }
     function GetKRef()       { return( $this->kfr->Value('kRef') ); }
+    function GetExtra( $k )  { return( $this->kfr->UrlParmGet('sExtra', $k) ); }
+    function Value( $k ) { return( $this->kfr->Value($k) ); }
+
 
     function GetPrice()
     {
@@ -990,8 +993,6 @@ class SEEDBasket_Purchase
 
     function GetProductType(){ return( $this->kfr->Value('P_product_type') ); }
     function GetProductName(){ return( $this->kfr->Value('P_name') ); }
-
-    function Value( $k ) { return( $this->kfr->Value($k) ); }
 
     /* Workflow flags: product handlers can assign any meaning to any flag bits but here are some that they might like to use in standard ways
      */

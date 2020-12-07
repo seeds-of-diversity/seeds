@@ -698,7 +698,9 @@ class SoDOrder_MbrOrder
             if( ($oP = $this->oSB->FindProduct( "uid_seller='1' AND product_type='donation' AND name='seed-adoption'" )) ) {
                 if( !in_array($oP->GetKey(), $raProdKeys) ) {
                     $oBP = new SEEDBasket_Purchase( $this->oSB, 0 );
-                    $oBP->StorePurchase( $oB, $oP, ['f'=>$d] );
+                    $oBP->StorePurchase( $oB, $oP, ['f'=>$d,
+                                                    'slAdopt_cv'=>$kfrMbrOrder->UrlParmGet('sExtra','slAdopt_cv'),
+                                                    'slAdopt_name'=>$kfrMbrOrder->UrlParmGet('sExtra','slAdopt_name') ] );
                 }
             }
         }

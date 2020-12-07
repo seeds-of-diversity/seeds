@@ -162,6 +162,10 @@ $dateReceived = $oB->GetDate();
                 $kfrD->SetValue( 'fk_mbr_contacts', $oB->GetBuyer() );
                 $kfrD->SetValue( 'amount', $this->GetF() );
                 $kfrD->SetValue( 'd_donation', $dateReceived );
+
+                $kfrD->SetValue( 'public_name', $this->GetExtra('slAdopt_name') );
+                $kfrD->SetValue( 'sPCV_request', $this->GetExtra('slAdopt_cv') );
+
                 $kfrD->PutDBRow();
             }
 
