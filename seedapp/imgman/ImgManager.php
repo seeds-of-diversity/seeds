@@ -137,7 +137,11 @@ class SEEDAppImgManager
 
         $s .= $this->DrawFiles( $raFiles );
 
-        $s .= "<style>#backbutton {}</style>";
+        $s .= "<style>
+               #backbutton {}
+               .imgman-ext { display:inline-block; }
+               .imgman-ext-gif, .imgman-ext-png { background-color:#aaf;color:#000;padding:1px 3px; }
+               </style>";
 
         $s .= "<script>
               $(document).ready( function() {
@@ -223,6 +227,7 @@ class SEEDAppImgManager
                 $sizeJpeg = $sizeOther = $scaleJpeg = $scaleOther = $sizePercent = $scalePercent = 0;
                 $sMsg = "";
                 $colour = "";
+//$raExts is not used
                 foreach( $raExts as $ext => $raFileinfo ) {
                     $relfurl = urlencode($relfile.".".$ext);
                     if( $ext == $this->oIML->targetExt ) {
@@ -235,7 +240,7 @@ class SEEDAppImgManager
                         $scaleOther = $raFileinfo['w'];
                     }
                     $s .= "<td>"
-                             ."<a href='?n=$relfurl' target='_blank'>$ext</a>&nbsp;&nbsp;"
+                             ."<a href='?n=$relfurl' target='_blank'><span class='imgman-ext imgman-ext-$ext'>$ext</span></a>&nbsp;&nbsp;"
                              .($this->bShowDelLinks ? "<a href='?del=$relfurl' style='color:red'>Del</a>" : "")
                          ."</td>";
                 }
@@ -249,7 +254,8 @@ class SEEDAppImgManager
                         $relfurl = urlencode($reldir.$raFVar[$i]['filename']);
                         $style = $i=='r' ? "color:green" : "";
                         $s .= "<td>"
-                                 ."<a href='?n=$relfurl' target='_blank' style='$style'>$ext".($bOnlyR ? "&nbsp;&nbsp;(R)" : "")."</a>&nbsp;&nbsp;"
+                                 ."<a href='?n=$relfurl' target='_blank' style='$style'><span class='imgman-ext imgman-ext-$ext'>"
+                                 ."$ext".($bOnlyR ? "&nbsp;&nbsp;(R)" : "")."</span></a>&nbsp;&nbsp;"
                                  .($this->bShowDelLinks ? "<a href='?del=$relfurl' style='color:red'>Del</a>" : "")
                              ."</td>";
                     } else {
