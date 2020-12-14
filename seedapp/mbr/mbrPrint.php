@@ -90,7 +90,7 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
 }
 
 
-$o3UpDonors = new Mbr3UpDonors( $kfdb, $yCurr );
+$o3UpDonors = new Mbr3UpDonors( $oApp, $yCurr );
 $o3UpMbr    = new Mbr3UpMemberRenewals( $kfdb, $yCurr );
 $oPrint     = new SEEDPrint3UpHTML();
 
@@ -129,7 +129,7 @@ if( SEEDInput_Str('cmd') == 'printDonationSlips' ) {
     // For some reason the first page is printed slightly lower than the others so it can be cut off at the bottom line,
     // and it has to be cut differently, and the second page is forced blank.
     // Instead of fixing this, insert three bogus slips and waste the first two pages
-    $raRows = [ ['firstname'=>'nobody'], ['firstname'=>'nobody'], ['firstname'=>'nobody'] ] + $raRows;
+    $raRows = array_merge([['firstname'=>'nobody'], ['firstname'=>'nobody'], ['firstname'=>'nobody']], $raRows);
     $oPrint->Do3Up( $raRows, $sTmpl );
 
     $sHead = $oPrint->GetHead();
@@ -481,7 +481,7 @@ class Mbr3UpDonors
 {
     public $mode = "";
 
-    private $kfdb;
+    private $oApp;
     private $lang = "EN";
     private $year;
 
@@ -491,17 +491,23 @@ class Mbr3UpDonors
 
     private $raData = array();
 
-    function __construct( KeyFrameDatabase $kfdb, $year )
+    function __construct( SEEDAppConsole $oApp, $year )
     {
-        $this->kfdb = $kfdb;
+        $this->oApp = $oApp;
         $this->year = $year;
+
+        $this->oMbr = new Mbr_Contacts($oApp);
+        $this->oMbrList = new MbrContactsList($oApp);
+
+        $this->mode = SEEDInput_Smart( 'mode', array( '', 'donorEN','donor100EN','donor99EN','donorFR','donor100FR','donor99FR','nonDonorEN','nonDonorFR' ) );
+        $this->lang = substr( $this->mode, -2 ) ?: 'EN';
     }
 
     function GetMode()  { return( $this->mode ); }
 
     function GetRows()
     {
-        return( $this->mode && isset($this->raData[$this->mode]) ? $this->raData[$this->mode] : array() );
+        return( $this->mode ? $this->oMbrList->GetGroup($this->mode)['raList'] : [] );
     }
 
     function OptionsForm()
@@ -513,12 +519,25 @@ class Mbr3UpDonors
 
     function Load()
     {
-        $this->mode = SEEDInput_Smart( 'mode', array( '', 'donorEN','donor100EN','donor99EN','donorFR','donor100FR','donor99FR','nonDonorEN','nonDonorFR' ) );
-        $this->lang = substr( $this->mode, -2 ) ?: 'EN';
-
+return;
         if( $this->mode == 'details' ) {
             //$this->kfdb->SetDebug(2);
         }
+
+        var_dump($sqlEN, count($raDonorEN));exit;
+
+
+
+
+        $d100 = "donation is not null AND donation >= 100";
+        $d99  = "(donation is null OR donation < 100)";
+
+        $sCondDonorEN = "$dYes AND $lEN";
+        $sCondDonorFR = "$dYes AND $lFR";
+        $sCondNonDonorMemberEN = "$dNo AND $lEN";
+        $sCondNonDonorMemberFR = "$dNo AND $lFR";
+
+
 
 // donation_date is the most recent, `donation` is the total donations for year(donation_date)
 // so you can always say Thanks for your donation of `donation` in year(`donation_date`)" and mean the total for that year.
@@ -545,16 +564,16 @@ class Mbr3UpDonors
         $sCondNonDonorMemberEN = "$dNo AND $lEN";
         $sCondNonDonorMemberFR = "$dNo AND $lFR";
 
-        $this->raDonorEN    = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondDonorEN order by cast(donation as decimal),lastname,firstname" );
-        $this->raDonorFR    = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondDonorFR order by cast(donation as decimal),lastname,firstname" );
-        $this->raNonDonorEN = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberEN order by lastname,firstname" );
-        $this->raNonDonorFR = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberFR order by lastname,firstname" );
+        $this->raDonorEN    = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondDonorEN order by cast(donation as decimal),lastname,firstname" );
+        $this->raDonorFR    = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondDonorFR order by cast(donation as decimal),lastname,firstname" );
+        $this->raNonDonorEN = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberEN order by lastname,firstname" );
+        $this->raNonDonorFR = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND $sCondNonDonorMemberFR order by lastname,firstname" );
         $this->raDonor    = $this->lang=='EN' ? $this->raDonorEN    : $this->raDonorFR;
         $this->raNonDonor = $this->lang=='EN' ? $this->raNonDonorEN : $this->raNonDonorFR;
 
         foreach( $this->getGroups() as $k => $ra )
         {
-            $this->raData[$k] = $this->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND ".implode(' AND ',$ra['cond'])." order by {$ra['order']}" );
+            $this->raData[$k] = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND ".implode(' AND ',$ra['cond'])." order by {$ra['order']}" );
             // now for each row in the result, insert the address block in the row
             $ra1 = array();
             foreach( $this->raData[$k] as $k1=>$ra1 ) {
@@ -565,41 +584,40 @@ class Mbr3UpDonors
 
     function ShowDetails()
     {
-        $s = "<p>Donors English: ".count($this->raDonorEN)." / ".count($this->raData['donorEN'])." - $100/$99 = ".count($this->raData['donor100EN'])."/".count($this->raData['donor99EN'])."</p>"
-            ."<p>Donors French: ".count($this->raDonorFR)." / ".count($this->raData['donorFR'])." - $100/$99 = ".count($this->raData['donor100FR'])."/".count($this->raData['donor99FR'])."</p>"
-            ."<p>Non-donor Members English: ".count($this->raNonDonorEN)." / ".count($this->raData['nonDonorEN'])."</p>"
-            ."<p>Non-donor Members French: ".count($this->raNonDonorFR)." / ".count($this->raData['nonDonorFR'])."</p>"
+        $s = "<p>Donors English: {$this->oMbrList->GetGroupCount('donorEN')} - $100/$99 = {$this->oMbrList->GetGroupCount('donor100EN')}/{$this->oMbrList->GetGroupCount('donor99EN')}</p>"
+            ."<p>Donors French:  {$this->oMbrList->GetGroupCount('donorFR')} - $100/$99 = {$this->oMbrList->GetGroupCount('donor100FR')}/{$this->oMbrList->GetGroupCount('donor99FR')}</p>"
+            ."<p>Non-donor Members English: {$this->oMbrList->GetGroupCount('nonDonorEN')}</p>"
+            ."<p>Non-donor Members French:  {$this->oMbrList->GetGroupCount('nonDonorFR')}</p>"
             ."<p>&nbsp</p>"
-            ."<p>English: ".(count($this->raDonorEN)+count($this->raNonDonorEN))."</p>"
-            ."<p>French: ".(count($this->raDonorFR)+count($this->raNonDonorFR))."</p>";
+            ."<p>English: ".($this->oMbrList->GetGroupCount('donorEN')+$this->oMbrList->GetGroupCount('nonDonorEN'))."</p>"
+            ."<p>French: ".($this->oMbrList->GetGroupCount('donorFR')+$this->oMbrList->GetGroupCount('nonDonorFR'))."</p>";
 
-        $raGroups = $this->getGroups();
         $s .= "<table border='1'>";
-        foreach( [ ['donorEN','donor100EN','donor99EN'],['donorFR','donor100FR','donor99FR'],['nonDonorEN','nonDonorFR'] ]  as $raG ) {
+        foreach( [ ['donorEN','donor100EN','donor99EN'],['donorFR','donor100FR','donor99FR'],['nonDonorEN','nonDonorFR'] ]  as $raRow ) {
             $s .= "<tr>";
-            foreach( $raG as $k ) {
-                $s .= "<td valign='top'><h3>{$raGroups[$k]['title']}</h3>"
-                     ."<p>".count($this->raData[$k])."</p>"
+            foreach( $raRow as $k ) {
+                $s .= "<td valign='top'><h3>{$this->oMbrList->GetGroup($k)['title']}</h3>"
+                     ."<p>{$this->oMbrList->GetGroupCount($k)}</p>"
                      .$this->drawButton( $k )
-                     ."<p style='font-size:9pt'>".implode( "<br/>", $raGroups[$k]['cond'])."</p>"
+                     ."<p style='font-size:7pt'>{$this->oMbrList->GetGroup($k)['sql']}</p>"
                      ."</td>";
             }
             $s .= "</tr>";
         }
         $s .= "</table>";
 
-
-
-        $sLine = "<tr><td>[[firstname]] [[lastname]] [[company]]</td><td>[[donation]]</td><td>[[donation_date]]</td></tr>";
+        $sLine = "<tr><td>[[M_firstname]] [[M_lastname]] [[M_company]]</td><td>[[D_amountTotal]]</td><td>[[D_amount]]</td><td>[[D_date_received]]</td></tr>";
 
         $s .= "<h3>Donors English</h3>"
-             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->raData['donorEN'], $sLine )."</table>"
+             ."<table border='1'>"
+                 ."<th>&nbsp;</th><th>Total 2 years</th><th>Most recent</th><th>Most recent</th>"
+                 .SEEDCore_ArrayExpandRows( $this->oMbrList->GetGroup('donorEN')['raList'], $sLine )."</table>"
              ."<h3>Donors French</h3>"
-             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->raData['donorFR'], $sLine )."</table>"
+             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->oMbrList->GetGroup('donorFR')['raList'], $sLine )."</table>"
              ."<h3>Non-Donors English</h3>"
-             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->raData['nonDonorEN'], $sLine )."</table>"
+             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->oMbrList->GetGroup('nonDonorEN')['raList'], $sLine )."</table>"
              ."<h3>Non-Donors French</h3>"
-             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->raData['nonDonorFR'], $sLine )."</table>"
+             ."<table border='1'>".SEEDCore_ArrayExpandRows( $this->oMbrList->GetGroup('nonDonorFR')['raList'], $sLine )."</table>"
              ."</table>";
 
          return( $s );
@@ -649,12 +667,12 @@ class Mbr3UpDonors
 
 $sTitle       = $lang=='EN' ? "Yes, I would like to help save Canadian seed diversity!"
                             : "Oui, je veux contribuer &agrave; sauvegarder la diversit&eacute; semenci&egrave;re du Canada!";
-$sWantOneTime = $lang=='EN' ? "I want to make a one-time donation of" : "Je d&eacute;sire faire un don unique de";
-$sWantMonthly = $lang=='EN' ? "I want to make a monthly donation of" : "Je d&eacute;sire faire un une contribution <u>mensuelle</u> de";
+$sWantOneTime = $lang=='EN' ? "I want to make a charitable donation of" : "Je d&eacute;sire faire un don de";
+//$sWantMonthly = $lang=='EN' ? "I want to make a monthly donation of" : "Je d&eacute;sire faire un une contribution <u>mensuelle</u> de";
 $sOther       = $lang=='EN' ? "Other" : "Autre";
 
 $sRight       = $lang=='EN' ? "<p>Your charitable donation this year will help save hundreds of rare plant varieties next year.
-  Seeds of Diversity will use your donation to find seeds that need rescuing, and organize seed savers across the country to grow them in 2020.</p>
+  Seeds of Diversity will use your donation to find seeds that need rescuing, and organize seed savers across the country to grow them in ".(date('Y')+1).".</p>
   <p>You can also make your donation online at <b><u>www.seeds.ca/donate</u></b>.</p>"
                             : "<p>Votre don de charit&eacute; de cette ann&eacute;e aidera &agrave; sauver des centaines de vari&eacute;t&eacute;s rares l'an prochain.
   Semences du patrimoine utilisera votre don pour trouver des semences qui ont besoin d'&ecirc;tre secourues, et pour trouver des conservateurs de semences &agrave; travers le Canada afin de les cultiver en 2020.</p>
@@ -666,19 +684,22 @@ $sEmail       = $lang=='EN' ? "Email": "Courriel";
 $sPhone       = $lang=='EN' ? "Phone": "T&eacute;l&eacute;phone";
 $sMember      = $lang=='EN' ? "Member" : "Membre";
 
-$sFooter      = $lang=='EN' ? "Seeds of Diversity is a registered charitable organization. We provide receipts for donations of $20 and over. Our charitable registration number is 89650 8157 RR0001."
-                            : "Les Semences du patrimoine sont un organisme de bienfaisance enregistr&eacute;. Nous faisons parvenir un re&ccedil;u &agrave; fins d'imp&ocirc;t pour tous les dons de 20 $ et plus.<br/>Notre num&eacute;ro d'enregistrement est 89650 8157 RR0001";
+$sFooter      = $lang=='EN' ? "Seeds of Diversity is a registered charitable organization (no. 89650 8157 RR0001). We provide receipts for donations of $20 and over."
+                            : "Les Semences du patrimoine sont un organisme de bienfaisance enregistr&eacute; (no. 89650 8157 RR0001). Nous faisons parvenir un re&ccedil;u &agrave; fins d'imp&ocirc;t pour tous les dons de 20 $ et plus.";
 
 //<img style='float:right;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-en-bw-300x.png'/>
 
 // 2018-11 changed right: from 0.125in to 0.375in to prevent the right side cut off. 0.3in for the logo to make room for text at top
 $s = "
-<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
+<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='https://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
 <div class='s_title'>$sTitle</div>
 <div class='s_form'>
+  <br/>
   <table>
-  <tr><td>&#9744; $sWantOneTime</td><td>&#9744; $20</td><td>&#9744; $50</td><td>&#9744; $100</td><td>&#9744; $200</td><td>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>          </span></td></tr>
-  <tr><td>&#9744; $sWantMonthly</td><td>&#9744; $10</td><td>&#9744; $20</td><td colspan='2'>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>           </span></td></tr>
+  <tr><td>$sWantOneTime</td><td>&#9744; $20</td><td>&#9744; $50</td><td>&#9744; $100</td><td>&#9744; $200</td><td>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>          </span></td></tr>
+"
+//  <tr><td>&#9744; $sWantMonthly</td><td>&#9744; $10</td><td>&#9744; $20</td><td colspan='2'>&#9744; $sOther <span style='text-decoration: underline; white-space: pre;'>           </span></td></tr>
+."
   </table>
 </div>
 <div class='s_right' style='position:absolute;right:0.375in;top:1.125in;width:4.25in'>
@@ -686,10 +707,10 @@ $s = "
   <div style='border:1px solid #aaa;background-color:#f4f4f4;margin-left:0.75in;padding:0.125in'>
     <div>$sAddrChanged</div>
     <div style='margin-top:0.125in'>
-    $sEmail: [[email]]<br/>
-    $sPhone: [[phone]]</div>
+    $sEmail: [[M_email]]<br/>
+    $sPhone: [[M_phone]]</div>
   </div>
-  <div style='font-size:8pt;margin-top:0.05in;float:right'>$sMember [[_key]]</div>
+  <div style='font-size:8pt;margin-top:0.05in;float:right'>$sMember [[M__key]]</div>
 </div>
 <div class='s_note' style='position:absolute;bottom:0.125in;left:0.325in;text-alignment:left'>
   $sFooter
