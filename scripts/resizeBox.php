@@ -53,7 +53,7 @@ function doDir( $dir )
             }
             continue;
         }
-        if( !in_array( strtolower(substr( $od_file, -4 )), array( ".jpg", ".jpeg" ) ) ) {
+        if( !in_array( pathinfo($od_file,PATHINFO_EXTENSION), ['jpg','jpeg'] ) ) {
             continue;
         }
 
