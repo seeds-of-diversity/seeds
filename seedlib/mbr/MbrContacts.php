@@ -316,6 +316,8 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                 D_amountTotal   = sum of amounts that satisfies cond
      */
     {
+        if( !SEED_isLocal ) { echo "MySQL 5 does not support 'partition by'<br/>"; return([]); }
+
         $condM_D = "M.country='Canada' AND "
                   ."M.address IS NOT NULL AND M.address<>'' AND "   // address is blanked out if mail comes back RTS
                   ."NOT M.bNoDonorAppeals"
