@@ -249,15 +249,16 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
             'raListConfig' => [
                 'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
                 'cols' => [
-                    [ 'label'=>"k",         'col'=>"_key",          'w'=>30 ],
-                    [ 'label'=>"Member",    'col'=>"M__key",        'w'=>80 ],
-                    [ 'label'=>"Firstname", 'col'=>"M_firstname",   'w'=>120 ],
-                    [ 'label'=>"Lastname",  'col'=>"M_lastname",    'w'=>120 ],
-                    [ 'label'=>"Company",   'col'=>"M_company",     'w'=>120 ],
-                    [ 'label'=>"Received",  'col'=>"date_received", 'w'=>120 ],
-                    [ 'label'=>"Amount",    'col'=>"amount",        'w'=>120 ],
-                    [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>120 ],
-                    [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>120 ],
+                    [ 'label'=>"k",         'col'=>"_key",          'w'=>'5%' ],
+                    [ 'label'=>"Member",    'col'=>"M__key",        'w'=>'5%' ],
+                    [ 'label'=>"Firstname", 'col'=>"M_firstname",   'w'=>'15%' ],
+                    [ 'label'=>"Lastname",  'col'=>"M_lastname",    'w'=>'15%' ],
+                    [ 'label'=>"Company",   'col'=>"M_company",     'w'=>'20%' ],
+                    [ 'label'=>"Received",  'col'=>"date_received", 'w'=>'10%' ],
+                    [ 'label'=>"Amount",    'col'=>"amount",        'w'=>'5%' ],
+                    [ 'label'=>"Category",  'col'=>"category",      'w'=>'5%' ],
+                    [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>'10%' ],
+                    [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>'5%' ],
                 ],
                // 'fnRowTranslate' => [$this,"listRowTranslate"],
             ],
@@ -269,6 +270,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                     ['label'=>'Company',       'col'=>'M.company'],
                     ['label'=>'Member #',      'col'=>'M._key'],
                     ['label'=>'Amount',        'col'=>'amount'],
+                    ['label'=>'Category',      'col'=>'category'],
                     ['label'=>'Date received', 'col'=>'date_received'],
                     ['label'=>'Date issued',   'col'=>'date_issued'],
                     ['label'=>'Receipt #',     'col'=>'receipt_num'],
@@ -320,16 +322,18 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         $s = "|||TABLE( || class='donationFormTable' width='100%' border='0')"
             ."||| *Member*     || [[text:fk_mbr_contacts|size=30]]"
             ." || *Amount*     || [[text:amount|size=30]]"
-            ." || *Received*   || [[text:date_received|size=30]]"
+            ." || *Category*   || [[text:category|size=30]]"
             ."||| &nbsp        || &nbsp;"
-            ." || *Receipt #*  || [[text:receipt_num|size=30]]"
+            ." || *Received*   || [[text:date_received|size=30]]"
             ." || *Issued*     || [[text:date_issued|size=30]]"
-            ."||| *Notes*      || {colspan='1'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'2'] )
-            ." || &nbsp; || ".$sReceiptInstructions
-            ." || &nbsp; || ".$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') )
+            ."||| *Notes*      || {colspan='3' rowspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'3'] )
+
+            ." || *Receipt #*  || [[text:receipt_num|size=30]]"
+            ."||| &nbsp;        || "
+            ." ||  ".$sReceiptInstructions
             ."|||ENDTABLE"
             ."[[hiddenkey:]]"
-            ."<input type='submit' value='Save'>";
+            ."<input type='submit' value='Save'>".$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') );
 
         return( $s );
     }

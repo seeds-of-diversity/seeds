@@ -374,6 +374,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             amount               DECIMAL(7,2),
             receipt_num          INTEGER NOT NULL DEFAULT 0,      # set any time; 0=not set yet, -1=non-receiptable, -2=below threshold
             date_issued          DATE NULL,                       # set when the receipt is actually sent
+            category             VARCHAR(200),                    # e.g. SLAdoption, SFG
             notes                TEXT,
 
             INDEX (fk_mbr_contacts)
@@ -446,7 +447,7 @@ class MbrContactsList
          * 4) Also excludes anyone who made a donation since $dDonorEnd
          */
         $condDonor = "D.date_received IS NOT NULL AND D.date_received BETWEEN '$dStart' AND '$dDonorEnd'";
-        $condNonDonorMember = "(D.date_received IS NULL OR D.date_received<'$dStart') AND year(M.expires)>='$dStart'";
+        $condNonDonorMember = "(D.date_received IS NULL OR D.date_received<'$dStart') AND M.expires>='$dStart'";
 
         foreach(['donorEN'    => ['title'=>'Donors English',       'cond'=>[$condDonor,          $lEN],       ],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
                  'donorFR'    => ['title'=>'Donors French',        'cond'=>[$condDonor,          $lFR],       ],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
