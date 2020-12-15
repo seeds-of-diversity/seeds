@@ -679,7 +679,7 @@ $sRight       = $lang=='EN' ? "<p>Your charitable donation this year will help s
   Seeds of Diversity will use your donation to find seeds that need rescuing, and organize seed savers across the country to grow them in ".(date('Y')+1).".</p>
   <p>You can also make your donation online at <b><u>www.seeds.ca/donate</u></b>.</p>"
                             : "<p>Votre don de charit&eacute; de cette ann&eacute;e aidera &agrave; sauver des centaines de vari&eacute;t&eacute;s rares l'an prochain.
-  Semences du patrimoine utilisera votre don pour trouver des semences qui ont besoin d'&ecirc;tre secourues, et pour trouver des conservateurs de semences &agrave; travers le Canada afin de les cultiver en 2020.</p>
+  Semences du patrimoine utilisera votre don pour trouver des semences qui ont besoin d'&ecirc;tre secourues, et pour trouver des conservateurs de semences &agrave; travers le Canada afin de les cultiver en ".(date('Y')+1).".</p>
   <p>Vous pouvez &eacute;galement faire un don en ligne au <b><u>www.semences.ca/don</u></b>.</p>";
 
 $sAddrChanged = $lang=='EN' ? "Has your address or contact information changed?"
@@ -689,7 +689,7 @@ $sPhone       = $lang=='EN' ? "Phone": "T&eacute;l&eacute;phone";
 $sMember      = $lang=='EN' ? "Member" : "Membre";
 
 $sFooter      = $lang=='EN' ? "Seeds of Diversity is a registered charitable organization (no. 89650 8157 RR0001). We provide receipts for donations of $20 and over."
-                            : "Les Semences du patrimoine sont un organisme de bienfaisance enregistr&eacute; (no. 89650 8157 RR0001). Nous faisons parvenir un re&ccedil;u &agrave; fins d'imp&ocirc;t pour tous les dons de 20 $ et plus.";
+                            : "Les Semences du patrimoine sont un organisme de bienfaisance enregistr&eacute; (no. 89650 8157 RR0001). Nous faisons parvenir un re&ccedil;u &agrave; pour les dons de 20 $ et plus.";
 
 //<img style='float:right;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-en-bw-300x.png'/>
 
