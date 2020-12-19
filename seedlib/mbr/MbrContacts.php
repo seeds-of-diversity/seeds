@@ -254,6 +254,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
     {
         $raKfrel = array();
 
+        $dbname1 = $this->oApp->GetDBName('seeds1');
         $dbname2 = $this->oApp->GetDBName('seeds2');
         $defM =
             ["Tables" => [
@@ -264,6 +265,12 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $defD =
             ["Tables" => [
                 "D" => ["Table" => "{$dbname2}.mbr_donations",
+                        "Type"  => 'Base',
+                        "Fields" => 'Auto'],
+            ]];
+        $defA =
+            ["Tables" => [
+                "A" => ["Table" => "{$dbname1}.sl_adoptions",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
             ]];
@@ -283,7 +290,27 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                         "Fields" => 'Auto'],
                 "D" => ["Table" => "{$dbname2}.mbr_donations",
                         "Type"  => "LeftJoin",
-                        "LeftJoinOn" => "D.fk_mbr_contacts=M._key",
+                        "JoinOn" => "D.fk_mbr_contacts=M._key",     // actually this is automatic and the Type makes it a left join
+                        "Fields" => 'Auto']
+            ]];
+
+        // Adoption x MbrContact _ should have fk_mbr_donations _ can have fk_sl_pcv
+        // Make it AxMxD_P if mbr_donations exist for all adoptions
+        $defAxM_D_P =
+            ["Tables" => [
+                "A" => ["Table" => "{$dbname1}.sl_adoption",
+                        "Type"  => 'Base',
+                        "Fields" => 'Auto'],
+                "M" => ["Table" => "{$dbname2}.mbr_contacts",
+                        "Type"  => 'Join',
+                        "Fields" => 'Auto'],
+                "D" => ["Table" => "{$dbname2}.mbr_donations",
+                        "Type"  => "LeftJoin",
+                        "JoinOn" => "A.kDonation=D._key",
+                        "Fields" => 'Auto'],
+                "P" => ["Table" => "{$dbname1}.sl_pcv",
+                        "Type"  => "LeftJoin",
+                        "JoinOn" => "A.fk_sl_pcv=P._key",         // actually this is automatic and the Type makes it a left join
                         "Fields" => 'Auto']
             ]];
 
@@ -294,6 +321,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $raKfrel['D'] = new Keyframe_Relation( $kfdb, $defD, $uid, $parms );
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
+        $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
 
         return( $raKfrel );
     }

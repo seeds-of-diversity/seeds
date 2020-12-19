@@ -25,7 +25,8 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'renewalRequests'  => ['label'=>'Renewal Notices'],
                                         'donationRequests' => ['label'=>'Donation Requests'],
                                         'donationReceipts' => ['label'=>'Donation Receipts'],
-                                        'donations'        => ['label'=>'Donations']
+                                        'donations'        => ['label'=>'Donations'],
+                                        'donationsSL'      => ['label'=>'Seed Library Adoptions'],
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' => MbrApp::$raAppPerms['mbrPrint'],
@@ -234,6 +235,9 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donations_Init()         { $this->oW = new MbrDonationsListForm( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_donations_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_donations_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_donationsSL_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_donationsSL_ControlDraw(){ return( $this->oW->ControlDraw() ); }
+    function TabSet_main_donationsSL_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 }
 
 class MbrDonationsListForm extends KeyframeUI_ListFormUI
@@ -258,6 +262,121 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                     [ 'label'=>"Amount",    'col'=>"amount",        'w'=>120 ],
                     [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>120 ],
                     [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>120 ],
+                ],
+               // 'fnRowTranslate' => [$this,"listRowTranslate"],
+            ],
+
+            'raSrchConfig' => [
+                'filters' => [
+                    ['label'=>'First name',    'col'=>'M.firstname'],
+                    ['label'=>'Last name',     'col'=>'M.lastname'],
+                    ['label'=>'Company',       'col'=>'M.company'],
+                    ['label'=>'Member #',      'col'=>'M._key'],
+                    ['label'=>'Amount',        'col'=>'amount'],
+                    ['label'=>'Date received', 'col'=>'date_received'],
+                    ['label'=>'Date issued',   'col'=>'date_issued'],
+                    ['label'=>'Receipt #',     'col'=>'receipt_num'],
+                ]
+            ],
+
+            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'donationForm'] ],
+        ];
+        parent::__construct( $oApp, $raConfig );
+    }
+
+    function dsPreStore( Keyframe_DataStore $oDS )
+    {
+        // This allows date_issued to be erased. A DATE cannot be '' but it can be NULL.
+        // However, if it is already NULL KF will try to set it to NULL again and log that.
+        // So you'll see date_issued=NULL in the log when it was already NULL.
+        // The reason is that KF stores a NULL value's snapshot as '' so it thinks the value is changing from '' to NULL.
+        $kfr = $oDS->GetKFR();  // because there is no oDS->SetNull, though there could be if you can generalize it for the base SEEDDataStore
+        if( !$kfr->value('date_issued') ) $kfr->SetNull('date_issued');
+
+        return( true );
+    }
+
+    function Init()
+    {
+        parent::Init();
+    }
+
+    function ControlDraw()
+    {
+        return( $this->DrawSearch() );
+    }
+
+    function ContentDraw()
+    {
+        $s = $this->DrawStyle()
+           ."<style>.donationFormTable td { padding:3px;}</style>"
+           ."<div>".$this->DrawList()."</div>"
+           ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
+
+        return( $s );
+    }
+
+    function donationForm( KeyframeForm $oForm )
+    {
+        $sReceiptInstructions = "<p style='font-size:x-small'>" //Receipt Instructions:<br/>"
+                               ."-1 = no receipt, see note<br/>-2 = no receipt, below threshold<br/>-3 = Canada Helps</p>";
+
+        $s = "|||TABLE( || class='donationFormTable' width='100%' border='0')"
+            ."||| *Member*     || [[text:fk_mbr_contacts|size=30]]"
+            ." || *Amount*     || [[text:amount|size=30]]"
+            ." || *Received*   || [[text:date_received|size=30]]"
+            ."||| &nbsp        || &nbsp;"
+            ." || *Receipt #*  || [[text:receipt_num|size=30]]"
+            ." || *Issued*     || [[text:date_issued|size=30]]"
+            ."||| *Notes*      || {colspan='1'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'2'] )
+            ." || &nbsp; || ".$sReceiptInstructions
+            ." || &nbsp; || ".$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') )
+            ."|||ENDTABLE"
+            ."[[hiddenkey:]]"
+            ."<input type='submit' value='Save'>";
+
+        return( $s );
+    }
+
+    private function donationData( $kDonation, $kMbr )
+    {
+        $s = "";
+
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$kMbr'" );
+        $s .= "<p>Mbr database:<br/>donation_receipt: {$ra['donation_receipt']}</p>";
+
+        return( $s );
+    }
+}
+
+include_once( SEEDLIB."sl/sldb.php" );
+class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
+{
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $raConfig = [
+            'sessNamespace' => "Donations",
+            'cid'   => 'D',
+            'kfrel' => (new Mbr_Contacts($oApp))->oDB->Kfrel('AxM_D_P'),
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]],
+
+            'raListConfig' => [
+                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                'cols' => [
+                    [ 'label'=>"k",         'col'=>"_key",          'w'=>30 ],
+                    [ 'label'=>"Donor",     'col'=>"M_lastname",    'w'=>80 ],
+                    [ 'label'=>"Request",   'col'=>"sPCV_request",  'w'=>80 ],
+
+/*
+                    [ 'label'=>"Member",    'col'=>"M__key",        'w'=>80 ],
+                    [ 'label'=>"Firstname", 'col'=>"M_firstname",   'w'=>120 ],
+                    [ 'label'=>"Lastname",  'col'=>"M_lastname",    'w'=>120 ],
+                    [ 'label'=>"Company",   'col'=>"M_company",     'w'=>120 ],
+                    [ 'label'=>"Received",  'col'=>"date_received", 'w'=>120 ],
+                    [ 'label'=>"Amount",    'col'=>"amount",        'w'=>120 ],
+                    [ 'label'=>"Issued",    'col'=>"date_issued",   'w'=>120 ],
+                    [ 'label'=>"Receipt #", 'col'=>"receipt_num",   'w'=>120 ],
+*/
                 ],
                // 'fnRowTranslate' => [$this,"listRowTranslate"],
             ],
