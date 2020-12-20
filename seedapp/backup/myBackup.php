@@ -7,7 +7,7 @@ $user2 = $config_KFDB['seeds2']['kfdbUserid'];
 $pass2 = $config_KFDB['seeds2']['kfdbPassword'];
 $db2   = $config_KFDB['seeds2']['kfdbDatabase'];
 $dir   = $bLocal ? "/home/bob/_back1" : "/home/seeds/_back1";
-$date  = date("ymd");
+$date  = @$_REQUEST['d'] ?: date("ymd");
 
 // format is the same as the myBackup shell script so it can be copied there easily
 
@@ -175,7 +175,10 @@ function filesMatch( $fname1, $fname2 )
         $l2 = fgets( $f2, 100000 );
         
         if( SEEDCore_StartsWith( $l1, "--Dump completed on" ) ) continue;   // both l1 and l2 should have this line
+        if( SEEDCore_StartsWith( $l1, "-- Dump completed on" ) ) continue;   // both l1 and l2 should have this line
+        if( SEEDCore_StartsWith( $l1, "-- MySQL dump " ) ) continue;        // both l1 and l2 should have this line
         if( $l1 != $l2 ) {
+//var_dump($l1,$l2);
             $bMatch = false;
             break;
         }

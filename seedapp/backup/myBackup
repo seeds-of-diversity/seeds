@@ -9,7 +9,7 @@ USER2=seeds
 PASS2=seeds
 DB2=seeds2
 
-DIR=/home/bob/_back1/
+DIR=/home/seeds/_back1/
 SEEDS=/home/seeds/seeds/
 
 
@@ -73,4 +73,5 @@ do
     dump_tables2 "${j[0]}" "${j[1]}"
 done
 
-php -f ${SEEDS}seedapp/backup/myBackup.php
+#php -f ${SEEDS}seedapp/backup/myBackup.php
+curl https://seeds.ca/office/myBackup.php?d=${DATE}
