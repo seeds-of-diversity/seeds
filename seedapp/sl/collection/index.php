@@ -25,22 +25,31 @@ include_once( "collectiontab_germtests.php" );
 include_once( "collectiontab_packetlabels.php" );
 include_once( "batchoperations.php" );
 
+class SLApp
+{
+    // These define permissions for apps. The arrays double for SEEDSessionAccount and TabSetPermissions
+    static $raAppPerms = [
+        // the My Collection app
+        'slCollection' =>
+            [ 'slcollMain'  => ["W SLCollection", "A SL", "|"],
+              'slcollBatch' => ["W SLCollection", "A SL", "|"],
+              '|'  // allows screen-login even if some tabs are ghosted
+            ],
+    ];
+}
+
+
 $consoleConfig = [
     'CONSOLE_NAME' => "collection",
     'HEADER' => "My Seed Collection",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'collection'   => ['label'=>'My Collection'],
-                                        'batch'        => ['label'=>'Batch Operations'],
+    'TABSETS' => ['main'=> ['tabs' => [ 'slcollMain'   => ['label'=>'My Collection'],
+                                        'slcollBatch'  => ['label'=>'Batch Operations'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
-                            'perms' =>[ 'collection'   => ["PUBLIC"],
-                                        'batch'        => ["PUBLIC"],
-                                        //'cultivarsyn'  => ["W SL"],
-                                        //'ghost'        => ['A notyou'],
-                                        '|'  // allows screen-login even if some tabs are ghosted
-                                      ],
+                            'perms' => SLApp::$raAppPerms['slCollection']
                            ],
 
                   // sub-tabs for collection
@@ -69,7 +78,7 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
-$oApp = SEEDConfig_NewAppConsole( ['consoleConfig'=>$consoleConfig, 'sessPermsRequired'=>["W SLCollection", "A SL", "|"]] );
+$oApp = SEEDConfig_NewAppConsole( ['consoleConfig'=>$consoleConfig, 'sessPermsRequired'=>SLApp::$raAppPerms['slCollection']] );
 $oApp->kfdb->SetDebug(1);
 
 SEEDPRG();
@@ -89,13 +98,13 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oSLDB = new SLDBCollection( $this->oApp );
     }
 
-    function TabSet_main_collection_Init()         { $this->oW = new CollectionListForm( $this->oApp ); $this->oW->Init(); }
-    function TabSet_main_collection_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_collection_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_slcollMain_Init()         { $this->oW = new CollectionListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_slcollMain_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_slcollMain_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_batch_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new CollectionBatchOps( $this->oApp, $oT->oSVA ); $this->oW->Init(); }
-    function TabSet_main_batch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_batch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_slcollBatch_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new CollectionBatchOps( $this->oApp, $oT->oSVA ); $this->oW->Init(); }
+    function TabSet_main_slcollBatch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_slcollBatch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
 }
 
 class CollectionListForm extends KeyframeUI_ListFormUI
@@ -289,12 +298,9 @@ class Collection_Console02Tabset extends Console02TabSet
 }
 
 
-
-$s = "[[TabSet:main]]";
-
 $oCTS = new MyConsole02TabSet( $oApp );
 
-$s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
+$s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
