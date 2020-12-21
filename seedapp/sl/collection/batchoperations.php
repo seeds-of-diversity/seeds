@@ -23,6 +23,11 @@ class CollectionBatchOps
 
     function Init()
     {
+        // this is also in CollectionTab_GerminationTests
+        if( ($kDel = SEEDInput_Int('germdel')) && ($kfr = $this->oSLDB->GetKFR('G', $kDel)) ) {
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
+            $kfr->PutDBRow();
+        }
     }
 
     function ControlDraw()
@@ -72,7 +77,9 @@ class CollectionBatchOps
                                          <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
                                          <td style='width:10%'>[[nSown       | width:100%]]</td>
                                          <td style='width:10%'>[[nGerm_count | width:100%]]</td>
-                                         <td style='width:40%'>[[notes       | width:100%]]</td></tr>" );
+                                         <td style='width:40%'>[[notes       | width:100%]]</td>
+                                         <td style='width:40%'>{$this->deleteButton($oForm->GetKFR())}</td>"
+                                   ."</tr>" );
             $oForm->IncRowNum();
         }
 
@@ -98,9 +105,10 @@ class CollectionBatchOps
                                          <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
                                          <td style='width:10%'>[[nSown       | width:100%]]</td>
                                          <td style='width:10%'>[[nGerm_count | width:100%]]</td>
-                                         <td style='width:40%'>[[notes       | width:100%]]</td></tr>" );
-            $oForm->IncRowNum();
-
+                                         <td style='width:40%'>[[notes       | width:100%]]</td>
+                                         <td style='width:40%'>{$this->deleteButton($oForm->GetKFR())}</td>"
+                                       ."</tr>" );
+                $oForm->IncRowNum();
             }
         }
 
@@ -116,6 +124,22 @@ class CollectionBatchOps
                </p>";
 
         return( $s );
+    }
+
+    // this is also in CollectionTab_GerminationTests
+    private function deleteButton( KeyframeRecord $kfr )
+    /***************************************************
+        Make a button that will delete the given germ test (only if it's your test)
+
+        sf{cid}d{R} doesn't work the way we want it to here, so do it with a custom parameter instead
+     */
+    {
+        $sDeleteButton = ($kfr->Key() && $kfr->Value('_created_by')==$this->oApp->sess->GetUID())
+                                ? ("<a href='{$this->oApp->PathToSelf()}?germdel={$kfr->Key()}'>"
+                                  ."<img src='".SEEDW_URL."img/ctrl/delete01.png' height='20'/>"
+                                  ."</a>")
+                                : "";
+        return( $sDeleteButton );
     }
 
     function PreStoreGerm( KeyFrame_DataStore $oDS )
