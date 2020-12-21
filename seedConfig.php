@@ -82,6 +82,10 @@ if( !defined("W_CORE_URL") ) define( "W_CORE_URL", SEEDW_URL );    //deprecated
 /* URL path to q directory.
  * If seedapp/q/ is reachable by the browser you don't have to do anything.
  * Otherwise, set SEEDQ_URL somewhere in the docroot and for each file seedapp/q/* make a file with the same name that includes SEEDAPP."q/*"
+ *
+ * N.B. on production machines where the location is "/app/q/", that is the best way to set this value because the browser will use
+ *      the same domain (e.g. seeds.ca or www.seeds.ca) and mode (http or https) as the application. This is crucial because Q creates
+ *      a SEEDSessionAccount that must find the same PHPSession as the application that's using the qcmd.
  */
 if( !defined("SEEDQ_URL") ) define( "SEEDQ_URL", SEEDAPP."q/" );
 

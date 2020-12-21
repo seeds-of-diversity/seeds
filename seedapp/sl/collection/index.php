@@ -309,6 +309,5 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
 
 echo "<script>SEEDCore_CleanBrowserAddress();</script>";
 
-if( SEED_isLocal ) {
-    echo "<script>collectionBatch.qUrl = 'http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php';</script>";
-}
+// use $oApp->urlQ() instead of Site_UrlQ() when app/q2/index.php has QCollection
+echo "<script>collectionBatch.qUrl = '".Site_UrlQ()."';</script>";

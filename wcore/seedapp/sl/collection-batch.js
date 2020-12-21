@@ -1,22 +1,12 @@
 $(document).ready( function() {
     $(".gtLotNum").blur( function () { collectionBatch.getCVName( $(this) ); } );
-    $("#collection-batch-germ-container").html( collectionBatchGermForm() );	
 });
-
-function collectionBatchGermForm()
-{
-    let s = "";
-
-    s = "Hello world!";
-    
-    return( s );
-}
 
 
 class collectionBatch {
     constructor() {}
     
-    static qUrl = "https://www.seeds.ca/app/q/index.php";
+    static qUrl = "https://seeds.ca/app/q/index.php";    // replace this with SEEDQ_URL
     
     static getCVName( jLotInput )
     {
