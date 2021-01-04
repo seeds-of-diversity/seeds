@@ -3,16 +3,28 @@
         {
             "type": "git",
             "url": "https://github.com/wheelhouse-therapy/PHPWord.git"
+        },
+        {
+            "type": "package",
+            "package": {
+                "name": "10bestdesign/jqvmap",
+                "version": "1.5.1",
+                "dist": {
+                    "url": "https://github.com/10bestdesign/jqvmap/archive/master.zip",
+                    "type": "zip"
+                }
+            }
         }
     ],
 
     "require": {
         "google/apiclient": "^2.0",
         "fpdf/fpdf": "^1.8",
-        "phpoffice/phpword": "dev-develop",
+        "phpoffice/phpword": "^0.16.0",
         "phpoffice/phpspreadsheet": "^1.5",
           "twig/twig": "1.42.2",
           "components/jquery": "^3.3",
-          "dompdf/dompdf": "^0.8.5"
+          "dompdf/dompdf": "^0.8.5",
+          "10bestdesign/jqvmap": "1.5.*"
     }
 }
