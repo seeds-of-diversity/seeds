@@ -335,6 +335,8 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                 condM_D = condition on mbr_contacts LEFT JOIN mbr_donations with cols prefixed "M." and "D." e.g. M.email <> '' AND year(D.date_received)>'2019'
                 condD2  = (not used because _D is always just the most recent donation and you can filter on that with M_D ?)
                           condition on mbr_donations with cols prefixed "D2." e.g. year(D2.date_received) > '2019'
+                bRequireEmail   : default false
+                bRequireAddress : default true
 
             output:
                 M_*             = mbr_contacts fields
@@ -346,8 +348,11 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
     {
         if( !SEED_isLocal ) { echo "MySQL 5 does not support 'partition by'<br/>"; return([]); }
 
+        if( !isset($raParms['bRequireAddress']) ) $raParms['bRequireAddress'] = true;
+
         $condM_D = "M.country='Canada' AND "
-                  ."M.address IS NOT NULL AND M.address<>'' AND "   // address is blanked out if mail comes back RTS
+                  .(@$raParms['bRequireAddress'] ? "M.address IS NOT NULL AND M.address<>'' AND " : "")   // address is blanked out if mail comes back RTS
+                  .(@$raParms['bRequireEmail'] ? "M.email IS NOT NULL AND M.email<>'' AND " : "")
                   ."NOT M.bNoDonorAppeals"
                   .(@$raParms['condM_D'] ? " AND ({$raParms['condM_D']}) " : "");
         $condD2  = @$raParms['condD2'] ? " AND ({$raParms['condD2']}) " : "";
@@ -457,9 +462,8 @@ class MbrContactsList
 
     private function initGroups()
     {
-        $dStart    = ($this->yCurrent - 2)."-01-01";    // include members and donors from two years ago
-// End could be current date minus six months
-        $dDonorEnd = "{$this->yCurrent}-07-01";         // and donors who haven't made donations since before July
+        $dStart    = ($this->yCurrent - 2)."-01-01";         // include members and donors from two years ago
+        $dDonorEnd = date("Y-m-d", strtotime("-6 months"));  // and donors who haven't made donations during the past six months
         $lEN = "M.lang<>'F'";
         $lFR = "M.lang='F'";
 // parameterize

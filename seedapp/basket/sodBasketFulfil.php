@@ -498,7 +498,9 @@ class SoDOrderBasket
             $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:right;width:100%'>"
                  ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
             foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
-                if( !($oPur = $ra['oPur']) ) continue;
+                if( !($oPur = @$ra['oPur']) ) {
+                    continue;
+                }
 
                 $sColFulfil1 = "";      // first col is a fulfil button or fulfilment record
                 $sColFulfil2 = "";      // second col is an undo button if fulfilled and canfulfilundo

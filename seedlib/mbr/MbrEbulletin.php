@@ -22,6 +22,18 @@ class MbrEbulletin
 
     }
 
+    function GetSubscriberEmails( $lang )
+    {
+        switch( $lang ) {
+            case 'EN': $sCond = "lang IN ('','B','E')";      break;     // '' in db is interpreted as E by default
+            case 'FR': $sCond = "lang IN ('B','F')";         break;
+            case '':
+            default:   $sCond = "lang IN ('','B','E','F')";  break;     // '' in this form's ctrl is interpreted as All
+        }
+
+        return( $this->oDB->Get1List('B', 'email', $sCond ) );
+    }
+
     function AddSubscriber( $email, $name, $lang, $comment )
     {
         $eRetBull = $eRetMbr = false;
