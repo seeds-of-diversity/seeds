@@ -111,7 +111,25 @@ function SEEDCore_CharsetConvert( $val, $sCharsetFrom, $sCharsetTo, $bTransliter
     return( $val );
 }
 
+/**
+ * Remove a value from an array.
+ */
+function SEEDCore_ArrayRemoveValue( $ra, $v, $bStrict = false )
+/**************************************************************
+    This is a harder problem than it might seem because the only way to index into an array is by key.
 
+    array_keys() takes two extra values: searchval and strict.
+        searchval returns only the keys that match searchval
+        strict enables strict matching
+
+    This implementation removes all occurrences of the the value if it exists multiple times.
+ */
+{
+    foreach( array_keys($ra, $v, $bStrict) as $k ) {
+        unset($ra[$k]);
+    }
+    return( $ra );
+}
 
 /******
  * SEEDCore_ArrayExpand(*)
