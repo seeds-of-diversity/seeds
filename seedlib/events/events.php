@@ -7,7 +7,7 @@ class EventsLib
     public $oApp;
     public $oDB;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oDB = new EventsDB( $oApp );
