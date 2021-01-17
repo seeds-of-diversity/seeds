@@ -50,7 +50,14 @@ class Q
         }
         else
 
-        if( SEEDCore_StartsWith( $cmd, 'rosetta' ) ) {
+        if( SEEDCore_StartsWith( $cmd, 'ev' ) ) {
+            include_once( SEEDLIB."events/QServerEvents.php" );
+            $o = new QServerEvents( $this->oApp, $this->raConfig );
+            $rQ = $o->Cmd( $cmd, $parms );
+        }
+
+        else
+            if( SEEDCore_StartsWith( $cmd, 'rosetta' ) ) {
 //            include_once( "_QServerPCV.php" );
 //            $o = new QServerPCV( $this->oApp, $this->raConfig );
 //            $rQ = $o->Cmd( $cmd, $parms );

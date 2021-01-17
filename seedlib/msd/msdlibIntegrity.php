@@ -39,7 +39,7 @@ class MSDLibIntegrity
     }
 
     function AdminIntegrityTests()  { return( $this->adminTests( 'integ_' ) ); }
-    function AdminWorkflowTests()   { return( $this->adminTests( 'workflow_' ) ); }
+    function AdminWorkflowTests()   { return( $this->adminTests('workflow-winter_') . $this->adminTests( 'workflow_' ) ); }
     function AdminDataTests()       { return( $this->adminTests( 'data_' ) ); }
     function AdminContentTests()    { return( $this->adminTests( 'content_' ) ); }
 
