@@ -192,7 +192,7 @@ klugeUTF8 = true: return sOut and sErr in utf8
 // get the db name from SEEDBasketDB
                        ($kB = $this->oDB->kfdb->Query1( "SELECT _key FROM {$this->dbname}.SEEDBasket_Baskets WHERE uid_buyer='$uid' ORDER BY _created DESC LIMIT 1" )) )
             {
-                $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
+                // no because this gets your most recent membership renewal, book order, etc, which is very confusing and you don't want to add seeds to it because it should be closed but it isn't at present   $this->kfrBasketCurr = $this->oDB->GetBasket( $kB );
             }
             /* But if the most recent basket is no longer opened or confirmed, open a new basket
              */
