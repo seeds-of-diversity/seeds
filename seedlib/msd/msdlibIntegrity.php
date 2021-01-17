@@ -49,6 +49,7 @@ class MSDLibIntegrity
 
         $ok = $this->oSPS->DoTests( $sPrefix );    // default second parm gives boolean return
         $s .= $this->oSPS->GetOutput();
+        $this->oSPS->Clear();
 
         return( $s );
     }
