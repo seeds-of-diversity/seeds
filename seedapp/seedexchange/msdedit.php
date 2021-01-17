@@ -2,7 +2,7 @@
 
 /* msdedit
  *
- * Copyright (c) 2018-2020 Seeds of Diversity
+ * Copyright (c) 2018-2021 Seeds of Diversity
  *
  * App to edit Member Seed Directory, built on top of SEEDBasket
  */
@@ -67,7 +67,7 @@ class MSDAppSeedEdit
             if( !$uidSeller )  $uidSeller = $this->oSB->oApp->sess->GetUID();
         }
         if( $uidSeller ) {
-            $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds_1.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
+            $sList .= "<h3>".$this->oSB->oApp->kfdb->Query1( "SELECT mbr_code FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='$uidSeller'" )." : "
                      .SEEDCore_utf8_encode($oMSDCore->GetGrowerName($uidSeller))."</h3><hr/>";
         } else {
             $sList .= "<h3>All Growers</h3>";
@@ -208,7 +208,7 @@ class SEEDBasket_EditList extends ConsoleEditList
         Attach event listeners to the controls in an item. Show/hide controls based on eStatus.
      */
     {
-        // the base class hooks certain click events to FormOpen 
+        // the base class hooks certain click events to FormOpen
         super.Item_Init( jItem );
 
         let saveThis = this;

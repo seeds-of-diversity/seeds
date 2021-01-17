@@ -2,7 +2,7 @@
 
 /* Member Seed Directory Q Layer
  *
- * Copyright (c) 2018-2019 Seeds of Diversity
+ * Copyright (c) 2018-2021 Seeds of Diversity
  */
 
 include_once( SEEDLIB."msd/msdcore.php" );
@@ -331,7 +331,7 @@ class MSDQ extends SEEDQ
         // and REVIEW is currently identical to EDIT so they coded as EDIT below
         if( $eView == 'REVIEW' )  $eView = 'EDIT';
 
-        $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM seeds_1.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
+        $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM {$this->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
 
         $raSeed = $this->oMSDCore->GetSeedRAFromKfr( $kfrS, array('bUTF8'=>$this->bUTF8) );
 

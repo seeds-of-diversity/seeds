@@ -2,7 +2,7 @@
 
 /* MSDCore
  *
- * Copyright (c) 2018-2020 Seeds of Diversity
+ * Copyright (c) 2018-2021 Seeds of Diversity
  *
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
@@ -22,6 +22,8 @@ class MSDCore
     public  $oMSDSB;
     private $oSBDB;
     private $currYear;
+    private $dbname1;
+    private $dbname2;
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
@@ -32,6 +34,9 @@ class MSDCore
     {
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
+
+        $this->dbname1 = $this->oApp->GetDBName('seeds1');
+        $this->dbname2 = $this->oApp->GetDBName('seeds2');
 
         $this->oMSDSB = new MSDBasketCore( $oApp->kfdb, $oApp->sess, $oApp );
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
@@ -172,7 +177,7 @@ class MSDCore
                 // I am a member offering seeds
 // use a different method to determine membership
                 $ok = $this->oApp->sess->CanRead( 'sed' ) &&
-                      ($this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds_1.SEEDBasket_Products "
+                      ($this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products "
                                                  ."WHERE uid_seller='".$this->oApp->sess->GetUID()."' AND "
                                                        ."product_type='seeds' AND "
                                                        ."eStatus='ACTIVE' AND "
@@ -270,7 +275,7 @@ class MSDCore
     private function getKlugeSpeciesKey( $sp )
     {
         // this is a cheater way to pass a "species" value as a number
-        $k = $this->oApp->kfdb->Query1( "SELECT _key FROM seeds_1.SEEDBasket_ProdExtra WHERE k='species' AND v='".addslashes($sp)."'" );
+        $k = $this->oApp->kfdb->Query1( "SELECT _key FROM {$this->dbname1}.SEEDBasket_ProdExtra WHERE k='species' AND v='".addslashes($sp)."'" );
         return( $k );
     }
 
@@ -278,7 +283,7 @@ class MSDCore
     function GetKlugeSpeciesNameFromKey( $kSp )
     {
         // this is a cheater way to pass a "species" value as a number
-        $k = $this->oApp->kfdb->Query1( "SELECT v FROM seeds_1.SEEDBasket_ProdExtra WHERE _key='$kSp'" );
+        $k = $this->oApp->kfdb->Query1( "SELECT v FROM {$this->dbname1}.SEEDBasket_ProdExtra WHERE _key='$kSp'" );
         return( $k );
     }
 
@@ -507,10 +512,10 @@ class MSDCore
     function KFRelGxM()
     {
         $defGxM =
-            array( "Tables"=>array( 'G' => array( "Table" => 'seeds_1.sed_curr_growers',
+            array( "Tables"=>array( 'G' => array( "Table" => "{$this->dbname1}.sed_curr_growers",
                                                   "Type" => "Base",
                                                   "Fields" => "Auto" ),
-                                    'M' => array( "Table"=> 'seeds_2.mbr_contacts',
+                                    'M' => array( "Table"=> "{$this->dbname2}.mbr_contacts",
                                                   "Type" => "Join",
                                                   "JoinOn" => "(G.mbr_id=M._key)",
                                                   "Fields" => array( array("col"=>"firstname",       "type"=>"S"),
@@ -570,7 +575,7 @@ class MSDBasketCore extends SEEDBasketCore
         SEEDBasketCore uses this to draw the name of a seller
      */
     {
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM seeds_1.SEEDSession_Users WHERE _key='$uidSeller'" );
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds1')}.SEEDSession_Users WHERE _key='$uidSeller'" );
         if( !($sSeller = @$ra['realname']) ) {
             $o = new Mbr_Contacts($this->oApp);
             if( !($sSeller = $o->GetContactName($uidSeller)) ) {
