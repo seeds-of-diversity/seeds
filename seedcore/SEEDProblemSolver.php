@@ -265,12 +265,16 @@ class SEEDProblemSolver
             list($result,$sOut,$sErr) = call_user_func( $def['remedyFn'], $k, $this->raParms );
         } else if( isset($def['remedySql']) ) {
             $kfdb = @$this->raParms['kfdb'] or die('ProblemSolver: kfdb parm not specified');
-            $sOut = "Remedy $k"
-                   ."<div style='color:blue'>".SEEDCore_HSC($def['remedySql'])."</div>";
-            if( $kfdb->Execute( $def['remedySql'] ) ) {
-                $sOut .= "successful";
-            } else {
-                $sErr = "failed: ".$kfdb->GetErrMsg();
+
+            // remedySql can be an sql string, or an array of strings
+            $raSql = is_array($def['remedySql']) ? $def['remedySql'] : [$def['remedySql']];
+            foreach( $raSql as $sql ) {
+                $s1 = "<div style='margin-bottom:10px'>Remedy $k [[]] <div style='color:blue;font-size:small'>".SEEDCore_HSC($sql)."</div></div>";
+                if( $kfdb->Execute( $sql ) ) {
+                    $sOut .= str_replace( "[[]]", "successful", $s1 );
+                } else {
+                    $sErr .= str_replace( "[[]]", "failed: $kfdb->GetErrMsg()", $s1 );
+                }
             }
         } else {
             die( "ProblemSolver: no remedy defined for $k" );
