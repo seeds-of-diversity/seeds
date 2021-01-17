@@ -24,7 +24,7 @@ class MSDLibIntegrity
         $this->dbname1 = $this->oMSDLib->oApp->GetDBName('seeds1');
         $this->dbname2 = $this->oMSDLib->oApp->GetDBName('seeds2');
 
-        $this->oSPS = new SEEDProblemSolverUI( $this->spsDefs(), ['kfdb'=>$this->oMSDLib->oApp->kfdb] );
+        $this->oSPS = new SEEDProblemSolverUI( $this->spsDefs(), ['bShowSql'=>true, 'kfdb'=>$this->oMSDLib->oApp->kfdb] );
     }
 
     function DrawMSDTestUI()

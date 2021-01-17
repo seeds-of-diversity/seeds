@@ -2,7 +2,7 @@
 
 /* SEEDProblemSolver
  *
- * Copyright 2014-2019 Seeds of Diversity Canada
+ * Copyright 2014-2021 Seeds of Diversity Canada
  *
  * Perform tests, and implement remedies
  */
@@ -18,7 +18,7 @@ class SEEDProblemSolver
         testSql    = sql to perform test
         remedyType = '' |
         remedyFn   = function to perform a remedy
-        remedySql  = sql to perform a remedy
+        remedySql  = sql to perform a remedy (can be an sql string or an array of sql strings)
         bNonFatal  = this test returns SPS_WARNING if it fails; else returns SPS_ERROR (which is the default if bNonFatal is not defined)
 
         rows0:         a test that returns failure rows (0 rows is success)
@@ -223,10 +223,13 @@ class SEEDProblemSolver
 
         if( @$def['remedySql'] || @$def['remedyFn'] ) {
             $s .= "<a href='?spsSolve".(($eMode=='Confirm') ? "Confirmed" : "")."=$k'>"
-                 ."Solve this problem</a> : <i>".SEEDCore_HSC($def['remedySql'])."</i>";
+                 ."Solve this problem</a>";
             if( @$def['remedySql'] && @$this->raParms['bShowSql'] ) {
-                $s .= "<div style='color:gray;font-size:7pt;margin-left:20px;margin-bottom:10px'>"
-                     ."<i>".SEEDCore_HSC($def['remedySql'])."</i></div>";
+                $s .= "<span style='color:#555;font-size:8pt;margin-left:20px;margin-bottom:10px'>";
+                foreach( (is_array($def['remedySql']) ? $def['remedySql'] : [$def['remedySql']]) as $sql ) {
+                    $s .= SEEDCore_HSC($sql)."<br/><br/>";
+                }
+                $s .= "</span>";
             }
         }
 
@@ -269,11 +272,11 @@ class SEEDProblemSolver
             // remedySql can be an sql string, or an array of strings
             $raSql = is_array($def['remedySql']) ? $def['remedySql'] : [$def['remedySql']];
             foreach( $raSql as $sql ) {
-                $s1 = "<div style='margin-bottom:10px'>Remedy $k [[]] <div style='color:blue;font-size:small'>".SEEDCore_HSC($sql)."</div></div>";
+                $s1 = "<div style='margin-bottom:10px;color:[[c]]'>Remedy $k [[s]] <div style='color:#555;font-size:8pt'>".SEEDCore_HSC($sql)."</div></div>";
                 if( $kfdb->Execute( $sql ) ) {
-                    $sOut .= str_replace( "[[]]", "successful", $s1 );
+                    $sOut .= str_replace( ['[[s]]','[[c]]'], ['successful','green'], $s1 );
                 } else {
-                    $sErr .= str_replace( "[[]]", "failed: $kfdb->GetErrMsg()", $s1 );
+                    $sErr .= str_replace( ['[[s]]','[[c]]'], ["failed: {$kfdb->GetErrMsg()}",'red'], $s1 );
                 }
             }
         } else {
