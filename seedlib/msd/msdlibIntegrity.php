@@ -14,6 +14,7 @@ require_once SEEDCORE."SEEDProblemSolver.php";
 class MSDLibIntegrity
 {
     private $oMSDLib;
+    private $oSPS;
     private $dbname1;
     private $dbname2;
 
@@ -22,6 +23,19 @@ class MSDLibIntegrity
         $this->oMSDLib = $oMSDLib;
         $this->dbname1 = $this->oMSDLib->oApp->GetDBName('seeds1');
         $this->dbname2 = $this->oMSDLib->oApp->GetDBName('seeds2');
+
+        $this->oSPS = new SEEDProblemSolverUI( $this->spsDefs(), ['kfdb'=>$this->oMSDLib->oApp->kfdb] );
+    }
+
+    function DrawMSDTestUI()
+    {
+        $s = "";
+
+        list($sRemedy,$sRemedyErr) = $this->oSPS->DrawRemedyUI();
+        if( $sRemedy )    $s .= "<div class='well'>$sRemedy</div>";
+        if( $sRemedyErr ) $s .= "<div class='alert alert-warning'>$sRemedyErr</div>";
+
+        return( $s );
     }
 
     function AdminIntegrityTests()  { return( $this->adminTests( 'integ_' ) ); }
@@ -33,9 +47,8 @@ class MSDLibIntegrity
     {
         $s = "";
 
-        $oSPS = new SEEDProblemSolver( $this->spsDefs(), ['kfdb'=>$this->oMSDLib->oApp->kfdb] );
-        $ok = $oSPS->DoTests( $sPrefix );    // default second parm gives boolean return
-        $s .= $oSPS->GetOutput();
+        $ok = $this->oSPS->DoTests( $sPrefix );    // default second parm gives boolean return
+        $s .= $this->oSPS->GetOutput();
 
         return( $s );
     }
@@ -282,19 +295,23 @@ class MSDLibIntegrity
                                 ."(PE.v IS NULL OR PE.v<>'$yearCurrent')",
                        'remedyLabel' => "Set current year for seeds",
                        'remedySql' =>
+                           // two sql queries, so in this case the value is an array of strings
+                           [
                            // update PE.v where exists but not current year
                            "UPDATE {$this->dbname1}.SEEDBasket_Products P LEFT JOIN {$this->dbname1}.SEEDBasket_ProdExtra PE "
                                                ."ON (P._key=PE.fk_SEEDBasket_Products AND PE.k='year' AND PE._status='0') "
                           ."SET PE.v='$yearCurrent' "
                           ."WHERE P._status='0' AND P.product_type='seeds' AND P.eStatus='ACTIVE' AND "
-                                ."PE._key IS NOT NULL AND PE.v<>'$yearCurrent' ;"
+                                ."PE._key IS NOT NULL AND PE.v<>'$yearCurrent'",
+
                           // insert PE because the year row is missing
-                          ."INSERT INTO {$this->dbname1}.SEEDBasket_ProdExtra (fk_SEEDBasket_Products,k,v) "
+                           "INSERT INTO {$this->dbname1}.SEEDBasket_ProdExtra (fk_SEEDBasket_Products,k,v) "
                           ."SELECT P._key,'year','$yearCurrent' "
                           ."FROM {$this->dbname1}.SEEDBasket_Products P LEFT JOIN {$this->dbname1}.SEEDBasket_ProdExtra PE "
                           ."ON (P._key=PE.fk_SEEDBasket_Products AND PE.k='year' AND PE._status='0') "
                           ."WHERE P._status='0' AND P.product_type='seeds' AND P.eStatus='ACTIVE' AND "
-                                ."PE._key IS NULL",
+                                ."PE._key IS NULL"
+                          ],
                         'bNonFatal' => true     // remove this later
                      ),
 
