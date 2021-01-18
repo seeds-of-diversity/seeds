@@ -67,6 +67,11 @@ class MSDQ extends SEEDQ
         }
 
         switch( $cmd ) {
+            case 'msd-getStats':
+                $rQ['raOut'] = $this->getStats();
+                $rQ['bOk'] = $rQ['bHandled'] = true;
+                break;
+
             case 'msdSeedList-GetData':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->seedListGetData( $raParms );
                 break;
@@ -127,6 +132,23 @@ class MSDQ extends SEEDQ
         return( $rQ );
     }
 
+
+    private function getStats()
+    /**************************
+     */
+    {
+        $dbname = $this->oMSDCore->oApp->GetDBName('seeds1');
+        $ra = [
+            'nGrowersActive' => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*) from {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete" ),
+            'nGrowersSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*) from {$dbname}.sed_curr_growers WHERE _status='0' AND bSkip AND NOT bDelete" ),
+            'nGrowersDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*) from {$dbname}.sed_curr_growers WHERE _status='0' AND bDelete" ),
+        ];
+
+        return( $ra );
+    }
 
     private function seedListGetData( $raParms )
     /*******************************************
