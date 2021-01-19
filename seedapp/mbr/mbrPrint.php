@@ -347,7 +347,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         $s = "";
 
         $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$kMbr'" );
-        $s .= "<p>Mbr database:<br/>donation_receipt: {$ra['donation_receipt']}</p>";
+        $s .= "<p>Mbr database:<br/>donation_receipt: ".@$ra['donation_receipt']."</p>";
 
         return( $s );
     }

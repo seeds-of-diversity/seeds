@@ -322,7 +322,7 @@ class MSDQ extends SEEDQ
          */
         if( !($price = $kfrS->Value('item_price')) ) {
             // blank so set default
-            $price = in_array( $kfrS->Value('species'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "12.00" : "3.50";
+            $price = in_array( $kfrS->Value('species'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "18.00" : "3.50";
             $kfrS->SetValue( 'item_price', $price );
         } else if( is_numeric($price) ) {
             $price = sprintf( "%.2f", floatval($price) );
