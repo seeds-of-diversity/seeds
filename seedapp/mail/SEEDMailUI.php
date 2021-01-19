@@ -14,6 +14,7 @@ class SEEDMailUI
     private $oApp;
     private $oDB;
     private $kMail = 0;
+    private $oMailItemForm;
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -31,14 +32,30 @@ class SEEDMailUI
          */
         $this->kMail = $this->oApp->oC->oSVA->SmartGPC('kMail');
 
+        $this->oMailItemForm = new KeyframeForm( $this->oDB->KFRel('M'), 'M', ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreMailItem']]] );
+
         if( SEEDInput_Str('cmd') == 'CreateMail' ) {
             // store an empty mail record and make it current
-            $oM = new SEEDMail( $oApp, 0 );
+            $oM = new SEEDMail( $this->oApp, 0 );
             $this->kMail = $oM->Store( ['sSubject'=>'New'] );
+            $this->oMailItemForm->SetKFR( $oM->GetKFR() );
         } else {
-            $oForm = new KeyframeForm( $this->oDB->KFRel('M'), 'M' );
-            $oForm->Update();
+            $this->oMailItemForm->Update();
+
+            if( ($kfr = $this->oDB->GetKFR('M', $this->kMail)) ) {
+                $this->oMailItemForm->SetKFR( $kfr );
+            }
         }
+    }
+
+    function PreStoreMailItem( KeyFrame_DataStore $oDS )
+    {
+        if( !$oDS->Value('eStatus') )  $oDS->SetValue('eStatus', 'NEW');
+
+        // convert whitespace and commas to \n
+        $oDS->SetValue('sAddresses', str_replace([' ',','], "\n", $oDS->Value('sAddresses')) );
+
+        return( true );
     }
 
     function GetMessageList( $eStatus = '' )
@@ -80,13 +97,9 @@ class SEEDMailUI
              </style>
              ";
 
-        $oForm = new KeyframeForm( $this->oDB->KFRel('M'), 'M' );
-        if( !($kfr = $this->oDB->GetKFR('M', $this->kMail)) )  goto done;
-        $oForm->SetKFR( $kfr );
-
-        $oFE = new SEEDFormExpand( $oForm );
+        $oFE = new SEEDFormExpand( $this->oMailItemForm );
         $s .= "<form method='post' action='{$this->oApp->PathToSelf()}'>"
-             .$oForm->HiddenKey()
+             .$this->oMailItemForm->HiddenKey()
              ."<div class='container-fluid'>"
              .$oFE->ExpandForm(
                     "<table class='mailitem-form-table'>"
