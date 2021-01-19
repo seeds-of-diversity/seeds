@@ -651,7 +651,7 @@ class SEEDCoreFormElements
         $value = SEEDCore_HSC($value);
 
         // the id is the name+value because every element should have a different id
-        return( "<input type='radio' name='$pName' id='$pName.$value' value='$value' $pAttrs />".$label );
+        return( "<input type='radio' name='$pName' id='{$pName}{$value}' value='$value' $pAttrs />".$label );
     }
 
 // TODO: implement OPTGROUP
