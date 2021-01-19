@@ -59,19 +59,22 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2',
                                    'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
 
-$oMail = new SEEDMailUI( $oApp );
+$oMailUI = new SEEDMailUI( $oApp );
+$oMailUI->Init();
 
-$sMailTable = "";
+$sMailTable = $oMailUI->GetMessageList( '' );
 $sPreview = "";
 $sControls = "[[TabSet:right]]"; // $oConsole->TabSetDraw( "right" )
 
 
 $s = "<table cellspacing='0' cellpadding='10' style='width:100%;border:1px solid #888'><tr>"
     ."<td valign='top'>"
-        ."<form method='post' action='${_SERVER['PHP_SELF']}'>"
+        ."<form method='post' action='{$oApp->PathToSelf()}'>"
+        ."<input type='hidden' name='cmd' value='CreateMail'/>"
+        ."<input type='submit' value='Create New Message'/>"
+        ."</form>"
         //.SEEDForm_Hidden( "p_kMail", $oMS->kMail )
         .$sMailTable
-        ."</form>"
         .$sPreview
     ."</td>"
     ."<td valign='top' style='border-left:solid grey 1px;padding-left:2em;width:50%'>"
@@ -79,12 +82,16 @@ $s = "<table cellspacing='0' cellpadding='10' style='width:100%;border:1px solid
     ."</td>"
     ."</tr></table>";
 
+
 class MyConsole02TabSet extends Console02TabSet
 {
-    function __construct( SEEDAppConsole $oApp )
+    private $oMailUI;
+
+    function __construct( SEEDAppConsole $oApp, SEEDMailUI $oMailUI )
     {
         global $consoleConfig;
         parent::__construct( $oApp->oC, $consoleConfig['TABSETS'] );
+        $this->oMailUI = $oMailUI;
     }
 
     function TabSet_right_mailitem_ControlDraw()
@@ -94,7 +101,7 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_right_mailitem_ContentDraw()
     {
-        return( "<div style='padding:20px'>Bar</div>" );
+        return( "<div style='padding:20px'>{$this->oMailUI->MailItemForm()}</div>" );
     }
 
     function TabSet_right_text_ControlDraw()
@@ -109,7 +116,7 @@ class MyConsole02TabSet extends Console02TabSet
 }
 
 
-$oCTS = new MyConsole02TabSet( $oApp );
+$oCTS = new MyConsole02TabSet( $oApp, $oMailUI );
 
 $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 

@@ -34,10 +34,14 @@ class SEEDMail
         Copy the given parms to the current SEEDMail record and store it in the db
      */
     {
+        if( !$this->kfr->Key() ) {
+            // make sure defaults are set for new record
+            $this->kfr->SetValue( 'eStatus', 'NEW' );
+        }
         foreach( $raParms as $k=>$v ) {
             $this->kfr->SetValue( $k, $v );
         }
-        $this->kfr->PutDBRow();
+        return( $this->kfr->PutDBRow() ? $this->kfr->Key() : 0 );
     }
 
     function StageMail( $kMail )

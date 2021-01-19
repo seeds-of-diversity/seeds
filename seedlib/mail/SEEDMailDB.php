@@ -14,7 +14,7 @@ class SEEDMailDB extends Keyframe_NamedRelations
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
     {
-        $this->dbname = $this->oApp->GetDBName(@$raConfig['db'] ?: 'seeds1');
+        $this->dbname = $oApp->GetDBName(@$raConfig['db'] ?: 'seeds2');
         $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
     }
@@ -25,20 +25,18 @@ class SEEDMailDB extends Keyframe_NamedRelations
         $parms = [];
 
         $fldM  = [ ['col'=>'sBody',          'type'=>'S'],
-                   ['col'=>'fk_docrep_docs', 'type'=>'I'],
-                   ['col'=>'docrepDB',       'type'=>'S'],
-                   ['col'=>'email_from',     'type'=>'S'],
-                   ['col'=>'email_subject',  'type'=>'S'],
+                   ['col'=>'sFrom',          'type'=>'S'],
+                   ['col'=>'sSubject',       'type'=>'S'],
                    ['col'=>'eStatus',        'type'=>'S'],
                    ['col'=>'sExtra',         'type'=>'S'],
-                   ['col'=>'sStagedAddrs',   'type'=>'S'] ];
+                   ['col'=>'sAddresses',     'type'=>'S'] ];
 
         $fldMS = [ ['col'=>'fk_SEEDMail',    'type'=>'K'],
-                   ['col'=>'email_to',       'type'=>'S'],
-                   ['col'=>'vars',           'type'=>'S'],
+                   ['col'=>'sTo',            'type'=>'S'],
+                   ['col'=>'sVars',          'type'=>'S'],
                    ['col'=>'eStageStatus',   'type'=>'S'],
-                   ['col'=>'iResult',        'type'=>'S'],
-                   ['col'=>'ts_sent',        'type'=>'S'],
+                   ['col'=>'iResult',        'type'=>'I'],
+                   ['col'=>'tsSent',         'type'=>'S'],
                    ['col'=>'sExtra',         'type'=>'S'] ];
 
         $raKfrel = [];
@@ -69,11 +67,11 @@ CREATE TABLE SEEDMail (
         _status     INTEGER DEFAULT 0,
 
     sBody           TEXT,              # Message body can be text or a DocRep doc id/name
-    email_from      VARCHAR(100),      # From:
-    email_subject   VARCHAR(200),      # Subject:  (can contain SEEDTags expanded per-recipient)
+    sFrom           VARCHAR(100),      # From:
+    sSubject        VARCHAR(200),      # Subject:  (can contain SEEDTags expanded per-recipient)
     eStatus         enum('NEW','APPROVE','READY','SENDING','DONE') DEFAULT 'NEW',
     sExtra          TEXT,              # urlencoded extensions e.g. cc, bcc (which can be comma-separated lists)
-    sStagedAddrs    TEXT,              # list of addresses/keys while mail is being set up
+    sAddresses      TEXT,              # list of addresses/keys while mail is being set up
     sResults        VARCHAR(200)       # urlencoded summary of results e.g. SENT=25&FAILED=0 (details of each send are logged and SEEDMail_Staged rows are deleted eventually)
 );
 ";
@@ -90,11 +88,11 @@ CREATE TABLE SEEDMail_Staged (
 
     fk_SEEDMail     INTEGER NOT NULL,
 
-    email_to        TEXT,              # To: email address or numeric key of some other table (can contain comma-separated list of multiple recipients)
-    vars            TEXT,              # url-encoded string of variables to be applied to the message body and email_subject
+    sTo             TEXT,              # To: email address or numeric key of some other table (can contain comma-separated list of multiple recipients)
+    sVars           TEXT,              # url-encoded string of variables to be applied to the message body and email_subject
     eStageStatus    enum('READY','SENDING','SENT','FAILED') DEFAULT 'READY',
     iResult         INTEGER DEFAULT 0, # return value from smtp
-    ts_sent         TIMESTAMP,
+    tsSent          TIMESTAMP,
     sExtra          TEXT,              # urlencoded extensions e.g. cc, bcc (which can be comma-separated lists)
 
     INDEX (fk_SEEDMail,eStageStatus)   # optimize grouping by message, also lookup for a READY recipient of a given message
