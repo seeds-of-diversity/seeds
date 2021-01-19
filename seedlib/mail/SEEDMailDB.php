@@ -1,13 +1,13 @@
 <?php
 
-/* SEEDMailer database access
+/* SEEDMail database access
  *
  * Copyright (c) 2010-2021 Seeds of Diversity Canada
  */
 
 
-class SEEDMailerDB extends Keyframe_NamedRelations
-/*****************
+class SEEDMailDB extends Keyframe_NamedRelations
+/***************
  */
 {
     private $dbname = "";
@@ -56,7 +56,7 @@ class SEEDMailerDB extends Keyframe_NamedRelations
 }
 
 
-class SEEDMailerDB_Create
+class SEEDMailDB_Create
 {
 const SEEDS2_DB_TABLE_SEEDMAIL =
 "

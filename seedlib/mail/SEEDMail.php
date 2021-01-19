@@ -1,13 +1,15 @@
 <?php
 
-/* SEEDMailer
+/* SEEDMail.php
+ *
+ * Manage sending email via SEEDMail
  *
  * Copyright (c) 2010-2021 Seeds of Diversity Canada
  */
 
-include_once( "SEEDMailerDB.php" );
+include_once( "SEEDMailDB.php" );
 
-class SEEDMailer
+class SEEDMail
 {
     private $oApp;
     private $oDB;
@@ -15,7 +17,7 @@ class SEEDMailer
     function __construct( SEEDAppConsole $oApp, $k )
     {
         $this->oApp = $oApp;
-        $this->oDB = new SEEDMailerDB( $oApp );
+        $this->oDB = new SEEDMailDB( $oApp );
     }
 
     function NewMail( $raParms )
@@ -42,7 +44,7 @@ class SEEDMailer
     }
 }
 
-class SEEDMailerSend
+class SEEDMailSend
 {
     private $oApp;
     private $oDB;
@@ -50,7 +52,7 @@ class SEEDMailerSend
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
-        $this->oDB = new SEEDMailerDB( $oApp );
+        $this->oDB = new SEEDMailDB( $oApp );
     }
 
     function SendOne()

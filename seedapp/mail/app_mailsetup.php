@@ -16,7 +16,7 @@ if( !defined( "SEEDROOT" ) ) {
 
 include_once( SEEDCORE."console/console02.php" );
 include_once( "SEEDMailUI.php" );
-include_once( SEEDLIB."mail/SEEDMailer.php" );
+include_once( SEEDLIB."mail/SEEDMail.php" );
 
 $consoleConfig = [
     'CONSOLE_NAME' => "mailsetup",
