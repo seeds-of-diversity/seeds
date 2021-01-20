@@ -32,7 +32,7 @@ class SEEDMailDB extends Keyframe_NamedRelations
                    ['col'=>'sAddresses',     'type'=>'S'] ];
 
         $fldMS = [ ['col'=>'fk_SEEDMail',    'type'=>'K'],
-                   ['col'=>'sTo',            'type'=>'S'],
+                   ['col'=>'sTo',            'type'=>'S'],      // email address | kMbr
                    ['col'=>'sVars',          'type'=>'S'],
                    ['col'=>'eStageStatus',   'type'=>'S'],
                    ['col'=>'iResult',        'type'=>'I'],

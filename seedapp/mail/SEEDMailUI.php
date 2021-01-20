@@ -123,6 +123,7 @@ class SEEDMailUI
         $oFE = new SEEDFormExpand( $this->oMailItemForm );
         $s .= "<form method='post' action='{$this->oApp->PathToSelf()}'>"
              .$this->oMailItemForm->HiddenKey()
+             ."<input type='hidden' name='kMail' value='{$this->oMailItemForm->GetKey()}'/>"
              ."<div class='container-fluid'>"
              .$oFE->ExpandForm(
                     "<table class='mailitem-form-table'>"

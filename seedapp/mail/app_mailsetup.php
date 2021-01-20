@@ -21,8 +21,8 @@ include_once( SEEDLIB."mail/SEEDMail.php" );
 $consoleConfig = [
     'CONSOLE_NAME' => "mailsetup",
     'HEADER' => "Bulk Mailer",
-    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
-                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
+    'HEADER_LINKS' => [ [ 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ],
+                        [ 'href' => 'app_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ] ],
     'TABSETS' => ['main'=> ['tabs' => [ 'pending' => ['label'=>'Pending'],
                                         'sent'    => ['label'=>'Sent'],
                                         'ghost'   => ['label'=>'Ghost']
