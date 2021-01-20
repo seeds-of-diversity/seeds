@@ -41,6 +41,9 @@ if( defined("SEED_APP_BOOT_REQUIRED") ) {
     require_once $fMyConfig;
 }
 
+// Was this script run from the command line or from a web server
+define("SEED_isCLI", php_sapi_name() == 'cli' );
+
 // Good to know. substr is necessary because SERVER_NAME can have a port number.
 // Note: direct php execution (e.g. cron) doesn't set SERVER_NAME so it will always appear to be non-local
 define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"],0,9) == "localhost") ? true : false));
