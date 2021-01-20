@@ -291,6 +291,21 @@ class KeyFrame_Relation
         return( $this->makeSelect( $cond, $parms ) );
     }
 
+    function GetCount( $cond = "", $parms = [] )
+    /*******************************************
+        For the same query that CreateRecordCursor would use, get the number of records that would be returned
+     */
+    {
+        $n = 0;
+
+        if( ($kfrc = $this->CreateRecordCursor( $cond, $parms )) ) {
+            $n = $kfrc->CursorNumRows();
+            $kfrc->CursorClose();
+        }
+
+        return( $n );
+    }
+
     function CreateRecord()
     /**********************
         Return an empty KeyframeRecord
@@ -1364,6 +1379,7 @@ class KeyframeRelationView
      */
     {
         if( !$this->numRowsCache ) {
+// same as kfrel->GetCount()
             if( ($kfrc = $this->kfrel->CreateRecordCursor( $this->p_sCond, $this->raViewParms )) ) {
                 $this->numRowsCache = $kfrc->CursorNumRows();
                 $kfrc->CursorClose();
@@ -1459,6 +1475,15 @@ class Keyframe_NamedRelations
 
         return( $raOut );
     }
+
+    function GetCount( $sRel, $sCond, $raKFParms = [] )
+    /**************************************************
+        Return the number of rows that would be fetched if this were e.g. GetList() but save time by not fetching the rows
+     */
+    {
+        return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetCount( $sCond, $raKFParms ) : 0 );
+    }
+
 
     protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     // logfile can be blank if only reading, or ignored if derived method knows it
