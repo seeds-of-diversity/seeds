@@ -8,6 +8,7 @@
  */
 
 include_once( SEEDROOT.'Keyframe/KeyframeForm.php' );
+include_once( SEEDLIB.'mail/SEEDMail.php' );
 
 class SEEDMailUI
 {
@@ -34,7 +35,8 @@ class SEEDMailUI
 
         $this->oMailItemForm = new KeyframeForm( $this->oDB->KFRel('M'), 'M', ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreMailItem']]] );
 
-        if( SEEDInput_Str('cmd') == 'CreateMail' ) {
+        $cmd = SEEDInput_Str('cmd');
+        if( $cmd == 'CreateMail' ) {
             // store an empty mail record and make it current
             $oM = new SEEDMail( $this->oApp, 0 );
             $this->kMail = $oM->Store( ['sSubject'=>'New'] );
@@ -42,8 +44,15 @@ class SEEDMailUI
         } else {
             $this->oMailItemForm->Update();
 
-            if( ($kfr = $this->oDB->GetKFR('M', $this->kMail)) ) {
+            if( $this->kMail && ($kfr = $this->oDB->GetKFR('M', $this->kMail)) ) {
                 $this->oMailItemForm->SetKFR( $kfr );
+            }
+        }
+
+        if( $cmd == 'Approve' ) {
+            if( $this->kMail ) {
+                $oM = new SEEDMail( $this->oApp, $this->kMail );
+                $oM->StageMail();
             }
         }
     }
@@ -73,13 +82,27 @@ class SEEDMailUI
         $raM = $this->oDB->GetList( 'M', $cond );
 
         foreach( $raM as $ra ) {
-            $sClass = $ra['_key'] == $this->CurrKMail() ? "maillist-item-selected" : "";
+            $bCurr = $ra['_key'] == $this->CurrKMail();
+            $sClass = $bCurr ? "maillist-item-selected" : "";
+
+            $sLeft = "{$ra['_key']}<br/>{$ra['eStatus']}<br/>".substr($ra['_created'],0,10);
+            $sMiddle = "Subject: <strong>{$ra['sSubject']}</strong><br/>"
+                      ."From: {$ra['sFrom']}<br/>"
+                      .($ra['eStatus']<>'NEW' ? ("To: ".$this->oDB->GetCount('MS', "fk_SEEDMail='{$ra['_key']}'")." recipients<br/>") : "")
+                      ."Doc: {$ra['sBody']}<br/>"
+                      ;
+            $buttonApprove = $ra['eStatus'] == 'NEW'
+                        ? ("<form action=''>
+                            <input type='hidden' name='cmd' value='Approve'/>
+                            <input type='submit' value='Approve'".($bCurr?"":"disabled")."/></form>")
+                        : "";
             $s .= "<div class='maillist-item $sClass'
                         onclick='location.replace(\"{$this->oApp->PathToSelf()}?kMail={$ra['_key']}\");'>"
-                     ."Message {$ra['_key']}<br/>"
-                     ."Subject: <strong>{$ra['sSubject']}</strong><br/>"
-                     ."From: {$ra['sFrom']}<br/>"
-
+                     ."<div class='row'>"
+                         ."<div class='col-md-2'>$sLeft</div>"
+                         ."<div class='col-md-8'>$sMiddle</div>"
+                         ."<div class='col-md-2'>$buttonApprove</div>"
+                     ."</div>"
                  ."</div>";
         }
 
@@ -103,7 +126,7 @@ class SEEDMailUI
              ."<div class='container-fluid'>"
              .$oFE->ExpandForm(
                     "<table class='mailitem-form-table'>"
-                   ."<tr><td style='width:50%'>Document: <br/> [[Text:docnum]]</td><td><div style='background-color:#bde'>Document name or number</div></td></tr>"
+                   ."<tr><td style='width:50%'>Document: <br/> [[Text:sBody]]</td><td><div style='background-color:#bde'>Document name or number</div></td></tr>"
                    ."<tr><td style='width:50%'>From: <br/> [[Text:sFrom]]</td><td><input type='submit' value='Save'/></td></tr>"
                    ."<tr><td colspan='2'>Subject: <br/> [[Text:sSubject | width:100%]]</td></tr>"
                    ."<tr><td colspan='2'>Email addresses / member numbers: <br/> [[TextArea:sAddresses | width:100% nRows:20]]</td></tr>"

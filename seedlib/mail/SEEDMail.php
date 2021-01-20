@@ -44,9 +44,21 @@ class SEEDMail
         return( $this->kfr->PutDBRow() ? $this->kfr->Key() : 0 );
     }
 
-    function StageMail( $kMail )
+    function StageMail()
     {
+        if( !$this->kfr )  goto done;
 
+        $raAddr = explode( "\n", $this->kfr->Value('sAddresses') );
+        foreach( $raAddr as $e ) {
+            $e = trim($e);
+
+            $oMS = new SEEDMailStaged( $this );
+            $oMS->Store( ['fk_SEEDMail'=>$this->kfr->Key(), 'eStageStatus'=>'READY', 'sTo'=>$e] );
+        }
+        $this->Store( ['eStatus'=>'READY'] );
+
+        done:
+        return;
     }
 
     function DeleteMail( $kMail )
@@ -68,7 +80,7 @@ class SEEDMailStaged
     function __construct( SEEDMail $oSMail )
     {
         $this->oSMail = $oSMail;
-        $this->oDB = new SEEDMailDB( $oApp );
+        $this->oDB = new SEEDMailDB( $oSMail->oApp );
     }
 
     function Store( $raParms )
@@ -81,6 +93,7 @@ class SEEDMailStaged
             $this->kfr->SetValue( $k, $v );
         }
         $this->kfr->SetValue('fk_SEEDMail', $this->oSMail->Key() );
+        if( !$this->kfr->Value('tsSent') ) $this->kfr->SetNull('tsSent');   // force NULL for db
         $this->kfr->PutDBRow();
     }
 }

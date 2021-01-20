@@ -92,7 +92,7 @@ CREATE TABLE SEEDMail_Staged (
     sVars           TEXT,              # url-encoded string of variables to be applied to the message body and email_subject
     eStageStatus    enum('READY','SENDING','SENT','FAILED') DEFAULT 'READY',
     iResult         INTEGER DEFAULT 0, # return value from smtp
-    tsSent          TIMESTAMP,
+    tsSent          TIMESTAMP NULL,
     sExtra          TEXT,              # urlencoded extensions e.g. cc, bcc (which can be comma-separated lists)
 
     INDEX (fk_SEEDMail,eStageStatus)   # optimize grouping by message, also lookup for a READY recipient of a given message
