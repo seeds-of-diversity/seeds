@@ -111,7 +111,16 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_right_text_ContentDraw()
     {
-        return( "<div style='padding:20px'>BBB</div>" );
+        $sMessageText = "";
+
+        if( $this->oMailUI->CurrKMail() ) {
+            $oM = new SEEDMail( $this->oMailUI->oApp, $this->oMailUI->CurrKMail() );
+            $sMessageText = $oM->GetMessageText();
+        }
+
+
+
+        return( "<div style='padding:20px'>$sMessageText</div>" );
     }
 }
 

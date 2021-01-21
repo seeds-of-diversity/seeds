@@ -8,6 +8,7 @@
  */
 
 include_once( "SEEDMailDB.php" );
+include_once( SEEDROOT."DocRep/DocRep.php" );
 
 class SEEDMail
 /*************
@@ -28,6 +29,25 @@ class SEEDMail
     function Key()  { return( $this->kfr->Key() ); }
 
     function GetKFR()  { return($this->kfr); }
+
+    function GetMessageText()
+    {
+        $s = $this->kfr ? $this->kfr->Value('sBody') : "";
+
+        if( SEEDCore_StartsWith( $s, "DocRep:" ) ) {
+            $ra = explode( ":", $s );
+            $db = @$ra[1];
+            $docid = @$ra[2];
+
+            if( $docid ) {
+                $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp, ['bReadonly'=>true] );
+                $oDoc = new DocRepDoc2( $oDocRepDB, $docid );
+                $s = $oDoc->GetText('');
+            }
+        }
+
+        return( $s );
+    }
 
     function Store( $raParms )
     /*************************

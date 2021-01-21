@@ -12,7 +12,7 @@ include_once( SEEDLIB.'mail/SEEDMail.php' );
 
 class SEEDMailUI
 {
-    private $oApp;
+    public  $oApp;
     private $oDB;
     private $kMail = 0;
     private $oMailItemForm;
