@@ -13,6 +13,7 @@ if( !defined( "SEEDROOT" ) ) {
     include_once( SEEDROOT."seedConfig.php" );
 }
 
+include_once( SEEDROOT."DocRep/DocRep.php" );
 include_once( SEEDROOT."DocRep/DocRepUI.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
@@ -79,7 +80,6 @@ class DocManagerTabSet extends Console02TabSet
 class DocManApp extends DocRepApp1
 {
     private $oApp;
-    private $oDocRepDB;
     private $oDocRepUI;
 
     function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc, DocRepDB2 $oDB, DocManDocRepUI $oUI )
@@ -153,7 +153,7 @@ class DocManagerUI
     function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc )
     {
         $this->oApp = $oApp;
-        $oDocRepDB = new DocRepDB2( $oApp->kfdb, $oApp->sess->GetUID(), array( 'raPermClassesR'=>array(1), 'logdir'=>$oApp->logdir ) );
+        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
         $oDocRepUI = new DocManDocRepUI( $oDocRepDB );
 
         $this->oDocMan = new DocManApp( $oApp, $kSelectedDoc, $oDocRepDB, $oDocRepUI );

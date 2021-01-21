@@ -2,7 +2,7 @@
 
 /* DocRepDB
  *
- * Copyright (c) 2006-2018 Seeds of Diversity Canada
+ * Copyright (c) 2006-2021 Seeds of Diversity Canada
  *
  * Manipulate DocRep documents at the database level.
  * DocRepDB methods guarantee that the integrity of the DocRepository is maintained. i.e. they clean up after errors.
@@ -83,16 +83,19 @@ class DocRepDB2 extends DocRep_DB
     private $oRel;
     private $raDRDocsCache = array();
 
-    function __construct( KeyframeDatabase $kfdb, $uid, $parms = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $parms = array() )
     {
-        parent::__construct( $kfdb, $uid, $parms );
+        $logdir = $parms['logdir'] = (@$parms['logdir'] ?: $oApp->logdir);
+        $dbname = @$parms['db'] ? $oApp->GetDBName($parms['db']) : "";      // if blank DocRepDB uses the $oApp default connection
+
+        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $parms );
 
         $this->parms['raPermsR'] = $this->raPermsR;     // old docrep accesses this via $this->raPermsR, new docrep accesses it via parms['raPermsR']
         $this->parms['raPermsW'] = $this->raPermsW;
         if( !@$this->parms['bPermclass_allaccess'] )   $this->parms['bPermclass_allaccess'] = false;
         if( !@$this->parms['bPermclass0_allaccess'] )  $this->parms['bPermclass0_allaccess'] = false;
 
-        $this->oRel = new drRel( $kfdb, $uid, @$parms['sDB'], @$parms['logdir'] );
+        $this->oRel = new drRel( $oApp->kfdb, $oApp->sess->GetUID(), $dbname, $logdir );
     }
 
     function GetRel()   { return( $this->oRel ); }
@@ -666,6 +669,7 @@ class DocRepDoc2_ReadOnly
         Get kfr for doc X data with no permission check
      */
     {
+//$this->oDocRepDB->kfdb->SetDebug(2);
         if( empty($flagOrVer) ) {
             /* Get Doc and Data for the maxVer
              */
@@ -684,10 +688,10 @@ class DocRepDoc2_ReadOnly
              */
             $kfrel = $this->oDocRepDB->GetRel()->GetKFrel('Doc X Dxd X Data');  // doc x dxd x data
             $colnameKey = $kfrel->GetDBColName( "docrep2_docs", "_key" );
-            $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND DXD.flag='$flagOrVer'" );
+            $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND Dxd.flag='$flagOrVer'" );
         }
 
-        if( !$kfrDoc && $this->bDebug )  die( "Cannot find doc $kDoc:".(empty($flagOrVer) ? "maxVer" : $flagOrVer) );
+        if( !$kfrDoc && $this->bDebug )  var_dump( "Cannot find doc $kDoc:".(empty($flagOrVer) ? "maxVer" : $flagOrVer) );
 
         return( $kfrDoc );
     }
