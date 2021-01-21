@@ -10,7 +10,7 @@
  *
  */
 
-
+include_once( "DocRepDB.php" );
 
 class DocRepUI
 /*************
