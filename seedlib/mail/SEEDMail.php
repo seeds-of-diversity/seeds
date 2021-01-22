@@ -30,23 +30,52 @@ class SEEDMail
 
     function GetKFR()  { return($this->kfr); }
 
-    function GetMessageText()
+    function GetMessageText( $raParms = [] )    // blank is the default behaviour
     {
-        $s = $this->kfr ? $this->kfr->Value('sBody') : "";
+        $s = "";
 
-        if( SEEDCore_StartsWith( $s, "DocRep:" ) ) {
-            $ra = explode( ":", $s );
+        if( $this->kfr ) {
+            $s = $this->kfr->Value('sBody');
+            $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
+            $s = self::ExpandMessage( $this->oApp, $s, ['raVars'=>$raVars] );
+        }
+
+        return( $s );
+    }
+
+    static function ExpandMessage( SEEDAppSessionAccount $oApp, $sMsg, $raParms )
+    /****************************************************************************
+        If the given string is a docrep code, fetch it.
+        Expand SEEDTags in the message.
+
+        N.B. This is used by SEEDMail and SEEDMailStaged, or whereever message texts are retrieved so it cannot depend on
+             any local state (e.g. the local kfr)
+     */
+    {
+        $bDocRepFetch = SEEDCore_ArraySmartBool( $raParms, 'bDocRepFetch', true );  // fetch docrep by default (if it's a docrep code)
+        $bExpandTags  = SEEDCore_ArraySmartBool( $raParms, 'bExpandTags', true );   // expand tags by default
+        $raVars       = @$raParms['raVars'] ?: [];
+
+        if( $bDocRepFetch && SEEDCore_StartsWith( $sMsg, "DocRep:" ) ) {
+            $ra = explode( ":", $sMsg );
             $db = @$ra[1];
             $docid = @$ra[2];
 
             if( $docid ) {
-                $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp, ['bReadonly'=>true] );
+                $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp, ['bReadonly'=>true, 'db'=>$db] );
                 $oDoc = new DocRepDoc2( $oDocRepDB, $docid );
-                $s = $oDoc->GetText('');
+                $sMsg = $oDoc->GetText('');
             }
         }
 
-        return( $s );
+        if( $bExpandTags ) {
+            include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
+
+            $oTmpl = (new SoDMasterTemplate( $oApp, [] ))->GetTmpl();  // shouldn't need any setup parms, just variables
+            $sMsg = $oTmpl->ExpandStr( $sMsg, $raVars );
+        }
+
+        return( $sMsg );
     }
 
     function Store( $raParms )
@@ -168,13 +197,7 @@ class SEEDMailSend
             goto done;
         }
 
-        if( SEEDCore_StartsWith( $kfrStage->Value('M_sBody'), 'DocRep' ) ) {
-            // $sBody = retrieve sBody from docrep
-        } else {
-            $sBody = $kfrStage->Value('M_sBody');
-        }
 
-        include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
         $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );
         // array( 'kMbrTo' => $kMbr, 'lang'=>$lang )
         //$raMT['EnableSEEDSession']['oSessTag'] = new SEEDSessionAccountTag( $this->kfdb1, $uid, array( 'bAllowKMbr'=>true, 'bAllowPwd'=>true ) );
@@ -182,9 +205,7 @@ class SEEDMailSend
         //$oDocRepWiki->AddVar( 'kMbrTo', $kMbr );
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
         //$oDocRepWiki->AddVar( 'sEmailSubject', $sEmailSubject );
-
-        $oTmpl = (new SoDMasterTemplate( $this->oApp, [] ))->GetTmpl();  // shouldn't need any setup parms, just variables
-        $sBody = $oTmpl->ExpandStr( $sBody, $raVars );
+        $sBody = SEEDMail::ExpandMessage( $this->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
 
         $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, [] );
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()

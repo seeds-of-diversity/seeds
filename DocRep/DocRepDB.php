@@ -674,8 +674,11 @@ class DocRepDoc2_ReadOnly
             /* Get Doc and Data for the maxVer
              */
             $kfrel = $this->oDocRepDB->GetRel()->GetKfrel('Doc X Data');   // doc x data
-            $colnameKey     = $kfrel->GetDBColName( "docrep2_docs", "_key" );
-            $colnameTopData = $kfrel->GetDBColName( "docrep2_docs", "kData_top" );
+            // Tried to do it this way, but it's hard to tell whether the first arg should be seeds.docrep2_docs, seeds2.docrep_docs or docrep2_docs
+            //$colnameKey     = $kfrel->GetDBColName( "docrep2_docs", "_key" );
+            //$colnameTopData = $kfrel->GetDBColName( "docrep2_docs", "kData_top" );
+            $colnameKey     = 'Doc._key';
+            $colnameTopData = 'Doc.kData_top';
             $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND $colnameTopData=Data._key" );
         } else if( is_numeric($flagOrVer) ) {
             /* Get Doc and Data for the given numbered version
@@ -687,7 +690,8 @@ class DocRepDoc2_ReadOnly
             /* Get Doc and Data for the flagged DXD
              */
             $kfrel = $this->oDocRepDB->GetRel()->GetKFrel('Doc X Dxd X Data');  // doc x dxd x data
-            $colnameKey = $kfrel->GetDBColName( "docrep2_docs", "_key" );
+            //$colnameKey = $kfrel->GetDBColName( "docrep2_docs", "_key" );
+            $colnameKey = 'Doc._key';
             $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND Dxd.flag='$flagOrVer'" );
         }
 
@@ -1001,6 +1005,8 @@ class drRel extends Keyframe_NamedRelations
         if( $sDB ) $this->sDB = $sDB.".";
         parent::__construct( $kfdb, $uid, $logdir );
     }
+
+    function DBName()  { return( $this->sDB ); }
 
     protected function initKfrel( KeyFrameDatabase $kfdb, $uid, $logdir )
     {
