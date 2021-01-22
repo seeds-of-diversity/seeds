@@ -58,6 +58,7 @@ $consoleConfig = [
 $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2',
                                    'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
+SEEDPRG();
 
 $oMailUI = new SEEDMailUI( $oApp );
 $oMailUI->Init();
