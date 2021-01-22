@@ -30,6 +30,7 @@ class Mbr_Contacts
         'email'      => ['l_en'=>'Email'],
         'phone'      => ['l_en'=>'Phone'],
         'lang'       => ['l_en'=>'Language'],
+        '_key'       => ['l_en'=>'Contact #']
     ];
 
     private $raFldsOffice = [
