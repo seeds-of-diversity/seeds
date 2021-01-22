@@ -63,7 +63,7 @@ class SEEDMail
 
             if( $docid ) {
                 $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp, ['bReadonly'=>true, 'db'=>$db] );
-                $oDoc = new DocRepDoc2( $oDocRepDB, $docid );
+                $oDoc = $oDocRepDB->GetDoc($docid); // new DocRepDoc2( $oDocRepDB, $docid );
                 $sMsg = $oDoc->GetText('');
             }
         }
@@ -71,7 +71,7 @@ class SEEDMail
         if( $bExpandTags ) {
             include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
             include_once( SEEDCORE."SEEDSessionAccountTag.php" );
-$raVars['kMbrTo']=2;
+
             // override the default cautious SessionAccountTagHander with this more permissive one
             $raConfig = ['oSessionAccountTag' => new SEEDSessionAccountTagHandler($oApp,
                                                         ['bAllowKMbr'=>true, 'bAllowPwd'=>true,
@@ -154,6 +154,7 @@ class SEEDMailStaged
 
 
 include_once( SEEDCORE."SEEDEmail.php" );
+include_once( SEEDLIB."mbr/MbrContacts.php" );
 class SEEDMailSend
 {
     private $oApp;
@@ -184,13 +185,13 @@ class SEEDMailSend
 
         $kMail = $kfrStage->Value('fk_SEEDMail');   // master SEEDMail record for this email
 
-        /* sTo is one of: kMbr, email, (email,email,...)
-         *
-         * if is_numeric, convert the single kMbr to an email, otherwise just use sTo
+        /* sTo is either kMbr or email. Use Mbr_Contacts to try to get full contact info, otherwise just use email.
          */
-        if( is_numeric($sTo = $kfrStage->Value('sTo')) ) {
-            // use Mbr_Contacts to get the email
-        }
+        $oMbrContacts = new Mbr_Contacts( $this->oApp );
+        $raMbr = $oMbrContacts->GetBasicValues( $kfrStage->Value('sTo') );
+
+        $sTo = @$raMbr['email'] ?: $kfrStage->Value('sTo');
+        $kMbrTo = intval(@$raMbr['_key']);
         $sFrom = $kfrStage->Value("M_sFrom");
         $sSubject = $kfrStage->Value("M_sSubject");
 
@@ -204,7 +205,9 @@ class SEEDMailSend
 
 
         $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );
-        // array( 'kMbrTo' => $kMbr, 'lang'=>$lang )
+        $raVars['kMbrTo'] = $kMbrTo;
+$raVars['lang'] = $this->oApp->lang;
+
         //$oDocRepWiki->AddVars( $raDRVars );
         //$oDocRepWiki->AddVar( 'kMbrTo', $kMbr );
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
