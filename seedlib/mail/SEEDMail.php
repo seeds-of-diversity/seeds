@@ -70,8 +70,13 @@ class SEEDMail
 
         if( $bExpandTags ) {
             include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
-
-            $oTmpl = (new SoDMasterTemplate( $oApp, [] ))->GetTmpl();  // shouldn't need any setup parms, just variables
+            include_once( SEEDCORE."SEEDSessionAccountTag.php" );
+$raVars['kMbrTo']=2;
+            // override the default cautious SessionAccountTagHander with this more permissive one
+            $raConfig = ['oSessionAccountTag' => new SEEDSessionAccountTagHandler($oApp,
+                                                        ['bAllowKMbr'=>true, 'bAllowPwd'=>true,
+                                                         'db'=>'seeds1'])];
+            $oTmpl = (new SoDMasterTemplate( $oApp, $raConfig ))->GetTmpl();
             $sMsg = $oTmpl->ExpandStr( $sMsg, $raVars );
         }
 
@@ -200,7 +205,6 @@ class SEEDMailSend
 
         $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );
         // array( 'kMbrTo' => $kMbr, 'lang'=>$lang )
-        //$raMT['EnableSEEDSession']['oSessTag'] = new SEEDSessionAccountTag( $this->kfdb1, $uid, array( 'bAllowKMbr'=>true, 'bAllowPwd'=>true ) );
         //$oDocRepWiki->AddVars( $raDRVars );
         //$oDocRepWiki->AddVar( 'kMbrTo', $kMbr );
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
@@ -209,7 +213,7 @@ class SEEDMailSend
 
         $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, [] );
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()
-        $kfrStage->SetValue( "eStageStatus", $ok ? "SENT" : "FAILED");
+        //$kfrStage->SetValue( "eStageStatus", $ok ? "SENT" : "FAILED");
         $kfrStage->PutDBRow();
         $this->oApp->kfdb->Execute( "UPDATE {$this->dbname}.SEEDMail_Staged SET tsSent=NOW() WHERE _key='{$kfrStage->Key()}'" );
         $this->oApp->Log( "mailsend.log", $kfrStage->Expand( "[[_key]] [[fk_SEEDMail]] [[eStageStatus]] [[sTo]] [[tsSent]]" ) );

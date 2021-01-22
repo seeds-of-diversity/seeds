@@ -18,7 +18,7 @@ class SoDMasterTemplate
 
     private $oDesc = null;
 
-    function __construct( SEEDAppSessionAccount $oApp, $raParms )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig )
     {
         $this->oApp = $oApp;
 
@@ -26,7 +26,7 @@ class SoDMasterTemplate
          *
          *
          *
-         *  $raParms['raSEEDTemplateMakerParms'] defines any resolvers etc that should precede the usual resolvers, as well as any
+         *  $raConfig['raSEEDTemplateMakerParms'] defines any resolvers etc that should precede the usual resolvers, as well as any
          * special parms for the SEEDTemplateMaker.
          *
          * EnableDocRep :
@@ -40,39 +40,48 @@ class SoDMasterTemplate
          *
          * EnableSEEDForm  : define this in raSEEDTemplateMakerParms for now
          *
-         * EnableSEEDSession : give info about the current user, or another user
-         *
          * The BasicResolver is enabled by default.
          */
-        $raTmplParms = SEEDCore_ArraySmartVal1( $raParms, 'raSEEDTemplateMakerParms', [] );    // empty array is the default value
+        $raTmplParms = SEEDCore_ArraySmartVal1( $raConfig, 'raSEEDTemplateMakerParms', [] );    // empty array is the default value
 
         $raTmplParms['fTemplates'][] = SEEDAPP."templates/seeds_sessionaccount.html";
 
         $raTmplParms['raResolvers'] = [
             // handler for SEEDContent:
             ['fn' => [$this,'ResolveTagSEEDContent'],
-             'raParms' => SEEDCore_ArraySmartVal1( $raParms, 'raResolverParms', [] )   // empty array is the default value
+             'raParms' => SEEDCore_ArraySmartVal1( $raConfig, 'raResolverParms', [] )   // empty array is the default value
             ],
 
             // handler for misc tags: msd, etc
             ['fn' => [$this,'ResolveTagMisc'],
-             'raParms' => SEEDCore_ArraySmartVal1( $raParms, 'raResolverParms', [] )   // empty array is the default value
+             'raParms' => SEEDCore_ArraySmartVal1( $raConfig, 'raResolverParms', [] )   // empty array is the default value
             ],
 
         ];
 
         // Add DocRepTagHandler
 
-        // Add SEEDSessionAccountTag handler
+        // SEEDSessionAccountTag handler - give information about the current user (or other users)
+        if( !@$raConfig['DisableSEEDSession'] ) {
+            // The default handler only reveals information about the current user, and not their password.
+            // You can provide a permissive handler here to show info for other users and/or show passwords.
+            if( !($oSessTag = @$raConfig['oSessionAccountTag']) ) {
+                include_once( SEEDCORE."SEEDSessionAccountTag.php" );
+                $oSessTag = new SEEDSessionAccountTagHandler( $this->oApp, [] );
+            }
+            $raTmplParms['raResolvers'][] = ['fn'=>[$oSessTag,'ResolveTagSessionAccount'], 'raParms'=>[] ];
+        }
+
+
 
         /* Basic resolver is enabled by default.
          * EnableBasicResolver=>'DISABLE' disables it.
          * EnableBasicResolver=>[parms] overrides default parms
          */
-        if( @$raParms['EnableBasicResolver'] != "DISABLE" ) {
+        if( @$raConfig['EnableBasicResolver'] != "DISABLE" ) {
             $raTmplParms['bEnableBasicResolver'] = true;
             $raTmplParms['raBasicResolverParms'] = ['LinkBase'=>"https://seeds.ca/", "ImgBase"=>"https://seeds.ca/d?n="]
-                                                    + (@$raParms['EnableBasicResolver'] ?: array());        // these overwrite the first array
+                                                    + (@$raConfig['EnableBasicResolver'] ?: array());        // these overwrite the first array
         }
         $this->oTmpl = SEEDTemplateMaker2( $raTmplParms );
     }
