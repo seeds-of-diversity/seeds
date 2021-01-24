@@ -7,7 +7,10 @@
  * Send email staged by mailsetup.
  *
  * Usage: 1) http://.../mailsend.php?nQuantity=5&nDelay20
- *        2) php -f mailsend.php nQuantity5 nDelay20
+ *        2) php -f mailsend.php -nQuantity5 -nDelay20
+
+ *  nQuantity = number of emails to send
+ *  nDelay    = seconds to delay between each send, and seconds to delay before http redirect
  */
 
 if( !defined( "SEEDROOT" ) ) {
@@ -29,16 +32,13 @@ $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>'seeds2'] );   // anon
 
 $s = "";
 
-/* Parms are obtained from either http or cli
- *  $nQuantity = number of emails to send
- *  $nDelay    = seconds to delay between each send, and seconds to delay before http redirect
- */
 if( SEED_isCLI ) {
-    if( SEEDCore_StartsWith( @$argv[1], 'nQuantity' ) ) { $nQuantity = intval( substr($argv[1],9) ); }
-    if( SEEDCore_StartsWith( @$argv[2], 'nQuantity' ) ) { $nQuantity = intval( substr($argv[2],9) ); }
-    if( SEEDCore_StartsWith( @$argv[1], 'nDelay' ) )    { $nDelay = intval( substr($argv[1],6) ); }
-    if( SEEDCore_StartsWith( @$argv[2], 'nDelay' ) )    { $nDelay = intval( substr($argv[2],6) ); }
+    // parms from command line e.g.  -nQuantity5 -nDelay20
+    $ra = getopts( "nQuantity:nDelay" );
+    $nQuantity = intval($ra['nQuantity']);
+    $nDelay    = intval($ra['nDelay']);
 } else {
+    // parms from http e.g. ?nQuantity=5&nDelay=20
     $nQuantity = SEEDInput_Int('nQuantity');
     $nDelay = SEEDInput_Int('nDelay');
 }
@@ -46,12 +46,39 @@ if( !$nQuantity ) $nQuantity = 1;
 
 
 $oMailSend = new SEEDMailSend( $oApp );
-while( $nQuantity-- ) {
-    list($ok, $s1) = $oMailSend->SendOne();
-    $s .= $s1;
+$nToSend = $oMailSend->GetCountReadyToSend();
 
-    if( $nDelay ) sleep($nDelay);
+
+function testMailHistory( SEEDAppConsole $oApp )  { return( [true,""] ); }
+
+
+$sBody = "<h2>Seeds of Diversity Bulk Mailer</h2>"
+        ."<p>There are $nToSend emails ready to send at ".date('Y-m-d H:i:s').".</p>";
+
+list($bTestOk,$sTest) = testMailHistory( $oApp );
+$sBody .= $sTest;
+
+$bSendMail = ($bTestOk && $nToSend);
+
+if( $bSendMail ) {
+    $sBody .= "<p>Sending one email every 20 seconds.</p>";
+    $sBody .= "<br/><br/>";
+
+    while( $bTestOk && $nQuantity-- ) {
+        ob_start();     // on dev installations catch the pretend-to-send output so it doesn't get sent before headers
+        list($ok, $s1) = $oMailSend->SendOne();
+        $oApp->oC->AddUserMsg( ob_get_contents() );
+        ob_end_clean();
+
+        $sBody .= $s1;
+
+        if( $nQuantity && $nDelay ) sleep($nDelay);
+    }
 }
 
+$sBody = $oApp->oC->DrawConsole($sBody);
 
-echo $s;
+echo Console02Static::HTMLPage( $sBody,
+                                //($bSendMail ? "<meta http-equiv='refresh' CONTENT='20; URL=https://seeds.ca/office/mbr/mbr_mailsend.php'>" : ""),
+                                ($bSendMail ? "<meta http-equiv='refresh' content='20'>" : ""),
+                                'EN', [] );

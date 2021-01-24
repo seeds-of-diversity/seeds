@@ -85,14 +85,16 @@ class SEEDMailUI
             $bCurr = $ra['_key'] == $this->CurrKMail();
             $sClass = $bCurr ? "maillist-item-selected" : "";
 
+            $oMail = new SEEDMail( $this->oApp, $ra['_key'] );
+
             $sLeft = "{$ra['_key']}<br/>{$ra['eStatus']}<br/>".substr($ra['_created'],0,10);
             $sMiddle = "Subject: <strong>{$ra['sSubject']}</strong><br/>"
                       ."From: {$ra['sFrom']}<br/>"
-                      .($ra['eStatus']<>'NEW' ? ("To: ".$this->oDB->GetCount('MS', "fk_SEEDMail='{$ra['_key']}'")." recipients<br/>") : "")
+                      .($ra['eStatus']<>'NEW' ? ("To: ".$oMail->GetCountStaged('READY')." unsent recipients<br/>") : "")
                       ."Doc: {$ra['sBody']}<br/>"
                       ;
             $buttonApprove = $ra['eStatus'] == 'NEW'
-                        ? ("<form action=''>
+                        ? ("<form action='' method='post'>
                             <input type='hidden' name='cmd' value='Approve'/>
                             <input type='submit' value='Approve'".($bCurr?"":"disabled")."/></form>")
                         : "";
