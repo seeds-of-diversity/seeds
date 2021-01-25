@@ -19,11 +19,17 @@ class SEEDMail
     private $oDB;
     private $kfr;
 
-    function __construct( SEEDAppConsole $oApp, $k )
+    function __construct( SEEDAppConsole $oApp, $keyOrName )
     {
         $this->oApp = $oApp;
         $this->oDB = new SEEDMailDB( $oApp );
-        $this->kfr = $k ? $this->oDB->GetKFR('M',$k) : $this->oDB->KFRel('M')->CreateRecord();
+
+        if( is_numeric($keyOrName) ) {
+            $this->kfr = $keyOrName ? $this->oDB->GetKFR('M',$keyOrName) : $this->oDB->KFRel('M')->CreateRecord();
+        } else {
+            $this->kfr = $this->oDB->GetKFRCond('M',"sName='{$this->oApp->kfdb->EscapeString($keyOrName)}'")
+                         ?: $this->oDB->KFRel('M')->CreateRecord();
+        }
     }
 
     function Key()  { return( $this->kfr->Key() ); }
@@ -41,6 +47,13 @@ class SEEDMail
         }
 
         return( $s );
+    }
+
+    function AddRecipient( $e )     // e can be email or kMbr
+    {
+        if( $this->kfr ) {
+            $this->Store(['sAddresses'=>$this->kfr->Value('sAddresses')."\n$e"]);
+        }
     }
 
     static function ExpandMessage( SEEDAppSessionAccount $oApp, $sMsg, $raParms )

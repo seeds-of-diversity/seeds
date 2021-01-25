@@ -95,7 +95,8 @@ class SEEDMailUI
             $oMail = new SEEDMail( $this->oApp, $ra['_key'] );
 
             $sLeft = "{$ra['_key']}<br/>{$ra['eStatus']}<br/>".substr($ra['_created'],0,10);
-            $sMiddle = "Subject: <strong>{$ra['sSubject']}</strong><br/>"
+            $sMiddle = ($ra['sName'] ? "<u>{$ra['sName']}</u><br/>" : "")
+                      ."Subject: <strong>{$ra['sSubject']}</strong><br/>"
                       ."From: {$ra['sFrom']}<br/>"
                       .($ra['eStatus']<>'NEW' ? ("To: ".$oMail->GetCountStaged('READY')." unsent recipients<br/>") : "")
                       ."Doc: {$ra['sBody']}<br/>"
@@ -126,7 +127,7 @@ class SEEDMailUI
     {
         $s = "<style>
               .mailitem-form-table    { width: 100%; }
-              .mailitem-form-table td { padding-bottom:10px }
+              .mailitem-form-table td { padding-bottom:10px; vertical-align:top }
              </style>
              ";
 
@@ -141,8 +142,8 @@ class SEEDMailUI
              .$oFE->ExpandForm(
                     "<table class='mailitem-form-table'>"
                    ."<tr><td style='width:50%'>Document: <br/> [[Text:sBody]]</td>
-                         <td>[[Checkbox:tmpSticky]] Retain message after sending</td></tr>"
-                   ."<tr><td style='width:50%'>From: <br/> [[Text:sFrom]]</td><td><input type='submit' value='Save'/></td></tr>"
+                         <td>Name:<br/>[[Text:sName]]<br/>[[Checkbox:tmpSticky]] Retain message after sending</td></tr>"
+                   ."<tr><td style='width:50%'>From: <br/> [[Text:sFrom]]</td><td><br/><input type='submit' value='Save'/></td></tr>"
                    ."<tr><td colspan='2'>Subject: <br/> [[Text:sSubject | width:100%]]</td></tr>"
                    ."<tr><td colspan='2'>Email addresses / member numbers: <br/> [[TextArea:sAddresses | width:100% nRows:20]]</td></tr>"
               )

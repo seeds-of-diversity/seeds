@@ -28,6 +28,7 @@ class SEEDMailDB extends Keyframe_NamedRelations
                    ['col'=>'sFrom',          'type'=>'S'],
                    ['col'=>'sSubject',       'type'=>'S'],
                    ['col'=>'eStatus',        'type'=>'S'],
+                   ['col'=>'sName',          'type'=>'S'],
                    ['col'=>'sExtra',         'type'=>'S'],
                    ['col'=>'sAddresses',     'type'=>'S'] ];
 
@@ -70,6 +71,7 @@ CREATE TABLE SEEDMail (
     sFrom           VARCHAR(100),      # From:
     sSubject        VARCHAR(200),      # Subject:  (can contain SEEDTags expanded per-recipient)
     eStatus         enum('NEW','APPROVE','READY','SENDING','DONE') DEFAULT 'NEW',
+    sName           VARCHAR(200),      # optional name for the message for reference by programs that set up email
     sExtra          TEXT,              # urlencoded extensions e.g. cc, bcc (which can be comma-separated lists)
     sAddresses      TEXT,              # list of addresses/keys while mail is being set up
     sResults        VARCHAR(200)       # urlencoded summary of results e.g. SENT=25&FAILED=0 (details of each send are logged and SEEDMail_Staged rows are deleted eventually)
