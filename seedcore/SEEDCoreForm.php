@@ -440,10 +440,23 @@ class SEEDCoreFormElements
 
     // Get/Set the datasource values
     public function Value( $k )    { return( $this->sfValue( $k ) ); }
+// implement all these variations in SEEDDataStore instead so they're available in PreStore callbacks
     public function ValueEnt( $k ) { return( $this->sfValueEnt( $k ) ); }
     public function ValueDB( $k )  { return( addslashes( $this->sfValue( $k ) ) ); }
     public function ValueInt( $k ) { return( intval($this->sfValue( $k )) ); }
+
     public function SetValue( $k, $v ) { return( $this->sfSetValue( $k, $v ) ); }
+
+    public function ValueURLParm( $u, $k )         // also implemented via SEEDDataStore urlparms config
+    {
+        // get the value of k out of the url-encoded parm u
+        return( SEEDCore_ParmsURLGet( $this->sfValue($u), $k ) );
+    }
+    public function SetValueURLParm( $u, $k, $v )  // also implemented via SEEDDataStore urlparms config
+    {
+        // put k=v into the url-encoded parm u
+        return( $this->sfSetValue($u, SEEDCore_ParmsURLAdd($this->sfValue($u), $k, $v)) );
+    }
 
     protected function sfValue( $k )     { return( NULL ); }    // Must override this in a derived class to get real parms from data storage (e.g. session vars, KFRecord)
     protected function sfValueEnt( $k )  { return( SEEDCore_HSC( $this->sfValue($k) ) ); }
