@@ -244,7 +244,8 @@ $raVars['lang'] = $this->oApp->lang;
         //$oDocRepWiki->AddVar( 'sEmailSubject', $sEmailSubject );
         $sBody = SEEDMail::ExpandMessage( $this->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
 
-        $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, [] );
+// either here or in SEEDEmail put <html><body> </body></html> around the message if it doesn't already have that
+        $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
 
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()
         $kfrStage->SetValue( "eStageStatus", $ok ? "SENT" : "FAILED");
