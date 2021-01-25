@@ -249,7 +249,6 @@ $raVars['lang'] = $this->oApp->lang;
          * Clear SEEDMail.sAddresses and the SEEDMail_Staged records because the relevant information has been logged and
          * these take a lot of space in the db.
          */
-        var_dump($oMail->GetCountStaged());
         if( !$oMail->GetCountStaged() ) {
             $oMail->Store( ['eStatus'=>'DONE'] );
             //$this->oApp->kfdb->Execute( "DELETE FROM {$this->dbname}.SEEDMail_Staged WHERE fk_SEEDMail='$kMail'" );
