@@ -74,7 +74,10 @@ CREATE TABLE SEEDMail (
     sName           VARCHAR(200),      # optional name for the message for reference by programs that set up email
     sExtra          TEXT,              # urlencoded extensions e.g. cc, bcc (which can be comma-separated lists)
     sAddresses      TEXT,              # list of addresses/keys while mail is being set up
-    sResults        VARCHAR(200)       # urlencoded summary of results e.g. SENT=25&FAILED=0 (details of each send are logged and SEEDMail_Staged rows are deleted eventually)
+    sResults        VARCHAR(200),      # urlencoded summary of results e.g. SENT=25&FAILED=0 (details of each send are logged and SEEDMail_Staged rows are deleted eventually)
+
+    INDEX (sName),
+    INDEX (eStatus)
 );
 ";
 
