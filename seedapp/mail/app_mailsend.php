@@ -6,7 +6,7 @@
  *
  * Send email staged by mailsetup.
  *
- * Usage: 1) http://.../mailsend.php?nQuantity=5&nDelay20
+ * Usage: 1) https://.../mailsend.php?nQuantity=5&nDelay20
  *        2) php -f mailsend.php -nQuantity5 -nDelay20
 
  *  nQuantity = number of emails to send

@@ -572,7 +572,7 @@ $sFooter      = $lang=='EN' ? "Seeds of Diversity is a registered charitable org
 
 // 2018-11 changed right: from 0.125in to 0.375in to prevent the right side cut off. 0.3in for the logo to make room for text at top
 $s = "
-<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
+<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='https://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
 <div class='s_title'>$sTitle</div>
 <div class='s_form'>
   <table>
@@ -973,7 +973,7 @@ $sFooter      = $lang=='EN' ? "Seeds of Diversity is a registered charitable org
 
 //<img style='float:right;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-en-bw-300x.png'/>
 $sTmpl = $sLocalStyle."
-<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='http://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
+<img style='position:absolute;top:0.125in;right:0.3in;width:0.75in' src='https://seeds.ca/i/img/logo/logoA_v-".($lang=='EN' ? "en":"fr")."-bw-300x.png'/>
 <div class='s_title'>[[Var:sTitle]]</div>
 <div class='s_form'>
   [[Var:sForm]]
