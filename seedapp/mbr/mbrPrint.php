@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020 Seeds of Diversity Canada
+ * Copyright 2020-2021 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -181,6 +181,8 @@ if( SEEDInput_Str('cmd') == 'printSFG2020Slips' ) {
 class MyConsole02TabSet extends Console02TabSet
 {
     private $oApp;
+    private $oW;
+
     private $o3UpMbr;
     private $o3UpDonors;
     private $oContacts;
@@ -235,6 +237,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donations_Init()         { $this->oW = new MbrDonationsListForm( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_donations_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_donations_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+
     function TabSet_main_donationsSL_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_donationsSL_ControlDraw(){ return( $this->oW->ControlDraw() ); }
     function TabSet_main_donationsSL_ContentDraw(){ return( $this->oW->ContentDraw() ); }
@@ -298,15 +301,8 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         return( true );
     }
 
-    function Init()
-    {
-        parent::Init();
-    }
-
-    function ControlDraw()
-    {
-        return( $this->DrawSearch() );
-    }
+    function Init()         { parent::Init(); }
+    function ControlDraw()  { return( $this->DrawSearch() ); }
 
     function ContentDraw()
     {
@@ -337,7 +333,9 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
             ." ||  ".$sReceiptInstructions
             ."|||ENDTABLE"
             ."[[hiddenkey:]]"
-            ."<input type='submit' value='Save'>".$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') );
+            ."<input type='submit' value='Save'>"
+            ."<br/><br/>"
+            .$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') );
 
         return( $s );
     }
@@ -346,8 +344,24 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
     {
         $s = "";
 
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$kMbr'" );
-        $s .= "<p>Mbr database:<br/>donation_receipt: ".@$ra['donation_receipt']."</p>";
+//        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$kMbr'" );
+//        $s .= "<p>Mbr database:<br/>donation_receipt: ".@$ra['donation_receipt']."</p>";
+
+        /* Show the order ticket for this donation
+         */
+        include_once( SEEDAPP."basket/basketProductHandlers.php" );
+        $oSB = new SEEDBasketCoreSoD( $this->oApp );
+        $oHandler = new SEEDBasketProductHandler_Donation( $oSB );
+        if( ($oPur = $oHandler->GetPurchaseFromKDonation( $kDonation )) &&
+            ($kB = $oPur->GetBasketKey()) &&
+            ($kOrder = $this->oApp->kfdb->Query1("SELECT _key FROM {$this->oApp->GetDBName('seeds1')}.mbr_order_pending WHERE kBasket='$kB'")) )
+        {
+            // this is coming from seedsx
+            include_once( SEEDCOMMON."mbr/mbrOrder.php" );
+            $kfdb = SiteKFDB();
+            $oMbrOrder = new MbrOrder( $this->oApp, $kfdb, "EN", $kOrder );
+            $s = $oMbrOrder->DrawTicket();
+        }
 
         return( $s );
     }
