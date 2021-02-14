@@ -41,6 +41,18 @@ class SEEDBasketProducts_SoD
 }
 
 
+class SEEDBasketCoreSoD extends SEEDBasketCore
+/*********************************************
+    Construct the SoD SEEDBasketCore
+ */
+{
+    function __construct( SEEDAppSessionAccount $oApp )
+    {
+        parent::__construct( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
+    }
+}
+
+
 
 class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler_Item1
 {
@@ -91,6 +103,18 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
     function PurchaseFulfil( SEEDBasket_Purchase $oPurchase )
     {
 
+    }
+
+    function GetPurchaseFromKDonation( $kDonation )
+    /**********************************************
+        kDonation is seeds2.mbr_donations._key; return seeds1.SEEDBasket_Purchase._key
+     */
+    {
+        $oPur = null;
+        if( ($kfrPur = $this->oSB->oDB->GetKFRCond('PURxP', "kRef='$kDonation' AND P.product_type='donation'")) ) {
+            $oPur = new SEEDBasket_Purchase_donation( $this->oSB, $kfrPur->Key() );
+        }
+        return( $oPur );
     }
 }
 
