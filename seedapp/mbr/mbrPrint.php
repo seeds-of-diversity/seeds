@@ -245,12 +245,16 @@ class MyConsole02TabSet extends Console02TabSet
 
 class MbrDonationsListForm extends KeyframeUI_ListFormUI
 {
+    private $oMbrDB;
+
     function __construct( SEEDAppConsole $oApp )
     {
+        $this->oMbrDB = new Mbr_ContactsDB($oApp);
+
         $raConfig = [
             'sessNamespace' => "Donations",
             'cid'   => 'D',
-            'kfrel' => (new Mbr_Contacts( $oApp ))->oDB->Kfrel('DxM'),
+            'kfrel' => $this->oMbrDB->Kfrel('DxM'),
             'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]],
 
             'raListConfig' => [
@@ -319,26 +323,65 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         $sReceiptInstructions = "<p style='font-size:x-small'>" //Receipt Instructions:<br/>"
                                ."-1 = no receipt, see note<br/>-2 = no receipt, below threshold<br/>-3 = Canada Helps</p>";
 
+        list($jsShow,$jsScript) = $this->jsSetValues($oForm);
+
         $s = "|||TABLE( || class='donationFormTable' width='100%' border='0')"
             ."||| *Member*     || [[text:fk_mbr_contacts|size=30]]"
             ." || *Amount*     || [[text:amount|size=30]]"
             ." || *Category*   || [[text:category|size=30]]"
+            ." || {colspan='1' rowspan='3'}".$jsShow
             ."||| &nbsp        || &nbsp;"
             ." || *Received*   || [[text:date_received|size=30]]"
             ." || *Issued*     || [[text:date_issued|size=30]]"
-            ."||| *Notes*      || {colspan='3' rowspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'3'] )
 
+            ."||| *Notes*      || {colspan='3' rowspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'3'] )
             ." || *Receipt #*  || [[text:receipt_num|size=30]]"
+
             ."||| &nbsp;        || "
             ." ||  ".$sReceiptInstructions
+            ." || <input type='submit' value='Save'>"
             ."|||ENDTABLE"
             ."[[hiddenkey:]]"
-            ."<input type='submit' value='Save'>"
+            .""
             ."<br/><br/>"
-            .$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') );
+            .$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') )
+            .$jsScript;
 
         return( $s );
     }
+
+    private function jsSetValues( SEEDCoreForm $oForm )
+    /**************************************************
+        If there is no receipt_num, make a js-link that sets the category and date_issued the same as the most recent record, and receipt_num++
+     */
+    {
+        $sShow = $sScript = "";
+
+        if( !$oForm->Value('receipt_num') && ($kfrLastDonation = $this->oMbrDB->GetKFRCond('D', "", ['sSortCol'=>'_updated','bSortDown'=>true])) ) {
+            $cat = $kfrLastDonation->Value('category');
+            $iss = $kfrLastDonation->Value('date_issued');
+            $rec = $kfrLastDonation->ValueInt('receipt_num') + 1;
+
+            $ctrlCat = $oForm->Name('category');
+            $ctrlIss = $oForm->Name('date_issued');
+            $ctrlRec = $oForm->Name('receipt_num');
+
+            $sScript = "<script>
+                    function donSetCtrls()
+                    {
+                        event.preventDefault();
+                        $('.donationFormTable #{$ctrlCat}').val('{$cat}');
+                        $('.donationFormTable #{$ctrlIss}').val('{$iss}');
+                        $('.donationFormTable #{$ctrlRec}').val('{$rec}');
+                    }
+                   </script>
+                  ";
+
+            $sShow = $kfrLastDonation->Expand( "<a onclick='donSetCtrls()'>Fill: $cat<br/>$iss<br/>$rec</a>" );
+        }
+        return( [$sShow,$sScript] );
+    }
+
 
     private function donationData( $kDonation, $kMbr )
     {
