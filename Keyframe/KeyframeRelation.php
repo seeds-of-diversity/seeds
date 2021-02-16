@@ -726,6 +726,7 @@ class KeyframeRecord
     function ValueXlat( $k )    { return( $this->Value( $k ) ); }
     function ValueXlatEnt( $k ) { return( $this->ValueEnt( $k ) ); }
     function ValueDB( $k )      { return( addslashes($this->Value($k)) ); }
+    function ValueInt( $k )     { return( intval($this->Value( $k )) ); }
     function ValuesRA()         { return( $this->values ); }
 
     function Key()              { return( $this->key ); }
