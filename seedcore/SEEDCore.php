@@ -170,10 +170,14 @@ function SEEDCore_ArrayExpandIfNotEmpty( $ra, $k, $sTemplate, $bEnt = true )
  *          [[v]] is the same as [[]]
  *          [[k]] substitutes the key instead of the value
  */
-function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = array() )
-/***************************************************************************************
-    raParms: sTemplateFirst : use this template on the first element
-             sTemplateLast  : use this template on the last element
+function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = [] )
+/*********************************************************************************
+    $template can be a string or
+                     a function with args (k,v,parms) that returns a potentially different version of the template for each array element
+                                e.g. function ($k,$v,$parms) { return( $v==1 ? "[[v]] seed" : "[[v]] seeds" ); }
+
+    raParms: sTemplateFirst : use this template on the first element (if main template is a string)
+             sTemplateLast  : use this template on the last element (if main template is a string)
  */
 {
     $s = "";
@@ -182,15 +186,19 @@ function SEEDCore_ArrayExpandSeries( $ra, $sTemplate, $bEnt = true, $raParms = a
     $iLast = count($ra) - 1;
     foreach( $ra as $k => $v ) {
         if( !(is_string($v) || is_numeric($v)) ) continue;  // you can't reference objects or arrays in your template
-        $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
-                (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
-                                                                    : $sTemplate );
+
+        if( is_callable($template) ) {
+            $tmpl = ($template)($k, $v, ['n'=>count($ra),'bEnt'=>$bEnt,'bFirst'=>($i==0),'bLast'=>($i==$iLast)]);
+        } else {
+            $tmpl = ( $i == 0 && isset($raParms['sTemplateFirst']) )    ? $raParms['sTemplateFirst'] :
+                    (($i == $iLast && isset($raParms['sTemplateLast'])) ? $raParms['sTemplateLast']
+                                                                        : $template );
+        }
+
         if( $bEnt ) { $k = SEEDCore_HSC($k); $v = SEEDCore_HSC($v); }
-        $t0 = str_replace( "[[k]]", $k, $tmpl );
-        $t0 = str_replace( "[[v]]", $v, $t0 );
-        $t0 = str_replace( "[[ku]]", urlencode($k), $t0 );
-        $t0 = str_replace( "[[vu]]", urlencode($v), $t0 );
-        $s .= str_replace( "[[]]", $v, $t0 );
+        $s .= str_replace( ['[[k]]', '[[v]]', '[[ku]]',      '[[vu]]',      '[[]]'],
+                           [$k,      $v,      urlencode($k), urlencode($v), $v],
+                           $tmpl );
         ++$i;
     }
 
