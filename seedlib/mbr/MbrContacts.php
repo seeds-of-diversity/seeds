@@ -182,6 +182,7 @@ class Mbr_Contacts
 
     function GetAllValues( $mbrid )   // mbrid can be _key or email
     {
+        if( !$mbrid ) return( [] ); // blank input would be interpreted as the first member with no email address
         return( is_numeric($mbrid) ? $this->oDB->GetRecordVals( 'M', $mbrid )
                                    : $this->oDB->GetRecordValsCond( 'M', "email='".addslashes($mbrid)."'" ) );
     }
