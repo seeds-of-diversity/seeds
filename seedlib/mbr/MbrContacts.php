@@ -111,11 +111,18 @@ class Mbr_Contacts
         return( $s );
     }
 
-    function DrawAddressBlock( $kMbr, $format = 'html', $prefix = '' )
+    function DrawAddressBlock( $mbrid, $format = 'HTML', $prefix = '' )
+    /******************************************************************
+        mbrid can be k or email
+     */
     {
-        // get record where _key=$kMbr
-        // $ra = ValuesRA()
-        //return( $this->DrawAddressBlockFromRA( $ra, $format, $prefix ) );
+        $s = "";
+
+        if( ($raM = $this->GetAllValues($mbrid)) ) {
+            $s = $this->DrawAddressBlockFromRA( $raM, $format, $prefix );
+        }
+
+        return( $s );
     }
 
     static function DrawAddressBlockFromRA( $raMbr, $fmt = 'HTML', $prefix = '' )
