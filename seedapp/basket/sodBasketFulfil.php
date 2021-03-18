@@ -444,6 +444,11 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
             }
         }
 */
+
+        if( in_array( $kfr->Value('eStatus'), [MBRORDER_STATUS_NEW, MBRORDER_STATUS_CANCELLED] ) ) {
+            goto done;
+        }
+
         foreach( $raPur as $oPur ) {
             $sYes = $sNo = "";
             switch( $oPur->GetProductType() ) {
@@ -466,6 +471,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
             }
         }
 
+        done:
         return( $s );
     }
 }
