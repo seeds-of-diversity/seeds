@@ -435,6 +435,80 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler_MONEY
     }
 }
 
+class SEEDBasket_Purchase_misc extends SEEDBasket_Purchase
+{
+    function __construct( SEEDBasketCore $oSB, $kP )
+    {
+        parent::__construct( $oSB, $kP );
+    }
+
+    /**************************************
+        A misc order is considered fulfilled when WORKFLOW_FLAG_RECORDED.
+        uid_buyer can be zero.
+        The current date is stored in Purchase::sExtra so we can remember when the order was recorded, but this is nonessential to the workflow.
+     */
+    function IsFulfilled()
+    {
+        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_RECORDED) !== 0 );
+    }
+
+    function CanFulfil()
+    {
+        return( $this->_canFulfilOrUndo() && !$this->IsFulfilled() );
+    }
+
+    function Fulfil()
+    {
+        $ret = self::FULFIL_RESULT_FAILED;
+
+        // check if fulfilment is allowed
+        if( !$this->CanFulfil() ) goto done;
+
+        // check if already fulfilled
+        if( $this->IsFulfilled() ) {
+            $ret = self::FULFIL_RESULT_ALREADY_FULFILLED;
+            goto done;
+        }
+
+        $this->SetWorkflowFlag( self::WORKFLOW_FLAG_RECORDED );
+        $this->SetExtra( 'dMailed', date("Y-m-d") );
+        $this->SaveRecord();
+
+        $ret = self::FULFIL_RESULT_SUCCESS;
+
+        done:
+        return( $ret );
+    }
+
+    function CanFulfilUndo()
+    {
+        return( $this->_canFulfilOrUndo() && $this->IsFulfilled() );    // there is no limitation on when you can undo the mailing
+    }
+
+    function FulfilUndo()
+    {
+        $ret = self::FULFILUNDO_RESULT_FAILED;
+
+        // check if fulfilled
+        if( !$this->IsFulfilled() ) {
+            $ret = self::FULFILUNDO_RESULT_NOT_FULFILLED;
+            goto done;
+        }
+
+        // check if fulfil undo is allowed
+        if( !$this->CanFulfilUndo() ) goto done;
+
+        // clear fulfilment
+        $this->UnsetWorkflowFlag( self::WORKFLOW_FLAG_RECORDED );
+        $this->SaveRecord();
+
+        $ret = self::FULFILUNDO_RESULT_SUCCESS;
+
+        done:
+        return( $ret );
+    }
+}
+
 class SEEDBasketProductHandler_Special1 extends SEEDBasketProductHandler_Item1
 /*****************************************************************************
     Special Single Item
