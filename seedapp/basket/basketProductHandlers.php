@@ -79,6 +79,84 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler_Item1
     }
 }
 
+class SEEDBasket_Purchase_membership extends SEEDBasket_Purchase
+{
+    function __construct( SEEDBasketCore $oSB, $kP )
+    {
+        parent::__construct( $oSB, $kP );
+    }
+
+    /**************************************
+        A membership is considered fulfilled when WORKFLOW_FLAG_MAILED.
+        In principle this refers to the email notification.
+Should there be a separate record for WORKFLOW_FLAG_MAILED for printed MSD?
+        uid_buyer cannot be zero.
+        The current date is stored in Purchase::sExtra so we can remember when the membership was recorded (and msd mailed)
+        but this is nonessential to the workflow.
+     */
+    function IsFulfilled()
+    {
+        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_MAILED) !== 0 );
+    }
+
+    function CanFulfil()
+    {
+        return( $this->_canFulfilOrUndo() && $this->GetBasketObj()->GetBuyer() && !$this->IsFulfilled() );
+    }
+
+    function Fulfil()
+    {
+        $ret = self::FULFIL_RESULT_FAILED;
+
+        // check if fulfilment is allowed
+        if( !$this->CanFulfil() ) goto done;
+
+        // check if already fulfilled
+        if( $this->IsFulfilled() ) {
+            $ret = self::FULFIL_RESULT_ALREADY_FULFILLED;
+            goto done;
+        }
+
+        $this->SetWorkflowFlag( self::WORKFLOW_FLAG_MAILED );
+        $this->SetExtra( 'dMailed', date("Y-m-d") );
+        $this->SaveRecord();
+
+        $ret = self::FULFIL_RESULT_SUCCESS;
+
+        done:
+        return( $ret );
+    }
+
+    function CanFulfilUndo()
+    {
+        return( $this->_canFulfilOrUndo() && $this->IsFulfilled() );    // there is no limitation on when you can undo the mailing
+    }
+
+    function FulfilUndo()
+    {
+        $ret = self::FULFILUNDO_RESULT_FAILED;
+
+        // check if fulfilled
+        if( !$this->IsFulfilled() ) {
+            $ret = self::FULFILUNDO_RESULT_NOT_FULFILLED;
+            goto done;
+        }
+
+        // check if fulfil undo is allowed
+        if( !$this->CanFulfilUndo() ) goto done;
+
+        // clear fulfilment
+        $this->UnsetWorkflowFlag( self::WORKFLOW_FLAG_MAILED );
+        $this->SaveRecord();
+
+        $ret = self::FULFILUNDO_RESULT_SUCCESS;
+
+        done:
+        return( $ret );
+    }
+}
+
+
 class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
 {
     function __construct( SEEDBasketCore $oSB )  { parent::__construct( $oSB ); }
@@ -271,6 +349,81 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler_ItemN
         return( parent::ProductDefine0_ItemN( $oFormP, "Publications" ) );
     }
 }
+
+class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
+{
+    function __construct( SEEDBasketCore $oSB, $kP )
+    {
+        parent::__construct( $oSB, $kP );
+    }
+
+    /**************************************
+        A book order is considered fulfilled when WORKFLOW_FLAG_MAILED.
+        uid_buyer can be zero.
+        The current date is stored in Purchase::sExtra so we can remember when the book was mailed, but this is nonessential to the workflow.
+     */
+    function IsFulfilled()
+    {
+        return( $this->GetWorkflowFlag(self::WORKFLOW_FLAG_MAILED) !== 0 );
+    }
+
+    function CanFulfil()
+    {
+        return( $this->_canFulfilOrUndo() && !$this->IsFulfilled() );
+    }
+
+    function Fulfil()
+    {
+        $ret = self::FULFIL_RESULT_FAILED;
+
+        // check if fulfilment is allowed
+        if( !$this->CanFulfil() ) goto done;
+
+        // check if already fulfilled
+        if( $this->IsFulfilled() ) {
+            $ret = self::FULFIL_RESULT_ALREADY_FULFILLED;
+            goto done;
+        }
+
+        $this->SetWorkflowFlag( self::WORKFLOW_FLAG_MAILED );
+        $this->SetExtra( 'dMailed', date("Y-m-d") );
+        $this->SaveRecord();
+
+        $ret = self::FULFIL_RESULT_SUCCESS;
+
+        done:
+        return( $ret );
+    }
+
+    function CanFulfilUndo()
+    {
+        return( $this->_canFulfilOrUndo() && $this->IsFulfilled() );    // there is no limitation on when you can undo the mailing
+    }
+
+    function FulfilUndo()
+    {
+        $ret = self::FULFILUNDO_RESULT_FAILED;
+
+        // check if fulfilled
+        if( !$this->IsFulfilled() ) {
+            $ret = self::FULFILUNDO_RESULT_NOT_FULFILLED;
+            goto done;
+        }
+
+        // check if fulfil undo is allowed
+        if( !$this->CanFulfilUndo() ) goto done;
+
+        // clear fulfilment
+        $this->UnsetWorkflowFlag( self::WORKFLOW_FLAG_MAILED );
+        $this->SaveRecord();
+
+        $ret = self::FULFILUNDO_RESULT_SUCCESS;
+
+        done:
+        return( $ret );
+    }
+}
+
 
 class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler_MONEY
 {

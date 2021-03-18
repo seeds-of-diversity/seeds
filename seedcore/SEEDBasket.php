@@ -964,6 +964,7 @@ class SEEDBasket_Purchase
     function GetExtra( $k )  { return( $this->kfr->UrlParmGet('sExtra', $k) ); }
     function Value( $k ) { return( $this->kfr->Value($k) ); }
 
+    function SetExtra( $k, $v ) { return( $this->kfr->UrlParmSet('sExtra', $k, $v) ); }
 
     function GetPrice()
     {
@@ -1097,6 +1098,7 @@ class SEEDBasket_Purchase
         Indicates whether this purchase is ready for Fulfil()
      */
     {
+        // typically ( $this->_canFulfilOrUndo() && !$this->IsFulfilled() )
         return( false );    // $this->_canFulfilOrUndo()    don't allow UI to show fulfil buttons for purchases that don't have derived classes
     }
 
@@ -1129,7 +1131,8 @@ class SEEDBasket_Purchase
         Indicates whether the fulfilment can be reversed, or is it too late.
      */
     {
-        return( false ); // $this->_canFulfilOrUndo()   don't allow UI to show Undo buttons for purchases that don't have derived classes
+        // typically ( $this->_canFulfilOrUndo() && $this->IsFulfilled() )
+        return( false );  // don't allow UI to show Undo buttons for purchases that don't have derived classes
     }
 
     function FulfilUndo()

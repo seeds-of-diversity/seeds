@@ -248,13 +248,12 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         $s = "";
 
+        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
+
         // kluge Bob Review by skipping rows that don't meet the criteria
         if( $this->fltStatus == 'Bob' ) {
-            list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
-
             if( !$bContactNeeded && !$bDonNotRecorded && $fTotal == $kfr->Value('pay_total') ) goto done;   // this row does not need review
         }
-
 
         switch( $kfr->value('eStatus') ) {
             case MBRORDER_STATUS_NEW:       $style = "style='background-color:#eee'";               break;
@@ -303,7 +302,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          //."<b>".@$mbr_PayStatus[$kfr->value('pay_status')]."</b><br/>"
          ."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
          .$this->paidButton( $kfr )
-         .$this->mailStatus( $kfr, $raOrder );
+         .$this->mailStatus( $kfr, $raOrder, $raPur );
 
     $sFulfilment
         = $this->doneAccountingButton( $kfr )
@@ -314,7 +313,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
-         ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder ).$this->basketContents( $kfr )."</td>"
+         ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder ).$this->basketContents( $kfr, $sContents, $fTotal, $bContactNeeded )."</td>"
          ."<td valign='top' $style>$sPayment</td>"
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
@@ -393,14 +392,14 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     }
 
 
-    private function basketContents( KeyframeRecord $kfr )
-    /*****************************************************
+    private function basketContents( KeyframeRecord $kfr, $sContents, $fTotal, $bContactNeeded )
+    /*******************************************************************************************
      */
     {
         $s = "";
 
         // use this to compute the basket, but only show the details to dev/Bob
-        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
+//        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
 
         $bGood = in_array( $kfr->value('eStatus'), ['Paid','Filled'] );
 
@@ -408,15 +407,15 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
             $s .= "<div class='alert alert-danger'>The contact has to be recorded for this order</div>";
         }
 
+        $c = $bGood ? ($fTotal == $kfr->Value('pay_total') ? 'alert alert-success' : 'alert alert-danger') : "";
+        $s .= "<div class='$c'>$sContents</div>";
+
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
 
-            if( $bGood && $bDonNotRecorded ) {
-                $s .= "<div class='alert alert-danger'>The donation is not recorded</div>";
-            }
+//            if( $bGood && $bDonNotRecorded ) {
+//                $s .= "<div class='alert alert-danger'>The donation is not recorded</div>";
+//            }
 
-            $c = $bGood ? ($fTotal == $kfr->Value('pay_total') ? 'alert alert-success' : 'alert alert-danger') : "";
-
-            $s .= "<div class='$c'>$sContents</div>";
 
 // data-kOrder is also present in the enclosing <tr>
             $s .= "<div data-kOrder='{$kfr->Key()}' class='doBuildBasket'><button>rebuild this basket</button></div>";
@@ -424,10 +423,11 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         return( $s );
     }
 
-    private function mailStatus( KeyframeRecord $kfr, $raOrder )
+    private function mailStatus( KeyframeRecord $kfr, $raOrder, $raPur )
     {
         $s = "";
 
+/*
         $bMailed = $kfr->Value( 'eStatus2' )==1;
         $bNothingToMail = $kfr->Value( 'eStatus2' )==2;
 
@@ -443,10 +443,31 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
                 $s .= "<br/>Order ".($this->GetMailStatus_Sent($kfr) ? "": "not")." mailed ".$kfr->Value('dMailed');
             }
         }
+*/
+        foreach( $raPur as $oPur ) {
+            $sYes = $sNo = "";
+            switch( $oPur->GetProductType() ) {
+                case 'membership':
+                    $sYes = "Membership recorded {$oPur->GetExtra('dMailed')}";
+                    $sNo = "Membership not recorded";
+                    break;
+                case 'donation':
+                    $sYes = "Donation recorded #{$oPur->GetKRef()}";
+                    $sNo = "Donation not recorded";
+                    break;
+                case 'book':
+                    $sYes = "Book order mailed {$oPur->GetExtra('dMailed')}";
+                    $sNo = "Book order not mailed";
+                    break;
+            }
+            if( $sYes ) {   // test if the prodtype was in the switch above
+                $s .= $oPur->IsFulfilled() ? "<div style='font-size:9pt'>$sYes</div>"
+                                           : "<div class='alert alert-warning' style='font-size:9pt;margin:5px;padding:5px'>$sNo</div>";
+            }
+        }
 
         return( $s );
     }
-
 }
 
 class SoDOrderBasket
@@ -473,6 +494,7 @@ class SoDOrderBasket
             fTotal:          total amount
             bContactNeeded:  uid_buyer required to be set
             bDonNotRecorded: there is a donation without a kRef to mbr_donations
+            raPur:           array of SEEDBasket_Purchase_{producttype}
      */
     {
         $s = "";
@@ -483,8 +505,9 @@ class SoDOrderBasket
         if( !$kB )  goto done;
 
         $oB = new SEEDBasket_Basket( $this->oSB, $kB );
-// you can do this with GetPurchasesInBasket too, and simplify some code below
-        $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
+// deprecate this because raPur is better
+$raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
+        $raPur = $oB->GetPurchasesInBasket();
 
         // Find out if there is a membership or donation in this order.
         $bHasMbrProduct = $bHasDonProduct = false;
@@ -509,11 +532,20 @@ class SoDOrderBasket
                     // because inconvenient to reconnect event listener when basketDetail redrawn
                     $sFulfilButtonLabel = $sFulfilNote = "";
                     switch( $oPur->GetProductType() ) {
+                        case 'membership':
+                            $sFulfilButtonLabel = "Record today";
+                            $sFulfilNote = "recorded {$oPur->GetExtra('dMailed')}";
+                            break;
                         case 'donation':
                             $sFulfilButtonLabel = "Accept donation";
                             $sFulfilNote = "recorded donation #{$oPur->GetKRef()}";
                             break;
+                        case 'book':
+                            $sFulfilButtonLabel = "Mail today";
+                            $sFulfilNote = "mailed {$oPur->GetExtra('dMailed')}";
+                            break;
                     }
+
                     $sColFulfil1 = $oPur->IsFulfilled()
                                     ? $sFulfilNote
                                     : ($oPur->CanFulfil() ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>" : "");
@@ -534,7 +566,7 @@ class SoDOrderBasket
         $fTotal = $raBContents['fTotal'];
 
         // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
-        foreach( $oB->GetPurchasesInBasket() as $oPur ) {
+        foreach( $raPur as $oPur ) {
             if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
                 $bDonNotRecorded = true;
                 break;
@@ -542,7 +574,7 @@ class SoDOrderBasket
         }
 
         done:
-        return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded] );
+        return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur] );
     }
 }
 
