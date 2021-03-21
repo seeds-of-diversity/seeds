@@ -238,8 +238,18 @@ class KeyframeDatabase {
     /*****************************
      */
     {
-        $raFld = $this->QueryRA("SHOW FIELDS FROM $table");    // gets the first row returned
-        return( $raFld['Field'] != "" );
+        $bExists = false;
+
+        //in more recent versions of PHP/mysqli this gives a fatal error if the table is not found 
+        //$raFld = $this->QueryRA("SHOW FIELDS FROM $table");    // gets the first row returned
+        //return( $raFld['Field'] != "" );
+        
+        $table = $this->EscapeString($table);
+        if( ($dbc = $this->CursorOpen( "SHOW TABLES LIKE '".$this->EscapeString($table)."'" )) ) {
+            $bExists = $this->CursorGetNumRows($dbc) == 1;
+            $this->CursorClose($dbc);
+        }
+        return( $bExists );
     }
 
     function EscapeString( $s )
