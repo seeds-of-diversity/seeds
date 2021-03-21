@@ -244,6 +244,12 @@ class KeyframeDatabase {
         //$raFld = $this->QueryRA("SHOW FIELDS FROM $table");    // gets the first row returned
         //return( $raFld['Field'] != "" );
         
+        if( strpos( $table, '.' ) !== false ) {
+            // the method below can not recognize a table with a db prefix, so confirm that it is the default db and remove the prefix    
+            list($dbname,$table) = explode( '.', $table );
+            if( $dbname && $dbname != $this->GetDB() )  return( false );    // can't use below to test table in a different db 
+        }
+        
         $table = $this->EscapeString($table);
         if( ($dbc = $this->CursorOpen( "SHOW TABLES LIKE '".$this->EscapeString($table)."'" )) ) {
             $bExists = $this->CursorGetNumRows($dbc) == 1;
