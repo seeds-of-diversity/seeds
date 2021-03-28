@@ -1147,31 +1147,37 @@ function DocRep_Setup( $oSetup, $bCreate = false )
          Instead, the code that calls this function knows about SEEDSetup.
  */
 {
-    $def = array( 'tables' => array(
-        "docrep2_docs"     => array( 'create' => DOCREP2_DB_TABLE_DOCREP_DOCS,
-                                     'insert' => array(
-                                          "INSERT INTO docrep2_docs
-                                                          (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
-                                                   VALUES (1, NOW(), NOW(), 'folder1','FOLDER',1,1,0,1)",
-                                          "INSERT INTO docrep2_docs
-                                                          (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
-                                                   VALUES (2, NOW(), NOW(), 'page1','DOC',2,1,1,1)",
-                                          "INSERT INTO docrep2_docs
-                                                          (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
-                                                   VALUES (3, NOW(), NOW(), 'page2','DOC',3,1,1,2)",
-                                     ) ),
-        "docrep2_data"     => array( 'create' => DOCREP2_DB_TABLE_DOCREP_DATA,
-                                     'insert' => array(
-                                          "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src)
-                                                            VALUES (1, NOW(), NOW(), 1,1,'TEXT')",
-                                          "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
-                                                            VALUES (2, NOW(), NOW(), 2,1,'TEXT','This is the first page')",
-                                          "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
-                                                            VALUES (3, NOW(), NOW(), 3,1,'TEXT','This is the second page')"
-                                     ) ),
-        "docrep2_docxdata" => array( 'create' => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA,
-                                     'inserts' => array() )
-        ) );
+    $def = ['tables' => [
+        "docrep2_docs"     => [ 'create' => DOCREP2_DB_TABLE_DOCREP_DOCS,
+                                'insert' => [
+                                      "INSERT INTO docrep2_docs
+                                              (_key,_created,_updated, name,type,kData_top,permclass,kDoc_parent,siborder)
+                                       VALUES (1, NOW(), NOW(), 'folder1','FOLDER',           1,1,0,1),    -- root folder with A and B
+                                              (2, NOW(), NOW(), 'folder1/pageA','DOC',        2,1,1,1),
+                                              (3, NOW(), NOW(), 'folder1/pageB','DOC',        3,1,1,2),
+                                              (4, NOW(), NOW(), 'folder2','FOLDER',           4,1,0,2),    -- root folder with C and D
+                                              (5, NOW(), NOW(), 'folder2/pageC','DOC',        5,1,4,1),
+                                              (6, NOW(), NOW(), 'folder2/pageD','DOC',        6,1,4,2),
+                                              (7, NOW(), NOW(), 'folder1/folder3','FOLDER',   7,1,1,3),    -- subfolder of 1 with E and F
+                                              (8, NOW(), NOW(), 'folder1/folder3/pageE','DOC',8,1,7,1),
+                                              (9, NOW(), NOW(), 'folder1/folder3/pageF','DOC',9,1,7,2)"
+                                     ] ],
+        "docrep2_data"     => [ 'create' => DOCREP2_DB_TABLE_DOCREP_DATA,
+                                'insert' => [
+                                      "INSERT INTO docrep2_data (_key,_created,_updated,fk_docrep2_docs,ver,src,data_text)
+                                       VALUES (1, NOW(), NOW(), 1,1,'TEXT',''),
+                                              (2, NOW(), NOW(), 2,1,'TEXT','This is page A'),
+                                              (3, NOW(), NOW(), 3,1,'TEXT','This is page B'),
+                                              (4, NOW(), NOW(), 4,1,'TEXT',''),
+                                              (5, NOW(), NOW(), 5,1,'TEXT','This is page C'),
+                                              (6, NOW(), NOW(), 6,1,'TEXT','This is page D'),
+                                              (7, NOW(), NOW(), 7,1,'TEXT',''),
+                                              (8, NOW(), NOW(), 8,1,'TEXT','This is page E'),
+                                              (9, NOW(), NOW(), 9,1,'TEXT','This is page F')"
+                                     ] ],
+        "docrep2_docxdata" => [ 'create' => DOCREP2_DB_TABLE_DOCREP_DOC_X_DATA,
+                                'inserts' => [] ]
+        ] ];
     $ok = $oSetup->SetupDBTables( $def, $bCreate ? SEEDSetup2::ACTION_CREATETABLES_INSERT : SEEDSetup2::ACTION_TESTEXIST );
 
     return( $ok );
@@ -1185,5 +1191,3 @@ function DRSetup( $kfdb )
     DocRep_Setup( $o, true );
     return( $o->GetReport() );
 }
-
-?>
