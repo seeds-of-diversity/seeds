@@ -118,12 +118,12 @@ class DocManApp extends DocRepApp1
 
 class DocManDocRepUI extends DocRepUI
 {
-    function __construct( DocRepDB2 $oDocRepDB )
+    function __construct( DocRepDB2 $oDocRepDB, $pathToSelf )
     {
-        parent::__construct( $oDocRepDB );
+        parent::__construct( $oDocRepDB, $pathToSelf );
     }
 
-    function DrawTree_title( DocRepDoc2 $oDoc, $raTitleParms )
+    function DrawTree_title_NOTUSED( DocRepDoc2 $oDoc, $raTitleParms )
     /*********************************************************
         This is called from DocRepUI::DrawTree for every item in the tree. It writes the content of <div class='DocRepTree_title'>.
 
@@ -154,7 +154,7 @@ class DocManagerUI
     {
         $this->oApp = $oApp;
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
-        $oDocRepUI = new DocManDocRepUI( $oDocRepDB );
+        $oDocRepUI = new DocManDocRepUI( $oDocRepDB, $oApp->PathToSelf() );
 
         $this->oDocMan = new DocManApp( $oApp, $kSelectedDoc, $oDocRepDB, $oDocRepUI );
     }
@@ -175,7 +175,7 @@ class DocManagerUI
     private function tab( $label, $tabcmd )
     {
         return( "<div class='col-md-2'>"
-               ."<a href='{$_SERVER['PHP_SELF']}?tab=$tabcmd&k=".$this->oDocMan->GetSelectedDocKey()."'>$label</a>"
+               ."<a href='{$this->oApp->PathToSelf()}?tab=$tabcmd&k=".$this->oDocMan->GetSelectedDocKey()."'>$label</a>"
                ."</div>" );
 
 /*
@@ -202,9 +202,6 @@ class DocManagerUI
         margin-bottom:10px;
 }
 
-.docman_doctree_titleSelected {
-        font-weight: bold;
-}
 
 .docman_docpreview_folder {
 }

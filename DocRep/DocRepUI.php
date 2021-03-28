@@ -4,12 +4,15 @@
  *
  * DocRepUI  - Provides basic UI methods for viewing/updating a DocRepository. Stateless.
  *
+ * DocRepQ   - QServer methods for reading/writing a DocRepository
+ *
  * DocRepDB  - Elementary database access to DocRepository, using methods that guarantee integrity
  *
- * Copyright (c) 2006-2018 Seeds of Diversity Canada
+ * Copyright (c) 2006-2021 Seeds of Diversity Canada
  *
  */
 
+include_once( SEEDCORE."SEEDIcon.php" );
 include_once( "DocRepDB.php" );
 
 class DocRepUI
@@ -17,11 +20,13 @@ class DocRepUI
     Stateless UI methods for viewing/updating a DocRepository
  */
 {
-    private $oDocRepDB;
+    protected $oDocRepDB;
+    protected $pathToSelf;
 
-    function __construct( DocRepDB2 $oDocRepDB )
+    function __construct( DocRepDB2 $oDocRepDB, $pathToSelf )
     {
         $this->oDocRepDB = $oDocRepDB;
+        $this->pathToSelf = $pathToSelf;
     }
 
     function DrawTree( $kTree, $raParms, $iLevel = 1 )
@@ -61,7 +66,7 @@ class DocRepUI
                 'sExpandCmd' => $sExpandCmd,
             );
             $s .= "<div class='DocRepTree_doc'>"
-                 ."<div class='DocRepTree_title'>".$this->DrawTree_title( $oDoc, $raTitleParms )."</div>";
+                 .$this->DrawTree_title( $oDoc, $raTitleParms );
             if( @$raTreeExpanded[$k] || ($oDocSelected && in_array( $k, $oDocSelected->GetAncestors()) ) ) {
                 $s .= $this->DrawTree( $k, $raParms, $iLevel + 1 );
             }
@@ -74,15 +79,49 @@ class DocRepUI
 
     function DrawTree_title( DocRepDoc2 $oDoc, $raTitleParms )
     {
-        $kDoc = $oDoc->GetKey();
+        $c = $raTitleParms['bSelectedDoc'] ? "DocRepTree_titleSelected" : "";
 
-        $s = "<a href='?k=$kDoc'><nobr>"
-            .( $raTitleParms['bSelectedDoc'] ? "<span class='DocRepTree_titleSelected'>" : "" )
-            .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
-            .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )
-            ."</nobr></a>";
+        return( "<div class='DocRepTree_title $c'>"
+               .$this->treeTitleExpandCtrl( $oDoc, $raTitleParms )     // the triangle for opening/closing a folder
+               .$this->treeTitleIcon( $oDoc, $raTitleParms )           // the icon of the doc type
+               ."&nbsp;"
+               .$this->treeTitleTitle( $oDoc, $raTitleParms )          // the title
+               ."</div>" );
+    }
+
+    protected function treeTitleExpandCtrl( DocRepDoc2 $oDoc, $raTitleParms )
+    {
+        $s = "";
+
+        if( $oDoc->GetType() == 'FOLDER' ) {
+            $s = "<a href='{$this->pathToSelf}?k={$oDoc->GetKey()}'>"
+                    .(@$raTitleParms['bOpened'] ? SEEDIcon::TriangleDown() : SEEDIcon::TriangleLeft())
+                ."</a>";
+        } else {
+            // blank space instead of a folder-expand ctrl
+            $s = "<div style='width:16px;height:10px;display:inline-block'>&nbsp;</div>";
+        }
 
         return( $s );
+    }
+
+    protected function treeTitleIcon( DocRepDoc2 $oDoc, $raTitleParms )
+    {
+        switch( $oDoc->GetType() ) {
+            case 'FOLDER':  $img = 'folder.png';    break;
+            case 'DOC':     $img = 'text.png';      break;
+            case 'IMAGE':   $img = 'image.png';     break;
+            default:        $img = 'default.png';   break;
+        }
+
+        return( "<img src='".SEEDW_URL."img/icons/$img' width='20' />" );
+    }
+
+    protected function treeTitleTitle( DocRepDoc2 $oDoc, $raTitleParms )
+    {
+        return( "<a href='?k={$oDoc->GetKey()}'><nobr>"
+               .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
+               ."</nobr></a>" );
     }
 
     function View( DocRepDoc2 $oDoc, $flag = "" )
@@ -132,6 +171,16 @@ class DocRepApp1
                   border:1px solid #777;
                   border-bottom:none;
               }
+
+              .DocRepTree_doc {}
+
+              .DocRepTree_title {
+                  padding: 1px;
+              }
+              .DocRepTree_titleSelected {
+                  font-weight: bold;
+              }
+
               </style>";
 
         $s .= <<<DocRepApp1_Script
@@ -245,5 +294,3 @@ DocRepApp1_TreeForms;
         return( $this->oDoc && (true /* $this->oDoc->type is html */) ? $this->oDoc->GetText( $flag = "" ) : "" );
     }
 }
-
-?>
