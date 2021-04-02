@@ -172,10 +172,15 @@ class DocRepApp1
                   border-bottom:none;
               }
 
+              .DocRepTree_level { margin-left:30px; }
+
               .DocRepTree_doc {}
 
               .DocRepTree_title {
                   padding: 1px;
+                  color: #337ab7;
+                  text-decoration: none;
+                  cursor: pointer;
               }
               .DocRepTree_titleSelected {
                   font-weight: bold;

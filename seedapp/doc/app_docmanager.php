@@ -71,9 +71,9 @@ class DocManagerTabSet extends Console02TabSet
 
         $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
 
+        $s .= "<div id='a'></div>";
         return( $s );
     }
-
 }
 
 
@@ -191,8 +191,6 @@ class DocManagerUI
     {
         return( $this->oDocMan->Style()."
 <style>
-.DocRepTree_level { margin-left:30px; }
-
 .docman_doctree {
         border-radius:10px;
         margin:20px;
@@ -227,3 +225,170 @@ $oDocTS = new DocManagerTabSet( $oApp, $kSelectedDoc );
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', array( 'consoleSkin'=>'green') );   // sCharset defaults to utf8
+
+
+?>
+
+<script>
+var mymapDocs = new Map( [
+    [0, { k:0, name:'',                doctype: 'folder', kParent: -1, children: [1,2] }],
+    [1, { k:1, name:'folder1',         doctype: 'folder', kParent: 0,  children: [4,5,3] }],
+    [2, { k:2, name:'folder2',         doctype: 'folder', kParent: 0,  children: [6,7] }],
+    [3, { k:3, name:'folder1/folder3', doctype: 'folder', kParent: 1,  children: [8,9] }],
+    [4, { k:4, name:'folder1/pageA',   doctype: 'page',   kParent: 1,  children: [] }],
+    [5, { k:5, name:'folder1/pageB',   doctype: 'page',   kParent: 1,  children: [] }],
+    [6, { k:6, name:'folder2/pageC',   doctype: 'page',   kParent: 2,  children: [] }],
+    [7, { k:7, name:'folder2/pageD',   doctype: 'page',   kParent: 2,  children: [] }],
+    [8, { k:8, name:'folder3/pageE',   doctype: 'page',   kParent: 3,  children: [] }],
+    //[9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] }],
+]);
+
+class DocRepTree
+{
+    constructor( raConfig )
+    {
+        this.mapDocs = raConfig.mapDocs;
+        this.dirIcons = raConfig.dirIcons;
+    }
+
+    DrawTree( kRoot )
+    /****************
+        Draw the given root doc and its descendants
+     */
+    {
+        let s = "";
+
+        let oDoc = this.getDocObj(kRoot);
+        if( oDoc ) {
+            s += this.drawDoc(oDoc)
+                +this.DrawChildren( oDoc );
+        }
+        return( s );
+    }
+
+    DrawForestChildren( kRoot )
+    /**************************
+        Draw the given root doc's children and their descendants
+     */
+    {
+        let s = "";
+
+        let oDoc = this.getDocObj(kRoot);
+        if( oDoc ) {
+            s += this.DrawChildren( oDoc );
+        }
+        return( s );
+    }
+
+    DrawChildren( oDoc )
+    {
+        let s = "";
+
+        if( oDoc.children.length > 0 ) {
+            s += "<div style='margin-left:20px'>";
+            let saveThis = this;
+            oDoc.children.forEach( function (v,k,ra) { s += saveThis.DrawTree(v); } );
+            s += "</div>";
+        }
+
+        return( s );
+    }
+
+    FetchDoc( kDoc )
+    {
+        // override to add doc(s) to mapDocs
+    }
+
+    getDocObj( kDoc, bRecurse = false )
+    {
+        let oDoc = null;
+
+        if( this.mapDocs.has(kDoc) ) {
+            oDoc = this.mapDocs.get(kDoc);
+        } else if( !bRecurse ) {
+            // if not found on first time through, try to fetch it
+            this.FetchDoc( kDoc );
+            oDoc = this.getDocObj( kDoc, true );
+        } else {
+            // not found after fetching
+            console.log(kDoc+" not found");
+        }
+        return( oDoc );
+    }
+
+    drawDoc( oDoc )
+    {
+        let s = "";
+
+        let triangle =
+            `<div style='position:relative;display:inline-block;margin:0 3px'>
+                 <svg width='10' height='10' viewBox='0 0 20 20'>
+                 <polygon points='4,0 16,10 4,20' style='fill:blue;stroke:blue;stroke-width:1'></polygon>
+                 Sorry, your browser does not support inline SVG.
+                 </svg>
+             </div>`;
+        let noTriangle = "<div style='width:16px;height:10px;display:inline-block'>&nbsp;</div>";
+
+        s = `<div class='DocRepTree_title' data-kDoc='${oDoc.k}'>`
+           +(oDoc.doctype=='folder' ? triangle : noTriangle)
+           +(oDoc.doctype=='folder' ? `<img src='${this.dirIcons}folder.png' width='20'>`
+                                    : `<img src='${this.dirIcons}text.png' width='20'>`)
+           +`&nbsp;${oDoc.name}</div>`;
+
+/*
+<div class="DocRepTree_title "><a href="/~bob/seeds/seedapp/doc/app_docmanager.php?k=1">
+
+
+<img src="../../wcore/img/icons/folder.png" width="20">&nbsp;<a href="?k=1"><nobr>folder1</nobr></a></div>
+*/
+
+        return( s );
+    }
+
+    InitUI ()
+    {
+        $('.DocRepTree_title').click( function () {
+            $('.DocRepTree_title').removeClass('DocRepTree_titleSelected');   //$('.DocRepTree_title').css('font-weight','normal');
+            $(this).addClass('DocRepTree_titleSelected');                     //$(this).css('font-weight','bold');
+        });
+    }
+}
+
+
+class myDocRepTree extends DocRepTree
+{
+    constructor(raConfig)
+    {
+        super(raConfig);
+    }
+
+    FetchDoc( kDoc )
+    {
+        if( kDoc == 9 ) {
+            this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
+        }
+    }
+}
+
+var ss = "";
+
+var oTree = new myDocRepTree( { mapDocs: mymapDocs, dirIcons: '../../wcore/img/icons/' } );
+ss += oTree.DrawForestChildren( 0 );
+
+
+
+ss += "<hr/>";
+mymapDocs.forEach( function(v,k,map) { if( v.kParent==0 ) ss += v.name+"<br/>"; } );
+ss += '<br/>';
+mymapDocs.forEach( function(v,k,map) { if( v.kParent==2 ) ss += "<div style='margin:15px'>"+v.name+"</div>"; } );
+
+mymapDocs.forEach( function(v,k,map) { ss += v.name+" "; } );
+ss += '<br/>';
+mymapDocs.delete(2);
+mymapDocs.forEach( function(v,k,map) { ss += v.name+" "; } );
+
+
+$('#a').html(ss);
+
+oTree.InitUI();
+</script>
