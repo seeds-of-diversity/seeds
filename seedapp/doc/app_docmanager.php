@@ -72,6 +72,38 @@ class DocManagerTabSet extends Console02TabSet
         $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
 
         $s .= "<div id='a'></div>";
+
+
+        $raTree = $o->oDocRepDB->GetSubTree( 0, -1 );
+        $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $o, 0, $raTree )." ] );</script>";
+
+        return( $s );
+    }
+
+    private function outputTree( $o, $kDoc, $raChildren )
+    {
+        $s = "";
+
+        if( $kDoc ) {
+            if( !($oDoc = $o->oDocRepDB->GetDocRepDoc( $kDoc )) )  goto done;
+
+            $n = $oDoc->GetName();
+            $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
+            $p = $oDoc->GetParent();
+        } else {
+            $p = 0;
+            $n = '';
+            $t = 'folder';
+        }
+        $c = implode(',', array_keys($raChildren));
+
+        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c] }],";
+
+        foreach( $raChildren as $k => $ra ) {
+            $s .= $this->outputTree( $o, $k, $ra['children'] );
+        }
+
+        done:
         return( $s );
     }
 }
@@ -149,11 +181,13 @@ class DocManagerUI
 {
     private $oApp;
     public  $oDocMan;
+    public  $oDocRepDB;
 
     function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc )
     {
         $this->oApp = $oApp;
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
+        $this->oDocRepDB = $oDocRepDB;
         $oDocRepUI = new DocManDocRepUI( $oDocRepDB, $oApp->PathToSelf() );
 
         $this->oDocMan = new DocManApp( $oApp, $kSelectedDoc, $oDocRepDB, $oDocRepUI );
@@ -230,7 +264,7 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', ['raScriptFi
 ?>
 
 <script>
-var mymapDocs = new Map( [
+var mymapDocsX = new Map( [
     [0, { k:0, name:'',                doctype: 'folder', kParent: -1, children: [1,2] }],
     [1, { k:1, name:'folder1',         doctype: 'folder', kParent: 0,  children: [4,5,3] }],
     [2, { k:2, name:'folder2',         doctype: 'folder', kParent: 0,  children: [6,7] }],
@@ -257,6 +291,17 @@ class myDocRepTree extends DocRepTree
         if( kDoc == 9 ) {
             this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
         }
+    }
+
+    LevelOpenGet( jLevel )
+    {
+        let kDoc = jLevel.attr('data-under-kdoc');
+        return( sessionStorage.getItem( 'DocRepTree_'+kDoc ) == 1 );    // compare to int because '0' === true
+    }
+    LevelOpenSet( jLevel, bOpen )
+    {
+        let kDoc = jLevel.attr('data-under-kdoc');
+        sessionStorage.setItem( 'DocRepTree_'+kDoc, bOpen );
     }
 }
 
