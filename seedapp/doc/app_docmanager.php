@@ -17,12 +17,14 @@ include_once( SEEDROOT."DocRep/DocRep.php" );
 include_once( SEEDROOT."DocRep/DocRepUI.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
+                                     'documentsx'=> ['label'=>'Documents Old'],
                                      'versions'  => ['label'=>'Versions'],
                                      'files'     => ['label'=>'Files'],
                                      'ghost'     => ['label'=>'Ghost']
                                    ],
                          // this doubles as sessPermsRequired and console::TabSetPermissions
                          'perms' =>[ 'documents' => ['W DocRepMgr'],
+                                     'documentsx'=> ['A DocRepMgr'],
                                      'versions'  => ['W DocRepMgr'],
                                      'files'     => ['W DocRepMgr'],
                                      'ghost'     => ['A notyou'],
@@ -39,6 +41,7 @@ class DocManagerTabSet extends Console02TabSet
 {
     private $oApp;
     private $kSelectedDoc;
+    private $oW = null;
 
     function __construct( SEEDAppConsole $oApp, $kSelectedDoc )
     {
@@ -49,8 +52,103 @@ class DocManagerTabSet extends Console02TabSet
         parent::__construct( $oApp->oC, $tabConfig );
     }
 
-    function TabSet_main_documents_ControlDraw() { return( "<br/>" ); }
-    function TabSet_main_documents_ContentDraw()
+    function TabSet_main_documents_Init()          { $this->oW = new DocManagerTabDocuments( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_documents_ControlDraw()   { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_documents_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_documentsx_Init()         { $this->oW = new DocManagerTabDocumentsOld( $this->oApp, $this->kSelectedDoc ); $this->oW->Init(); }
+    function TabSet_main_documentsx_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_documentsx_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+}
+
+
+
+class DocManagerTabDocuments
+{
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function Init()
+    {
+    }
+
+    function ControlDraw() { return( "<br/>" ); }
+    function ContentDraw()
+    {
+        $s = "";
+
+//        $o = new DocManagerUI( $this->oApp, $this->kSelectedDoc );
+
+//        $s .= $o->Style();
+        $s .= DocRepApp1::Style();
+
+        $s .= "<div class='docman_doctree'>"
+             ."<div class='container-fluid'>"
+                 ."<div class='row'>"
+                     ."<div class='col-md-6'> <div id='a'/> </div>"
+                     ."<div class='col-md-6'>"
+//                         .($o->oDocMan->GetSelectedDocKey() ? ("<div class='docman_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
+//                         ."<div class='docman_docform'>".$o->oDocMan->TreeForms()."</div>"
+                     ."</div>"
+                 ."</div>"
+            ."</div></div>";
+
+//        $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
+
+        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
+        $raTree = $oDocRepDB->GetSubTree( 0, -1 );
+        $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
+
+        return( $s );
+    }
+
+    private function outputTree( $oDocRepDB, $kDoc, $raChildren )
+    {
+        $s = "";
+
+        if( $kDoc ) {
+            if( !($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) )  goto done;
+
+            $n = $oDoc->GetName();
+            $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
+            $p = $oDoc->GetParent();
+        } else {
+            $p = 0;
+            $n = '';
+            $t = 'folder';
+        }
+        $c = implode(',', array_keys($raChildren));
+
+        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c] }],";
+
+        foreach( $raChildren as $k => $ra ) {
+            $s .= $this->outputTree( $oDocRepDB, $k, $ra['children'] );
+        }
+
+        done:
+        return( $s );
+    }
+}
+
+
+class DocManagerTabDocumentsOld
+{
+    private $kSelectedDoc;
+
+    function __construct( SEEDAppConsole $oApp, $kSelectedDoc )
+    {
+        $this->oApp = $oApp;
+        $this->kSelectedDoc = $kSelectedDoc;
+    }
+
+    function Init()
+    {
+    }
+
+    function ControlDraw() { return( "<br/>" ); }
+    function ContentDraw()
     {
         $s = "";
 
@@ -71,39 +169,6 @@ class DocManagerTabSet extends Console02TabSet
 
         $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
 
-        $s .= "<div id='a'></div>";
-
-
-        $raTree = $o->oDocRepDB->GetSubTree( 0, -1 );
-        $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $o, 0, $raTree )." ] );</script>";
-
-        return( $s );
-    }
-
-    private function outputTree( $o, $kDoc, $raChildren )
-    {
-        $s = "";
-
-        if( $kDoc ) {
-            if( !($oDoc = $o->oDocRepDB->GetDocRepDoc( $kDoc )) )  goto done;
-
-            $n = $oDoc->GetName();
-            $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
-            $p = $oDoc->GetParent();
-        } else {
-            $p = 0;
-            $n = '';
-            $t = 'folder';
-        }
-        $c = implode(',', array_keys($raChildren));
-
-        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c] }],";
-
-        foreach( $raChildren as $k => $ra ) {
-            $s .= $this->outputTree( $o, $k, $ra['children'] );
-        }
-
-        done:
         return( $s );
     }
 }
@@ -223,7 +288,7 @@ class DocManagerUI
 
     function Style()
     {
-        return( $this->oDocMan->Style()."
+        return( DocRepApp1::Style()."
 <style>
 .docman_doctree {
         border-radius:10px;

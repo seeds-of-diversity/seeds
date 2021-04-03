@@ -159,7 +159,7 @@ class DocRepApp1
 
     }
 
-    function Style()
+    static function Style()
     {
         $s = "<style>
               .docrepapp_treetabs { margin-left: -25px; margin-bottom: -17px; }
