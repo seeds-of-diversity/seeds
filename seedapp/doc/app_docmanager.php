@@ -87,7 +87,7 @@ class DocManagerTabDocuments
         $s .= "<div class='docman_doctree'>"
              ."<div class='container-fluid'>"
                  ."<div class='row'>"
-                     ."<div class='col-md-6'> <div id='a'/> </div>"
+                     ."<div class='col-md-6'> <div id='docmanui_tree'/> </div>"
                      ."<div class='col-md-6'>"
 //                         .($o->oDocMan->GetSelectedDocKey() ? ("<div class='docman_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
 //                         ."<div class='docman_docform'>".$o->oDocMan->TreeForms()."</div>"
@@ -358,23 +358,25 @@ class myDocRepTree extends DocRepTree
         }
     }
 
-    LevelOpenGet( jLevel )
+    LevelOpenGet( pDoc )
     {
-        let kDoc = jLevel.attr('data-under-kdoc');
-        return( sessionStorage.getItem( 'DocRepTree_'+kDoc ) == 1 );    // compare to int because '0' === true
+        let oDRDoc = this.getDocAndJDoc(pDoc);
+        return( sessionStorage.getItem( 'DocRepTree_'+oDRDoc.kDoc ) == 1 );    // compare to int because '0' === true
     }
-    LevelOpenSet( jLevel, bOpen )
+    LevelOpenSet( pDoc, bOpen )
     {
-        let kDoc = jLevel.attr('data-under-kdoc');
-        sessionStorage.setItem( 'DocRepTree_'+kDoc, bOpen );
+        let oDRDoc = this.getDocAndJDoc(pDoc);
+        sessionStorage.setItem( 'DocRepTree_'+oDRDoc.kDoc, bOpen );
     }
 }
 
+$(document).ready( function () {
 
 var ss = "";
 
-var oTree = new myDocRepTree( { mapDocs: mymapDocs, dirIcons: '../../wcore/img/icons/' } );
-ss += oTree.DrawForestChildren( 0 );
+var oTree = new myDocRepTree( { mapDocs: mymapDocs,
+                                dirIcons: '../../wcore/img/icons/' } );
+ss += oTree.DrawTree( 0 );
 
 
 
@@ -389,7 +391,9 @@ mymapDocs.delete(2);
 mymapDocs.forEach( function(v,k,map) { ss += v.name+" "; } );
 
 
-$('#a').html(ss);
+$('#docmanui_tree').html(ss);
 
 oTree.InitUI();
+
+});
 </script>
