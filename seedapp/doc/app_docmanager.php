@@ -87,11 +87,15 @@ class DocManagerTabDocuments
         $s .= "<div class='docman_doctree'>"
              ."<div class='container-fluid'>"
                  ."<div class='row'>"
-                     ."<div class='col-md-6'> <div id='docmanui_tree'/> </div>"
-                     ."<div class='col-md-6'>"
-//                         .($o->oDocMan->GetSelectedDocKey() ? ("<div class='docman_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
-//                         ."<div class='docman_docform'>".$o->oDocMan->TreeForms()."</div>"
-                     ."</div>"
+                     ."<div class='col-md-6'> <div id='docmanui_tree'></div> </div>"
+                     ."<div class='col-md-6'>
+                           <div>
+                               <button class='docmanui_button_tabchange' data-tabname='preview'>Preview</button>
+                               <button class='docmanui_button_tabchange' data-tabname='edit'>Edit</button>
+                               <button class='docmanui_button_tabchange' data-tabname='rename'>Rename</button>
+                           </div>
+                           <div id='docmanui_ctrlview'></div>
+                       </div>"
                  ."</div>"
             ."</div></div>";
 
@@ -299,7 +303,6 @@ class DocManagerUI
         margin-bottom:10px;
 }
 
-
 .docman_docpreview_folder {
 }
 .docman_docform {
@@ -328,6 +331,10 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', ['raScriptFi
 
 ?>
 
+<style>
+#docmanui_ctrlview { border: 1px solid #aaa; padding:15px; }
+</style>
+
 <script>
 var mymapDocsX = new Map( [
     [0, { k:0, name:'',                doctype: 'folder', kParent: -1, children: [1,2] }],
@@ -346,9 +353,35 @@ var mymapDocsX = new Map( [
 
 class myDocRepTree extends DocRepTree
 {
-    constructor(raConfig)
+    constructor(oConfig)
     {
-        super(raConfig);
+        super(oConfig);
+        this.fnHandleEvent = oConfig.fnHandleEvent;
+    }
+
+    InitUI()
+    {
+        super.InitUI();
+    }
+
+    HandleEvent( eNotify, p )
+    /************************
+        DocRepTree calls here when something is clicked
+     */
+    {
+        switch( eNotify ) {
+            case 'docSelected':
+                sessionStorage.setItem( 'DocRepTree_Curr', p );    // SetCurrDoc() not defined but it would be this
+                break;
+        }
+
+        // pass the event up the chain
+        this.fnHandleEvent( eNotify, p );
+    }
+
+    GetCurrDoc()
+    {
+        return( parseInt(sessionStorage.getItem( 'DocRepTree_Curr' )) || 0 );
     }
 
     FetchDoc( kDoc )
@@ -361,39 +394,104 @@ class myDocRepTree extends DocRepTree
     LevelOpenGet( pDoc )
     {
         let oDRDoc = this.getDocAndJDoc(pDoc);
-        return( sessionStorage.getItem( 'DocRepTree_'+oDRDoc.kDoc ) == 1 );    // compare to int because '0' === true
+        return( sessionStorage.getItem( 'DocRepTree_Open_'+oDRDoc.kDoc ) == 1 );    // compare to int because '0' === true
     }
     LevelOpenSet( pDoc, bOpen )
     {
         let oDRDoc = this.getDocAndJDoc(pDoc);
-        sessionStorage.setItem( 'DocRepTree_'+oDRDoc.kDoc, bOpen );
+        sessionStorage.setItem( 'DocRepTree_Open_'+oDRDoc.kDoc, bOpen );
     }
 }
 
+
+class DocRepUI02
+/***************
+    Manages UI components but agnostic to rendering
+    Contains a DocRepTree, a DocRepCtrlView, and DocRepTree_Curr
+ */
+{
+    constructor( oConfig )
+    {
+        this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
+
+// these parms should be in oConfig
+        this.oTree = new myDocRepTree(
+                        { mapDocs: mymapDocs,
+                          dirIcons: '../../wcore/img/icons/',
+                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
+        this.ctrlMode = 'preview';
+    }
+
+    DrawTree()
+    {
+        return( this.oTree.DrawTree( 0 ) );
+    }
+
+    DrawCtrlView()
+    {
+        let s = "";
+
+        s = this.ctrlMode + " " + this.oTree.GetCurrDoc();
+
+        return( s );
+    }
+
+    InitUI()
+    {
+        this.oTree.InitUI();
+    }
+
+    HandleEvent( eNotify, p )
+    /************************
+        Components call here with notifications
+     */
+    {
+        switch( eNotify ) {
+            case 'docSelected':
+                break;
+        }
+        this.fnHandleEvent( eNotify, p+1 );
+    }
+}
+
+
+class DocRepApp02
+/****************
+    Manage the rendering of DocRepUI components. The components know how to update each others' states.
+ */
+{
+    constructor( oConfig )
+    {
+        this.oDocRepUI = new DocRepUI02( { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepUI how to send events here
+    }
+
+    InitUI()
+    {
+        let saveThis = this;
+        $('.docmanui_button_tabchange').click( function() {
+            saveThis.oDocRepUI.ctrlMode = $(this).attr('data-tabname');
+            $('#docmanui_ctrlview').html( saveThis.oDocRepUI.DrawCtrlView() );
+        });
+
+        // draw the components before initializing them because InitUI sets js bindings in the dom
+        $('#docmanui_tree').html( this.oDocRepUI.DrawTree() );
+        $('#docmanui_ctrlview').html( this.oDocRepUI.DrawCtrlView() );
+        this.oDocRepUI.InitUI();
+    }
+
+    HandleEvent( eEvent, p )
+    {
+        switch( eEvent ) {
+            case 'docSelected':
+                $('#docmanui_ctrlview').html( this.oDocRepUI.DrawCtrlView() );
+                break;
+        }
+    }
+}
+
+
 $(document).ready( function () {
-
-var ss = "";
-
-var oTree = new myDocRepTree( { mapDocs: mymapDocs,
-                                dirIcons: '../../wcore/img/icons/' } );
-ss += oTree.DrawTree( 0 );
-
-
-
-ss += "<hr/>";
-mymapDocs.forEach( function(v,k,map) { if( v.kParent==0 ) ss += v.name+"<br/>"; } );
-ss += '<br/>';
-mymapDocs.forEach( function(v,k,map) { if( v.kParent==2 ) ss += "<div style='margin:15px'>"+v.name+"</div>"; } );
-
-mymapDocs.forEach( function(v,k,map) { ss += v.name+" "; } );
-ss += '<br/>';
-mymapDocs.delete(2);
-mymapDocs.forEach( function(v,k,map) { ss += v.name+" "; } );
-
-
-$('#docmanui_tree').html(ss);
-
-oTree.InitUI();
-
+    (new DocRepApp02( { } )).InitUI();
 });
+
 </script>

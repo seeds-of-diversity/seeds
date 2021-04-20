@@ -7,10 +7,10 @@
 
 class DocRepTree
 {
-    constructor( raConfig )
+    constructor( oConfig )
     {
-        this.mapDocs = raConfig.mapDocs;
-        this.dirIcons = raConfig.dirIcons;
+        this.mapDocs = oConfig.mapDocs;
+        this.dirIcons = oConfig.dirIcons;
         this.speed = 0;
     }
 
@@ -126,6 +126,10 @@ class DocRepTree
         return( t );
     }
 
+    HandleEvent( eEvent, p )
+    {
+        // override to respond to notifications
+    }
     LevelOpenGet( pDoc )
     {
         // override to see whether a level is open (shown) or closed (hidden)
@@ -196,6 +200,7 @@ class DocRepTree
         $('.DocRepTree_title').click( function () {
             $('.DocRepTree_title').removeClass('DocRepTree_titleSelected');
             $(this).addClass('DocRepTree_titleSelected');
+            saveThis.HandleEvent( 'docSelected', $(this).attr('data-kdoc') );    // tell the derived class that a title was clicked
 
             // show/hide any children by toggling the Level contained within the same Doc (there should be zero or one Level sibling)
             $(this).siblings('.DocRepTree_level').each( function () { 
@@ -210,7 +215,13 @@ class DocRepTree
             saveThis.FolderOpenClose( pDoc, saveThis.LevelOpenGet(pDoc) ); 
         });
         
-        // but always open the top-level forest
+        // highlight the current doc 
+        let currDoc = saveThis.GetCurrDoc();
+        if( currDoc ) {
+            $(`.DocRepTree_title[data-kdoc=${currDoc}]`).addClass('DocRepTree_titleSelected');
+        }
+        
+        // but always show the top-level forest (node 0 isn't real and can't be closed)
         saveThis.FolderOpenClose( 0, true );
         
         // after init, animate opening and closing
