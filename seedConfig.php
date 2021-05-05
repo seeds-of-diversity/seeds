@@ -2,7 +2,7 @@
 
 /* seedConfig
  *
- * Copyright (c) 2019-2020 Seeds of Diversity Canada
+ * Copyright (c) 2019-2021 Seeds of Diversity Canada
  *
  * Definitions for locations of seeds components.
  *
@@ -19,6 +19,19 @@
 // You have to define SEEDROOT. We'll make good guesses about everything else.
 if( !defined("SEEDROOT") )  die( "SEEDROOT must be defined" );
 
+
+// Auto-configure applications executed directly from SEEDAPP.
+// _myseedconfig.php is only needed for SEED_APP_BOOT_REQUIRED, and probably unnecessary if SEEDCONFIG_DIR already defined
+if( !defined("SEEDCONFIG_DIR") ) {
+    if( !file_exists(($dMyConfig = SEEDROOT."../")."_myseedconfig.php") &&
+        !file_exists(($dMyConfig = SEEDROOT."../../")."_myseedconfig.php") &&
+        !file_exists(($dMyConfig = SEEDROOT."../../_config/")."_myseedconfig.php") )
+    {
+        die( "SEEDCONFIG_DIR not defined and _myseedconfig.php not found" );
+    } else {
+        define( "SEEDCONFIG_DIR", $dMyConfig );
+    }
+}
 if( defined("SEED_APP_BOOT_REQUIRED") ) {
     /* A seed app was executed directly so use the _myseedconfig.php boot-up script.
      *
@@ -31,14 +44,7 @@ if( defined("SEED_APP_BOOT_REQUIRED") ) {
      * SEEDQ_URL
      * SEED_LOG_DIR
      */
-    if( !file_exists($fMyConfig = SEEDROOT."../_myseedconfig.php") &&
-        !file_exists($fMyConfig = SEEDROOT."../../_myseedconfig.php") &&
-        !file_exists($fMyConfig = SEEDROOT."../../_config/_myseedconfig.php") )
-    {
-            die( "_myseedconfig.php not found" );
-    }
-
-    require_once $fMyConfig;
+    require_once SEEDCONFIG_DIR."_myseedconfig.php";
 }
 
 // Was this script run from the command line or from a web server
