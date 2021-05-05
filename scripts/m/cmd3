@@ -1,0 +1,5 @@
+grep "Your message to .* couldn't be delivered.$" 1* > tmp3
+sed 's/^\([^\:]*\)\:.*$/rm \1/' tmp3 > rmfiles3
+sed "s/^.*Your message to \(.*\) couldn't be delivered.$/\1/" tmp3 > emails3
+chmod u+x rmfiles3
+ 

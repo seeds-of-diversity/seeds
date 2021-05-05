@@ -1,0 +1,3 @@
+grep "/home/seeds/_back1/myBackup" 1* > tmp0
+sed 's/^\([^\:]*\)\:.*$/rm \1/' tmp0 > rmfiles0
+chmod u+x rmfiles0 

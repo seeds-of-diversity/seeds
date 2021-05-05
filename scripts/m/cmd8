@@ -1,0 +1,5 @@
+grep "\*\* Address not found \*\* Your message wasn't delivered to" 1* > tmp8
+sed 's/^\([^\:]*\)\:.*$/rm \1/' tmp8 > rmfiles8
+sed 's/^.*delivered to \(.*\)$/\1/' tmp8 > emails8
+chmod u+x rmfiles8
+ 

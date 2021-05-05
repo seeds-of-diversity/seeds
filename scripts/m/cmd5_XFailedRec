@@ -1,0 +1,10 @@
+# grep finds files containing Action: failed
+# sed extracts filenames
+# grep searches the same files for X-Failed-Recipient: email
+# From that result save the matching files and the emails
+
+grep "^Action\: failed$" 1*  | sed 's/^\([^\:]*\)\:.*$/\1/' | xargs -d'\n' grep "^X-Failed-Recipients:" -i -- > tmp5
+sed 's/^\([^\:]*\)\:.*$/rm \1/' tmp5 > rmfiles5 
+sed 's/^.*X-Failed-Recipients\: \(.*\)$/\1/' tmp5 > emails5
+chmod u+x rmfiles5
+ 

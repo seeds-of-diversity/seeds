@@ -209,8 +209,11 @@ class MbrEbulletin
 
 class MbrEbulletinDB extends Keyframe_NamedRelations
 {
+    private $oApp;
+
     function __construct( SEEDAppSessionAccount $oApp )
     {
+        $this->oApp = $oApp;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
     }
 
@@ -219,7 +222,7 @@ class MbrEbulletinDB extends Keyframe_NamedRelations
         $raKfrel = array();
 
         $def = ["Tables" => [
-                    "B" => ["Table" => "seeds_1.bull_list",
+                    "B" => ["Table" => "{$this->oApp->GetDBName('seeds1')}.bull_list",
                             "Type"  => 'Base',
                             "Fields" => 'Auto'
                ]]];
