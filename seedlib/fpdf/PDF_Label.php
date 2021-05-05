@@ -92,6 +92,8 @@ class PDF_Label extends \Fpdf\Fpdf {
         $this->_COUNTY = $posY-1;
     }
 
+    public function GetLineHeight() { return( $this->_Line_Height ); }
+
     function _Set_Format($format) {
         $this->_Margin_Left    = $this->_Convert_Metric($format['marginLeft'], $format['metric']);
         $this->_Margin_Top    = $this->_Convert_Metric($format['marginTop'], $format['metric']);
