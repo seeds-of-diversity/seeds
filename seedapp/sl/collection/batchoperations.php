@@ -5,33 +5,24 @@ class CollectionBatchOps
     private $oApp;
     private $oSVA;  // session vars for the UI tab containing this tool
 
-    private $raSelectOps = ['Germination Tests'=>'germ', 'Other Operation'=>'other'];
+    private $raSelectOps = ['Germination Tests'=>'germ', 'Batch Lot Update'=>'updatelots', 'Other Operation'=>'other'];
     private $currOp = "";
-
-    private $oSLDB;
-
-    private $sGermFeedback = "";
 
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
     {
         $this->oApp = $oApp;
         $this->oSVA = $oSVA;
         $this->currOp = $this->oSVA->SmartGPC( 'batchop', $this->raSelectOps );
-
-        $this->oSLDB = new SLDBCollection($this->oApp);
     }
 
     function Init()
     {
-        // this is also in CollectionTab_GerminationTests
-        if( ($kDel = SEEDInput_Int('germdel')) && ($kfr = $this->oSLDB->GetKFR('G', $kDel)) ) {
-            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
-            $kfr->PutDBRow();
-        }
+        // Independent of any state of the worker because that only exists in ContentDraw
     }
 
     function ControlDraw()
     {
+        // Independent of any state of the worker because that only exists in ContentDraw
         $oForm = new SEEDCoreForm( 'Plain' );
         $oForm->SetValue( 'batchop', $this->currOp );
         $s = "<form>".$oForm->Select( 'batchop', $this->raSelectOps, "", ['attrs'=>"onchange='submit()'"] )."</form>";
@@ -45,41 +36,79 @@ class CollectionBatchOps
 
         switch( $this->currOp ) {
             case 'germ':
-                $s = $this->germinationTests();
+                $o = new CollectionLibGermTest( $this->oApp );
+                $s = $o->Draw();
                 break;
         }
 
         return( $s );
     }
+}
 
-    private function germinationTests()
+class CollectionLibGermTest
+{
+    private $oApp;
+    private $oSLDB;
+    private $sGermFeedback = "";
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oSLDB = new SLDBCollection($this->oApp);
+    }
+
+    function Draw()
     {
         $s = "";
+
+        $sRowTmpl = "<tr>[[hiddenkey:]]
+                         <td style='width:10%'> @LotNum@ </td>
+                         <td style='width:15%'>[[XCvName     | width:100% | class='@XCvClass@' disabled]]</td>
+                         <td style='width:10%'>[[nSown       | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:10%'>[[nGerm_count | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:15%'>[[Date:dStart | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:15%'>[[Date:dEnd   | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:40%'>[[notes       | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:40%'> @DelButton@</td>
+                     </tr>";
+
+        // the blank rows use a special lotnum field (onblur looks up the XCvName) and never have a delete button
+        $sRowBlank = str_replace( ['@LotNum@',                                    '@XCvClass@', '@OthersDisabled@', '@DelButton@'],
+                                  ["[[XLotNum | width:100% | class='gtLotNum']]", "gtCVName",   "",                 "&nbsp"],
+                                  $sRowTmpl );
+
+        // my rows have a normal disabled lotnum field, @DelButton@ is replaced per-row
+        $sRowMine = str_replace( ['@LotNum@',                                 '@XCvClass@', '@OthersDisabled@'],
+                                 ["[[I_inv_number| width:100% | disabled]]",  "",           ""],
+                                 $sRowTmpl );
+
+        // other peoples' rows are like mine but all disabled and with no delete button
+        $sRowOthers = str_replace( ['@LotNum@',                               '@XCvClass@', '@OthersDisabled@', '@DelButton@'],
+                                 ["[[I_inv_number| width:100% | disabled]]",  "",           "disabled",         ""],
+                                 $sRowTmpl );
+
+        // this is also in CollectionTab_GerminationTests
+        if( ($kDel = SEEDInput_Int('germdel')) && ($kfr = $this->oSLDB->GetKFR('G', $kDel)) ) {
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
+            $kfr->PutDBRow();
+        }
+
 
         $oForm = new KeyFrameForm( $this->oSLDB->KFRel('G'), 'A', ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreGerm']] ] );
         $oForm->Update();
 
+        // initialize form to draw blank entries
         $oForm->SetKFR( $this->oSLDB->KFRel('G')->CreateRecord() );
+        // blank looks nicer than zero
+        $oForm->SetValue('nSown', '');
+        $oForm->SetValue('nGerm_count', '');
 
         $oFE = new SEEDFormExpand( $oForm );
         $s .= "<form method='post'><input type='submit'/>"
              ."<table>"
-             ."<tr><th>Lot</th><th>Cultivar</th><th>Start Date</th><th>End Date</th><th>Number Sown</th><th>Number Germ</th><th>Notes</th></tr>";
+             ."<tr><th>Lot</th><th>Cultivar</th><th>Number Sown</th><th>Number Germ</th><th>Start Date</th><th>End Date</th><th>Notes</th></tr>";
         for( $i = 0; $i < 5; ++$i ) {
-            // blank looks nicer than zero
-            $oForm->SetValue('nSown', '');
-            $oForm->SetValue('nGerm_count', '');
-
-            $s .= $oFE->ExpandForm( "<tr>[[hiddenkey:]]
-                                         <td style='width:10%'>[[XLotNum     | width:100% | class='gtLotNum']]</td>
-                                         <td style='width:15%'>[[XCvName     | width:100% | class='gtCVName' disabled]]</td>
-                                         <td style='width:15%'>[[Date:dStart | width:100%]]</td>
-                                         <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
-                                         <td style='width:10%'>[[nSown       | width:100%]]</td>
-                                         <td style='width:10%'>[[nGerm_count | width:100%]]</td>
-                                         <td style='width:40%'>[[notes       | width:100%]]</td>
-                                         <td style='width:40%'>{$this->deleteButton($oForm->GetKFR())}</td>"
-                                   ."</tr>" );
+            $s .= $oFE->ExpandForm( $sRowBlank );
             $oForm->IncRowNum();
         }
 
@@ -89,6 +118,7 @@ class CollectionBatchOps
              ."<tr><td colspan='7'>&nbsp;</td></tr>";
 
         if( ($raKfrG = $this->oSLDB->KFRel('GxIxAxPxS')->GetRecordSet( 'dEnd is null', ['sSortCol'=>'dStart','bSortDown'=>true] )) ) {
+            $sMine = $sOthers = "";
             foreach( $raKfrG as $kfr ) {
                 $oForm->SetKFR($kfr);
 
@@ -98,17 +128,17 @@ class CollectionBatchOps
                 // blank looks nicer than zero
                 if( !$oForm->Value('nGerm_count') ) $oForm->SetValue('nGerm_count', '');
 
-                $s .= $oFE->ExpandForm( "<tr>[[hiddenkey:]]
-                                         <td style='width:10%'>[[I_inv_number| width:100% | disabled]]</td>
-                                         <td style='width:15%'>[[XCvName     | width:100% | disabled]]</td>
-                                         <td style='width:15%'>[[Date:dStart | width:100%]]</td>
-                                         <td style='width:15%'>[[Date:dEnd   | width:100%]]</td>
-                                         <td style='width:10%'>[[nSown       | width:100%]]</td>
-                                         <td style='width:10%'>[[nGerm_count | width:100%]]</td>
-                                         <td style='width:40%'>[[notes       | width:100%]]</td>
-                                         <td style='width:40%'>{$this->deleteButton($oForm->GetKFR())}</td>"
-                                       ."</tr>" );
+                if( $oForm->Value('_created_by')==$this->oApp->sess->GetUID() ) {
+                    $sMine .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($oForm->GetKFR()), $sRowMine ) );
+                } else {
+                    $sOthers .= $oFE->ExpandForm( $sRowOthers );
+                }
                 $oForm->IncRowNum();
+            }
+            $s .= "<tr><td colspan='7'><h4>Your Tests In Progress</h4></td></tr>".$sMine;
+            if( $sOthers ) {
+                $s .= "<tr><td colspan='7'>&nbsp;</td></tr>"
+                     ."<tr><td colspan='7'><h4>Other Peoples' Tests In Progress</h4></td></tr>".$sOthers;
             }
         }
 

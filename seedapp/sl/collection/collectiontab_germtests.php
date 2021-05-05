@@ -100,12 +100,16 @@ class CollectionTab_GerminationTests
 
     private function deleteButton( KeyframeRecord $kfr )
     /***************************************************
-        Make a button that will delete the given germ test (only if it's your test)
+        Make a button that will delete the given germ test (only if it's your test, and it's pretty recent)
 
         sf{cid}d{R} doesn't work the way we want it to here, so do it with a custom parameter instead
      */
     {
-        $sDeleteButton = ($kfr->Key() && $kfr->Value('_created_by')==$this->oApp->sess->GetUID())
+        $bRecent  = ($t = strtotime($kfr->Value('_created'))) > 1000000     // probably a valid timestamp
+                    && time() - $t < (3600*24*60);                          // past 60 days
+
+        $sDeleteButton = ($kfr->Key() && $kfr->Value('_created_by')==$this->oApp->sess->GetUID()
+                                      && $bRecent)
                                 ? ("<a href='{$this->oApp->PathToSelf()}?germdel={$kfr->Key()}'>"
                                   ."<img src='".SEEDW_URL."img/ctrl/delete01.png' height='20'/>"
                                   ."</a>")
