@@ -1,0 +1,6 @@
+# find the emails discarded because of max defers
+# make a script to move them to the discarded folder where they can be processed further
+
+grep "exceeded the max defers and failures per hour .* discarded.$" 1* | sed 's/^\([^\:]*\)\:.*$/mv \1 discardMaxFail/' > mvfiles_discard
+chmod u+x mvfiles_discard
+ 

@@ -1,0 +1,11 @@
+# grep finds files containing Action: failed
+# sed extracts filenames
+# grep searches the same files for X-Failed-Recipient: email
+# From that result save the matching files and the emails
+
+# grep -H forces filename to be prefixed to results; that is the default only if >1 files given by xargs
+grep "^Status: 5.0.0 (permanent failure)" 1*  | sed 's/^\([^\:]*\)\:.*$/\1/' | xargs -d'\n' grep -H "^Final-Recipient: rfc822;" -i -- > tmp7
+sed 's/^\([^\:]*\)\:.*$/rm \1/' tmp7 > rmfiles7 
+sed 's/^.*Final-Recipient\: rfc822\;\(.*\)$/\1/' tmp7 > emails7
+chmod u+x rmfiles7
+ 

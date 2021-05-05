@@ -1,0 +1,2 @@
+grep "^Action\: delayed$" 1* | sed 's/^\([^\:]*\)\:.*$/rm \1/' > rmfiles_delayed
+chmod u+x rmfiles_delayed
