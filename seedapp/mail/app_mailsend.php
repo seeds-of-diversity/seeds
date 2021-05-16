@@ -8,13 +8,13 @@
  *
  * Usage: 1) https://.../mailsend.php?nQuantity=5&nDelay20
  *        2) php -f mailsend.php -nQuantity5 -nDelay20
-
+ *
  *  nQuantity = number of emails to send
  *  nDelay    = seconds to delay between each send, and seconds to delay before http redirect
  */
 
 if( !defined( "SEEDROOT" ) ) {
-    if( php_sapi_name() == 'cli' ) {
+    if( php_sapi_name() == 'cli' ) {    // available as SEED_isCLI after seedConfig.php
         // script has been run from the command line
         define( "SEEDROOT", pathinfo($_SERVER['PWD'].'/'.$_SERVER['SCRIPT_NAME'],PATHINFO_DIRNAME)."/../../" );
     } else {
@@ -43,19 +43,16 @@ if( SEED_isCLI ) {
     $nDelay = SEEDInput_Int('nDelay');
 }
 if( !$nQuantity ) $nQuantity = 1;
+if( !$nDelay )    $nDelay = 20;     // there's no way to set zero delay, though that is tested below (could implement -1 = no delay)
 
 
 $oMailSend = new SEEDMailSend( $oApp );
 $nToSend = $oMailSend->GetCountReadyToSend();
 
-
-function testMailHistory( SEEDAppConsole $oApp )  { return( [true,""] ); }
-
-
 $sBody = "<h2>Seeds of Diversity Bulk Mailer</h2>"
         ."<p>There are $nToSend emails ready to send at ".date('Y-m-d H:i:s').".</p>";
 
-list($bTestOk,$sTest) = testMailHistory( $oApp );
+list($bTestOk,$sTest) = (new SEEDMailTestHistory($oApp))->TestMailHistory();
 $sBody .= $sTest;
 
 $bSendMail = ($bTestOk && $nToSend);
@@ -72,7 +69,7 @@ if( $bSendMail ) {
 
         $sBody .= $s1;
 
-        if( $nQuantity && $nDelay ) sleep($nDelay);
+        if( SEED_isCLI && $nQuantity && $nDelay ) sleep($nDelay);   // sleep for cmd line invocation; web invocation uses <meta> below
     }
 }
 
@@ -80,5 +77,5 @@ $sBody = $oApp->oC->DrawConsole($sBody);
 
 echo Console02Static::HTMLPage( $sBody,
                                 //($bSendMail ? "<meta http-equiv='refresh' CONTENT='20; URL=https://seeds.ca/office/mbr/mbr_mailsend.php'>" : ""),
-                                ($bSendMail ? "<meta http-equiv='refresh' content='20'>" : ""),
+                                (!SEED_isCLI && $bSendMail ? "<meta http-equiv='refresh' content='$nDelay'>" : ""),
                                 'EN', [] );

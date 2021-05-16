@@ -272,3 +272,192 @@ $raVars['lang'] = $this->oApp->lang;
         return( [$ok ? $kfrStage->Key() : 0, $sMsg] );
     }
 }
+
+
+class SEEDMailTestHistory
+{
+    private $oApp;
+    private $raF = [ 'mybackup'=>[], 'delayed'=>[], 'discardedTooFast'=>[], 'discardedMaxFail'=>[], 'failed'=>[], 'unknown'=>[] ];    // results collected from files
+    private $nFiles = 0;
+    private $bFatalError = false;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function TestMailHistory()
+    {
+        $s = "";
+        $sShowFname = $sShowFileContents = "";
+
+        $dirMail = (SEED_isLocal ? "/home/bob/" : "/home/seeds/")."mail/new";
+        $dirArchive = (SEED_isLocal ? "/home/bob/" : "/home/seeds/")."mail/seed_mail_archive";
+
+        if( !is_dir($dirMail) ) {
+            $s = "<p class='alert alert-warning'>$dirMail does not exist</p>";  // not a failure, return bOk==true
+            goto done;
+        }
+
+        // process delete requests
+        if( ($fnameDel = SEEDInput_Str('d')) ) {
+            unlink( $dirMail."/".$fnameDel );
+        }
+
+        foreach( new DirectoryIterator($dirMail) as $f ) {
+            // look at the files that start with 1*
+            if( $f->isDot() || $f->isDir() || !SEEDCore_StartsWith($f->getFilename(),'1') ) continue;
+
+            $sFileContents = file_get_contents($f->getPathname());
+            $fname = $f->getFilename();
+
+            if( !$this->testMyBackup($fname, $sFileContents) &&
+                !$this->testDelayed($fname, $sFileContents) &&
+                !$this->testDiscardedTooFast($fname, $sFileContents) &&  // Check for discards before fails because they have the same headers
+                !$this->testDiscardedMaxFail($fname, $sFileContents) &&
+                !$this->testFailed($fname, $sFileContents) )
+            {
+                // store this fname as 'unknown' because we don't know what it's for
+                $this->raF['unknown'][] = $fname;
+            }
+
+            if( ($sShowFname = SEEDInput_Str('f')) == $fname ) {
+                $sShowFileContents = $sFileContents;
+            }
+
+            ++$this->nFiles;
+        }
+
+        $s .= "<style>
+               .SEEDMailTestHistory_ResultsTable { width:100%; font-family:monospace; }
+               </style>";
+
+        $tmplFile = "<td><a href='?f=[[vu]]'>[[v]]</a></td><td>&nbsp;</td><td><a href='?d=[[vu]]'>Delete</a></td>";
+        $tmplFileAddress = "<td>[[v]]</td><td><a href='?f=[[ku]]'>[[k]]</a></td><td><a href='?d=[[ku]]'>Delete</a></td>";
+        $raSections = [
+            ['k'=>'mybackup',         'l'=>'mybackup emails',          't'=>$tmplFile],
+            ['k'=>'delayed',          'l'=>'delayed emails',           't'=>$tmplFile],
+            ['k'=>'discardedTooFast', 'l'=>'over send quota',          't'=>$tmplFileAddress],
+            ['k'=>'discardedMaxFail', 'l'=>'discarded - max failures', 't'=>$tmplFileAddress],
+            ['k'=>'failed',           'l'=>'failed',                   't'=>$tmplFileAddress],
+            ['k'=>'unknown',          'l'=>'unknown',                  't'=>$tmplFile],
+        ];
+        $s .= "<div style='margin:20px'>"
+             ."<hr/>"
+             ."<div style='margin-bottom:30px'>{$this->nFiles} notifications</div>";
+        foreach( $raSections as $ra ) {
+            if( !($n = count($this->raF[$ra['k']])) ) continue;
+
+            $s .= "<div>$n {$ra['l']}:</div>"
+                 ."<div class='well'>"
+                     ."<table class='SEEDMailTestHistory_ResultsTable'>"
+                         .SEEDCore_ArrayExpandSeries( $this->raF[$ra['k']], "<tr>{$ra['t']}</tr>" )
+                     ."</table>"
+                ."</div>";
+        }
+
+        if( $sShowFileContents ) {
+            $s .= "<div style='margin-top:30px'>$sShowFname</div>"
+                 ."<div class='well' style='font-family:monospace'>".nl2br(SEEDCore_HSC($sShowFileContents))."</div>";
+        }
+
+        done:
+        return( [!$this->bFatalError,$s] );
+    }
+
+    private function testMyBackup( $fname, $sFileContents )
+    {
+        $bFound = false;
+
+        // test if this is a notice of myBackup
+
+        if( preg_match( "/\/home\/seeds\/_back1\/myBackup/", $sFileContents) ) {
+            $this->raF['mybackup'][] = $fname;
+            $bFound = true;
+        }
+        return( $bFound );
+    }
+    private function testDelayed( $fname, $sFileContents )
+    {
+        $bFound = false;
+
+        // test if an email is delayed but will be retried (this notice can be ignored)
+
+        if( preg_match( "/\nAction\: delayed\n/", $sFileContents) ) {
+            $this->raF['delayed'][] = $fname;
+            $bFound = true;
+        }
+        return( $bFound );
+    }
+    private function testDiscardedTooFast( $fname, $sFileContents )
+    {
+        $bFound = false;
+
+        // test if an email was discarded because the sending server sent more than the hourly quota (fatal error; stop sending)
+
+        if( preg_match( "/exceeded the max emails per hour .* discarded.\n/", $sFileContents) &&
+            preg_match( "/\nX-Failed-Recipients: (.*)\n/", $sFileContents, $match) )
+        {
+            $this->raF['discardedTooFast'][$fname] = $match[1];
+            $this->bFatalError = true;      // stop sending emails
+            $bFound = true;
+        }
+
+        return( $bFound );
+    }
+    private function testDiscardedMaxFail( $fname, $sFileContents )
+    {
+        $bFound = false;
+        $match = [];
+
+        // test if an email was discarded because the sending server has too many fails (fatal error; stop sending)
+
+        if( preg_match( "/exceeded the max defers and failures per hour .* discarded.\n/", $sFileContents) &&
+            preg_match( "/\nX-Failed-Recipients: (.*)\n/", $sFileContents, $match) )
+        {
+            $this->raF['discardedMaxFail'][$fname] = $match[1];
+            $this->bFatalError = true;      // stop sending emails
+            $bFound = true;
+        }
+
+        return( $bFound );
+    }
+    private function testFailed( $fname, $sFileContents )
+    {
+        $bFound = false;
+        $match = [];
+
+        // test if an email failed at its destination server (e.g. invalid address)
+
+        if( preg_match( "/\nAction: failed\n/", $sFileContents) &&
+            preg_match( "/\nX-Failed-Recipients: (.*)\n/", $sFileContents, $match) )
+        {
+            $this->raF['failed'][$fname] = $match[1];
+            $bFound = true;
+        }
+        else
+        if( preg_match( "/could not deliver mail to (.*)\.  The account/", $sFileContents, $match ) ) {
+            $this->raF['failed'][$fname] = $match[1];
+            $bFound = true;
+        }
+        else
+        if( preg_match( "/Your message to (.*) couldn't be delivered\./", $sFileContents, $match ) ) {
+            $this->raF['failed'][$fname] = $match[1];
+            $bFound = true;
+        }
+        else
+        if( preg_match( "/\*\* Address not found \*\* Your message wasn't delivered to (.*)\n/", $sFileContents, $match ) ) {
+            $this->raF['failed'][$fname] = $match[1];
+            $bFound = true;
+        }
+        else
+        if( preg_match( "/\nStatus: 5.0.0 \(permanent failure\)/", $sFileContents) &&
+            preg_match( "/\nFinal-Recipient\: rfc822\;(.*)\n/", $sFileContents, $match) )
+        {
+            $this->raF['failed'][$fname] = $match[1];
+            $bFound = true;
+        }
+
+        return( $bFound );
+    }
+}
