@@ -33,6 +33,30 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
                               //     'consoleConfig' => $consoleConfig] );
 
 
+if( ($p = SEEDInput_Str('qcmd')) ) {
+    $rQ = ['bOk'=>false, 'raOut'=>[], 'sOut'=>"", 'sErr'=>''];
+
+    switch( $p ) {
+/***********************************
+    Here's where you put the php code to serve requests from the js app.
+    Actually don't put it here. Define functions/classes somewhere else for each case and put the code there.
+ */
+        case 'dr-preview':
+            $rQ['bOk'] = true;
+// Make a class that will get the preview.
+            $rQ['sOut'] = "<h4>Here's the preview coming to you via AJAX</h4>";
+            $rQ['raOut']['doctype'] = 'HTML';   // or whatever - look it up, and the js app should do the right thing for different types
+                                                // e.g. this could be an image type, or it could be pdf, or html
+                                                // Note that if it isn't html, you don't want to send the doc in sOut. Instead it should be
+                                                // a link to get or show the image, pdf, etc.
+            break;
+    }
+    echo json_encode( $rQ );
+    exit;
+}
+
+
+
 class DocManagerTabSet extends Console02TabSet
 {
     private $oApp;
@@ -254,7 +278,11 @@ class myDocRepCtrlView extends DocRepCtrlView
                    +"If it's html, put it here.<br/>"
                    +"If it's an image, put an &lt;img> tag here to show it.<br/>"
                    +"Otherwise put a link here to download/view it (e.g. docx,pdf)</p>";
+
+                let rQ = SEEDJXSync( "", {qcmd: 'dr-preview'} );
+                if( rQ.bOk ) s += rQ.sOut;
                 break;
+
             case 'edit':
                 s = "<p>Todo:<br/>"
                    +`Fetch metadata/data for doc ${kCurrDoc}<br/>`
