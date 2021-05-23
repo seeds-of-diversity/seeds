@@ -17,11 +17,15 @@ include_once( SEEDROOT."DocRep/DocRep.php" );
 include_once( SEEDROOT."DocRep/DocRepUI.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
+                                     'documentsx'=> ['label'=>'Documents Old'],
+                                     'versions'  => ['label'=>'Versions'],
                                      'files'     => ['label'=>'Files'],
                                      'ghost'     => ['label'=>'Ghost']
                                    ],
                          // this doubles as sessPermsRequired and console::TabSetPermissions
                          'perms' =>[ 'documents' => ['W DocRepMgr'],
+                                     'documentsx'=> ['A DocRepMgr'],
+                                     'versions'  => ['W DocRepMgr'],
                                      'files'     => ['W DocRepMgr'],
                                      'ghost'     => ['A notyou'],
                                                     '|'  // allows screen-login even if some tabs are ghosted
@@ -51,6 +55,10 @@ class DocManagerTabSet extends Console02TabSet
     function TabSet_main_documents_Init()          { $this->oW = new DocManagerTabDocuments( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_documents_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_documents_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_documentsx_Init()         { $this->oW = new DocManagerTabDocumentsOld( $this->oApp, $this->kSelectedDoc ); $this->oW->Init(); }
+    function TabSet_main_documentsx_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_documentsx_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 }
 
 
@@ -85,7 +93,6 @@ class DocManagerTabDocuments
                                <button class='docmanui_button_tabchange' data-tabname='preview'>Preview</button>
                                <button class='docmanui_button_tabchange' data-tabname='edit'>Edit</button>
                                <button class='docmanui_button_tabchange' data-tabname='rename'>Rename</button>
-                               <button class='docmanui_button_tabchange' data-tabname='versions'>Versions</button>
                            </div>
                            <div id='docmanui_ctrlview'></div>
                        </div>"
@@ -130,6 +137,187 @@ class DocManagerTabDocuments
 }
 
 
+class DocManagerTabDocumentsOld
+{
+    private $kSelectedDoc;
+
+    function __construct( SEEDAppConsole $oApp, $kSelectedDoc )
+    {
+        $this->oApp = $oApp;
+        $this->kSelectedDoc = $kSelectedDoc;
+    }
+
+    function Init()
+    {
+    }
+
+    function ControlDraw() { return( "<br/>" ); }
+    function ContentDraw()
+    {
+        $s = "";
+
+        $o = new DocManagerUI( $this->oApp, $this->kSelectedDoc );
+
+        $s .= $o->Style();
+
+        $s .= "<div class='docman_doctree'>"
+             ."<div class='container-fluid'>"
+                 ."<div class='row'>"
+                     ."<div class='col-md-6'>".$o->oDocMan->DrawDocTree( 0 )."</div>"
+                     ."<div class='col-md-6'>"
+                         .($o->oDocMan->GetSelectedDocKey() ? ("<div class='docman_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
+                         ."<div class='docman_docform'>".$o->oDocMan->TreeForms()."</div>"
+                     ."</div>"
+                 ."</div>"
+            ."</div></div>";
+
+        $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
+
+        return( $s );
+    }
+}
+
+
+class DocManApp extends DocRepApp1
+{
+    private $oApp;
+    private $oDocRepUI;
+
+    function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc, DocRepDB2 $oDB, DocManDocRepUI $oUI )
+    {
+        parent::__construct( $oUI, $oDB, $kSelectedDoc );
+        $this->oApp = $oApp;
+    }
+
+    function Edit0()
+    {
+        $s = "";
+
+        $s = "PUT THE EDIT FORM HERE";
+
+        return( $s );
+    }
+
+    function Rename0()
+    {
+        $s = "";
+
+        if( ($k = $this->GetSelectedDocKey()) ) {
+            $oForm = new SEEDCoreForm( 'Plain' );
+            $s .= "<form method='post'>"
+                 .$oForm->Hidden( 'k', array( 'value' => $k ) )                // so the UI knows the current doc in the tree
+                 .$oForm->Hidden( 'action', array( 'value' => 'rename2' ) )
+                 .$oForm->Text( 'doc_name', '' )           // the new document name
+                 ."<input type='submit' value='Rename'/>"
+                 ."</form>";
+        }
+
+        return( $s );
+    }
+
+}
+
+class DocManDocRepUI extends DocRepUI
+{
+    function __construct( DocRepDB2 $oDocRepDB, $pathToSelf )
+    {
+        parent::__construct( $oDocRepDB, $pathToSelf );
+    }
+
+    function DrawTree_title_NOTUSED( DocRepDoc2 $oDoc, $raTitleParms )
+    /*********************************************************
+        This is called from DocRepUI::DrawTree for every item in the tree. It writes the content of <div class='DocRepTree_title'>.
+
+        raTitleParms:
+            bSelectedDoc:   true if this document is selected in the tree and should be highlighted
+            sExpandCmd:     the command to be issued if the user clicks on a tree-expand-collapse control associated with this item
+     */
+    {
+        $kDoc = $oDoc->GetKey();
+
+        $s = "<a href='${_SERVER['PHP_SELF']}?k=$kDoc'><nobr>"
+        .( $raTitleParms['bSelectedDoc'] ? "<span class='docman_doctree_titleSelected'>" : "" )
+        .($oDoc->GetTitle('') ?: ($oDoc->GetName() ?: "Untitled"))
+        .( $raTitleParms['bSelectedDoc'] ? "</span>" : "" )
+        ."</nobr></a>";
+
+        return( $s );
+    }
+}
+
+
+class DocManagerUI
+{
+    private $oApp;
+    public  $oDocMan;
+    public  $oDocRepDB;
+
+    function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc )
+    {
+        $this->oApp = $oApp;
+        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
+        $this->oDocRepDB = $oDocRepDB;
+        $oDocRepUI = new DocManDocRepUI( $oDocRepDB, $oApp->PathToSelf() );
+
+        $this->oDocMan = new DocManApp( $oApp, $kSelectedDoc, $oDocRepDB, $oDocRepUI );
+    }
+
+    function DrawTreeTabs()
+    {
+        $s = $this->oDocMan->TreeTabs();
+        return( $s );
+        $s = "<div class='row'>"
+            .$this->tab( "View",   "view0" )
+            .$this->tab( "Edit",   "edit0" )
+            .$this->tab( "Rename", "rename0" )
+            //.$this->tab( "Tell a Joke", "joke0" )
+            ."</div>";
+        return( $s );
+    }
+
+    private function tab( $label, $tabcmd )
+    {
+        return( "<div class='col-md-2'>"
+               ."<a href='{$this->oApp->PathToSelf()}?tab=$tabcmd&k=".$this->oDocMan->GetSelectedDocKey()."'>$label</a>"
+               ."</div>" );
+
+/*
+            ."<form method='post'>"
+               ."<input type='hidden' name='k' value='".$this->oDocMan->GetSelectedDocKey()."'/>"
+               ."<input type='hidden' name='action' value='$action'/>"
+               ."<input type='submit' value='$label'/>"
+               ."</form></div>" );
+*/
+    }
+
+    function Style()
+    {
+        return( DocRepApp1::Style()."
+<style>
+.docman_doctree {
+        border-radius:10px;
+        margin:20px;
+}
+
+.docman_doctreetabs {
+        margin-bottom:10px;
+}
+
+.docman_docpreview_folder {
+}
+.docman_docform {
+        background-color:#eee;
+        border:1px solid #777;
+        border-radius: 10px;
+        padding:20px;
+}
+
+</style>
+" );
+    }
+}
+
+
 $s = "";
 
 $kSelectedDoc = SEEDInput_Int('k');
@@ -148,7 +336,6 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', ['raScriptFi
 </style>
 
 <script>
-/*
 var mymapDocsX = new Map( [
     [0, { k:0, name:'',                doctype: 'folder', kParent: -1, children: [1,2] }],
     [1, { k:1, name:'folder1',         doctype: 'folder', kParent: 0,  children: [4,5,3] }],
@@ -161,7 +348,7 @@ var mymapDocsX = new Map( [
     [8, { k:8, name:'folder3/pageE',   doctype: 'page',   kParent: 3,  children: [] }],
     //[9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] }],
 ]);
-*/
+
 
 
 class myDocRepTree extends DocRepTree
@@ -217,70 +404,6 @@ class myDocRepTree extends DocRepTree
 }
 
 
-class DocRepCtrlView  // put base class in wcore/js/DocRep/DocRepApp.js
-{
-    constructor( oConfig )
-    {
-        this.ctrlMode = "";
-    }
-
-    HandleEvent( eEvent, p )
-    {
-        // override to respond to notifications
-    }
-}
-class myDocRepCtrlView extends DocRepCtrlView
-{
-    constructor( oConfig )
-    {
-        super(oConfig);
-        this.ctrlMode = 'preview';
-        this.fnHandleEvent = oConfig.fnHandleEvent;
-    }
-
-    DrawCtrlView( kCurrDoc )
-    {
-        let s = "";
-
-/****************************
-   Here is where you add code to implement the controls.
-   Preferably create a new method, or even a new class, for each of the cases. Don't just put all the code in the switch.
- */
-
-        switch( this.ctrlMode ) {
-            case 'preview':
-                s = "<p>Todo:<br/>"
-                   +`Fetch metadata/data for doc ${kCurrDoc}<br/>`
-                   +"If it's html, put it here.<br/>"
-                   +"If it's an image, put an &lt;img> tag here to show it.<br/>"
-                   +"Otherwise put a link here to download/view it (e.g. docx,pdf)</p>";
-                break;
-            case 'edit':
-                s = "<p>Todo:<br/>"
-                   +`Fetch metadata/data for doc ${kCurrDoc}<br/>`
-                   +"If it's html, put an html editor here. CKEditor?<br/>";
-                   break;
-            case 'rename':
-                s = "<p>Todo:<br/>"
-                   +`For doc ${kCurrDoc}<br/>`
-                   +"Put a form here to change name, title, permissions, other metadata.<br/>";
-                   break;
-            case 'versions':
-                s = "<p>Todo:<br/>"
-                   +`For doc ${kCurrDoc}<br/>`
-                   +"Show versions of this document, allow preview, diff view, restore, and delete.<br/>";
-                   break;
-
-            default:
-                s = this.oCtrlView.ctrlMode + " " + this.oTree.GetCurrDoc();
-        }
-
-        return( s );
-    }
-}
-
-
-
 class DocRepUI02
 /***************
     Manages UI components but agnostic to rendering
@@ -296,9 +419,7 @@ class DocRepUI02
                         { mapDocs: mymapDocs,
                           dirIcons: '../../wcore/img/icons/',
                           fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
-        this.oCtrlView = new myDocRepCtrlView(
-                        { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
-        this.kCurrDoc = 0;
+        this.ctrlMode = 'preview';
     }
 
     DrawTree()
@@ -308,10 +429,13 @@ class DocRepUI02
 
     DrawCtrlView()
     {
-// The ctrlMode is awkwardly set to this obj, then this is called to draw it. Should be a cleaner way to change mode and draw.
-// Also oCtrlView should either know which doc is current, or it should be able to ask DocRepUI02 through a callback (eliminate the fn parm).
-        return( this.oCtrlView.DrawCtrlView( this.oTree.GetCurrDoc() ) );
+        let s = "";
+
+        s = this.ctrlMode + " " + this.oTree.GetCurrDoc();
+
+        return( s );
     }
+
     InitUI()
     {
         this.oTree.InitUI();
@@ -345,7 +469,7 @@ class DocRepApp02
     {
         let saveThis = this;
         $('.docmanui_button_tabchange').click( function() {
-            saveThis.oDocRepUI.oCtrlView.ctrlMode = $(this).attr('data-tabname');
+            saveThis.oDocRepUI.ctrlMode = $(this).attr('data-tabname');
             $('#docmanui_ctrlview').html( saveThis.oDocRepUI.DrawCtrlView() );
         });
 
