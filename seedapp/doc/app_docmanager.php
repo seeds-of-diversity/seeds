@@ -44,7 +44,7 @@ if( ($p = SEEDInput_Str('qcmd')) && ($kDoc = SEEDInput_Int('kDoc')) ) {
         case 'dr-preview':
             $rQ['bOk'] = true;
 // Make a class that will get the preview.
-            $rQ['sOut'] = "<h4>Here's the preview coming to you via AJAX</h4>";
+            $rQ['sOut'] = "<h4>Here's the preview coming to you via AJAX for doc $kDoc</h4>";
             $rQ['raOut']['doctype'] = 'HTML';   // or whatever - look it up, and the js app should do the right thing for different types
                                                 // e.g. this could be an image type, or it could be pdf, or html
                                                 // Note that if it isn't html, you don't want to send the doc in sOut. Instead it should be
