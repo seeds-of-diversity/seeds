@@ -52,7 +52,7 @@ if( ($p = SEEDInput_Str('qcmd')) && ($kDoc = SEEDInput_Int('kDoc')) ) {
 
             $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
             $oDoc = $oDocRepDB->GetDocRepDoc( $kDoc );
-            $rQ['sOut'] = $oDoc->GetText('');
+            //$rQ['sOut'] = $oDoc->GetText('');
             break;
     }
     echo json_encode( $rQ );
