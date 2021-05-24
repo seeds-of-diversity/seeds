@@ -14,7 +14,7 @@ class DocRepUtil
 {
     const DocRep_SEEDPerms_Appname = 'DocRep';
 
-    static function New_DocRepDB_WithMyPerms( SEEDAppSessionAccount $oApp, $raParms = [] )
+    static function New_DocRepDB_WithMyPerms( SEEDAppSessionAccount $oApp, $raParms = [] ): DocRepDB2
     /*************************************************************************************
         Construct a DocRepDB with the current user's SEEDPerms installed.
         This is probably how you will always make a DocRepDB, instead of creating it directly.

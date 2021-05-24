@@ -128,9 +128,9 @@ class DocRepDB2 extends DocRep_DB
 
 // It's worth doing this even if you just want the kDoc of a name. The minimal code would do almost as much work, and there's a
 // pretty good chance you're going to use the cached DocRepDoc after you get the kDoc.
-    function GetDocRepDoc( $sDoc ) { return( $this->GetDoc( $sDoc ) ); }
+    function GetDocRepDoc( $sDoc ): ?DocRepDoc2 { return( $this->GetDoc( $sDoc ) ); }
 
-    function GetDoc( $sDoc )
+    function GetDoc( $sDoc ): ?DocRepDoc2
     /***********************
         Get a DocRepDoc by kDoc or name
      */
