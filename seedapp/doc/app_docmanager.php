@@ -205,7 +205,6 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', ['raScriptFi
 	display: inline-block;
 	box-sizing: border-box;
 	margin-top: 10px;
-	margin-bottom: 20px;
 	width: 100%;
 	min-height: 30px;
 }
