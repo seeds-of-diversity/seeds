@@ -7,6 +7,32 @@
  * Manage docrep documents.
  */
 
+
+
+/* Todo:
+
+Preview tab:
+    Remove the instruction text. "If it's html put it here..." etc
+    Put a checkbox at the top of #docmanui_ctrlview called "Show source". If it's
+    unchecked show the preview normally, if checked escape htmlchars and make it
+    monospace font so source html is shown
+
+Edit tab:
+    Find an html editor and put it here with the doc's html. I've used CKEditor and MCE but
+    there are others that might be better now. I'm okay with Save doing a page refresh but if
+    it's easy to hook the save to an ajax command then make a command called dr--textsave
+
+Rename tab:
+    Put a form here showing the document name, title, and permission class. Get title using GetTitle('').
+    Make an ajax command called dr--metadatasave that updates these three.
+    The hard part might be changing the tree to show the new name... hmm.
+
+Ctrlview:
+    Make the Preview, Edit, Rename, etc buttons look like tabs instead of buttons.
+
+*/
+
+
 if( !defined( "SEEDROOT" ) ) {
     define( "SEEDROOT", "../../" );
     define( "SEED_APP_BOOT_REQUIRED", true );
