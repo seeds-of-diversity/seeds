@@ -27,9 +27,6 @@ Rename tab:
     Make an ajax command called dr--metadatasave that updates these three.
     The hard part might be changing the tree to show the new name... hmm.
 
-Ctrlview:
-    Make the Preview, Edit, Rename, etc buttons look like tabs instead of buttons.
-
 */
 
 
@@ -136,11 +133,11 @@ class DocManagerTabDocuments
                  ."<div class='row'>"
                      ."<div class='col-md-6'> <div id='docmanui_tree'></div> </div>"
                      ."<div class='col-md-6'>
-                           <div>
-                               <button class='docmanui_button_tabchange' data-tabname='preview'>Preview</button>
-                               <button class='docmanui_button_tabchange' data-tabname='edit'>Edit</button>
-                               <button class='docmanui_button_tabchange' data-tabname='rename'>Rename</button>
-                               <button class='docmanui_button_tabchange' data-tabname='versions'>Versions</button>
+                           <div id='tabs'>
+                               <div class='docmanui_button_tabchange tab active-tab' data-tabname='preview'>Preview</div>
+                               <div class='docmanui_button_tabchange tab' data-tabname='edit'>Edit</div>
+                               <div class='docmanui_button_tabchange tab' data-tabname='rename'>Rename</div>
+                               <div class='docmanui_button_tabchange tab' data-tabname='versions'>Versions</div>
                            </div>
                            <div id='docmanui_ctrlview'></div>
                        </div>"
@@ -200,4 +197,34 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', ['raScriptFi
 
 <style>
 #docmanui_ctrlview { border: 1px solid #aaa; padding:15px; }
+:root {
+	--tab-color: lightgrey;
+	--tab-rounding: 8px;
+}
+#tabs {
+	display: inline-block;
+	box-sizing: border-box;
+	margin-top: 10px;
+	margin-bottom: 20px;
+	width: 100%;
+	min-height: 30px;
+}
+.tab {
+	display: inline-block;
+	min-width: 20%;
+	padding: 5px 10px;
+	height: 100%;
+	background-color: var(--tab-color);
+	vertical-align: middle;
+	text-align: center;
+	border: 1px solid var(--tab-color);
+	border-bottom: none;
+	border-radius: var(--tab-rounding) var(--tab-rounding) 0 0;
+	box-sizing: border-box;
+	cursor: default;
+	user-select: none;
+}
+.tab.active-tab {
+	background-color: white;
+}
 </style>

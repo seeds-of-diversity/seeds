@@ -199,6 +199,8 @@ class DocRepApp02
         let saveThis = this;
         $('.docmanui_button_tabchange').click( function() {
             saveThis.oDocRepUI.oCtrlView.ctrlMode = $(this).attr('data-tabname');
+            $(".tab").removeClass("active-tab");
+			$(this).addClass("active-tab");
             $('#docmanui_ctrlview').html( saveThis.oDocRepUI.DrawCtrlView() );
         });
 
