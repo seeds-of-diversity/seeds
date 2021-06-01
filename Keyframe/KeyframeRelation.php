@@ -1437,7 +1437,7 @@ class Keyframe_NamedRelations
         return( ($kfr = $this->GetKFRCond($sRel, $sCond, $raKFParms)) ? $kfr->ValuesRA() : [] );
     }
 
-    function GetKFRCond( $sRel, $sCond, $raKFParms = array() )
+    function GetKFRCond( $sRel, $sCond, $raKFParms = array() ):?KeyframeRecord
     /*********************************************************
         Return a kfr with one result pre-loaded
      */
@@ -1445,7 +1445,7 @@ class Keyframe_NamedRelations
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordFromDB( $sCond, $raKFParms ) : null );
     }
 
-    function GetKFRC( $sRel, $sCond = "", $raKFParms = array() )
+    function GetKFRC( $sRel, $sCond = "", $raKFParms = array() ):?KeyframeRecordCursor
     /***********************************************************
         Return a kfrc that needs CursorFetch to load the first result
      */
