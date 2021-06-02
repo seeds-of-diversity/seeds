@@ -1413,7 +1413,7 @@ class Keyframe_NamedRelations
     function KFRel( $sRel )    : Keyframe_Relation { return( $this->GetKfrel($sRel) ); }    // not sure which I like better but KeyframeRecord has this
     function KFDB()            : KeyframeDatabase  { return( $this->GetKFDB() ); }
 
-    function GetKFR( $sRel, $k )
+    function GetKFR( $sRel, $k ):?KeyframeRecord
     /***************************
         Return a kfr with one result pre-loaded
      */
@@ -1421,7 +1421,7 @@ class Keyframe_NamedRelations
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordFromDBKey( $k ) : null );
     }
 
-    function GetRecordVals( $sRel, $k )
+    function GetRecordVals( $sRel, $k ):array
     /**********************************
         Get values of one record by _key
      */
