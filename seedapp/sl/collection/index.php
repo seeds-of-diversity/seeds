@@ -21,9 +21,9 @@ include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
-include_once( "collectiontab_germtests.php" );
-include_once( "collectiontab_packetlabels.php" );
-include_once( "batchoperations.php" );
+include_once( "collectionTab_germtests.php" );
+include_once( "collectionTab_packetlabels.php" );
+include_once( "batchopsTab.php" );
 
 class SLApp
 {

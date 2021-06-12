@@ -1,5 +1,8 @@
 <?php
 
+include_once( "batchopsTab_germtests.php" );
+include_once( "batchopsTab_lotUpdates.php" );
+
 class CollectionBatchOps
 {
     private $oApp;
