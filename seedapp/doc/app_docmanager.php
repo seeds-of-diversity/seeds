@@ -75,8 +75,9 @@ if( ($p = SEEDInput_Str('qcmd')) ) {
                                                 // a link to get or show the image, pdf, etc.
 
             $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
-            $oDoc = $oDocRepDB->GetDocRepDoc( $kDoc );
-            $rQ['sOut'] = $oDoc->GetText('');
+            if( ($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+                $rQ['sOut'] = $oDoc->GetText('');
+            }
             break;
     }
     echo json_encode( $rQ );
