@@ -161,9 +161,9 @@ class SEEDFormParms {
         }
 
         foreach( $ra1D as $k => $v ) {
-            if( substr( $k, 0, 3 ) != 'sf'.$this->cid )  continue;
-            $c = substr( $k, 3, 1 );
-            $r = intval( substr( $k, 4 ) );
+            if( substr( $k, 0, strlen('sf'.$this->cid)) != 'sf'.$this->cid )  continue;
+            $c = substr( $k, strlen('sf'.$this->cid), 1 );
+            $r = intval( substr( $k, strlen('sf'.$this->cid)+1 ) );
 
             switch( $c ) {
                 case 'k':
