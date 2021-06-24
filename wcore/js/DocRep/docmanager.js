@@ -114,10 +114,8 @@ class myDocRepCtrlView extends DocRepCtrlView
                    +"If it's html, put an html editor here. CKEditor?<br/>";
                    break;
             case 'rename':
-                s = "<p>Todo:<br/>"
-                   +`For doc ${kCurrDoc}<br/>`
-                   +"Put a form here to change name, title, permissions, other metadata.<br/>";
-                   break;
+                s = this.drawFormRename( kCurrDoc );
+                break;
             case 'versions':
                 s = "<p>Todo:<br/>"
                    +`For doc ${kCurrDoc}<br/>`
@@ -128,6 +126,17 @@ class myDocRepCtrlView extends DocRepCtrlView
                 s = this.oCtrlView.ctrlMode + " " + this.oTree.GetCurrDoc();
         }
 
+        return( s );
+    }
+    
+    drawFormRename( kCurrDoc )
+    {
+        let s = "<p>Name <input type='text' id='formRename_name'/></p>"
+               +"<p>Title <input type='text' id='formRename_title'/></p>"
+               +"<p>Permissions <input type='text' id='formRename_perms'/></p>"
+               +"<p><button>Change</button></p>";
+
+s += "<p>Make this look nicer. Put the current values in. Make the button send the new values to the server, and ipdate the tree with new name/title.";
         return( s );
     }
 }
