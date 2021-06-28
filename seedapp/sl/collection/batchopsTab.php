@@ -39,7 +39,7 @@ class CollectionBatchOps
 
         switch( $this->currOp ) {
             case 'germ':
-                $o = new CollectionLibGermTest( $this->oApp );
+                $o = new CollectionBatchOps_GermTest( $this->oApp );
                 $s = $o->Draw();
                 break;
         }
@@ -48,7 +48,12 @@ class CollectionBatchOps
     }
 }
 
-class CollectionLibGermTest
+class Collection_GermTest
+{
+// for code that's common to batchopsTab_germtest and collectionTab_germtest
+}
+
+class CollectionBatchOps_GermTest
 {
     private $oApp;
     private $oSLDB;
