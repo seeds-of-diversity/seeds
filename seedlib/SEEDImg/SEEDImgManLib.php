@@ -105,8 +105,11 @@ class SEEDImgManLib
                 // If there is a reduced but no orig, do nothing.
                 // If there are both, recommend to KEEP or DELETE.
                 if( $raFVar['o']['filename'] && !$raFVar['r']['filename'] ) {
-                    //(isset($raExts['jpg']) || isset($raExts['JPG'])) && !isset($raExts[$this->targetExt]) ) {
-                    $raFVar['action'] = 'CONVERT';
+                    if( $raFVar['o']['info']['filesize'] ) {
+                        // the file should be converted - unless it is not a convertible image (e.g. mp4, docx, etc)
+                        // sort of a kluge: if the original file is not a convertible type it is not given a filesize in ImgInfoByFilename()
+                        $raFVar['action'] = 'CONVERT';
+                    }
                 } else
                 if( $raFVar['o']['filename'] && $raFVar['r']['filename'] ) {
                     $raFVar['analysis']['sizeO'] = $raFVar['o']['info']['filesize'];

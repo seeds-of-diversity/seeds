@@ -147,13 +147,27 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
     $sql = "";
     $oMbr = new Mbr_Contacts( $oApp );
 
-    $condLang = $p_lang ? ($p_lang=='FR'? " AND M.lang='F'" : " AND M.lang='E'") : "";
+    $condFilter = $p_lang ? ($p_lang=='FR'? " AND M.lang IN ('B','F')" : " AND M.lang IN ('','B','E')") : "";
+// Duplicated below
+    switch( $p_mbrFilter1 ) {
+        case 'getMagazine':                                                  break;  // all members get the magazine
+        case 'getEbulletin':    $condFilter .= " AND NOT M.bNoEBull";        break;
+        case 'getPrintedMSD':   $condFilter .= " AND M.bPrintedMSD";         break;
+        case 'getDonorAppeals': $condFilter .= " AND NOT M.bNoDonorAppeals"; break;
+    }
+    switch( $p_locFilter ) {
+//        case 'locOntario':       $qParms['provinceIn'] = "ON";                    break;
+//        case 'locEasternCanada': $qParms['provinceIn'] = "ON QC NB NS PE NF NL";  break;
+//        case 'locTorontoArea':   $qParms['postcodeIn'] = "M L N1 N2 N3 K9";       break;    // not implemented; translate to "(LEFT(postcode,1) IN ('M','L') OR LEFT(postcode,2) IN ('N1','N2','N3','K9'))"
+//        case 'locOntarioSouth':  $qParms['postcodeIn'] = "K L M N";               break;    // not implemented; translate to "(LEFT(postcode,1) IN ('K','L','M','N'))"
+    }
+
 
     // get all members and/or donors since $dStart, optionally exclude those with donations within 6 months ago
     $condM_D = "((M.expires IS NOT NULL AND M.expires>='$dStart') OR
                  (D.date_received IS NOT NULL AND D.date_received>='$dStart'))"
               .($eGroup=='membersAndDonors2YearsNoDonationInSixMonths' ? " AND (D.date_received IS NULL OR D.date_received<'$dSixMonthsAgo')" : "")
-              .$condLang;
+              .$condFilter;
     $raMD = $oMbr->oDB->GetContacts_MostRecentDonation( ['condM_D' => $condM_D,
                                                          'bRequireEmail'=>true, 'bRequireAddress'=>false], $sql );
 
@@ -179,9 +193,12 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
         $oBull = new MbrEbulletin( $oApp );
         $raE = $oBull->GetSubscriberEmails( $p_lang );
         $raE = array_flip($raE);    // values to keys so unset() removes emails
+
+        $sRight .= "Ebulletin subscribers who are not members and/or donors since $yMinus2:<br/>".count($raE)." subscribers<br/>";
         foreach( $raMD as $ra ) {
             unset($raE[$ra['M_email']]);   // remove the member/donor email from raE if it exists
         }
+        $sRight .= "Reduced to ".count($raE)." using Member/Donor list<br>";
 
         $raEmail = array_flip($raE);
     }
@@ -197,6 +214,7 @@ if( ($yMbrExpires = $oForm->Value('yMbrExpires')) &&
     if( $p_lang )                $qParms['lang'] = $p_lang;
     if( $p_outFormat=='email' )  $qParms['bExistsEmail'] = true;
 
+// Duplicated above
     switch( $p_mbrFilter1 ) {
         case 'getMagazine':                                                  break;  // all members get the magazine
         case 'getEbulletin':    $qParms['bGetEbulletin'] = !$bOverrideNoEmail;       // filter out members who don't want email, unless the override box is checked

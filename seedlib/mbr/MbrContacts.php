@@ -359,7 +359,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
         if( !isset($raParms['bRequireAddress']) ) $raParms['bRequireAddress'] = true;
 
-        $condM_D = "M.country='Canada' AND "
+        $condM_D = ""//"M.country='Canada' AND "
                   .(@$raParms['bRequireAddress'] ? "M.address IS NOT NULL AND M.address<>'' AND " : "")   // address is blanked out if mail comes back RTS
                   .(@$raParms['bRequireEmail'] ? "M.email IS NOT NULL AND M.email<>'' AND " : "")
                   ."NOT M.bNoDonorAppeals"
