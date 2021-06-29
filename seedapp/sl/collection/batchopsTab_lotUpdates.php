@@ -65,8 +65,14 @@ class CollectionBatchOps_UpdateLots
             // $ra is the sf-encoded parms for each row of the form
             $kLot = $ra['values']['kLot'];
             if( ($kfr = $this->kfrLot($kLot)) ) {
-                if( $ra['values']['location'] && $kfr->Value('location') != $ra['values']['location'] ) {
-                    $sResults .= "<p>Change {$kfr->Value('location')} to {$ra['values']['location']} for Lot #$kLot</p>";
+                if( ($p = $ra['values']['location']) && $p != $kfr->Value('location') ) {
+                    $sResults .= "<p>Change {$kfr->Value('location')} to {$p} for Lot #$kLot</p>";
+                }
+                if( ($p = $ra['values']['g_weight']) && $p != $kfr->Value('g_weight') ) {
+                    $sResults .= "<p>Change {$kfr->Value('g_weight')} to {$p} for Lot #$kLot</p>";
+                }
+                if( ($p = $ra['values']['bDeAcc']) && $p != $kfr->Value('bDeAcc') ) {
+                    $sResults .= "<p>Change {$kfr->Value('bDeAcc')} to {$p} for Lot #$kLot</p>";
                 }
             }
         }
