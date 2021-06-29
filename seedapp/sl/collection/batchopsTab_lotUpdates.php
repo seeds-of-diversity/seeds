@@ -13,6 +13,7 @@ class CollectionBatchOps_UpdateLots
     private $oSVA;  // where to keep state info for this tool
     private $oSLDB;
 
+    private $oFormL;
     private $bCtrlSame = false;     // true if one set of controls applies to all Lots
 
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
@@ -20,37 +21,38 @@ class CollectionBatchOps_UpdateLots
         $this->oApp = $oApp;
         $this->oSVA = $oSVA;
         $this->oSLDB = new SLDBCollection($this->oApp);
+
+        // The left form contains rLots and defCtrl*, which define what is drawn on the right form.
+        $this->oFormL = new SEEDCoreFormSVA( $this->oSVA, 'L',
+                                             ['fields'=>['defCtrl_location'=>['control'=>'checkbox'],
+                                                         'defCtrl_grams'   =>['control'=>'checkbox'],
+                                                         'defCtrl_bDeAcc'  =>['control'=>'checkbox'],
+                                                         'defCtrl_same'    =>['control'=>'checkbox']
+        ]] );
+        $this->oFormL->Update();
+        $this->bCtrlSame = $this->oFormL->Value('defCtrl_same');
+
+        // The right form contains controls for the defined Lots
+        $this->oFormR = new SEEDCoreForm( 'R', ['fields'=>['bDeAcc'=>['control'=>'checkbox']]] );
+        //$this->oFormR->Update();  processUpdates uses Deserialize to examine the response directly
     }
 
     function Draw()
     {
         $s = "";
 
-        // The left form contains rLots and defCtrl*, which define what is drawn on the right form.
-        $oFormL = new SEEDCoreFormSVA( $this->oSVA, 'L', ['fields'=>['defCtrlLocation'=>['control'=>'checkbox'],
-                                                                     'defCtrlGrams'   =>['control'=>'checkbox'],
-                                                                     'defCtrlDeAcc'   =>['control'=>'checkbox'],
-                                                                     'defCtrlSame'    =>['control'=>'checkbox']
-        ]] );
-        $oFormL->Update();
-        $this->bCtrlSame = $oFormL->Value('defCtrlSame');
-
-        // The right form contains controls for the defined Lots
-        $oFormR = new SEEDCoreForm( 'R' );
-        //$oFormR->Update();  processUpdates uses Deserialize to examine the response directly
-
-        $sResults = $this->processUpdates( $oFormR );
+        $sResults = $this->processUpdates();
 
         $s = "<div class='container-fluid'><div class='row'>"
 
             ."<div class='col-md-6'>"
                 ."<div style='margin:15px;padding:15px;border:1px solid #aaa'>"
-                ."<form>{$this->drawLeftForm($oFormL, $oFormR)}<br/><input type='submit' value='Edit Lots'/></form>"
+                ."<form>{$this->drawLeftForm()}<br/><input type='submit' value='Edit Lots'/></form>"
                 ."</div>"
+                .($sResults ? "<div style='background-color:#eee;margin:10px;padding:10px;border-radius:5px'>$sResults</div>" : "")
             ."</div>"
             ."<div class='col-md-6'>"
-                .($sResults ? "<div style='background-color:#ddd;margin:10px;padding:10px;border-radius:5px'>$sResults</div>" : "")
-                ."<form>{$this->drawRightForm($oFormL,$oFormR)}<br/><input type='submit'></form>"
+                ."<form>{$this->drawRightForm()}<br/><input type='submit'></form>"
             ."</div>"
 
             ."</div></div>";
@@ -58,36 +60,62 @@ class CollectionBatchOps_UpdateLots
         return( $s );
     }
 
-    private function processUpdates( SEEDCoreForm $oFormR )
+    private function isUpdatable( $fld )    // evaluate whether location, grams, etc controls are defined
+    {
+        return( $this->oFormL->Value("defCtrl_$fld") );
+    }
+
+    private function processUpdates()
     {
         $sResults = "";
 
-        $raRows = $oFormR->GetSEEDFormParms()->Deserialize( $_REQUEST )['rows'];
+        /* Reading form parms directly, not through SEEDCoreForm::Update().
+         * bDeAcc is not recognized as a checkbox so 0 values will be missing.
+         */
+        $raRows = $this->oFormR->GetSEEDFormParms()->Deserialize( $_REQUEST )['rows'];
+
+        /* If bCtrlSame, the submitted values apply to all Lots and they are found in row 0
+         *         else, every row has its own values
+         */
         if( $this->bCtrlSame && count($raRows) ) {
-            // row 0 contains the values that apply to all Lots
-            $pLocation = $raRows[0]['values']['location'];
-            $pGrams    = $raRows[0]['values']['g_weight'];
-            $pDeAcc    = $raRows[0]['values']['bDeAcc'];
+            $pGlobalLocation = @$raRows[0]['values']['location'];
+            $pGlobalGrams    = @$raRows[0]['values']['g_weight'];
+            $pGlobalDeAcc    = intval(@$raRows[0]['values']['bDeAcc']);     // missing checkbox value == 0
         }
 
         foreach( $raRows as $ra ) {
             // $ra is the sf-encoded parms for each row of the form
             $kLot = $ra['values']['kLot'];
             if( ($kfr = $this->kfrLot($kLot)) ) {
-                $p = $this->bCtrlSame ? $pLocation : $ra['values']['location'];
-                if( $p && $p != $kfr->Value('location') ) {
-                    $sResults .= "<p>Change {$kfr->Value('location')} to {$p} for Lot #$kLot</p>";
+                $sRes = "";
+
+                if( $this->isUpdatable('location') ) {
+                    $p = $this->bCtrlSame ? $pGlobalLocation : $ra['values']['location'];
+                    if( $p != $kfr->Value('location') ) {
+                        $sRes .= ", location {$kfr->Value('location')} to {$p}";
+                        $kfr->SetValue( 'location', $p );
+                    }
                 }
 
-                $p = $this->bCtrlSame ? $pGrams : $ra['values']['g_weight'];
-                if( $p && $p != $kfr->Value('g_weight') ) {
-                    $sResults .= "<p>Change {$kfr->Value('g_weight')} to {$p} for Lot #$kLot</p>";
+                if( $this->isUpdatable('grams') ) {
+                    $p = $this->bCtrlSame ? $pGlobalGrams : $ra['values']['g_weight'];
+                    if( $p != $kfr->Value('g_weight') ) {
+                        $sRes .= ", grams {$kfr->Value('g_weight')} to {$p}";
+                        $kfr->SetValue( 'g_weight', $p );
+                    }
                 }
 
-                $p = $this->bCtrlSame ? $pDeAcc : $ra['values']['bDeAcc'];
-                if( $p && $p != $kfr->Value('bDeAcc') ) {
-                    $sResults .= "<p>Change {$kfr->Value('bDeAcc')} to {$p} for Lot #$kLot</p>";
+                /* Since oFormR parms are read directly instead of via SEEDCoreForm::Update, bDeAcc (checkbox) values of zero will be missing
+                 */
+                if( $this->isUpdatable('bDeAcc') ) {
+                    $p = $this->bCtrlSame ? $pGlobalDeAcc : intval(@$ra['values']['bDeAcc']);     // missing checkbox value == zero
+                    if( $p != $kfr->Value('bDeAcc') ) {
+                        $sRes .= ", deacc {$kfr->Value('bDeAcc')} to {$p}";
+                        $kfr->SetValue( 'bDeAcc', $p );
+                    }
                 }
+                $kfr->PutDBRow();
+                if( $sRes )  $sResults .= "<p>Lot #{$kLot}{$sRes}</p>";
             }
         }
 
@@ -113,54 +141,57 @@ class CollectionBatchOps_UpdateLots
         return( $this->oSLDB->GetKFRCond( 'IxAxPxS', "fk_sl_collection='1' AND inv_number='$kLot'") );
     }
 
-    private function drawLeftForm( SEEDCoreForm $oFormL, SEEDCoreForm $oFormR )
+    private function drawLeftForm()
     {
-        $s = "<div>Lot numbers:<br/>".$oFormL->Text('rLots')."</div>"
-            ."<div>{$oFormL->Checkbox('defCtrlLocation')} Location</div>"
-            ."<div>{$oFormL->Checkbox('defCtrlGrams')} Grams</div>"
-            ."<div>{$oFormL->Checkbox('defCtrlDeAcc')} Deaccession</div>"
-            ."<div style='margin-top:15px'>{$oFormL->Checkbox('defCtrlSame')} Same for every Lot</div>";
+        $s = "<div>Lot numbers:<br/>".$this->oFormL->Text('rLots')."</div>"
+            ."<div>{$this->oFormL->Checkbox('defCtrl_location')} Location</div>"
+            ."<div>{$this->oFormL->Checkbox('defCtrl_grams')} Grams</div>"
+            ."<div>{$this->oFormL->Checkbox('defCtrl_bDeAcc')} Deaccession</div>"
+            ."<div style='margin-top:15px'>{$this->oFormL->Checkbox('defCtrl_same')} Same for every Lot</div>";
 
         return( $s );
     }
 
-    private function drawRightForm( SEEDCoreForm $oFormL, SEEDCoreForm $oFormR )
+    private function drawRightForm()
     {
         $sR = "";
 
-        foreach( $this->getCurrentLots( $oFormL->Value('rLots') ) as $ra ) {
+        foreach( $this->getCurrentLots( $this->oFormL->Value('rLots') ) as $ra ) {
             $sCtrlLoc = $sCtrlGrams = $sCtrlDeAcc = "";
             if( !$this->bCtrlSame && $ra['kfr'] ) {
                 // make separate controls for each Lot
-                $sCtrlLoc .= $oFormL->Value('defCtrlLocation') ? $oFormR->Text('location') : "";
-                $sCtrlGrams .= $oFormL->Value('defCtrlGrams') ? $oFormR->Text('g_weight') : "";
-                $sCtrlDeAcc .= $oFormL->Value('defCtrlDeAcc') ? $oFormR->Text('bDeAcc') : "";
+                $this->oFormR->SetValue('location', $ra['kfr']->Value('location') );
+                $this->oFormR->SetValue('g_weight', $ra['kfr']->Value('g_weight') );
+                $this->oFormR->SetValue('bDeAcc',   $ra['kfr']->Value('bDeAcc') );
+                $sCtrlLoc   .= $this->isUpdatable('location') ? $this->oFormR->Text('location') : "";
+                $sCtrlGrams .= $this->isUpdatable('grams')    ? $this->oFormR->Text('g_weight') : "";
+                $sCtrlDeAcc .= $this->isUpdatable('bDeAcc')   ? $this->oFormR->Checkbox('bDeAcc') : "";
             }
 
             $sR .= "<div style='margin-bottom:10px;padding:10px;background-color:#ddd'>"
                       ."<table border='0'>"
                           ."<tr><td>Lot {$ra['kLot']}: <em>{$ra['cv']}</em></td><td>&nbsp</td></tr>"
                           .($ra['kfr'] ?
-                              ("<tr><td>Location: {$ra['kfr']->Value('location')}</td><td>$sCtrlLoc</td></tr>"
-                              ."<tr><td>Grams: {$ra['kfr']->Value('g_weight')}</td><td>$sCtrlGrams</td></tr>"
+                              ("<tr><td>Location:      {$ra['kfr']->Value('location')}</td><td>$sCtrlLoc</td></tr>"
+                              ."<tr><td>Grams:         {$ra['kfr']->Value('g_weight')}</td><td>$sCtrlGrams</td></tr>"
                               ."<tr><td>Deaccessioned: {$ra['kfr']->Value('bDeAcc')}</td><td>$sCtrlDeAcc</td></tr>")
                               : "")
                       ."</table>"
                   ."</div>";
 
             if( $ra['kfr'] ) {
-                $sR .= $oFormR->Hidden( 'kLot', ['value'=>$ra['kLot']] );
-                $oFormR->IncRowNum();
+                $sR .= $this->oFormR->Hidden( 'kLot', ['value'=>$ra['kLot']] );
+                $this->oFormR->IncRowNum();
             }
         }
 
         if( $this->bCtrlSame ) {
             // make one set of controls that will apply to all Lots
-            $oFormR->SetRowNum(0);  // values will be found in sf-row 0
-            $sR .= "<div style='margin:10px;padding:10px;border:1px solid #aaa'>Apply Changes to All Lots"
-                  .($oFormL->Value('defCtrlLocation') ? "<div>{$oFormR->Text('location')} Location </div>" : "")
-                  .($oFormL->Value('defCtrlGrams') ? "<div>{$oFormR->Text('g_weight')} Grams</div>" : "")
-                  .($oFormL->Value('defCtrlDeAcc') ? "<div>{$oFormR->Text('bDeAcc')} Deaccessioned</div>" : "")
+            $this->oFormR->SetRowNum(0);  // values will be found in sf-row 0
+            $sR .= "<div style='margin:10px;padding:10px;border:1px solid #aaa'>These Values (including blanks) Will be Applied to All of the Above"
+                  .($this->isUpdatable('location') ? "<div>{$this->oFormR->Text('location')} Location </div>" : "")
+                  .($this->isUpdatable('grams')    ? "<div>{$this->oFormR->Text('g_weight')} Grams</div>" : "")
+                  .($this->isUpdatable('bDeAcc')   ? "<div>{$this->oFormR->Checkbox('bDeAcc')} Deaccessioned</div>" : "")
                   ."</div>";
         }
 
