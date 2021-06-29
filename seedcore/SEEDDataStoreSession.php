@@ -35,7 +35,21 @@ class SEEDDataStoreSVA extends SEEDDataStore
         parent::__construct( $raConfig );
     }
 
-    function GetValuesRA() { die( "GetValuesRA not implemented yet" ); }     // only implemented for the base implementation
+   // function GetValuesRA() { die( "GetValuesRA not implemented yet" ); }     // only implemented for the base implementation
+    function GetValuesRA()
+    /*********************
+        Return a simple array containing all values in the data store.
+     */
+    {
+        $raOut = array();
+
+        $raData = $this->oSVA->VarGetAllRA();
+        foreach( $raData as $k => $v ) {
+            $raOut[$k] = $this->Value( $k );    // to get all the urlparm goodness
+        }
+        return( $raOut );
+    }
+
 
     /* Override the Data-side methods.
      * The Application-side methods are normally not overridden.
@@ -48,5 +62,3 @@ class SEEDDataStoreSVA extends SEEDDataStore
     function DSStore()            { return( $this->oSVA ); }
     function DSGetDataObj()       { return( $this->oSVA ); }
 }
-
-?>
