@@ -274,9 +274,15 @@ $raVars['lang'] = $this->oApp->lang;
 }
 
 
+include_once( SEEDLIB."mbr/MbrContacts.php" );
+include_once( SEEDLIB."mbr/MbrEbulletin.php" );
+
 class SEEDMailTestHistory
 {
     private $oApp;
+    private $oMbrContacts;
+    private $oMbrEbulletin;
+
     private $raF = [ 'mybackup'=>[], 'delayed'=>[], 'discardedTooFast'=>[], 'discardedMaxFail'=>[], 'failed'=>[], 'unknown'=>[] ];    // results collected from files
     private $nFiles = 0;
     private $bFatalError = false;
@@ -284,6 +290,8 @@ class SEEDMailTestHistory
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
+        $this->oMbrContacts = new Mbr_Contacts( $oApp );
+        $this->oMbrEbulletin = new MbrEbulletin( $oApp );
     }
 
     function TestMailHistory()
@@ -302,6 +310,10 @@ class SEEDMailTestHistory
         // process delete requests
         if( ($fnameDel = SEEDInput_Str('d')) ) {
             unlink( $dirMail."/".$fnameDel );
+        }
+        if( ($e = SEEDInput_Str('de')) ) {
+            list($d1,$d2,$sResult) = $this->oMbrEbulletin->RemoveSubscriber( $e );
+            $this->oApp->oC->AddUserMsg( $sResult );
         }
 
         foreach( new DirectoryIterator($dirMail) as $f ) {
@@ -348,12 +360,35 @@ class SEEDMailTestHistory
         foreach( $raSections as $ra ) {
             if( !($n = count($this->raF[$ra['k']])) ) continue;
 
+            $sFailManage = "";
+            if( $ra['k'] == 'failed' ) {
+                // manage email addresses for failures
+                $sFailManage .= "<table class='SEEDMailTestHistory_ResultsTable'>";
+                foreach( $this->raF['failed'] as $file => $email ) {
+                    $uEmail = urlencode($email);
+                    $raEmailStatus = $this->getEmailStatus( $email );
+                    $sStatus = ($raEmailStatus['bEbull'] ? "<span style='color:green'>Subscribed</span>" : "Not")
+                              ." in ebulletin, "
+                              .($raEmailStatus['bMbrExists'] ? ($raEmailStatus['bMbrEbull'] ? "<span style='color:green'>Subscribed</span>" : "Not subscribed")
+                                                             : "Not")
+                              ." in member list";
+
+                    $linkRemove = ($raEmailStatus['bEbull'] || $raEmailStatus['bMbrEbull'])
+                                    ? "<a href='?de=$uEmail'>Unsubscribe</a>"
+                                    : "&nbsp";
+
+                    $sFailManage .= "<tr><td>$email</td><td>$sStatus</td><td>$linkRemove</td></tr>";
+                }
+                $sFailManage .= "</table>";
+            }
+
             $s .= "<div>$n {$ra['l']}:</div>"
                  ."<div class='well'>"
                      ."<table class='SEEDMailTestHistory_ResultsTable'>"
                          .SEEDCore_ArrayExpandSeries( $this->raF[$ra['k']], "<tr>{$ra['t']}</tr>" )
                      ."</table>"
-                ."</div>";
+                     .$sFailManage
+                 ."</div>";
         }
 
         if( $sShowFileContents ) {
@@ -459,5 +494,19 @@ class SEEDMailTestHistory
         }
 
         return( $bFound );
+    }
+
+    private function getEmailStatus( $email )
+    {
+        $raOut = [];
+
+        $ra = $this->oMbrEbulletin->GetSubscriber( $email );
+        $raOut['bEbull'] = @$ra['email'] <> '';
+
+        $ra = $this->oMbrContacts->GetAllValues( $email );
+        $raOut['bMbrExists'] = @$ra['email'] <> '';
+        $raOut['bMbrEbull'] = $raOut['bMbrExists'] && !@$ra['bNoEBull'];
+
+        return( $raOut );
     }
 }
