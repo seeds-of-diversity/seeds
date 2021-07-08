@@ -84,10 +84,20 @@ class myDocRepCtrlView extends DocRepCtrlView
     constructor( oConfig )
     {
         super(oConfig);
-        this.ctrlMode = 'preview';
         this.fnHandleEvent = oConfig.fnHandleEvent;
     }
 
+    GetCtrlMode()
+    {
+        return( sessionStorage.getItem( 'DocRepCtrlView_Mode' ) );
+    }
+
+    SetCtrlMode( m )
+    {
+        sessionStorage.setItem( 'DocRepCtrlView_Mode', m );
+        super.SetCtrlMode( m );
+    }
+    
     DrawCtrlView( kCurrDoc )
     {
         let s = "";
@@ -97,7 +107,7 @@ class myDocRepCtrlView extends DocRepCtrlView
    Preferably create a new method, or even a new class, for each of the cases. Don't just put all the code in the switch.
  */
 
-        switch( this.ctrlMode ) {
+        switch( this.GetCtrlMode() ) {
             case 'preview':
                 s = "<p>Todo:<br/>"
                    +"If it's html, put it here.<br/>"
@@ -123,7 +133,7 @@ class myDocRepCtrlView extends DocRepCtrlView
                    break;
 
             default:
-                s = this.oCtrlView.ctrlMode + " " + this.oTree.GetCurrDoc();
+                s = this.oCtrlView.GetCtrlMode() + " " + this.oTree.GetCurrDoc();
         }
 
         return( s );
@@ -209,8 +219,8 @@ class DocRepApp02
     {
         let saveThis = this;
         $('.docmanui_button_tabchange').click( function() {
-            saveThis.oDocRepUI.oCtrlView.ctrlMode = $(this).attr('data-tabname');
-            $(".tab").removeClass("active-tab");
+            saveThis.oDocRepUI.oCtrlView.SetCtrlMode( $(this).attr('data-tabname') );
+            $("#docrepctrlview_tabs .tab").removeClass("active-tab");
 			$(this).addClass("active-tab");
             $('#docrepctrlview_body').html( saveThis.oDocRepUI.DrawCtrlView() );
         });

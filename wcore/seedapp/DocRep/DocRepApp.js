@@ -237,16 +237,28 @@ class DocRepCtrlView
 {
     constructor( oConfig )
     {
+        // initialize then use derived method (or base method if no subclass)
         this.ctrlMode = "";
+        this.ctrlMode = this.GetCtrlMode();
+
+        if( this.ctrlMode == '' ) this.ctrlMode = 'preview';
         
         $('#docrepctrlview').html( `<div id='docrepctrlview_tabs'>
-                                         <div class='docmanui_button_tabchange tab active-tab' data-tabname='preview'>Preview</div>
+                                         <div class='docmanui_button_tabchange tab' data-tabname='preview'>Preview</div>
                                          <div class='docmanui_button_tabchange tab' data-tabname='edit'>Edit</div>
                                          <div class='docmanui_button_tabchange tab' data-tabname='rename'>Rename</div>
                                          <div class='docmanui_button_tabchange tab' data-tabname='versions'>Versions</div>
                                        </div>
                                        <div id='docrepctrlview_body'></div>`);
+                                       
+//        $("#docrepctrlview_tabs .tab").removeClass("active-tab");
+
+        $(`#docrepctrlview_tabs .tab[data-tabname=${this.ctrlMode}]`).addClass("active-tab");
     }
+
+    // override these to implement persistent state storage
+    GetCtrlMode()    { return( this.ctrlMode ); }
+    SetCtrlMode( m ) { this.ctrlMode = m; }
 
     HandleEvent( eEvent, p )
     {
