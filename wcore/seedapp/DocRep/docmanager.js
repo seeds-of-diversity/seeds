@@ -80,9 +80,14 @@ class myDocRepTree extends DocRepTree
 
 
 class myDocRepCtrlView extends DocRepCtrlView
+/*********************
+    Implement the CtrlView widget with custom tabs and forms
+ */
 {
     constructor( oConfig )
     {
+        oConfig.defTabs = { preview:"Preview", edit:"Edit", rename:"Rename", versions:"Versions" };
+
         super(oConfig);
         this.fnHandleEvent = oConfig.fnHandleEvent;
     }
@@ -133,7 +138,7 @@ class myDocRepCtrlView extends DocRepCtrlView
                    break;
 
             default:
-                s = this.oCtrlView.GetCtrlMode() + " " + this.oTree.GetCurrDoc();
+                s = "Unknown control mode";
         }
 
         return( s );
@@ -217,14 +222,6 @@ class DocRepApp02
 
     InitUI()
     {
-        let saveThis = this;
-        $('.docmanui_button_tabchange').click( function() {
-            saveThis.oDocRepUI.oCtrlView.SetCtrlMode( $(this).attr('data-tabname') );
-            $("#docrepctrlview_tabs .tab").removeClass("active-tab");
-			$(this).addClass("active-tab");
-            $('#docrepctrlview_body').html( saveThis.oDocRepUI.DrawCtrlView() );
-        });
-
         // draw the components before initializing them because InitUI sets js bindings in the dom
         $('#docmanui_tree').html( this.oDocRepUI.DrawTree() );
         $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );

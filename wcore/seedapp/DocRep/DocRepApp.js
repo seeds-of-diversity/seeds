@@ -233,6 +233,8 @@ class DocRepTree
 }
 
 
+/* TODO: this is a generic tabbed CtrlView widget if you rename the ids. Put it in a generic Console class or derive this from one.
+ */ 
 class DocRepCtrlView
 {
     constructor( oConfig )
@@ -241,24 +243,54 @@ class DocRepCtrlView
         this.ctrlMode = "";
         this.ctrlMode = this.GetCtrlMode();
 
-        if( this.ctrlMode == '' ) this.ctrlMode = 'preview';
-        
-        $('#docrepctrlview').html( `<div id='docrepctrlview_tabs'>
-                                         <div class='docmanui_button_tabchange tab' data-tabname='preview'>Preview</div>
-                                         <div class='docmanui_button_tabchange tab' data-tabname='edit'>Edit</div>
-                                         <div class='docmanui_button_tabchange tab' data-tabname='rename'>Rename</div>
-                                         <div class='docmanui_button_tabchange tab' data-tabname='versions'>Versions</div>
-                                       </div>
-                                       <div id='docrepctrlview_body'></div>`);
+        /* Draw the tabs.
+         * defTabs is {tabname:tablabel, ...}
+         * If ctrlMode is not one of the tabnames, it is set to the first one
+         */
+        let sTabs = "";
+        let bFoundTabname = false;
+        for( const tabname in oConfig.defTabs ) {
+            sTabs += `<div class='tab' data-tabname='${tabname}'>${oConfig.defTabs[tabname]}</div>`;
+            if( tabname == this.ctrlMode ) bFoundTabname = true;
+        }
                                        
-//        $("#docrepctrlview_tabs .tab").removeClass("active-tab");
+        $('#docrepctrlview').html( `<div id='docrepctrlview_tabs'>${sTabs}</div>
+                                    <div id='docrepctrlview_body'></div>` );
 
-        $(`#docrepctrlview_tabs .tab[data-tabname=${this.ctrlMode}]`).addClass("active-tab");
+        // do this after setting the html because it also highlights the current tab
+        if( !bFoundTabname ) {
+            // get the first key in the object. ECMAScript doesn't guarantee this but all major browsers do it.
+            this.SetCtrlMode( Object.keys(oConfig.defTabs)[0] ); 
+        } else {
+            this.SetCtrlMode(this.ctrlMode);
+        }
+
+        /* Bind the tabs to a function that changes the ctrlMode and redraws the CtrlView 
+         */
+        let saveThis = this;
+        $('#docrepctrlview_tabs .tab').click( function() {
+            // store the new tab and redraw tabs
+            saveThis.SetCtrlMode( $(this).attr('data-tabname') );
+            // draw the form for the new tab            
+            $('#docrepctrlview_body').html( saveThis.DrawCtrlView() );
+        });
     }
 
     // override these to implement persistent state storage
     GetCtrlMode()    { return( this.ctrlMode ); }
-    SetCtrlMode( m ) { this.ctrlMode = m; }
+    SetCtrlMode( m )
+    {
+        this.ctrlMode = m;
+        
+        // highlight the current tab
+        $("#docrepctrlview_tabs .tab").removeClass("active-tab"); 
+        $(`#docrepctrlview_tabs .tab[data-tabname=${m}]`).addClass("active-tab");
+    }
+
+    DrawCtrlView()
+    {
+        return( "" );
+    }
 
     HandleEvent( eEvent, p )
     {
