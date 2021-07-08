@@ -131,12 +131,14 @@ class myDocRepCtrlView extends DocRepCtrlView
     
     drawFormRename( kCurrDoc )
     {
-        let s = "<p>Name <input type='text' id='formRename_name'/></p>"
-               +"<p>Title <input type='text' id='formRename_title'/></p>"
-               +"<p>Permissions <input type='text' id='formRename_perms'/></p>"
-               +"<p><button>Change</button></p>";
-
-s += "<p>Make this look nicer. Put the current values in. Make the button send the new values to the server, and ipdate the tree with new name/title.";
+        let s = `<div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name' style='width:100%'/></div></div>
+                 <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' style='width:100%'/></div></div>
+                 <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' style='width:100%'/></div></div>
+                 <p><button>Change</button></p>`;
+        s = s.replaceAll("[label]", "class='col-md-3'");
+        s = s.replaceAll("[ctrl]",  "class='col-md-6'");
+        
+s += "<p>Put the current values in. Make the button send the new values to the server, and update the tree with new name/title.";
         return( s );
     }
 }
