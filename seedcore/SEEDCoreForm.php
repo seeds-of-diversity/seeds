@@ -426,7 +426,7 @@ class SEEDCoreFormElements
         $this->oFormParms = new SEEDFormParms($cid);
     }
 
-    public function GetSEEDFormParams() { return( $this->oFormParams ); }
+    public function GetSEEDFormParms() { return( $this->oFormParms ); }
 
     public function SetCid( $cid )  { $this->oFormParms->SetCid($cid); }
     public function GetCid()        { return( $this->oFormParms->GetCid() ); }

@@ -48,6 +48,7 @@ class _seedCoreFormSessionBase extends SEEDCoreForm
     }
 }
 
+//TODO: seems like this could be a derivation of SEEDCoreFormSVA? Just create the SVA a la SEEDDataStoreSession and pass to SEEDDataStoreSVA::__construct
 class SEEDCoreFormSession extends _seedCoreFormSessionBase
 /************************
     Same as SEEDCoreForm but store the data in a session variable namespace

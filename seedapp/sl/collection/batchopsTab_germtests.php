@@ -1,51 +1,18 @@
 <?php
 
-class CollectionBatchOps
+/* Seed collection manager - batch operations - record germination tests in batches
+ *
+ * Copyright 2020-2021 Seeds of Diversity Canada
+ */
+
+
+class Collection_GermTest
 {
-    private $oApp;
-    private $oSVA;  // session vars for the UI tab containing this tool
-
-    private $raSelectOps = ['Germination Tests'=>'germ', 'Batch Lot Update'=>'updatelots', 'Other Operation'=>'other'];
-    private $currOp = "";
-
-    function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
-    {
-        $this->oApp = $oApp;
-        $this->oSVA = $oSVA;
-        $this->currOp = $this->oSVA->SmartGPC( 'batchop', $this->raSelectOps );
-    }
-
-    function Init()
-    {
-        // Independent of any state of the worker because that only exists in ContentDraw
-    }
-
-    function ControlDraw()
-    {
-        // Independent of any state of the worker because that only exists in ContentDraw
-        $oForm = new SEEDCoreForm( 'Plain' );
-        $oForm->SetValue( 'batchop', $this->currOp );
-        $s = "<form>".$oForm->Select( 'batchop', $this->raSelectOps, "", ['attrs'=>"onchange='submit()'"] )."</form>";
-
-        return( $s );
-    }
-
-    function ContentDraw()
-    {
-        $s = "";
-
-        switch( $this->currOp ) {
-            case 'germ':
-                $o = new CollectionLibGermTest( $this->oApp );
-                $s = $o->Draw();
-                break;
-        }
-
-        return( $s );
-    }
+// factor common code from batchopsTab_germtest and collectionTab_germtest, and put this somewhere else
 }
 
-class CollectionLibGermTest
+
+class CollectionBatchOps_GermTest
 {
     private $oApp;
     private $oSLDB;

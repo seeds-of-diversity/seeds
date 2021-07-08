@@ -19,7 +19,7 @@ class MbrEbulletin
 
     function GetSubscriber( $email )
     {
-
+        return( $this->oDB->GetRecordValsCond( 'B', "email='{$this->oApp->kfdb->EscapeString($email)}'") );
     }
 
     function GetSubscriberEmails( $lang )

@@ -50,7 +50,8 @@ $oMailSend = new SEEDMailSend( $oApp );
 $nToSend = $oMailSend->GetCountReadyToSend();
 
 $sBody = "<h2>Seeds of Diversity Bulk Mailer</h2>"
-        ."<p>There are $nToSend emails ready to send at ".date('Y-m-d H:i:s').".</p>";
+        ."<p>There are $nToSend emails ready to send at ".date('Y-m-d H:i:s').".</p>"
+        ."<form method='get'><input type='submit' value='Reload'/></form>";
 
 list($bTestOk,$sTest) = (new SEEDMailTestHistory($oApp))->TestMailHistory();
 $sBody .= $sTest;
