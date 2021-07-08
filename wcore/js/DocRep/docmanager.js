@@ -1,3 +1,15 @@
+/* Implements a custom DocManager
+ *
+ * Copyright (c) 2021 Seeds of Diversity Canada
+ *
+ * usage: DocRepApp02::InitUI() makes it all start up
+ *
+ * DocRepApp02      - creates a Tree and a CtrlView, lets them communicate with each other, and handles rendering
+ * DocRepUI02       - creates Tree and CtrlView for DocRepApp02, manages inter-widget communication, but agnostic to rendering
+ * myDocRepTree     - a DocRepTree that knows how to store local state (via sessionstorage) and how to talk to DocRepUI02 
+ * myDocRepCtrlView - a DocRepCtrlView that knows how to store local state, how to talk to DocRepUI02, and implements custom controls 
+ */
+
 /*
 var mymapDocsX = new Map( [
     [0, { k:0, name:'',                doctype: 'folder', kParent: -1, children: [1,2] }],
@@ -67,18 +79,6 @@ class myDocRepTree extends DocRepTree
 }
 
 
-class DocRepCtrlView  // put base class in wcore/js/DocRep/DocRepApp.js
-{
-    constructor( oConfig )
-    {
-        this.ctrlMode = "";
-    }
-
-    HandleEvent( eEvent, p )
-    {
-        // override to respond to notifications
-    }
-}
 class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )

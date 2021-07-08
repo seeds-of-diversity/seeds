@@ -2,7 +2,10 @@
  *
  * Copyright (c) 2021 Seeds of Diversity Canada
  *
- * UI for managing DocRep documents.
+ * UI widgets for managing DocRep documents.
+ *
+ * DocRepTree     - a base document-tree widget that needs a subclass to be able to get doc info and store its state
+ * DocRepCtrlView - a base control-view widget that needs a subclass to implement its contents (e.g. tabs, forms, controls )   
  */
 
 class DocRepTree
@@ -226,5 +229,19 @@ class DocRepTree
         
         // after init, animate opening and closing
         this.speed = 200;
+    }
+}
+
+
+class DocRepCtrlView
+{
+    constructor( oConfig )
+    {
+        this.ctrlMode = "";
+    }
+
+    HandleEvent( eEvent, p )
+    {
+        // override to respond to notifications
     }
 }
