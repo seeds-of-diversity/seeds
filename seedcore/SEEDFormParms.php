@@ -161,7 +161,7 @@ class SEEDFormParms {
         }
 
         foreach( $ra1D as $k => $v ) {
-            if( substr( $k, 0, strlen('sf'.$this->cid)) != 'sf'.$this->cid )  continue;
+            if( !SEEDCore_StartsWith( $k, 'sf'.$this->cid ) )  continue;
             $c = substr( $k, strlen('sf'.$this->cid), 1 );
             $r = intval( substr( $k, strlen('sf'.$this->cid)+1 ) );
 
