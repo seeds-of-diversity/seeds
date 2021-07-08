@@ -1,0 +1,44 @@
+/* DocRepApp.css
+ *
+ * Styles for the document manager widgets used in DocRepApp.js
+ */
+
+
+/* the top level of the ctrlview widget
+ */
+#docrepctrlview {
+    --tab-color: lightgray;
+    --tab-rounding: 8px;
+}
+
+/* the row of tabs at the top of the ctrlview
+ */
+#docrepctrlview_tabs {
+    display: inline-block;
+    box-sizing: border-box;
+    margin-top: 10px;
+    width: 100%;
+    min-height: 30px;
+}
+#docrepctrlview_tabs .tab {
+    display: inline-block;
+    min-width: 20%;
+    padding: 5px 10px;
+    height: 100%;
+    background-color: white;
+    vertical-align: middle;
+    text-align: center;
+    border: 1px solid var(--tab-color);
+    border-bottom: none;
+    border-radius: var(--tab-rounding) var(--tab-rounding) 0 0;
+    box-sizing: border-box;
+    cursor: default;
+    user-select: none;
+}
+#docrepctrlview_tabs .tab.active-tab {
+    background-color: var(--tab-color);
+}
+
+/* the div under the tabs where forms go
+ */
+#docrepctrlview_body { border: 1px solid var(--tab-color); padding:15px; }

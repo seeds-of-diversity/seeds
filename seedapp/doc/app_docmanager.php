@@ -13,7 +13,7 @@
 
 Preview tab:
     Remove the instruction text. "If it's html put it here..." etc
-    Put a checkbox at the top of #docmanui_ctrlview called "Show source". If it's
+    Put a checkbox at the top of #docrepctrlview called "Show source". If it's
     unchecked show the preview normally, if checked escape htmlchars and make it
     monospace font so source html is shown
 
@@ -133,15 +133,7 @@ class DocManagerTabDocuments
              ."<div class='container-fluid'>"
                  ."<div class='row'>"
                      ."<div class='col-md-6'> <div id='docmanui_tree'></div> </div>"
-                     ."<div class='col-md-6'>
-                           <div id='tabs'>
-                               <div class='docmanui_button_tabchange tab active-tab' data-tabname='preview'>Preview</div>
-                               <div class='docmanui_button_tabchange tab' data-tabname='edit'>Edit</div>
-                               <div class='docmanui_button_tabchange tab' data-tabname='rename'>Rename</div>
-                               <div class='docmanui_button_tabchange tab' data-tabname='versions'>Versions</div>
-                           </div>
-                           <div id='docmanui_ctrlview'></div>
-                       </div>"
+                     ."<div class='col-md-6'> <div id='docrepctrlview'></div> </div>"
                  ."</div>"
             ."</div></div>";
 
@@ -191,40 +183,7 @@ $oDocTS = new DocManagerTabSet( $oApp, $kSelectedDoc );
 
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
-echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN', ['raScriptFiles' => [W_CORE_URL."js/SEEDCore.js", W_CORE_URL."js/DocRep/DocRepApp.js",W_CORE_URL."js/DocRep/docmanager.js"],
-                                                                     'consoleSkin'=>'green'] );
-
-?>
-
-<style>
-#docmanui_ctrlview { border: 1px solid #aaa; padding:15px; }
-:root {
-	--tab-color: lightgrey;
-	--tab-rounding: 8px;
-}
-#tabs {
-	display: inline-block;
-	box-sizing: border-box;
-	margin-top: 10px;
-	width: 100%;
-	min-height: 30px;
-}
-.tab {
-	display: inline-block;
-	min-width: 20%;
-	padding: 5px 10px;
-	height: 100%;
-	background-color: var(--tab-color);
-	vertical-align: middle;
-	text-align: center;
-	border: 1px solid var(--tab-color);
-	border-bottom: none;
-	border-radius: var(--tab-rounding) var(--tab-rounding) 0 0;
-	box-sizing: border-box;
-	cursor: default;
-	user-select: none;
-}
-.tab.active-tab {
-	background-color: white;
-}
-</style>
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
+                                ['raScriptFiles' => [W_CORE_URL."js/SEEDCore.js", W_CORE_URL."js/DocRep/DocRepApp.js",W_CORE_URL."js/DocRep/docmanager.js"],
+                                 'raCSSFiles' => [W_CORE_URL."seedapp/DocRep/DocRepApp.css"],
+                                 'consoleSkin'=>'green'] );

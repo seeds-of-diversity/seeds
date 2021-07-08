@@ -238,6 +238,14 @@ class DocRepCtrlView
     constructor( oConfig )
     {
         this.ctrlMode = "";
+        
+        $('#docrepctrlview').html( `<div id='docrepctrlview_tabs'>
+                                         <div class='docmanui_button_tabchange tab active-tab' data-tabname='preview'>Preview</div>
+                                         <div class='docmanui_button_tabchange tab' data-tabname='edit'>Edit</div>
+                                         <div class='docmanui_button_tabchange tab' data-tabname='rename'>Rename</div>
+                                         <div class='docmanui_button_tabchange tab' data-tabname='versions'>Versions</div>
+                                       </div>
+                                       <div id='docrepctrlview_body'></div>`);
     }
 
     HandleEvent( eEvent, p )

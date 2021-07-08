@@ -212,12 +212,12 @@ class DocRepApp02
             saveThis.oDocRepUI.oCtrlView.ctrlMode = $(this).attr('data-tabname');
             $(".tab").removeClass("active-tab");
 			$(this).addClass("active-tab");
-            $('#docmanui_ctrlview').html( saveThis.oDocRepUI.DrawCtrlView() );
+            $('#docrepctrlview_body').html( saveThis.oDocRepUI.DrawCtrlView() );
         });
 
         // draw the components before initializing them because InitUI sets js bindings in the dom
         $('#docmanui_tree').html( this.oDocRepUI.DrawTree() );
-        $('#docmanui_ctrlview').html( this.oDocRepUI.DrawCtrlView() );
+        $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
         this.oDocRepUI.InitUI();
     }
 
@@ -225,7 +225,7 @@ class DocRepApp02
     {
         switch( eEvent ) {
             case 'docSelected':
-                $('#docmanui_ctrlview').html( this.oDocRepUI.DrawCtrlView() );
+                $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
                 break;
         }
     }
