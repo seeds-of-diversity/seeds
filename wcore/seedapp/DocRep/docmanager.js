@@ -25,13 +25,27 @@ var mymapDocsX = new Map( [
 ]);
 */
 
+class myDocRepCache extends DocRepCache
+{
+    constructor(oConfig)
+    {
+        super(oConfig);
+    }
+
+    FetchDoc( kDoc )
+    {
+        if( kDoc == 9 ) {
+            this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
+        }
+    }
+}
+
 
 class myDocRepTree extends DocRepTree
 {
     constructor(oConfig)
     {
         super(oConfig);
-        this.fnHandleEvent = oConfig.fnHandleEvent;
     }
 
     InitUI()
@@ -57,13 +71,6 @@ class myDocRepTree extends DocRepTree
     GetCurrDoc()
     {
         return( parseInt(sessionStorage.getItem( 'DocRepTree_Curr' )) || 0 );
-    }
-
-    FetchDoc( kDoc )
-    {
-        if( kDoc == 9 ) {
-            this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
-        }
     }
 
     LevelOpenGet( pDoc )
@@ -177,14 +184,16 @@ class DocRepUI02
     {
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
-        this.oCache = new DocRepCache( { mapDocs: mymapDocs } );
+        this.oCache = new myDocRepCache( 
+                        { mapDocs: mymapDocs,
+                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
 // these parms should be in oConfig
         this.oTree = new myDocRepTree(
                         { mapDocs: mymapDocs,
                           dirIcons: '../../wcore/img/icons/',
-                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
+                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
         this.oCtrlView = new myDocRepCtrlView(
-                        { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
+                        { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
         this.kCurrDoc = 0;
     }
 
