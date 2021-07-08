@@ -184,6 +184,7 @@ $oDocTS = new DocManagerTabSet( $oApp, $kSelectedDoc );
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
-                                ['raScriptFiles' => [W_CORE_URL."js/SEEDCore.js", W_CORE_URL."js/DocRep/DocRepApp.js",W_CORE_URL."js/DocRep/docmanager.js"],
+                                ['raScriptFiles' => [W_CORE_URL."js/SEEDCore.js",
+                                                     W_CORE_URL."seedapp/DocRep/DocRepApp.js",W_CORE_URL."seedapp/DocRep/docmanager.js"],
                                  'raCSSFiles' => [W_CORE_URL."seedapp/DocRep/DocRepApp.css"],
                                  'consoleSkin'=>'green'] );
