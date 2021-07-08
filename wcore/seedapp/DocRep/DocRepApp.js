@@ -4,9 +4,41 @@
  *
  * UI widgets for managing DocRep documents.
  *
+ * DocRepCache    - storage for docrep doc info, accessible by widgets 
  * DocRepTree     - a base document-tree widget that needs a subclass to be able to get doc info and store its state
  * DocRepCtrlView - a base control-view widget that needs a subclass to implement its contents (e.g. tabs, forms, controls )   
  */
+
+class DocRepCache
+{
+    constructor( oConfig )
+    {
+        this.mapDocs = oConfig.mapDocs;     // a Map() of docrep docs
+    }
+    
+    GetDocInfo( kDoc, bInternalRecurse = false )
+    {
+        let oDoc = null;
+
+        if( this.mapDocs.has(kDoc) ) {
+            oDoc = this.mapDocs.get(kDoc);
+        } else if( !bInternalRecurse ) {
+            // if not found on first time through, try to fetch it
+            this.FetchDoc( kDoc );
+            oDoc = this.GetDocInfo( kDoc, true );
+        } else {
+            // not found after fetching
+            console.log(kDoc+" not found");
+        }
+        return( oDoc );
+    }
+    
+    FetchDoc( kDoc )
+    {
+        // override to add doc(s) to mapDocs
+    }
+}
+
 
 class DocRepTree
 {
@@ -239,7 +271,9 @@ class DocRepCtrlView
 {
     constructor( oConfig )
     {
-        // initialize then use derived method (or base method if no subclass)
+        this.fnHandleEvent = oConfig.fnHandleEvent;     // use this to communicate with widgets/app
+        
+        // initialize ctrlMode then use derived method (or base method if no subclass)
         this.ctrlMode = "";
         this.ctrlMode = this.GetCtrlMode();
 
@@ -272,7 +306,10 @@ class DocRepCtrlView
             // store the new tab and redraw tabs
             saveThis.SetCtrlMode( $(this).attr('data-tabname') );
             // draw the form for the new tab            
-            $('#docrepctrlview_body').html( saveThis.DrawCtrlView() );
+            let kDocCurr = saveThis.fnHandleEvent('getKDocCurr');
+            if( kDocCurr ) {
+                $('#docrepctrlview_body').html( saveThis.DrawCtrlView(kDocCurr) );
+            }
         });
     }
 
