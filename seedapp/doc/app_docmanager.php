@@ -55,35 +55,69 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'drdev',
                               'sessPermsRequired' => $tabConfig['main']['perms'] ] );
                               //     'consoleConfig' => $consoleConfig] );
 
+class DocManagerCmd
+{
+    private $oApp;
 
-if( ($p = SEEDInput_Str('qcmd')) ) {
-    $kDoc = SEEDInput_Int('kDoc');
-    $rQ = ['bOk'=>false, 'raOut'=>[], 'sOut'=>"", 'sErr'=>''];
-
-    switch( $p ) {
-/***********************************
-    Here's where you put the php code to serve requests from the js app.
-    Actually don't put the code here. Define functions/classes somewhere else for each case and put the code there.
- */
-        case 'dr-preview':
-            $rQ['bOk'] = true;
-// Make a class that will get the preview.
-            $rQ['sOut'] = "<h4>Here's the preview coming to you via AJAX for doc $kDoc</h4>";
-            $rQ['raOut']['doctype'] = 'HTML';   // or whatever - look it up, and the js app should do the right thing for different types
-                                                // e.g. this could be an image type, or it could be pdf, or html
-                                                // Note that if it isn't html, you don't want to send the doc in sOut. Instead it should be
-                                                // a link to get or show the image, pdf, etc.
-
-            $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp );
-            if( ($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) ) {
-                $rQ['sOut'] = $oDoc->GetText('');
-            }
-            break;
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
     }
-    echo json_encode( $rQ );
-    exit;
-}
 
+    function Cmd( $cmd, $parms )
+    {
+        $rQ = ['bOk'=>false, 'raOut'=>[], 'sOut'=>"", 'sErr'=>''];
+
+        if( !SEEDCore_StartsWith( $cmd, 'dr-' ) ) goto done;
+
+        // check permissions
+
+
+        $kDoc = SEEDInput_Int('kDoc');
+
+        switch( $cmd ) {
+            case 'dr-preview':
+                $rQ['bOk'] = true;
+                $rQ['sOut'] = $this->doPreview($kDoc);
+                break;
+        }
+
+        done:
+        return( $rQ );
+    }
+
+    private function doPreview( $kDoc )
+    {
+        $s = "";
+
+        if( !$kDoc ) goto done;
+
+        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
+        if( ($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            switch( $oDoc->GetType() ) {
+                case 'FOLDER':
+                    $s = "FOLDER";
+                    break;
+                case 'LINK':
+                    $s = "Link to another doc";
+                    break;
+                case 'TEXT':
+                    $s = $oDoc->GetText('');
+                    break;
+                case 'BIN':
+                    if( SEEDCore_StartsWith( $oDoc->GetValue( 'mimetype', ''), 'image/' ) ) {
+                        $s = "This should be an <img/>";
+                    } else {
+                        $s = "This should be a <a>link to download the file</a>";
+                    }
+                    break;
+            }
+        }
+
+        done:
+        return( $s );
+    }
+}
 
 
 class DocManagerTabSet extends Console02TabSet
@@ -174,6 +208,17 @@ class DocManagerTabDocuments
     }
 }
 
+
+/* Serve ajax commands
+ */
+if( ($p = SEEDInput_Str('qcmd')) ) {
+    echo json_encode( (new DocManagerCmd($oApp))->Cmd($p, $_REQUEST) );
+    exit;
+}
+
+
+/* Document Manager app
+ */
 
 $s = "";
 

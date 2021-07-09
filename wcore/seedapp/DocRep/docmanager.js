@@ -114,13 +114,8 @@ class myDocRepCtrlView extends DocRepCtrlView
 
         switch( this.GetCtrlMode() ) {
             case 'preview':
-                s = "<p>Todo:<br/>"
-                   +"If it's html, put it here.<br/>"
-                   +"If it's an image, put an &lt;img> tag here to show it.<br/>"
-                   +"Otherwise put a link here to download/view it (e.g. docx,pdf)</p>";
-
                 let rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
-                if( rQ.bOk ) s += rQ.sOut;
+                s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${kCurrDoc}`;
                 break;
 
             case 'edit':
