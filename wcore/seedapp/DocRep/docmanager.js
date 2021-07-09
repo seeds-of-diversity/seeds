@@ -25,13 +25,27 @@ var mymapDocsX = new Map( [
 ]);
 */
 
+class myDocRepCache extends DocRepCache
+{
+    constructor(oConfig)
+    {
+        super(oConfig);
+    }
+
+    FetchDoc( kDoc )
+    {
+        if( kDoc == 9 ) {
+            this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
+        }
+    }
+}
+
 
 class myDocRepTree extends DocRepTree
 {
     constructor(oConfig)
     {
         super(oConfig);
-        this.fnHandleEvent = oConfig.fnHandleEvent;
     }
 
     InitUI()
@@ -59,13 +73,6 @@ class myDocRepTree extends DocRepTree
         return( parseInt(sessionStorage.getItem( 'DocRepTree_Curr' )) || 0 );
     }
 
-    FetchDoc( kDoc )
-    {
-        if( kDoc == 9 ) {
-            this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
-        }
-    }
-
     LevelOpenGet( pDoc )
     {
         let oDRDoc = this.getDocAndJDoc(pDoc);
@@ -89,7 +96,6 @@ class myDocRepCtrlView extends DocRepCtrlView
         oConfig.defTabs = { preview:"Preview", edit:"Edit", rename:"Rename", versions:"Versions" };
 
         super(oConfig);
-        this.fnHandleEvent = oConfig.fnHandleEvent;
     }
 
     GetCtrlMode()
@@ -141,9 +147,17 @@ class myDocRepCtrlView extends DocRepCtrlView
     
     drawFormRename( kCurrDoc )
     {
-        let s = `<div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name' style='width:100%'/></div></div>
-                 <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' style='width:100%'/></div></div>
-                 <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' style='width:100%'/></div></div>
+        let sName = "", sTitle = "", sPerms = "";
+        let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
+        if( oDoc ) {
+            sName = oDoc['name'];
+//            sTitle = oDoc['title'];
+//            sPerms = oDoc['perms'];
+        }
+        
+        let s = `<div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
+                 <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/></div></div>
+                 <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/></div></div>
                  <p><button>Change</button></p>`;
         s = s.replaceAll("[label]", "class='col-md-3'");
         s = s.replaceAll("[ctrl]",  "class='col-md-6'");
@@ -165,13 +179,16 @@ class DocRepUI02
     {
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
+        this.oCache = new myDocRepCache( 
+                        { mapDocs: mymapDocs,
+                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
 // these parms should be in oConfig
         this.oTree = new myDocRepTree(
                         { mapDocs: mymapDocs,
                           dirIcons: '../../wcore/img/icons/',
-                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
+                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
         this.oCtrlView = new myDocRepCtrlView(
-                        { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepTree how to send events here
+                        { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
         this.kCurrDoc = 0;
     }
 
@@ -191,16 +208,27 @@ class DocRepUI02
         this.oTree.InitUI();
     }
 
-    HandleEvent( eNotify, p )
-    /************************
+    HandleEvent( eRequest, p = 0 )
+    /*****************************
         Components call here with notifications
      */
     {
-        switch( eNotify ) {
+        switch( eRequest ) {
             case 'docSelected':
                 break;
+
+// is this the best way for widgets to get this?
+            case 'getKDocCurr':
+                return( this.oTree.GetCurrDoc() );
+                
+            case 'getDocInfo':
+                return( this.oCache.GetDocInfo(p) );
+                
+            case 'getDocInfoCurr':
+                let kDocCurr = this.oTree.GetCurrDoc();
+                return( kDocCurr ? this.oCache.GetDocInfo(kDocCurr) : null );
         }
-        this.fnHandleEvent( eNotify, p+1 );
+        this.fnHandleEvent( eRequest, p );
     }
 }
 

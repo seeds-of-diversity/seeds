@@ -4,14 +4,47 @@
  *
  * UI widgets for managing DocRep documents.
  *
+ * DocRepCache    - storage for docrep doc info, accessible by widgets 
  * DocRepTree     - a base document-tree widget that needs a subclass to be able to get doc info and store its state
  * DocRepCtrlView - a base control-view widget that needs a subclass to implement its contents (e.g. tabs, forms, controls )   
  */
+
+class DocRepCache
+{
+    constructor( oConfig )
+    {
+        this.mapDocs = oConfig.mapDocs;     // a Map() of docrep docs
+    }
+    
+    GetDocInfo( kDoc, bInternalRecurse = false )
+    {
+        let oDoc = null;
+
+        if( this.mapDocs.has(kDoc) ) {
+            oDoc = this.mapDocs.get(kDoc);
+        } else if( !bInternalRecurse ) {
+            // if not found on first time through, try to fetch it
+            this.FetchDoc( kDoc );
+            oDoc = this.GetDocInfo( kDoc, true );
+        } else {
+            // not found after fetching
+            console.log(kDoc+" not found");
+        }
+        return( oDoc );
+    }
+    
+    FetchDoc( kDoc )
+    {
+        // override to add doc(s) to mapDocs
+    }
+}
+
 
 class DocRepTree
 {
     constructor( oConfig )
     {
+        this.fnHandleEvent = oConfig.fnHandleEvent;
         this.mapDocs = oConfig.mapDocs;
         this.dirIcons = oConfig.dirIcons;
         this.speed = 0;
@@ -24,7 +57,7 @@ class DocRepTree
     {
         let s = "";
 
-        let oDoc = this.getDocObj(kRoot);
+        let oDoc = this.getDocInfo(kRoot);
         if( oDoc ) {
             s += `<div class='DocRepTree_doc' data-kdoc='${kRoot}'>`
                 +(kRoot ? this.drawDoc(oDoc) : "")      // kRoot==0 is a non-doc that contains the root forest
@@ -41,7 +74,7 @@ class DocRepTree
     {
         let s = "";
 
-        let oDoc = this.getDocObj(kRoot);
+        let oDoc = this.getDocInfo(kRoot);
         if( oDoc ) {
             s += this.DrawChildren( oDoc );
         }
@@ -62,26 +95,10 @@ class DocRepTree
         return( s );
     }
 
-    FetchDoc( kDoc )
+    getDocInfo( kDoc, bRecurse = false )
     {
-        // override to add doc(s) to mapDocs
-    }
-
-    getDocObj( kDoc, bRecurse = false )
-    {
-        let oDoc = null;
-
-        if( this.mapDocs.has(kDoc) ) {
-            oDoc = this.mapDocs.get(kDoc);
-        } else if( !bRecurse ) {
-            // if not found on first time through, try to fetch it
-            this.FetchDoc( kDoc );
-            oDoc = this.getDocObj( kDoc, true );
-        } else {
-            // not found after fetching
-            console.log(kDoc+" not found");
-        }
-        return( oDoc );
+        // get the document info from the app (it probably has a DocRepCache)
+        return( this.fnHandleEvent('getDocInfo', kDoc) );
     }
 
     drawDoc( oDoc )
@@ -184,12 +201,12 @@ class DocRepTree
         } else if ( typeof p === 'object' ) {
             // assume it is a $(.DocRepTree_doc)
             oDRDoc.kDoc = parseInt(p.attr('data-kdoc'));
-            oDRDoc.oDoc = this.getDocObj(oDRDoc.kDoc);
+            oDRDoc.oDoc = this.getDocInfo(oDRDoc.kDoc);
             oDRDoc.jDoc = p;
         } else {
             // assume it is a kDoc
             oDRDoc.kDoc = p;
-            oDRDoc.oDoc = this.getDocObj(oDRDoc.kDoc);
+            oDRDoc.oDoc = this.getDocInfo(oDRDoc.kDoc);
             oDRDoc.jDoc = $(`.DocRepTree_doc[data-kdoc=${p}]`);
         }
         
@@ -203,7 +220,11 @@ class DocRepTree
         $('.DocRepTree_title').click( function () {
             $('.DocRepTree_title').removeClass('DocRepTree_titleSelected');
             $(this).addClass('DocRepTree_titleSelected');
-            saveThis.HandleEvent( 'docSelected', $(this).attr('data-kdoc') );    // tell the derived class that a title was clicked
+
+// This uses the derived class's event handler to store the new kDoc.
+// That's a weird way to it, because no other classes call their own event handlers.
+// Also GetCurrDoc() is in the derived class but not the base class, but it's used below.
+            saveThis.HandleEvent( 'docSelected', $(this).attr('data-kdoc') );
 
             // show/hide any children by toggling the Level contained within the same Doc (there should be zero or one Level sibling)
             $(this).siblings('.DocRepTree_level').each( function () { 
@@ -218,7 +239,8 @@ class DocRepTree
             saveThis.FolderOpenClose( pDoc, saveThis.LevelOpenGet(pDoc) ); 
         });
         
-        // highlight the current doc 
+        // highlight the current doc
+// GetCurrDoc doesn't exist in the base class. See how ctrlMode is stored in CtrlView.        
         let currDoc = saveThis.GetCurrDoc();
         if( currDoc ) {
             $(`.DocRepTree_title[data-kdoc=${currDoc}]`).addClass('DocRepTree_titleSelected');
@@ -239,7 +261,9 @@ class DocRepCtrlView
 {
     constructor( oConfig )
     {
-        // initialize then use derived method (or base method if no subclass)
+        this.fnHandleEvent = oConfig.fnHandleEvent;     // use this to communicate with widgets/app
+        
+        // initialize ctrlMode then use derived method (or base method if no subclass)
         this.ctrlMode = "";
         this.ctrlMode = this.GetCtrlMode();
 
@@ -272,7 +296,10 @@ class DocRepCtrlView
             // store the new tab and redraw tabs
             saveThis.SetCtrlMode( $(this).attr('data-tabname') );
             // draw the form for the new tab            
-            $('#docrepctrlview_body').html( saveThis.DrawCtrlView() );
+            let kDocCurr = saveThis.fnHandleEvent('getKDocCurr');
+            if( kDocCurr ) {
+                $('#docrepctrlview_body').html( saveThis.DrawCtrlView(kDocCurr) );
+            }
         });
     }
 
