@@ -16,14 +16,14 @@ function seedsWPPlugin_Filter( $content )
     //$content = $oMT->GetTmpl()->ExpandStr( $content );
     $content = $oTmpl->ExpandStr( $content, [] );
 
-
 //    $content = SEEDROOT." ".SEEDW." ".SEEDW_URL
 //              ."<br/><br/>".$content;
-
+    
     return( $content );
 }
 
 function seedsWPStart()
 {
     add_filter( 'the_content', 'seedsWPPlugin_Filter' );
+    remove_filter( 'the_content', 'wptexturize' );  // because WP turns '--' into &mdash; which breaks some image names in SEEDTags
 }
