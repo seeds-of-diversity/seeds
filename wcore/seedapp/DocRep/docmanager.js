@@ -112,6 +112,7 @@ class myDocRepCtrlView extends DocRepCtrlView
     DrawCtrlView( kCurrDoc )
     {
         let s = "";
+        let rQ = [];
 
 /****************************
    Here is where you add code to implement the controls.
@@ -120,15 +121,25 @@ class myDocRepCtrlView extends DocRepCtrlView
 
         switch( this.GetCtrlMode() ) {
             case 'preview':
-                let rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
+                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
                 s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${kCurrDoc}`;
                 break;
 
             case 'edit':
-                s = "<p>Todo:<br/>"
-                   +`Fetch metadata/data for doc ${kCurrDoc}<br/>`
-                   +"If it's html, put an html editor here. CKEditor?<br/>";
-                   break;
+                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
+                if( rQ.bOk ) {
+                    s = `<div id='drEdit_notice'></div>
+                         <form onsubmit='myDocRepEditSubmit(event)'>
+                         <textarea id='drEdit_text' style='width:100%'>${rQ.sOut}</textarea>
+                         <br/>
+                         <input type='hidden' id='drEdit_kDoc' value='${kCurrDoc}'/>
+                         <input type='submit' value='Save'/>
+                         </form>`;
+                } else {
+                    s = `Cannot get preview for document ${kCurrDoc}`;
+                }
+                break;
+
             case 'rename':
                 s = this.drawFormRename( kCurrDoc );
                 break;
@@ -136,7 +147,7 @@ class myDocRepCtrlView extends DocRepCtrlView
                 s = "<p>Todo:<br/>"
                    +`For doc ${kCurrDoc}<br/>`
                    +"Show versions of this document, allow preview, diff view, restore, and delete.<br/>";
-                   break;
+                break;
 
             default:
                 s = "Unknown control mode";
@@ -167,6 +178,19 @@ s += "<p>Put the current values in. Make the button send the new values to the s
     }
 }
 
+
+
+function myDocRepEditSubmit( e )
+{
+    e.preventDefault();
+    console.log(  );
+    let kDoc = $('#drEdit_kDoc').val();
+    if( kDoc ) {
+        let rQ = SEEDJXSync( "", {qcmd: 'dr--update', kDoc: kDoc, src: 'TEXT', p_text: $('#drEdit_text').val() } );
+    
+        $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
+    }
+}
 
 
 class DocRepUI02

@@ -35,6 +35,11 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doPreview($kDoc);
                 break;
+
+            case 'dr--update':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doUpdate($kDoc);
+                break;
         }
 
         done:
@@ -69,7 +74,21 @@ class QServerDocRep extends SEEDQ
             $bOk = true;
         }
 
-        done:
         return( [$bOk,$s] );
     }
+
+    private function doUpdate( $kDoc )
+    {
+        $s = "";
+        $bOk = false;
+
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            if( ($p_text = SEEDInput_Str('p_text')) ) {
+                $bOk = $oDoc->Update( ['src'=>'TEXT', 'data_text'=>$p_text] );
+            }
+        }
+
+        return( [$bOk,$s] );
+    }
+
 }

@@ -668,41 +668,56 @@ class DocRepDoc2_ReadOnly
         $this->kDoc = 0;
     }
 
-    private function getKfrDoc( $kDoc, $flagOrVer )
-    /**********************************************
-        Get kfr for doc X data with no permission check
+    protected function getKfrDoc( $kDoc, $flagOrVer )
+    /************************************************
+        Get kfr for Doc X Data with no permission check
      */
+    {
+        $kfrel        = $this->oDocRepDB->GetRel()->GetKfrel('Doc X Data');
+        $kfrelWithDxd = $this->oDocRepDB->GetRel()->GetKFrel('Doc X Dxd X Data');
+        return( $this->getKfrDoc_Data( $kDoc, $flagOrVer, $kfrel, $kfrelWithDxd ) );
+    }
+
+    protected function getKfrData( $kDoc, $flagOrVer )
+    /************************************************
+        Get kfr for Data X Doc with no permission check
+     */
+    {
+        $kfrel        = $this->oDocRepDB->GetRel()->GetKfrel('Data X Doc');
+        $kfrelWithDxd = $this->oDocRepDB->GetRel()->GetKFrel('Data X Dxd X Doc');
+        return( $this->getKfrDoc_Data( $kDoc, $flagOrVer, $kfrel, $kfrelWithDxd ) );
+    }
+
+    private function getKfrDoc_Data( $kDoc, $flagOrVer, $kfrel, $kfrelWithDxd )
     {
 //$this->oDocRepDB->kfdb->SetDebug(2);
         if( empty($flagOrVer) ) {
             /* Get Doc and Data for the maxVer
              */
-            $kfrel = $this->oDocRepDB->GetRel()->GetKfrel('Doc X Data');   // doc x data
             // Tried to do it this way, but it's hard to tell whether the first arg should be seeds.docrep2_docs, seeds2.docrep_docs or docrep2_docs
             //$colnameKey     = $kfrel->GetDBColName( "docrep2_docs", "_key" );
             //$colnameTopData = $kfrel->GetDBColName( "docrep2_docs", "kData_top" );
             $colnameKey     = 'Doc._key';
             $colnameTopData = 'Doc.kData_top';
-            $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND $colnameTopData=Data._key" );
+            $kfr = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND $colnameTopData=Data._key" );
         } else if( is_numeric($flagOrVer) ) {
             /* Get Doc and Data for the given numbered version
              */
-            $kfrel = $this->oDocRepDB->GetRel()->GetKFrel('Doc X Data');   // doc x data
             $iVer = intval($flagOrVer);
-            $kfrDoc = $kfrel->GetRecordFromDB( "_key='$kDoc' AND Data.ver='$iVer'" );
+            $kfr = $kfrel->GetRecordFromDB( "Doc._key='$kDoc' AND Data.ver='$iVer'" );
         } else {
             /* Get Doc and Data for the flagged DXD
              */
-            $kfrel = $this->oDocRepDB->GetRel()->GetKFrel('Doc X Dxd X Data');  // doc x dxd x data
             //$colnameKey = $kfrel->GetDBColName( "docrep2_docs", "_key" );
             $colnameKey = 'Doc._key';
-            $kfrDoc = $kfrel->GetRecordFromDB( "$colnameKey='$kDoc' AND Dxd.flag='$flagOrVer'" );
+            $kfr = $kfrelWithDxd->GetRecordFromDB( "$colnameKey='$kDoc' AND Dxd.flag='$flagOrVer'" );
         }
 
-        if( !$kfrDoc && $this->bDebug )  var_dump( "Cannot find doc $kDoc:".(empty($flagOrVer) ? "maxVer" : $flagOrVer) );
+        if( !$kfr && $this->bDebug )  var_dump( "Cannot find doc $kDoc:".(empty($flagOrVer) ? "maxVer" : $flagOrVer) );
 
-        return( $kfrDoc );
+        return( $kfr );
     }
+
 
     // much of DocRepDoc will go here
 
@@ -719,6 +734,28 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
     function __construct( DocRepDB2 $oDocRepDB, $kDoc )
     {
         parent::__construct( $oDocRepDB, $kDoc );
+    }
+
+    function Update( $parms )
+    /************************
+        Update the content and/or metadata of a document
+     */
+    {
+        $ok = true;
+
+        if( isset($parms['src']) ) {
+            // Updating content
+            switch( $parms['src'] ) {
+                case 'TEXT':
+                    $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
+                    $kfrData = $this->getKfrData( $this->kDoc, '' );
+                    $kfrData->SetValue( 'data_text', $parms['data_text'] );
+                    $kfrData->PutDBRow();
+                    break;
+            }
+        }
+
+        return( $ok );
     }
 }
 
