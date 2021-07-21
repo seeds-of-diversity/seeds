@@ -38,6 +38,7 @@ if( !defined( "SEEDROOT" ) ) {
 
 include_once( SEEDROOT."DocRep/DocRep.php" );
 include_once( SEEDROOT."DocRep/DocRepUI.php" );
+include_once( SEEDROOT."DocRep/QServerDocRep.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
                                      'files'     => ['label'=>'Files'],
@@ -54,70 +55,6 @@ $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
 $oApp = SEEDConfig_NewAppConsole( ['db'=>'drdev',
                               'sessPermsRequired' => $tabConfig['main']['perms'] ] );
                               //     'consoleConfig' => $consoleConfig] );
-
-class DocManagerCmd
-{
-    private $oApp;
-
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-    }
-
-    function Cmd( $cmd, $parms )
-    {
-        $rQ = ['bOk'=>false, 'raOut'=>[], 'sOut'=>"", 'sErr'=>''];
-
-        if( !SEEDCore_StartsWith( $cmd, 'dr-' ) ) goto done;
-
-        // check permissions
-
-
-        $kDoc = SEEDInput_Int('kDoc');
-
-        switch( $cmd ) {
-            case 'dr-preview':
-                $rQ['bOk'] = true;
-                $rQ['sOut'] = $this->doPreview($kDoc);
-                break;
-        }
-
-        done:
-        return( $rQ );
-    }
-
-    private function doPreview( $kDoc )
-    {
-        $s = "";
-
-        if( !$kDoc ) goto done;
-
-        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
-        if( ($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) ) {
-            switch( $oDoc->GetType() ) {
-                case 'FOLDER':
-                    $s = "FOLDER";
-                    break;
-                case 'LINK':
-                    $s = "Link to another doc";
-                    break;
-                case 'TEXT':
-                    $s = $oDoc->GetText('');
-                    break;
-                case 'BIN':
-                    if( SEEDCore_StartsWith( $oDoc->GetValue( 'mimetype', ''), 'image/' ) ) {
-                        $s = "This should be an <img/>";
-                    } else {
-                        $s = "This should be a <a>link to download the file</a>";
-                    }
-                    break;
-            }
-        }
-
-        done:
-        return( $s );
-    }
-}
 
 
 class DocManagerTabSet extends Console02TabSet
@@ -212,7 +149,7 @@ class DocManagerTabDocuments
 /* Serve ajax commands
  */
 if( ($p = SEEDInput_Str('qcmd')) ) {
-    echo json_encode( (new DocManagerCmd($oApp))->Cmd($p, $_REQUEST) );
+    echo json_encode( (new QServerDocRep($oApp))->Cmd($p, $_REQUEST) );
     exit;
 }
 
