@@ -165,7 +165,7 @@ $oDocTS = new DocManagerTabSet( $oApp, $kSelectedDoc );
 
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
-echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "<script src='https://cdn.ckeditor.com/ckeditor5/29.0.0/classic/ckeditor.js'></script>", 'EN',
                                 ['raScriptFiles' => [W_CORE_URL."js/SEEDCore.js",
                                                      W_CORE_URL."seedapp/DocRep/DocRepApp.js",W_CORE_URL."seedapp/DocRep/docmanager.js"],
                                  'raCSSFiles' => [W_CORE_URL."seedapp/DocRep/DocRepApp.css"],

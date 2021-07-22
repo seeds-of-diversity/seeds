@@ -225,7 +225,10 @@ class DocRepApp1
                  */
                 $(".docrepapp_treeform_view").show();
                 $(".docrepapp_treetabs li[data-form='view']").css('background-color','#eee');
-
+                
+                /* Initialize the editor
+                 */
+                ClassicEditor.create(document.querySelector('#drEdit_text'));
             });
             </script>
 DocRepApp1_Script;
