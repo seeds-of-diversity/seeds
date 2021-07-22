@@ -312,11 +312,11 @@ class DocRepDoc2_ReadOnly
      */
     {
         $ra = $this->GetValues($flag);
-// type can be FOLDER, TEXT, BIN, LINK
+// type can be FOLDER, DOC, BIN, LINK
 // src just says where it's stored
-        // return( $ra['type']=='DOC' && $ra['data_src'] == 'TEXT' ? $ra['data_text'] : "" );
-        return( $ra['type']=='TEXT' && $ra['data_src'] == 'TEXT'
-            ? $ra['data_text'] : "" );
+         return( $ra['type']=='DOC' && $ra['data_src'] == 'TEXT' ? $ra['data_text'] : "" );
+        //return( $ra['type']=='TEXT' && $ra['data_src'] == 'TEXT'
+        //    ? $ra['data_text'] : "" );
     }
 
     function GetMetadataValue( $k, $flag )

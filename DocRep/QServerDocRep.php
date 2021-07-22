@@ -48,7 +48,7 @@ class QServerDocRep extends SEEDQ
 
     private function doPreview( $kDoc )
     {
-        $s = "";
+        $s = "Preview";
         $bOk = false;
 
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
@@ -59,7 +59,7 @@ class QServerDocRep extends SEEDQ
                 case 'LINK':
                     $s = "Link to another doc";
                     break;
-                case 'TEXT':
+                case 'DOC':
                     $s = $oDoc->GetText('');
                     break;
                 case 'BIN':
