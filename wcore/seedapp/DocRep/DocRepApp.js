@@ -9,6 +9,8 @@
  * DocRepCtrlView - a base control-view widget that needs a subclass to implement its contents (e.g. tabs, forms, controls )   
  */
 
+var editor; // The CKEditor instance
+
 class DocRepCache
 {
     constructor( oConfig )
@@ -234,7 +236,11 @@ class DocRepTree
             if(document.querySelector('#drEdit_text')){
             	/* Initialize the editor
              	*/
-            	ClassicEditor.create(document.querySelector('#drEdit_text'));
+            	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
+            		editor = newEditor;
+            	}).catch(err => {
+            		console.error(err.stack);
+            	});
             }
         });
         
@@ -307,7 +313,11 @@ class DocRepCtrlView
                 if(document.querySelector('#drEdit_text')){
                 	/* Initialize the editor
                  	*/
-                	ClassicEditor.create(document.querySelector('#drEdit_text'));
+                	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
+                		editor = newEditor;
+                	}).catch(err => {
+                		console.error(err.stack);
+                	});
                 }
             }
         });

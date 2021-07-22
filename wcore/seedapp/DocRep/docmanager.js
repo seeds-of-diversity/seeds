@@ -183,7 +183,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 function myDocRepEditSubmit( e )
 {
     e.preventDefault();
-    console.log(  );
+    editor.updateSourceElement();
     let kDoc = $('#drEdit_kDoc').val();
     if( kDoc ) {
         let rQ = SEEDJXSync( "", {qcmd: 'dr--update', kDoc: kDoc, src: 'TEXT', p_text: $('#drEdit_text').val() } );

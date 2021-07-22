@@ -229,7 +229,11 @@ class DocRepApp1
                 if(document.querySelector('#drEdit_text')){
                 	/* Initialize the editor
                  	*/
-                	ClassicEditor.create(document.querySelector('#drEdit_text'));
+                	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
+                		editor = newEditor;
+                	}).catch(err => {
+                		console.error(err.stack);
+                	});
                 }
             });
             </script>
