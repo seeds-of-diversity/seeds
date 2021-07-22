@@ -231,6 +231,11 @@ class DocRepTree
                     let jDoc = $(this).closest('.DocRepTree_doc');
                     saveThis.LevelOpenGet(jDoc) ? saveThis.levelHide(jDoc) : saveThis.levelShow(jDoc); 
             });
+            if(document.querySelector('#drEdit_text')){
+            	/* Initialize the editor
+             	*/
+            	ClassicEditor.create(document.querySelector('#drEdit_text'));
+            }
         });
         
         // open/close each level based on stored status 
@@ -299,6 +304,11 @@ class DocRepCtrlView
             let kDocCurr = saveThis.fnHandleEvent('getKDocCurr');
             if( kDocCurr ) {
                 $('#docrepctrlview_body').html( saveThis.DrawCtrlView(kDocCurr) );
+                if(document.querySelector('#drEdit_text')){
+                	/* Initialize the editor
+                 	*/
+                	ClassicEditor.create(document.querySelector('#drEdit_text'));
+                }
             }
         });
     }
