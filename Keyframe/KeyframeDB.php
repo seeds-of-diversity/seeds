@@ -46,6 +46,10 @@ class KeyframeDB_Connection_MySQLI extends KeyFrameDB_Connection
     function _connect( $dbname )
     {
         $this->_conn = mysqli_connect( $this->raParms['host'], $this->raParms['userid'], $this->raParms['password'], $dbname );
+
+        // login parms not needed anymore so clear them to prevent exposing in something like var_dump($kfdb);
+        $this->raParms['userid'] = $this->raParms['password'] = $this->raParms['host'] = 'erased';
+
         return( $this->_conn != null );
     }
     function _execute( $sql )          { return( mysqli_query( $this->_conn, $sql ) != 0 ); }   // mysqli_query returns a dbc (SELECT) or true (UPDATE,DELETE,etc) on success, false on error
@@ -240,16 +244,16 @@ class KeyframeDatabase {
     {
         $bExists = false;
 
-        //in more recent versions of PHP/mysqli this gives a fatal error if the table is not found 
+        //in more recent versions of PHP/mysqli this gives a fatal error if the table is not found
         //$raFld = $this->QueryRA("SHOW FIELDS FROM $table");    // gets the first row returned
         //return( $raFld['Field'] != "" );
-        
+
         if( strpos( $table, '.' ) !== false ) {
-            // the method below can not recognize a table with a db prefix, so confirm that it is the default db and remove the prefix    
+            // the method below can not recognize a table with a db prefix, so confirm that it is the default db and remove the prefix
             list($dbname,$table) = explode( '.', $table );
-            if( $dbname && $dbname != $this->GetDB() )  return( false );    // can't use below to test table in a different db 
+            if( $dbname && $dbname != $this->GetDB() )  return( false );    // can't use below to test table in a different db
         }
-        
+
         $table = $this->EscapeString($table);
         if( ($dbc = $this->CursorOpen( "SHOW TABLES LIKE '".$this->EscapeString($table)."'" )) ) {
             $bExists = $this->CursorGetNumRows($dbc) == 1;
