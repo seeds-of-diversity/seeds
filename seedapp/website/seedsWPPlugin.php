@@ -43,6 +43,6 @@ function seedsWPPlugin_SessionStart() {
     }
 }
 
-function seedsWPPlugin_SessionStart() {
+function seedsWPPlugin_SessionEnd() {
     session_destroy ();
 }
