@@ -105,7 +105,7 @@ class SEEDSession {
         // will probably use the default lifetime, and delete our sessions.  If this is a problem, the solution is to use
         // ini_set('session.save_path', $dir) to store our sessions in a different place.
         //   ini_set('session.gc_maxlifetime', SEEDSESSION_EXPIRY_DEFAULT);
-        if( !isset($_SESSION) ) {
+        if( !session_id() ) {
             session_start();
         }
 
