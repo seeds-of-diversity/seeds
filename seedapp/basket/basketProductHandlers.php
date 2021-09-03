@@ -350,6 +350,11 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler_ItemN
     }
 }
 
+
+/*********************************
+    N.B. this class is repurposed for SEEDBasket_Purcase_special1, which is meant for items that are sold individually (e.g. garlic bulbils)
+    That's different than books, which can be sold in any quantity, but for now the code is identical.
+ */
 class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
 {
     function __construct( SEEDBasketCore $oSB, $kP )
@@ -421,6 +426,18 @@ class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
 
         done:
         return( $ret );
+    }
+}
+
+class SEEDBasket_Purchase_special1 extends SEEDBasket_Purchase_book
+/*********************************
+    special1 is meant for items that are sold individually (e.g. garlic bulbils)
+    That's different than books, which can be sold in any quantity, but for now the code is identical.
+ */
+{
+    function __construct( SEEDBasketCore $oSB, $kP )
+    {
+        parent::__construct( $oSB, $kP );
     }
 }
 

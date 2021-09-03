@@ -464,6 +464,10 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
                     $sYes = "Book order mailed {$oPur->GetExtra('dMailed')}";
                     $sNo = "Book order not mailed";
                     break;
+                case 'special1':    // handled identically to books
+                    $sYes = "Seeds mailed {$oPur->GetExtra('dMailed')}";
+                    $sNo = "Seeds not mailed";
+                    break;
             }
             if( $sYes ) {   // test if the prodtype was in the switch above
                 $s .= $oPur->IsFulfilled() ? "<div style='font-size:9pt'>$sYes</div>"
@@ -547,6 +551,7 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
                             $sFulfilNote = "recorded donation #{$oPur->GetKRef()}";
                             break;
                         case 'book':
+                        case 'special1': // used for garlic bulbils with identical code to books
                             $sFulfilButtonLabel = "Mail today";
                             $sFulfilNote = "mailed {$oPur->GetExtra('dMailed')}";
                             break;
