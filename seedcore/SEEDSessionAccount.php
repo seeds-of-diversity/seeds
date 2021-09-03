@@ -369,8 +369,8 @@ class SEEDSessionAccount extends SEEDSession
     }
 
 
-    function LogoutSession()
-    /***********************
+    function LogoutSession( $bDestroyPHPSession = true )
+    /***************************************************
         This class can create sessions; it can also destroy them.
      */
     {
@@ -381,18 +381,23 @@ class SEEDSessionAccount extends SEEDSession
             $ok = $this->kfrSession->PutDBRow();
             $this->kfrSession = null;
 
-            /* Prevent session hijacking (by fixation) by not leaving the same session open for another user at the logout screen on a public computer.
-             * Although the measures below might not leave that session useful anyway.
+            /* In rare cases you want to substitute one user for another in the same PHP session.
+             * e.g. LoginAsUser() only works if you don't destroy the session
              */
-            setcookie(session_name(),'',0,'/');
-            session_regenerate_id(true);
+            if( $bDestroyPHPSession ) {
+                /* Prevent session hijacking (by fixation) by not leaving the same session open for another user at the logout screen on a public computer.
+                 * Although the measures below might not leave that session useful anyway.
+                 */
+                setcookie(session_name(),'',0,'/');
+                session_regenerate_id(true);
 
-            /* Destroy session variables here. Otherwise someone else logging in on the same session will get the first user's variables.
-             * This logout happens when a login is done in the middle of a session, e.g. for a page inaccessible by the first login.
-             */
-            session_unset();
-            session_destroy();
-            session_write_close();
+                /* Destroy session variables here. Otherwise someone else logging in on the same session will get the first user's variables.
+                 * This logout happens when a login is done in the middle of a session, e.g. for a page inaccessible by the first login.
+                 */
+                session_unset();
+                session_destroy();
+                session_write_close();
+            }
         }
         $this->bLogin = false;
         $this->eLoginState = self::SESSION_NONE;
@@ -406,7 +411,7 @@ class SEEDSessionAccount extends SEEDSession
         Only use this if you've already ensured authentication.
      */
     {
-        $this->LogoutSession();
+        $this->LogoutSession( false );  // logout the current user but don't destroy the PHP session
 
         if( $this->makeSession( $uid, "", true ) ) {
             $this->eLoginState = self::SESSION_CREATED;
