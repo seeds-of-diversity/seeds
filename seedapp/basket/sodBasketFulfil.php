@@ -248,7 +248,10 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         $s = "";
 
-        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
+        $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
+
+        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur)
+            = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
 
         // kluge Bob Review by skipping rows that don't meet the criteria
         if( $this->fltStatus == 'Bob' ) {
@@ -449,6 +452,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
             goto done;
         }
 
+/*
         foreach( $raPur as $oPur ) {
             $sYes = $sNo = "";
             switch( $oPur->GetProductType() ) {
@@ -474,6 +478,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
                                            : "<div class='alert alert-warning' style='font-size:9pt;margin:5px;padding:5px'>$sNo</div>";
             }
         }
+*/
 
         done:
         return( $s );
@@ -498,8 +503,8 @@ class SoDOrderBasket
             ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
     }
 
-    function ShowBasketContents( $kB, $bFulfilControls = false )
-    /***********************************************************
+    function ShowBasketContents( $kB, $bFulfilControls = false, $bShowStatus = false )
+    /*********************************************************************************
         Get sContents:       summary of basket contents
             fTotal:          total amount
             bContactNeeded:  uid_buyer required to be set
@@ -535,38 +540,54 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
                     continue;
                 }
 
-                $sColFulfil1 = "";      // first col is a fulfil button or fulfilment record
-                $sColFulfil2 = "";      // second col is an undo button if fulfilled and canfulfilundo
-                if( $bFulfilControls ) {
+                $sCol1 = "";      // first col is a fulfil button or fulfilment record
+                $sCol2 = "";      // second col is an undo button if fulfilled and canfulfilundo and bFulfilControls
+                if( $bFulfilControls || $bShowStatus ) {
                     // using [onclick=fn(kBP)] instead of [data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil']
                     // because inconvenient to reconnect event listener when basketDetail redrawn
                     $sFulfilButtonLabel = $sFulfilNote = "";
                     switch( $oPur->GetProductType() ) {
                         case 'membership':
                             $sFulfilButtonLabel = "Record today";
-                            $sFulfilNote = "recorded {$oPur->GetExtra('dMailed')}";
+                            $sFulfilStatusY = "recorded {$oPur->GetExtra('dMailed')}";
+                            $sFulfilStatusN = "not recorded";
                             break;
                         case 'donation':
                             $sFulfilButtonLabel = "Accept donation";
-                            $sFulfilNote = "recorded donation #{$oPur->GetKRef()}";
+                            $sFulfilStatusY = "recorded donation #{$oPur->GetKRef()}";
+                            $sFulfilStatusN = "not recorded";
                             break;
                         case 'book':
                         case 'special1': // used for garlic bulbils with identical code to books
                             $sFulfilButtonLabel = "Mail today";
-                            $sFulfilNote = "mailed {$oPur->GetExtra('dMailed')}";
+                            $sFulfilStatusY = "mailed {$oPur->GetExtra('dMailed')}";
+                            $sFulfilStatusN = "not mailed";
                             break;
                     }
 
-                    $sColFulfil1 = $oPur->IsFulfilled()
-                                    ? $sFulfilNote
-                                    : ($oPur->CanFulfil() ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>" : "");
-                    $sColFulfil2 = $oPur->CanFulfilUndo()
-                                    ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfilUndo(\$(this),{$oPur->GetKey()})'>Undo</button>"
-                                    : "";
+                    // typically only one of these parameters is true
+                    if( $bFulfilControls ) {
+                        // col1 is the status if fulfilled, or a fulfillment button (or blank if not allowed)
+                        // col2 is an undo button if fulfilled
+                        $sCol1 = $oPur->IsFulfilled()
+                                  ? $sFulfilStatusY
+                                  : ($oPur->CanFulfil()
+                                      ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>"
+                                      : "");
+                        $sCol2 = $oPur->CanFulfilUndo()
+                                        ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfilUndo(\$(this),{$oPur->GetKey()})'>Undo</button>"
+                                        : "";
+                    }
+                    if( $bShowStatus) {
+                        // col1 is the status, col2 is blank
+                        $sCol1 = $oPur->IsFulfilled() ? $sFulfilStatusY : "<div class='alert alert-warning' style='padding:3px;border-color:orange'>$sFulfilStatusN</div>";
+                        $sCol2 = "";
+                    }
                 }
+
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
                          ."<td valign='top'>{$oPur->GetPrice()}</td>"
-                         .($bFulfilControls ? "<td valign='top' style='text-align:left'> $sColFulfil1</td><td valign='top' style='text-align:left'> $sColFulfil2</td>" : "")
+                         .(($bFulfilControls | $bShowStatus) ? "<td valign='top' style='text-align:left'> $sCol1</td><td valign='top' style='text-align:left'> $sCol2</td>" : "")
                      ."</tr>";
             }
             $s .= "</table>";
