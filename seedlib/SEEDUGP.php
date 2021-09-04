@@ -308,7 +308,7 @@ class UsersGroupsPermsUI
             ."</div>";
 
 
-//         $s .= "<div class='seedjx' seedjx-cmd='test'>"
+//         $s .= "<div class='seedjx-form1' seedjx-cmd='test'>"
 //                  ."<div class='seedjx-err alert alert-danger' style='display:none'></div>"
 //                  ."<div class='seedjx-out'>"
 //                      ."<input name='a'/>"
