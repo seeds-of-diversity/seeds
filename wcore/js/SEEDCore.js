@@ -134,8 +134,8 @@ function SEEDJX_Form1( jxUrl, btnSubmit )
     Invoke with $('#foo').onclick( SEEDJX_Form1( myJXUrl, $(this) );
  */
 {
-    // Everything for the Form1 should be contained in a .seedjx
-    var d = btnSubmit.closest( ".seedjx" );
+    // Everything for the Form1 should be contained in a .seedjx-form1
+    var d = btnSubmit.closest( ".seedjx-form1" );
     
     // The cmd should be defined in an attr either in the clicked object, or in the container element
     var cmd = btnSubmit.attr('seedjx-cmd');
