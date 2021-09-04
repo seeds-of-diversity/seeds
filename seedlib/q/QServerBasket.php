@@ -27,7 +27,61 @@ class QServerBasket extends SEEDQ
         $k = intval(@$parms['k']);
         $kBP = intval(@$parms['kBP']);
 
+        $rQ['bHandled'] = true;
         switch( $cmd ) {
+            case 'sb--basketStatus':
+                /* kBasket, eStatus, sNote : set the eStatus for this basket and record optional sNote
+                 */
+                if( ($eStatus = SEEDCore_ArraySmartVal( $parms, 'eStatus', ['','Open','Paid','Filled','Cancelled'])) &&
+                    ($kBasket = intval(@$parms['kBasket'])) &&
+// put this in SEEDBasket_Basket::StatusChange()
+                    ($kfrB = $this->oSB->oDB->GetBasketKFR($kBasket))
+/*&& $this->permsBasket($kfrB)*/   // test permission and ownership of this basket (buyers can confirm and cancel, system can set paid/filled, vendors only fill purchases)
+                ) {
+                    $kfrB->SetValue( 'eStatus', $eStatus );
+
+                    // record the status change in the notes, with optional sNote
+                    $kfrB->SetValue( 'notes', $kfrB->Value('notes')
+                                             ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] Changed status to $eStatus. {$sNote}\n" );
+
+                    $rQ['bOk'] = $kfrB->PutDBRow();
+                    $rQ['sOut'] = "Changed eStatus to $eStatus";
+
+// TODO: remove this when mbr_order.php shows eStatus from basket
+                    $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending "
+                                               ."SET eStatus='$eStatus' "
+                                               ."WHERE kBasket='$kBasket'" );
+
+// TODO: store this note in SEEDBasket_Baskets instead
+                    $s1 = $this->oApp->kfdb->Query1( "SELECT notes FROM {$this->oApp->DBName('seeds1')}.mbr_order_pending WHERE kBasket='$kBasket'" )
+                         ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] Changed status to $eStatus. "
+                         .@$parms['sNote']."\n";
+                    $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending SET notes='".addslashes($s1)."' WHERE kBasket='$kBasket'" );
+                }
+                break;
+
+            case 'sb--addNote':
+                /* kBasket, sNote : record sNote in basket
+                 */
+                if( ($kBasket = intval(@$parms['kBasket'])) &&
+                    ($sNote = @$parms['sNote']) &&
+// put this in SEEDBasket_Basket::AddNote()
+                    ($kfrB = $this->oSB->oDB->GetBasketKFR($kBasket))
+/*&& $this->permsBasket($kfrB)*/   // test permission and ownership of this basket
+                ) {
+                    $kfrB->SetValue( 'notes', $kfrB->Value('notes')
+                                             ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] {$sNote}\n" );
+                    $rQ['bOk'] = $kfrB->PutDBRow();
+
+// mbr_order: remove this when mbr_order.php shows notes from basket
+                    $s1 = $this->oApp->kfdb->Query1( "SELECT notes FROM {$this->oApp->DBName('seeds1')}.mbr_order_pending WHERE kBasket='$kBasket'" )
+                         ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] "
+                         .$parms['sNote']."\n";
+                    $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending SET notes='".addslashes($s1)."' where kBasket='$kBasket'" );
+                }
+                break;
+
+
             case 'sb--purchaseFulfil':
                 // $k is SEEDBasket_BP._key in this case
                 if( $k && ($oPur = $this->oSB->GetPurchaseObj( $k ))
@@ -42,7 +96,6 @@ class QServerBasket extends SEEDQ
                             break;
                     }
                 }
-                $rQ['bHandled'] = true;
                 break;
 
             case 'sb--purchaseFulfilUndo':
@@ -59,7 +112,6 @@ class QServerBasket extends SEEDQ
                             break;
                     }
                 }
-                $rQ['bHandled'] = true;
                 break;
 
 
@@ -96,6 +148,9 @@ class QServerBasket extends SEEDQ
                     $rQ['bOk'] = true;
                 }
                 break;
+
+            default:
+                $rQ['bHandled'] = false;
         }
 
         done:

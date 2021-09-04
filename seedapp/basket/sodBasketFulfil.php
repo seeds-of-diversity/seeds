@@ -88,6 +88,12 @@ class SodOrderFulfil
         return( $kfr->PutDBRow() );
     }
 
+    function GetBasketKFR( $kB )
+    {
+        return( $this->oSoDBasket->GetBasketKFR( $kB ) );
+    }
+
+/*
     function SetMailedToday( KeyframeRecord $kfr )
     {
         $kfr->SetValue( "eStatus2", 1 );
@@ -100,6 +106,7 @@ class SodOrderFulfil
         $kfr->SetValue( "eStatus2", 2 );
         return( $kfr->PutDBRow() );
     }
+*/
 
     function GetMailStatus_Pending( KeyframeRecord $kfr )  { return( $kfr->Value('eStatus2') == 0 ); }
     function GetMailStatus_Sent( KeyframeRecord $kfr )     { return( $kfr->Value('eStatus2') == 1 ); }
@@ -109,7 +116,7 @@ class SodOrderFulfil
 
 class SodOrderFulfilUI extends SodOrderFulfil
 {
-    private $pRow = 0;
+    private $pRow = 0;          // deprecate since controls are by ajax now
     public $pAction = "";
     public $fltStatus = "";
     public $fltYear = 0;
@@ -136,7 +143,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
         }
     }
 
-    function GetCurrOrderKey()  { return( $this->pRow ); }
+    function GetCurrOrderKey()  { return( $this->pRow ); }      // deprecate since controls are by ajax now
 
     function Style()
     {
@@ -146,6 +153,28 @@ class SodOrderFulfilUI extends SodOrderFulfil
             </style>
         ");
     }
+
+    function ProcessCmd( $cmd, $raParms )
+    /************************************
+        Process jx commands for the SoDBasket UI
+     */
+    {
+        // handle basic sb- commands
+        $rQ = (new QServerBasket( $this->oApp, [] ))->Cmd( $cmd, $raParms );
+        if( $rQ['bHandled'] ) goto done;
+
+        $rQ = SEEDQ::GetEmptyRQ();
+        $rQ['bHandled'] = true;
+        switch( $cmd ) {
+            default:
+                $rQ['bHandled'] = false;
+                break;
+        }
+
+        done:
+        return( $rQ );
+    }
+
 
     function DrawFormFilters()
     {
@@ -303,7 +332,8 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     $sPayment
         = SEEDCore_Dollar($kfr->value('pay_total'))." by ".$kfr->value('ePayType')."<br/>"
          //."<b>".@$mbr_PayStatus[$kfr->value('pay_status')]."</b><br/>"
-         ."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
+         //."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
+         ."<b>".$kfr->value('eStatus')."</b>"
          .$this->paidButton( $kfr )
          .$this->mailStatus( $kfr, $raOrder, $raPur );
 
@@ -316,7 +346,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          ."<td valign='top' $style>$sName</td>"
          ."<td valign='top'>$sAddress</td>"
          ."<td valign='top'>$sEbulletin</td>"
-         ."<td valign='top'>$sConciseSummary".$this->mailNothingButton( $kfr, $raOrder ).$this->basketContents( $kfr, $sContents, $fTotal, $bContactNeeded )."</td>"
+         ."<td valign='top'>$sConciseSummary". /*$this->mailNothingButton( $kfr, $raOrder ).*/ $this->basketContents( $kfr, $sContents, $fTotal, $bContactNeeded )."</td>"
          ."<td valign='top' $style>$sPayment</td>"
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
@@ -343,15 +373,15 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         return( $s );
     }
 
-
+/*
     private function mailNothingButton( KeyframeRecord $kfr, $raOrder )
-    /******************************************************************
+    [******************************************************************
         Show "Nothing to Mail" button if mail status is 0
 
         eStatus2 : 0 = not decided
                    1 = mailed and date recorded
                    2 = nothing to mail
-     */
+     *]
     {
         $s = "";
 
@@ -364,6 +394,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
         return( $s );
     }
+*/
 
     private function doneAccountingButton( KeyframeRecord $kfr )
     /***********************************************************
@@ -503,6 +534,11 @@ class SoDOrderBasket
             ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
     }
 
+    function GetBasketKFR( $kB )
+    {
+        return( $this->oSB->oDB->GetBasketKFR( $kB ) );
+    }
+
     function ShowBasketContents( $kB, $bFulfilControls = false, $bShowStatus = false )
     /*********************************************************************************
         Get sContents:       summary of basket contents
@@ -623,26 +659,6 @@ class SoDOrder_MbrOrder
         $this->oOrder = new SodOrder( $oApp );
 
         $this->oSB = new SEEDBasketCore( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
-    }
-
-
-    function ProcessCmd( $cmd, $raParms )
-    /************************************
-        Process sb- JX commands
-     */
-    {
-        // handle the basic sb- commands
-        $oQ = new QServerBasket( $this->oApp, [] );
-        $rQ = $oQ->Cmd( $cmd, $raParms );
-        if( $rQ['bHandled'] ) return( $rQ );
-
-        $rQ = SEEDQ::GetEmptyRQ();
-        switch( $cmd ) {
-            default:
-                break;
-        }
-
-        return( $rQ );
     }
 
 
