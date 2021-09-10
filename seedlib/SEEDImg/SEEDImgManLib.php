@@ -12,9 +12,10 @@ include_once( SEEDCORE."SEEDImgMan.php" );
 class SEEDImgManLib
 {
     private $oApp;
+    private $raConfig;
     private $oIM;
 
-    public $targetExt = "webp";    // jpeg
+    public $targetExt = "webp";    // default can be overridden by raConfig['targetExt']
 
     private $bDebug = false;    // make this true to show what we're doing
 
@@ -22,6 +23,8 @@ class SEEDImgManLib
     {
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
+        if( @$raConfig['targetExt'] )   $this->targetExt = $raConfig['targetExt'];
+
         if( !isset($this->raConfig['fSizePercentThreshold']) )  die( "fSizePercentThreshold not defined in SEEDImgManLib raConfig" );
         if( !isset($this->raConfig['bounding_box']) )           die( "bounding_box not defined in SEEDImgManLib raConfig" );
         if( !isset($this->raConfig['jpg_quality']) )            die( "jpg_quality not defined in SEEDImgManLib raConfig" );
