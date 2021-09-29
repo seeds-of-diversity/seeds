@@ -251,7 +251,7 @@ if( $oForm->Value('chkEbulletin') ) {
         default:   $sCond = "lang IN ('','B','E','F')";  break;     // '' in this form's ctrl is interpreted as All
     }
 
-    if( ($dbc = $oApp->kfdb->CursorOpen( "SELECT email FROM seeds_1.bull_list WHERE status>0 AND $sCond" ) ) ) {
+    if( ($dbc = $oApp->kfdb->CursorOpen( "SELECT email FROM {$oApp->DBName('seeds1')}.bull_list WHERE status>0 AND $sCond" ) ) ) {
         while( $ra = $oApp->kfdb->CursorFetch( $dbc ) ) {
             $raEmail[] = $ra['email'];
             ++$n;
