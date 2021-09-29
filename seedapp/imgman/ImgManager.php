@@ -12,18 +12,21 @@ include_once( SEEDLIB."SEEDImg/SEEDImgManLib.php" );
 if( !isset($oApp) ) {
     $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => [] ] );
 }
-if( !isset($rootdir) ) {
-    $rootdir = realpath(dirname(__FILE__)."/".SEEDROOT)."/";
-}
-if( !isset($raConfig) ) {
-    $raConfig =
-    [ 'imgmanlib' => [ 'fSizePercentThreshold' => 90.0,    // if filesize is reduced below this threshold, use the new file
-                       'bounding_box' => 1200,             // scale down to 1200x1200 if larger
-                       'jpg_quality' => 85
-    ]];
-}
 
-$oImgApp = new SEEDAppImgManager( $oApp, array( 'rootdir'=>$rootdir, 'imgmanlib' => $raConfig['imgmanlib'] ) );
+/* Defaults below are overridden by raConfig defined by an including file
+ */
+$raConfig = array_replace_recursive(
+    [ 'rootdir'   => realpath(dirname(__FILE__)."/".SEEDROOT)."/",
+      'imgmanlib' => [ 'fSizePercentThreshold' => 90.0,    // if filesize is reduced below this threshold, use the new file
+                       'bounding_box' => 1200,             // scale down to 1200x1200 if larger
+                       'outfmt' => 'webp',
+                       'jpg_quality' => 85
+                     ]
+    ],
+    (isset($raConfig) ? $raConfig : []) );
+
+
+$oImgApp = new SEEDAppImgManager( $oApp, $raConfig );
 echo Console02Static::HTMLPage( $oImgApp->Main(), "", 'EN', ["raScriptFiles" => [W_CORE_URL."js/SEEDCore.js"]] );   // sCharset defaults to utf8 and filesystem uses utf8
 
 

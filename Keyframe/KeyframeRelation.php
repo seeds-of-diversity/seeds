@@ -829,7 +829,9 @@ class KeyframeRecord
 
     function Expand( $sTemplate, $bEnt = true )
     /******************************************
-        Return template string with all [[value]] replaced
+        Return template string with all [[value]] replaced.
+
+        Note that [[_key]] is included in ValuesRA() so you can reference it this way
      */
     {
 // probably easier to loop through ValuesRA and use str_replace on each "[[k]]"
