@@ -12,9 +12,11 @@
  *
  *      TEXT         - (leaf or non-leaf) text that is meant to be viewed as a document
  *      IMAGE        - (leaf) file meant to be embedded in a document
- *      DOC          - (leaf) text or binary file meant to be viewed standalone (e.g. pdf)
+ *      BIN          - (leaf) text or binary file meant to be viewed standalone (e.g. pdf)
  *      TEXTFRAGMENT - fragment of text meant to be combined with other fragments to compose a document
  *      FOLDER       - (non-leaf) placeholder that groups other docs as their parent
+ *
+ *      Not a type, but a storage method (data.src)
  *      LINK         - references another doc - allows transclusion into alternate tree structures when trees of links
  *                          reference TEXTFRAGMENTs. See "transclusion" in Wikipedia for an excellent explanation.
  *
@@ -314,7 +316,7 @@ class DocRepDoc2_ReadOnly
         $ra = $this->GetValues($flag);
 // type can be FOLDER, DOC, BIN, LINK
 // src just says where it's stored
-         return( $ra['type']=='DOC' && $ra['data_src'] == 'TEXT' ? $ra['data_text'] : "" );
+         return( ($ra['type']=='TEXT' || $ra['type']=='TEXTFRAGMENT') && $ra['data_src'] == 'TEXT' ? $ra['data_text'] : "" );
         //return( $ra['type']=='TEXT' && $ra['data_src'] == 'TEXT'
         //    ? $ra['data_text'] : "" );
     }
@@ -1104,7 +1106,12 @@ CREATE TABLE docrep2_docs (
         _status     INTEGER DEFAULT 0,
 
     name                    VARCHAR(200) NOT NULL DEFAULT '',
-    type                    VARCHAR(200) NOT NULL DEFAULT '',  # TEXT, IMAGE, DOC, TEXTFRAGMENT, FOLDER, etc. U_* are user-defined types
+    type                    VARCHAR(200) NOT NULL DEFAULT '',  # FOLDER - the doc is a folder with metadata but no data
+                                                               # TEXT, TEXTFRAGMENT - the doc is mime type text/*
+                                                               # BIN - the doc is binary; use mimetype to define handling
+                                                               # IMAGE - like BIN but can be directly viewed using <img>
+                                                               # U_* are user-defined types
+
     docspec                 VARCHAR(200) DEFAULT '',           # user defined for searching, grouping, ordering, etc
     permclass               INTEGER NOT NULL,
     kData_top               INTEGER NOT NULL DEFAULT 0,        # docrep2_data._key for the latest version
@@ -1160,11 +1167,14 @@ CREATE TABLE docrep2_data (
 
     fk_docrep2_docs     INTEGER NOT NULL,               # the document of which this is a version
     ver                 INTEGER NOT NULL DEFAULT 1,     # strictly order the versions chronologically
-    src                 ENUM('TEXT','FILE','SFILE','LINK') NOT NULL,
+    src                 ENUM('TEXT',                    # data is stored in data_text (regardless of doc.type)
+                             'FILE',                    # data is stored in a file named {_key}.{data_file_ext}
+                             'SFILE',                   # data is stored in a file named by data_sfile_name under the sfile root
+                             'LINK') NOT NULL,          # data is the current version of data_link_doc, but metadata is defined by this record
     data_text           TEXT NULL,                      # src=TEXT ? the text is stored here
     data_file_ext       VARCHAR(20) NULL,               # src=FILE ? the file is stored as {_key}.{data_file_ext}
     data_sfile_name     VARCHAR(500) NULL,              # src=SFILE ? the filesystem name under the sfile root
-    data_link_doc       INTEGER NULL,                   # src=LINK ? this doc's data is the same as link_doc's data (but metadata can be different)
+    data_link_doc       INTEGER NULL,                   # src=LINK ? current version of another doc's data (but metadata can be different)
     title               VARCHAR(200) DEFAULT '',        # metadata that is so commonly used it deserves to have its own field
     mimetype            VARCHAR(100) DEFAULT '',        # standalone docs should be served with this type in the http header
     dataspec            VARCHAR(200) DEFAULT '',        # user defined for searching, grouping, ordering, etc

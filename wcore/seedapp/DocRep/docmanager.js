@@ -53,8 +53,8 @@ class myDocRepTree extends DocRepTree
         super.InitUI();
     }
 
-    HandleEvent( eNotify, p )
-    /************************
+    HandleRequest( eNotify, p )
+    /**************************
         DocRepTree calls here when something is clicked
      */
     {
@@ -187,7 +187,7 @@ function myDocRepEditSubmit( e )
     let kDoc = $('#drEdit_kDoc').val();
     if( kDoc ) {
         let rQ = SEEDJXSync( "", {qcmd: 'dr--update', kDoc: kDoc, src: 'TEXT', p_text: $('#drEdit_text').val() } );
-    
+    console.log(rQ);
         $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
     }
 }
@@ -205,14 +205,14 @@ class DocRepUI02
 
         this.oCache = new myDocRepCache( 
                         { mapDocs: mymapDocs,
-                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
+                          fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
 // these parms should be in oConfig
         this.oTree = new myDocRepTree(
                         { mapDocs: mymapDocs,
                           dirIcons: '../../wcore/img/icons/',
-                          fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
+                          fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
         this.oCtrlView = new myDocRepCtrlView(
-                        { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell the object how to send events here
+                        { fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
         this.kCurrDoc = 0;
     }
 
@@ -232,9 +232,9 @@ class DocRepUI02
         this.oTree.InitUI();
     }
 
-    HandleEvent( eRequest, p = 0 )
-    /*****************************
-        Components call here with notifications
+    HandleRequest( eRequest, p = 0 )
+    /*******************************
+        Components call here with notifications/requests
      */
     {
         switch( eRequest ) {
@@ -264,7 +264,7 @@ class DocRepApp02
 {
     constructor( oConfig )
     {
-        this.oDocRepUI = new DocRepUI02( { fnHandleEvent: this.HandleEvent.bind(this) } );    // tell DocRepUI how to send events here
+        this.oDocRepUI = new DocRepUI02( { fnHandleEvent: this.HandleRequest.bind(this) } );    // tell DocRepUI how to send events here
     }
 
     InitUI()
@@ -275,9 +275,9 @@ class DocRepApp02
         this.oDocRepUI.InitUI();
     }
 
-    HandleEvent( eEvent, p )
+    HandleRequest( eRequest, p )
     {
-        switch( eEvent ) {
+        switch( eRequest ) {
             case 'docSelected':
                 $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
                 break;

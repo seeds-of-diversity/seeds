@@ -148,7 +148,7 @@ class DocRepTree
         return( t );
     }
 
-    HandleEvent( eEvent, p )
+    HandleRequest( eRequest, p )
     {
         // override to respond to notifications
     }
@@ -226,7 +226,7 @@ class DocRepTree
 // This uses the derived class's event handler to store the new kDoc.
 // That's a weird way to it, because no other classes call their own event handlers.
 // Also GetCurrDoc() is in the derived class but not the base class, but it's used below.
-            saveThis.HandleEvent( 'docSelected', $(this).attr('data-kdoc') );
+            saveThis.HandleRequest( 'docSelected', $(this).attr('data-kdoc') );
 
             // show/hide any children by toggling the Level contained within the same Doc (there should be zero or one Level sibling)
             $(this).siblings('.DocRepTree_level').each( function () { 
@@ -339,8 +339,8 @@ class DocRepCtrlView
         return( "" );
     }
 
-    HandleEvent( eEvent, p )
+    HandleRequest( eRequest, p )
     {
-        // override to respond to notifications
+        // override to respond to notifications/requests
     }
 }
