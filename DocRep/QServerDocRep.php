@@ -56,13 +56,15 @@ class QServerDocRep extends SEEDQ
                 case 'FOLDER':
                     $s = "FOLDER";
                     break;
-                case 'LINK':
-                    $s = "Link to another doc";
-                    break;
-                case 'DOC':
+                //case 'LINK':          not a type; it's a storage method
+                //    $s = "Link to another doc";
+                //    break;
+                case 'TEXT':
+                case 'TEXTFRAGMENT':
                     $s = $oDoc->GetText('');
                     break;
                 case 'BIN':
+                case 'IMAGE':
                     if( SEEDCore_StartsWith( $oDoc->GetValue( 'mimetype', ''), 'image/' ) ) {
                         $s = "This should be an <img/>";
                     } else {
