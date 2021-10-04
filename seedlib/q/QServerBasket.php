@@ -8,6 +8,7 @@
  */
 
 include_once( "Q.php" );
+include_once( SEEDCORE."SEEDBasketUI.php" );
 
 class QServerBasket extends SEEDQ
 {
@@ -114,6 +115,15 @@ class QServerBasket extends SEEDQ
                 }
                 break;
 
+            case 'sbfulfil--drawBasketEditor':
+                /* Draw an editor for the given basket
+                 *  k   = kBasket
+                 *  raConfig['fulfil_uidSeller'] = int or [int,...] of uidSellers of products available to add to the basket
+                 *  raConfig['fulfil_product_type'] = string or [string,...] of product types available to add to the basket
+                 */
+                list($rQ['bOk'],$rQ['sOut']) = (new SEEDBasketFulfilUI($this->oSB))
+                        ->DrawBasketEditor($k, ['uidSeller'=>intval(@$this->raConfig['fulfil_uidSeller'])]);
+                break;
 
             case "basketProdUnfill":    // do not use
                 if( $kBP ) {

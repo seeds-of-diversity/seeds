@@ -149,7 +149,6 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         return( "
             <style>
-            .SodBasketFulfil_basketContents td { padding-left:10px; font-size:x-small; }
             </style>
         ");
     }
@@ -159,8 +158,12 @@ class SodOrderFulfilUI extends SodOrderFulfil
         Process jx commands for the SoDBasket UI
      */
     {
-        // handle basic sb- commands
-        $rQ = (new QServerBasket( $this->oApp, [] ))->Cmd( $cmd, $raParms );
+        /* handle basic sb- commands
+         *
+         * fulfil_uiSeller = seller(s) whose products are available in this fulfilment tool
+         *                   SoD is the only one using this tool, but other tools can be for other sellers/fulfillers
+         */
+        $rQ = (new QServerBasket( $this->oApp, ['fulfil_uidSeller'=>1] ))->Cmd( $cmd, $raParms );
         if( $rQ['bHandled'] ) goto done;
 
         $rQ = SEEDQ::GetEmptyRQ();
@@ -569,7 +572,7 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
 
         $raBContents = $oB->ComputeBasketContents( false );
         if( @$raBContents['raSellers'][1] ) {
-            $s .= "<table class='SodBasketFulfil_basketContents' style='text-align:right;width:100%'>"
+            $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
                  ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
             foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
                 if( !($oPur = @$ra['oPur']) ) {
