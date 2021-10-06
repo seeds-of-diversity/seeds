@@ -1,5 +1,9 @@
 # gthumb makes .comments folder with *.jpg.xml files wherever you open an image
 # Run this from the root of an image folder
 
+echo ***Removing these
+find -type f -name *.jpg.xml
+find -type d -name .comments
+echo ***End
 find -type f -name *.jpg.xml -exec rm {} \;
 find -type d -name .comments -exec rmdir {} \;
