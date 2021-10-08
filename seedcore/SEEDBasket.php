@@ -756,6 +756,63 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
         return( $raOut );
     }
 
+    function ComputeBasketContents2( $klugeUTF8 )
+    /********************************************
+        Return [ 'fTotal'               =>     total price of the basket
+                 [ uid                  =>     per seller:
+                    [ 'fSellerTotal'    =>         total price for this seller
+                      'raPur'           =>         array of purchases from this seller
+                        [ 'oPur         =>             purchase obj
+                          metadata      =>             other info about this purchase
+                        ]
+                      'raExtraItems'    =>         array of non-purchase items calculated from purchases (e.g. discount, shipping fee)
+                        [ 'sLabel'      =>             item label
+                          'fAmount'     =>             dollar amount
+     */
+    {
+        $raOut = [ 'fTotal'=>0.0, 'raSellers'=>[] ];
+
+        if( !($kBasket = $this->GetKey()) )  goto done;
+
+        if( ($kfrBPxP = $this->oSB->oDB->GetPurchasesKFRC( $kBasket )) ) {
+            while( $kfrBPxP->CursorFetch() ) {
+                // prodtype is given to create the correct object type without a redundant lookup
+                $oPur = $this->oSB->GetPurchaseObj( $kfrBPxP->Value('_key'), $kfrBPxP->Value('P_product_type') );
+
+                $uidSeller = $oPur->GetSeller();
+
+// handle volume pricing, shipping, discount
+                $fAmount = $oPur->GetPrice();
+                $raOut['fTotal'] += $fAmount;
+                if( !isset($raOut['raSellers'][$uidSeller]) ) {
+                    $raOut['raSellers'][$uidSeller] = [ 'fSellerTotal'=>0.0, 'raPur'=>[], 'raExtraItems'=>[] ];
+                }
+
+                $raOut['raSellers'][$uidSeller]['fSellerTotal'] += $fAmount;
+                $raOut['raSellers'][$uidSeller]['raPur'][] = [ 'oPur'=>$oPur, 'fAmount'=>$fAmount ];
+
+                // derived class adjustment
+// k is non-zero if the user is a current grower member
+if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
+    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
+        if( floatval($kfrBPxP->Value('P_item_price')) > 10.00 ) {
+            $discount = -2.0;
+        } else {
+            $discount = -1.0;
+        }
+        $raOut['fTotal'] += $discount;
+        $raOut['raSellers'][$uidSeller]['fTotalSeller'] += $discount;
+        $raOut['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
+    }
+}
+                // add other items for shipping / discount
+
+            }
+        }
+        done:
+        return( $raOut );
+    }
+
 // deprecated: use SEEDBasket_Purchase::GetPrice()
     private function getAmount( KeyframeRecord $kfrBPxP )
     {
@@ -966,6 +1023,8 @@ class SEEDBasket_Purchase
 
     function SetExtra( $k, $v ) { return( $this->kfr->UrlParmSet('sExtra', $k, $v) ); }
 
+    function GetSeller()     { return( $this->kfr->Value('P_uid_seller') ); }
+
     function GetPrice()
     {
         $amount = 0.0;
@@ -994,6 +1053,16 @@ class SEEDBasket_Purchase
 
     function GetProductType(){ return( $this->kfr->Value('P_product_type') ); }
     function GetProductName(){ return( $this->kfr->Value('P_name') ); }
+
+    function GetDisplayName( $raParms )
+    {
+        $s = $this->kfr->Value('P_title_en');
+
+        if( $this->kfr->Value('quant_type') == 'ITEM_N' && ($n = $this->kfr->Value('n')) > 1 ) {
+            $s .= " ($n @ ".$this->oSB->dollar($this->oSB->priceFromRange($this->kfr->Value('item_price'), $n)).")";
+        }
+        return( $s );
+    }
 
     /* Workflow flags: product handlers can assign any meaning to any flag bits but here are some that they might like to use in standard ways
      */

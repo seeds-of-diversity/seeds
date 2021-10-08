@@ -203,6 +203,16 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
         parent::__construct( $oSB, $kP );
     }
 
+    function GetDisplayName( $raParms )
+    {
+        $s = parent::GetDisplayName( $raParms );
+        if( @$raParms['bFulfil'] ) {
+            $s .= (($kRef = $this->GetKRef()) ? " ($kRef)" : " (NOT RECORDED)");      // show the mbr_donations _key if it is set
+        }
+
+        return( $s );
+    }
+
     /**************************************
         A donation is considered fulfilled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
         The fulfilment system cannot create an mbr_donation until the uid_buyer is identified so we assume that kRef alone indicates fulfilment.

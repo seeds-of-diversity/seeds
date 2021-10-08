@@ -542,6 +542,12 @@ class SoDOrderBasket
         return( $this->oSB->oDB->GetBasketKFR( $kB ) );
     }
 
+    function ShowBasketWidget( int $kB, string $eMode )
+    {
+        list($bDummy,$s) = (new SEEDBasketUI_BasketWidget($this->oSB))->DrawBasketWidget( $kB, $eMode, [] );
+        return( $s );
+    }
+
     function ShowBasketContents( $kB, $bFulfilControls = false, $bShowStatus = false )
     /*********************************************************************************
         Get sContents:       summary of basket contents

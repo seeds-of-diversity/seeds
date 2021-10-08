@@ -121,8 +121,8 @@ class QServerBasket extends SEEDQ
                  *  raConfig['fulfil_uidSeller'] = int or [int,...] of uidSellers of products available to add to the basket
                  *  raConfig['fulfil_product_type'] = string or [string,...] of product types available to add to the basket
                  */
-                list($rQ['bOk'],$rQ['sOut']) = (new SEEDBasketFulfilUI($this->oSB))
-                        ->DrawBasketEditor($k, ['uidSeller'=>intval(@$this->raConfig['fulfil_uidSeller'])]);
+                list($rQ['bOk'],$rQ['sOut']) = (new SEEDBasketUI_BasketWidget($this->oSB))
+                        ->DrawBasketWidget($k, 'EditAddDelete', ['uidSeller'=>intval(@$this->raConfig['fulfil_uidSeller'])]);
                 break;
 
             case "basketProdUnfill":    // do not use
