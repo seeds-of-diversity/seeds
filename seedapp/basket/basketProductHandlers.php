@@ -86,6 +86,16 @@ class SEEDBasket_Purchase_membership extends SEEDBasket_Purchase
         parent::__construct( $oSB, $kP );
     }
 
+    function GetFulfilControls()
+    /***************************
+        Return an array of labels for the fulfilment controls for this purchase
+     */
+    {
+        return( ['fulfilButtonLabel' => "Record today",
+                 'statusFulfilled' => "recorded {$this->GetExtra('dMailed')}",
+                 'statusNotFulfilled' => "not recorded" ] );
+    }
+
     /**************************************
         A membership is considered fulfilled when WORKFLOW_FLAG_MAILED.
         In principle this refers to the email notification.
@@ -212,6 +222,17 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
 
         return( $s );
     }
+
+    function GetFulfilControls()
+    /***************************
+        Return an array of labels for the fulfilment controls for this purchase
+     */
+    {
+        return( ['fulfilButtonLabel' => "Accept donation",
+                 'statusFulfilled' => "recorded {$this->GetExtra('dMailed')}",
+                 'statusNotFulfilled' => "not recorded" ] );
+    }
+
 
     /**************************************
         A donation is considered fulfilled when Basket::uid_buyer is set and Purchase::kRef points to an mbr_donation.
@@ -371,6 +392,17 @@ class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
     {
         parent::__construct( $oSB, $kP );
     }
+
+    function GetFulfilControls()
+    /***************************
+        Return an array of labels for the fulfilment controls for this purchase
+     */
+    {
+        return( ['fulfilButtonLabel' => "Mail today",
+                 'statusFulfilled' => "mailed {$this->GetExtra('dMailed')}",  // status if fulfilled
+                 'statusNotFulfilled' => "not mailed" ] );
+    }
+
 
     /**************************************
         A book order is considered fulfilled when WORKFLOW_FLAG_MAILED.

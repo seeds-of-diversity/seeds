@@ -14,11 +14,12 @@ class SEEDBasketUI_BasketWidget
 /******************************
  * Draw a basket in various ways
  *
- * eMode: Readonly      = show what's in the basket with no controls
- *        EditAdd       = purchases can be added via a picklist
- *        EditDelete    = purchases can be deleted via buttons
- *        EditAddDelete = purchases can be removed, and added
- *        Fulfil        = fulfilment controls are shown
+ * eMode: Readonly       = show what's in the basket with no controls or status
+ *        ReadonlyStatus = no controls but show fulfilment status
+ *        EditAdd        = purchases can be added via a picklist
+ *        EditDelete     = purchases can be deleted via buttons
+ *        EditAddDelete  = purchases can be removed, and added
+ *        Fulfil         = fulfilment controls
  */
 {
     private $oSB;
@@ -33,8 +34,8 @@ class SEEDBasketUI_BasketWidget
         $bOk = false;
         $s = "";
 
-$bFulfilControls = true;
-$bShowStatus = false;
+$bFulfilControls = ($eMode == 'Fulfil');
+$bShowStatus = ($eMode == 'ReadonlyStatus');
 
 // TODO: require that the current user is allowed to edit the basket
         if( !($oB = new SEEDBasket_Basket($this->oSB, $kB)) )  goto done;
@@ -64,24 +65,10 @@ $bShowStatus = false;
                     // using [onclick=fn(kBP)] instead of [data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil']
                     // because inconvenient to reconnect event listener when basketDetail redrawn
                     $sFulfilButtonLabel = $sFulfilNote = "";
-                    switch( $oPur->GetProductType() ) {
-                        case 'membership':
-                            $sFulfilButtonLabel = "Record today";
-                            $sFulfilStatusY = "recorded {$oPur->GetExtra('dMailed')}";
-                            $sFulfilStatusN = "not recorded";
-                            break;
-                        case 'donation':
-                            $sFulfilButtonLabel = "Accept donation";
-                            $sFulfilStatusY = "recorded donation #{$oPur->GetKRef()}";
-                            $sFulfilStatusN = "not recorded";
-                            break;
-                        case 'book':
-                        case 'special1': // used for garlic bulbils with identical code to books
-                            $sFulfilButtonLabel = "Mail today";
-                            $sFulfilStatusY = "mailed {$oPur->GetExtra('dMailed')}";
-                            $sFulfilStatusN = "not mailed";
-                            break;
-                    }
+                    $raF = $oPur->GetFulfilControls();
+                    $sFulfilButtonLabel = $raF['fulfilButtonLabel'];
+                    $sFulfilStatusY = $raF['statusFulfilled'];
+                    $sFulfilStatusN = $raF['statusNotFulfilled'];
 
                     // typically only one of these parameters is true
                     if( $bFulfilControls ) {
@@ -105,7 +92,7 @@ $bShowStatus = false;
 
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$oPur->GetDisplayName(['bFulfil'=>$bFulfilControls])}</td>"
                          ."<td valign='top'>{$oPur->GetPrice()}</td>"
-                         .(($bFulfilControls | $bShowStatus) ? "<td valign='top' style='text-align:left'> $sCol1</td><td valign='top' style='text-align:left'> $sCol2</td>" : "")
+                         .(($bFulfilControls || $bShowStatus) ? "<td valign='top' style='text-align:left'> $sCol1</td><td valign='top' style='text-align:left'> $sCol2</td>" : "")
                      ."</tr>";
             }
 

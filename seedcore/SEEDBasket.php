@@ -1025,6 +1025,17 @@ class SEEDBasket_Purchase
 
     function GetSeller()     { return( $this->kfr->Value('P_uid_seller') ); }
 
+    function GetFulfilControls()
+    /***************************
+        Return an array of labels for the fulfilment controls for this purchase
+     */
+    {
+        return( ['fulfilButtonLabel' => "Fulfil",
+                 'statusFulfilled' => "fulfilled",
+                 'statusNotFulfilled' => "not fulfilled" ] );
+    }
+
+
     function GetPrice()
     {
         $amount = 0.0;
