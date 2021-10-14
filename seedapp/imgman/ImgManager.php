@@ -190,7 +190,12 @@ class SEEDAppImgManager
 
     function DrawFiles( $raFiles )
     {
-        $s = "<style>#drawfilestable td { padding-right:20px }</style>"
+        $totalWhatYouSaved = 0;
+
+        $s = "<style>#drawfilestable td { padding-right:20px }
+                     #totalWhatYouSaved { float:right;margin-right:20px;border:1px solid green;padding:5px;color:green }
+              </style>"
+            ."[[totalWhatYouSaved]]"
             ."<table id='drawfilestable' style='border:none'>";
 
         /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
@@ -348,9 +353,12 @@ $fScalePercentThreshold = 90.0;
                      ."</tr>";
             }
             $s = str_replace( "[[whatYouSaved]]", ($whatYouSaved ? (" (".SEEDCore_HumanFileSize($whatYouSaved)." saved)") : ""), $s );
+            $totalWhatYouSaved += $whatYouSaved;
         }
 
         $s .= "</table>";
+
+        $s = str_replace( "[[totalWhatYouSaved]]", ($totalWhatYouSaved ? ("<h4 id='totalWhatYouSaved'>Saved ".SEEDCore_HumanFileSize($totalWhatYouSaved)."</h4>") : ""), $s );
 
         return( $s );
     }
