@@ -81,9 +81,9 @@ class SEEDBasketProductHandler_Membership extends SEEDBasketProductHandler_Item1
 
 class SEEDBasket_Purchase_membership extends SEEDBasket_Purchase
 {
-    function __construct( SEEDBasketCore $oSB, $kP )
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
     {
-        parent::__construct( $oSB, $kP );
+        parent::__construct( $oSB, $kP, $raParms );
     }
 
     function GetFulfilControls()
@@ -200,6 +200,13 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
     {
         $oPur = null;
         if( ($kfrPur = $this->oSB->oDB->GetKFRCond('PURxP', "kRef='$kDonation' AND P.product_type='donation'")) ) {
+
+
+
+// use kfr
+
+
+
             $oPur = new SEEDBasket_Purchase_donation( $this->oSB, $kfrPur->Key() );
         }
         return( $oPur );
@@ -208,9 +215,9 @@ class SEEDBasketProductHandler_Donation extends SEEDBasketProductHandler_MONEY
 
 class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
 {
-    function __construct( SEEDBasketCore $oSB, $kP )
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
     {
-        parent::__construct( $oSB, $kP );
+        parent::__construct( $oSB, $kP, $raParms );
     }
 
     function GetDisplayName( $raParms )
@@ -388,9 +395,9 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler_ItemN
  */
 class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
 {
-    function __construct( SEEDBasketCore $oSB, $kP )
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
     {
-        parent::__construct( $oSB, $kP );
+        parent::__construct( $oSB, $kP, $raParms );
     }
 
     function GetFulfilControls()
@@ -477,9 +484,9 @@ class SEEDBasket_Purchase_special1 extends SEEDBasket_Purchase_book
     That's different than books, which can be sold in any quantity, but for now the code is identical.
  */
 {
-    function __construct( SEEDBasketCore $oSB, $kP )
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
     {
-        parent::__construct( $oSB, $kP );
+        parent::__construct( $oSB, $kP, $raParms );
     }
 }
 
@@ -496,9 +503,9 @@ class SEEDBasketProductHandler_Misc extends SEEDBasketProductHandler_MONEY
 
 class SEEDBasket_Purchase_misc extends SEEDBasket_Purchase
 {
-    function __construct( SEEDBasketCore $oSB, $kP )
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
     {
-        parent::__construct( $oSB, $kP );
+        parent::__construct( $oSB, $kP, $raParms );
     }
 
     /**************************************

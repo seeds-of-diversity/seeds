@@ -514,37 +514,46 @@ klugeUTF8 = true: return sOut and sErr in utf8
         return( $oProd );
     }
 
-    function GetPurchaseObj( int $kPur, $prodType = "" )
-    /***************************************************
+    function GetPurchaseObj( int $kPur, $prodType = "", array $raParms = [] )
+    /************************************************************************
         Get a SEEDBasket_Purchase_{prodType} object for the given purchase
 
         $kPur = 0, $prodType = "" : create an empty SEEDBasket_Purchase
         $kPur = 0, $prodType<> "" : create an empty SEEDBasket_Purchase_{prodType}
         $kPur<> 0, $prodType = "" : look up the purchase/product, find the prodType, then create a SEEDBasket_Purchase_{prodType} for $kPur
         $kPur<> 0, $prodType<> "" : create a SEEDBasket_Purchase_{prodType} for $kPur using given prodType to skip the lookup, and make sure it's correct
+
+        raParms['kfr'] can hold a Purchase kfr, from which the above parameters can be taken instead
      */
     {
         $oPur = null;
 
-        $bCheckProdMatch = ($kPur && $prodType);  // loading an existing purchase with a prodType hint, so at the end make sure the hint was correct
+        // this overrides kPur and prodType
+        if( ($kfrPur = @$raParms['kfr'] ?: null) ) {
+            $kPur = $kfrPur->Key();
+            $prodType = $kfrPur->Value('product_type');
 
-        // if an existing purchase and no prodType given, look it up
+            $bCheckProdMatch = false;   // only applies if loading the kfr based on kPur and prodType
+        } else {
+            $bCheckProdMatch = ($kPur && $prodType);  // loading an existing purchase with a prodType hint, so at the end make sure the hint was correct
+        }
+
+        // If an existing purchase and no prodType given, look it up using the base class so the correct derived class can be created.
+        // This is redundant so it's preferred to provide the prodType and/or kfr in the args.
         if( $kPur && !$prodType ) {
-            // look up the product's product_type so the correct derived class can be created
-            $oPur = new SEEDBasket_Purchase( $this, $kPur );
-            $prodType = $oPur->GetProductType();
+            $prodType = (new SEEDBasket_Purchase( $this, $kPur ))->GetProductType();
         }
 
         // find the class name to instantiate
         $classname = $prodType && class_exists($c = "SEEDBasket_Purchase_$prodType") ? $c : "SEEDBasket_Purchase";
 
-        // create the object
-        $oPur = new $classname( $this, $kPur );
+        // Create the object. If kfr is given in raParms it will be done without a redundant lookup
+        $oPur = new $classname( $this, $kPur, $raParms );
 
-        // if prodType hint was given as an arg, make sure it was correct
+        // if prodType hint was given as an arg and the kfr was not already provided, make sure it was correct
         if( $bCheckProdMatch && $oPur->GetProductType() != $prodType ) {
             // error message?
-            $oPur = new SEEDBasket_Purchase( $this, $kPur, $raConfig );   // will probably not do the right thing, but unlikely to do a bad thing
+            $oPur = new SEEDBasket_Purchase( $this, $kPur, $raParms );   // will probably not do the right thing, but unlikely to do a bad thing
         }
 
         return( $oPur );
@@ -595,6 +604,8 @@ class SEEDBasket_Basket
 {
     private $kfr;
     private $oSB;
+    private $raObjPur = null;       // [] of SEEDBasket_Purchase in this basket (loaded on demand)
+    private $raExtraItems = null;   // [] of extra items in this basket (loaded on demand)
 
     function __construct( SEEDBasketCore $oSB, $kB )
     {
@@ -651,15 +662,23 @@ class SEEDBasket_Basket
         Return array of SEEDBasket_Purchase_{prodType}
      */
     {
-        $raObjPur = [];
+        if( $this->raObjPur === null ) {
+            $this->raObjPur = [];
 
-        if( $this->kfr && $this->kfr->Key() ) {
-            foreach( $this->oSB->oDB->GetPurchasesList($this->kfr->Key()) as $ra ) {
-                $raObjPur[] = $this->oSB->GetPurchaseObj( $ra['_key'], $ra['P_product_type'] );
+            if( $this->Key() ) {
+                //foreach( $this->oSB->oDB->GetPurchasesList($this->kfr->Key()) as $ra ) {
+                //    $raObjPur[] = $this->oSB->GetPurchaseObj( $ra['_key'], $ra['P_product_type'] );
+                //}
+                if( ($kfrPur = $this->oSB->oDB->GetPurchasesKFRC( $this->Key() )) ) {
+                    while( $kfrPur->CursorFetch() ) {
+                        // Uses kfr to get the correct SEEDBasket_Purchase_* derivation, and avoids redundant db lookup
+                        $raObjPur[] = $this->oSB->GetPurchaseObj( 0, "", ['kfr'=>$kfrPur] );
+                    }
+                }
             }
         }
 
-        return( $raObjPur );
+        return( $this->raObjPur );
     }
 
     function DrawBasketContents( $raParms = array(), $klugeUTF8 = false )
@@ -997,10 +1016,21 @@ class SEEDBasket_Purchase
     private $oBasket = NULL;
     private $oProduct = NULL;
 
-    function __construct( SEEDBasketCore $oSB, $kBP )
+    function __construct( SEEDBasketCore $oSB, int $kBP, array $raParms = [] )
     {
+        /* raParms can contain properties that avoid redundant lookups
+         * e.g. new SEEDBasket_Purchase($oSB, 0, ['kfr'=>$kfrPur]) sets the kfr without looking it up again
+         */
         $this->oSB = $oSB;
-        $this->SetKey( $kBP );
+
+        if( @$raParms['kfr'] ) {        // in this case kBP is not used, overridden by kfr->Key() (should be the same)
+            $this->kfr = $raParms['kfr'];
+        } else {
+            $this->SetKey( $kBP );
+        }
+
+        if( @$raParms['oBasket'] )  $this->oBasket = $raParms['oBasket'];
+        if( @$raParms['oProduct'] ) $this->oProduct = $raParms['oProduct'];
     }
 
     function GetKey()  { return( $this->kfr->Key() ); }
