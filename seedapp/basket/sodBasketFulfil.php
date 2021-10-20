@@ -282,8 +282,11 @@ class SodOrderFulfilUI extends SodOrderFulfil
 
         $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
 
-        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur)
+        list($sContentsDummy,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur)
             = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
+
+        $sContents = $this->oSoDBasket->ShowBasketWidget( $kfr->Value('kBasket'), $bPaid ? 'ReadonlyStatus' : 'Readonly' );
+
 
         // kluge Bob Review by skipping rows that don't meet the criteria
         if( $this->fltStatus == 'Bob' ) {
@@ -564,6 +567,8 @@ class SoDOrderBasket
 
         if( !$kB )  goto done;
 
+// oB knows everything that this method returns so return it and use it to get those things
+// and DrawBasketWidget gets the $s that this returns
         $oB = new SEEDBasket_Basket( $this->oSB, $kB );
 // deprecate this because raPur is better
 $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );

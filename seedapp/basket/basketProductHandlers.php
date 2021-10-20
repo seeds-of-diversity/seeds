@@ -236,7 +236,7 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
      */
     {
         return( ['fulfilButtonLabel' => "Accept donation",
-                 'statusFulfilled' => "recorded {$this->GetExtra('dMailed')}",
+                 'statusFulfilled' => "recorded donation #{$this->GetKRef()}",
                  'statusNotFulfilled' => "not recorded" ] );
     }
 
