@@ -40,7 +40,7 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 // TODO: require that the current user is allowed to edit the basket
         if( !($oB = new SEEDBasket_Basket($this->oSB, $kB)) )  goto done;
 
-        $raPur = $oB->GetPurchasesInBasket();
+        //$raPur = $oB->GetPurchasesInBasket();
 
         $raBContents = $oB->ComputeBasketContents2( false );
         if( @$raBContents['raSellers'][1] ) {
@@ -101,14 +101,6 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
         }
 
         $fTotal = $raBContents['fTotal'];
-
-        // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
-        foreach( $raPur as $oPur ) {
-            if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
-                $bDonNotRecorded = true;
-                break;
-            }
-        }
 
         $bOk = true;
 

@@ -282,11 +282,20 @@ class SodOrderFulfilUI extends SodOrderFulfil
 
         $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
 
-        list($fTotal,$bDonNotRecorded,$raPur)
+        list($fTotal)
             = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
 
         list($sContents,$oB) = $this->oSoDBasket->ShowBasketWidget( $kfr->Value('kBasket'), $bPaid ? 'ReadonlyStatus' : 'Readonly' );
 
+        // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
+        $bDonNotRecorded = false;
+        $raPur = $oB->GetPurchasesInBasket();
+        foreach( $raPur as $oPur ) {
+            if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
+                $bDonNotRecorded = true;
+                break;
+            }
+        }
 
         // if there is a membership or donation in this order we'll require the member to be recorded
         $bContactNeeded = !$oB->GetBuyer() &&
@@ -346,7 +355,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          //."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
          ."<b>".$kfr->value('eStatus')."</b>"
          .$this->paidButton( $kfr )
-         .$this->mailStatus( $kfr, $raOrder, $raPur );
+         .$this->mailStatus( $kfr, $raOrder );
 
     $sFulfilment
         = $this->doneAccountingButton( $kfr )
@@ -468,7 +477,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         return( $s );
     }
 
-    private function mailStatus( KeyframeRecord $kfr, $raOrder, $raPur )
+    private function mailStatus( KeyframeRecord $kfr, $raOrder )
     {
         $s = "";
 
@@ -562,7 +571,6 @@ class SoDOrderBasket
             fTotal:          total amount
             bContactNeeded:  uid_buyer required to be set
             bDonNotRecorded: there is a donation without a kRef to mbr_donations
-            raPur:           array of SEEDBasket_Purchase_{producttype}
      */
     {
         $s = "";
@@ -577,7 +585,7 @@ class SoDOrderBasket
         $oB = new SEEDBasket_Basket( $this->oSB, $kB );
 // deprecate this because raPur is better
 $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
-        $raPur = $oB->GetPurchasesInBasket();
+//        $raPur = $oB->GetPurchasesInBasket();
 
         // Find out if there is a membership or donation in this order.
         $bHasMbrProduct = $bHasDonProduct = false;
@@ -654,16 +662,8 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
 
         $fTotal = $raBContents['fTotal'];
 
-        // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
-        foreach( $raPur as $oPur ) {
-            if( $oPur->GetProductType()=='donation' && !$oPur->GetKRef() ) {
-                $bDonNotRecorded = true;
-                break;
-            }
-        }
-
         done:
-        return( [$fTotal,$bDonNotRecorded,$raPur] );
+        return( [$fTotal] );
     }
 }
 
