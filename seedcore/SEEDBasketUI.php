@@ -42,13 +42,6 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 
         $raPur = $oB->GetPurchasesInBasket();
 
-        // Find out if there is a membership or donation in this order.
-        $bHasMbrProduct = $bHasDonProduct = false;
-        foreach( $raPur as $oPur ) {
-            if( $oPur->GetProductType() == 'membership' ) { $bHasMbrProduct = true; }
-            if( $oPur->GetProductType() == 'donation' )   { $bHasDonProduct = true; }
-        }
-
         $raBContents = $oB->ComputeBasketContents2( false );
         if( @$raBContents['raSellers'][1] ) {
             $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
@@ -107,8 +100,6 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
             $s .= "</table>";
         }
 
-        $bContactNeeded = ( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() );
-
         $fTotal = $raBContents['fTotal'];
 
         // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
@@ -122,7 +113,7 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
         $bOk = true;
 
         done:
-        return( [$bOk,$s] );
+        return( [$bOk,$s,$oB] );
         //return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur] );
     }
 

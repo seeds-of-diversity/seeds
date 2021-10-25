@@ -282,11 +282,16 @@ class SodOrderFulfilUI extends SodOrderFulfil
 
         $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
 
-        list($sContentsDummy,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur)
+        list($fTotal,$bDonNotRecorded,$raPur)
             = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
 
-        $sContents = $this->oSoDBasket->ShowBasketWidget( $kfr->Value('kBasket'), $bPaid ? 'ReadonlyStatus' : 'Readonly' );
+        list($sContents,$oB) = $this->oSoDBasket->ShowBasketWidget( $kfr->Value('kBasket'), $bPaid ? 'ReadonlyStatus' : 'Readonly' );
 
+
+        // if there is a membership or donation in this order we'll require the member to be recorded
+        $bContactNeeded = !$oB->GetBuyer() &&
+                          (in_array( 'membership', $oB->GetProductTypesInBasket() ) ||
+                           in_array( 'donation',   $oB->GetProductTypesInBasket() ));
 
         // kluge Bob Review by skipping rows that don't meet the criteria
         if( $this->fltStatus == 'Bob' ) {
@@ -547,8 +552,8 @@ class SoDOrderBasket
 
     function ShowBasketWidget( int $kB, string $eMode )
     {
-        list($bDummy,$s) = (new SEEDBasketUI_BasketWidget($this->oSB))->DrawBasketWidget( $kB, $eMode, [] );
-        return( $s );
+        list($bDummy,$s,$oBasket) = (new SEEDBasketUI_BasketWidget($this->oSB))->DrawBasketWidget( $kB, $eMode, [] );
+        return( [$s,$oBasket] );
     }
 
     function ShowBasketContents( $kB, $bFulfilControls = false, $bShowStatus = false )
@@ -613,6 +618,8 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
                             $sFulfilStatusY = "mailed {$oPur->GetExtra('dMailed')}";
                             $sFulfilStatusN = "not mailed";
                             break;
+                        default:
+                            $sFulfilButtonLabel = $sFulfilStatusY = $sFulfilStatusN = "Undefined";
                     }
 
                     // typically only one of these parameters is true
@@ -656,7 +663,7 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
         }
 
         done:
-        return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur] );
+        return( [$fTotal,$bDonNotRecorded,$raPur] );
     }
 }
 

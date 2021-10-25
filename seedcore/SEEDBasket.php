@@ -606,6 +606,7 @@ class SEEDBasket_Basket
     private $oSB;
     private $raObjPur = null;       // [] of SEEDBasket_Purchase in this basket (loaded on demand)
     private $raExtraItems = null;   // [] of extra items in this basket (loaded on demand)
+    private $raProdTypes = null;    // [] of distinct product_types in this basked (loaded on demand)
 
     function __construct( SEEDBasketCore $oSB, $kB )
     {
@@ -630,6 +631,12 @@ class SEEDBasket_Basket
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
     function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+
+    function GetProductTypesInBasket()
+    {
+        if( $this->raProdTypes === null )  $this->GetPurchasesInBasket();   // raProdTypes is a side-effect
+        return( $this->raProdTypes );
+    }
 
     function GetProductsInBasket( $raParms )
     /***************************************
@@ -664,6 +671,7 @@ class SEEDBasket_Basket
     {
         if( $this->raObjPur === null ) {
             $this->raObjPur = [];
+            $this->raProdTypes = [];    // collected as a side-effect
 
             if( $this->Key() ) {
                 //foreach( $this->oSB->oDB->GetPurchasesList($this->kfr->Key()) as $ra ) {
@@ -673,6 +681,11 @@ class SEEDBasket_Basket
                     while( $kfrPur->CursorFetch() ) {
                         // Uses kfr to get the correct SEEDBasket_Purchase_* derivation, and avoids redundant db lookup
                         $raObjPur[] = $this->oSB->GetPurchaseObj( 0, "", ['kfr'=>$kfrPur] );
+
+                        // collect raProdTypes as a side-effect
+                        if( !in_array($kfrPur->Value('P_product_type'), $this->raProdTypes) ) {
+                            $this->raProdTypes[] = $kfrPur->Value('P_product_type');
+                        }
                     }
                 }
             }
@@ -820,7 +833,7 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
             $discount = -1.0;
         }
         $raOut['fTotal'] += $discount;
-        $raOut['raSellers'][$uidSeller]['fTotalSeller'] += $discount;
+        $raOut['raSellers'][$uidSeller]['fSellerTotal'] += $discount;
         $raOut['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
     }
 }
