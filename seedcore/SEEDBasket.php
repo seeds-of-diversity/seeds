@@ -529,9 +529,9 @@ klugeUTF8 = true: return sOut and sErr in utf8
         $oPur = null;
 
         // this overrides kPur and prodType
-        if( ($kfrPur = @$raParms['kfr'] ?: null) ) {
+        if( ($kfrPur = @$raParms['kfr']) ) {
             $kPur = $kfrPur->Key();
-            $prodType = $kfrPur->Value('product_type');
+            $prodType = $kfrPur->Value('P_product_type');
 
             $bCheckProdMatch = false;   // only applies if loading the kfr based on kPur and prodType
         } else {
@@ -679,8 +679,9 @@ class SEEDBasket_Basket
                 //}
                 if( ($kfrPur = $this->oSB->oDB->GetPurchasesKFRC( $this->Key() )) ) {
                     while( $kfrPur->CursorFetch() ) {
-                        // Uses kfr to get the correct SEEDBasket_Purchase_* derivation, and avoids redundant db lookup
-                        $this->raObjPur[] = $this->oSB->GetPurchaseObj( 0, "", ['kfr'=>$kfrPur] );
+                        // Uses kfr to get the correct SEEDBasket_Purchase_* derivation, and avoids redundant db lookup.
+                        // N.B. Pass a copy of the kfr because otherwise the object will have a reference to kfrPur and it will change
+                        $this->raObjPur[] = $this->oSB->GetPurchaseObj( 0, "", ['kfr'=>$kfrPur->Copy()] );
 
                         // collect raProdTypes as a side-effect
                         if( !in_array($kfrPur->Value('P_product_type'), $this->raProdTypes) ) {
@@ -808,8 +809,8 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
 
         if( ($kfrBPxP = $this->oSB->oDB->GetPurchasesKFRC( $kBasket )) ) {
             while( $kfrBPxP->CursorFetch() ) {
-                // prodtype is given to create the correct object type without a redundant lookup
-                $oPur = $this->oSB->GetPurchaseObj( $kfrBPxP->Value('_key'), $kfrBPxP->Value('P_product_type') );
+                // create an object with a copy of the kfr, otherwise a reference is stored and the kfr changes
+                $oPur = $this->oSB->GetPurchaseObj( 0, '', ['kfr'=>$kfrBPxP->Copy()] );
 
                 $uidSeller = $oPur->GetSeller();
 
