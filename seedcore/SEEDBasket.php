@@ -680,7 +680,7 @@ class SEEDBasket_Basket
                 if( ($kfrPur = $this->oSB->oDB->GetPurchasesKFRC( $this->Key() )) ) {
                     while( $kfrPur->CursorFetch() ) {
                         // Uses kfr to get the correct SEEDBasket_Purchase_* derivation, and avoids redundant db lookup
-                        $raObjPur[] = $this->oSB->GetPurchaseObj( 0, "", ['kfr'=>$kfrPur] );
+                        $this->raObjPur[] = $this->oSB->GetPurchaseObj( 0, "", ['kfr'=>$kfrPur] );
 
                         // collect raProdTypes as a side-effect
                         if( !in_array($kfrPur->Value('P_product_type'), $this->raProdTypes) ) {
