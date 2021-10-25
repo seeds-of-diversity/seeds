@@ -38,18 +38,23 @@ $bFulfilControls = ($eMode == 'Fulfil');
 $bShowStatus = ($eMode == 'ReadonlyStatus');
 
 // TODO: require that the current user is allowed to edit the basket
+
+// TODO: parameterize the uidSeller to be shown
+$uidSeller = 1; // currently only drawing the widget for SoD's products
+
+
         if( !($oB = new SEEDBasket_Basket($this->oSB, $kB)) )  goto done;
 
         //$raPur = $oB->GetPurchasesInBasket();
 
         $raBContents = $oB->ComputeBasketContents2( false );
-        if( @$raBContents['raSellers'][1] ) {
+        if( @$raBContents['raSellers'][$uidSeller] ) {
             $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
-                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fSellerTotal']}</td></tr>";
+                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][$uidSeller]['fSellerTotal']}</td></tr>";
 
             /* Show Purchases
              */
-            foreach( $raBContents['raSellers'][1]['raPur'] as $ra ) {
+            foreach( $raBContents['raSellers'][$uidSeller]['raPur'] as $ra ) {
                 $oPur = @$ra['oPur'];
 
                 $sCol1 = "";      // first col is a fulfil button or fulfilment record
@@ -91,7 +96,7 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 
             /* Show Extra Items
              */
-            foreach( $raBContents['raSellers'][1]['raExtraItems'] as $ra ) {
+            foreach( $raBContents['raSellers'][$uidSeller]['raExtraItems'] as $ra ) {
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sLabel']}</td>"
                          ."<td valign='top'>{$ra['fAmount']}</td>"
                      ."</tr>";
@@ -100,13 +105,10 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
             $s .= "</table>";
         }
 
-        $fTotal = $raBContents['fTotal'];
-
         $bOk = true;
 
         done:
         return( [$bOk,$s,$oB] );
-        //return( [$s,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur] );
     }
 
 

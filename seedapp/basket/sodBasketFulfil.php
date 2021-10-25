@@ -282,10 +282,13 @@ class SodOrderFulfilUI extends SodOrderFulfil
 
         $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
 
-        list($fTotal)
-            = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
+//        list($fTotal)
+//            = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
 
         list($sContents,$oB) = $this->oSoDBasket->ShowBasketWidget( $kfr->Value('kBasket'), $bPaid ? 'ReadonlyStatus' : 'Readonly' );
+
+        $raBContents = $oB->ComputeBasketContents( false );
+        $fTotal = $raBContents['fTotal'];
 
         // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
         $bDonNotRecorded = false;
@@ -452,9 +455,6 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     {
         $s = "";
 
-        // use this to compute the basket, but only show the details to dev/Bob
-//        list($sContents,$fTotal,$bContactNeeded,$bDonNotRecorded,$raPur) = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket') );
-
         $bGood = in_array( $kfr->value('eStatus'), ['Paid','Filled'] );
 
         if( $bGood && $bContactNeeded ) {
@@ -465,12 +465,6 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $s .= "<div class='$c'>$sContents</div>";
 
         if( in_array( $this->oApp->sess->GetUID(), [1, 1499] ) ) { // dev, Bob
-
-//            if( $bGood && $bDonNotRecorded ) {
-//                $s .= "<div class='alert alert-danger'>The donation is not recorded</div>";
-//            }
-
-
 // data-kOrder is also present in the enclosing <tr>
             $s .= "<div data-kOrder='{$kfr->Key()}' class='doBuildBasket'><button>rebuild this basket</button></div>";
         }
@@ -565,18 +559,15 @@ class SoDOrderBasket
         return( [$s,$oBasket] );
     }
 
+/*
     function ShowBasketContents( $kB, $bFulfilControls = false, $bShowStatus = false )
-    /*********************************************************************************
+    [*********************************************************************************
         Get sContents:       summary of basket contents
             fTotal:          total amount
-            bContactNeeded:  uid_buyer required to be set
-            bDonNotRecorded: there is a donation without a kRef to mbr_donations
-     */
+     *]
     {
         $s = "";
         $fTotal = 0.0;
-        $bContactNeeded = false;
-        $bDonNotRecorded = false;
 
         if( !$kB )  goto done;
 
@@ -594,7 +585,6 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
             if( $oProd->GetProductType() == 'donation' )   { $bHasDonProduct = true; }
         }
 
-        $raBContents = $oB->ComputeBasketContents( false );
         if( @$raBContents['raSellers'][1] ) {
             $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
                  ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
@@ -658,13 +648,13 @@ $raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
             $s .= "</table>";
         }
 
-        $bContactNeeded = ( ($bHasMbrProduct || $bHasDonProduct) && !$oB->GetBuyer() );
-
+        $raBContents = $oB->ComputeBasketContents( false );
         $fTotal = $raBContents['fTotal'];
 
         done:
         return( [$fTotal] );
     }
+*/
 }
 
 class SoDOrder_MbrOrder
