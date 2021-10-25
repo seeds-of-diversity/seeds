@@ -280,15 +280,13 @@ class SodOrderFulfilUI extends SodOrderFulfil
     {
         $s = "";
 
-        $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
+$uidSeller = 1;     // only showing SoD's part of the basket
 
-//        list($fTotal)
-//            = $this->oSoDBasket->ShowBasketContents( $kfr->Value('kBasket'), false, $bPaid );   // show fulfilment status for paid orders only
+        $bPaid = in_array( $kfr->value('eStatus'), [MBRORDER_STATUS_PAID,MBRORDER_STATUS_FILLED] );
 
         list($sContents,$oB) = $this->oSoDBasket->ShowBasketWidget( $kfr->Value('kBasket'), $bPaid ? 'ReadonlyStatus' : 'Readonly' );
 
-        $raBContents = $oB->ComputeBasketContents( false );
-        $fTotal = $raBContents['fTotal'];
+        $fTotal = $oB->GetTotal( $uidSeller );
 
         // Donations with kRef=0 are not recorded in mbr_donations yet. All Paid donations must be recorded there, even if non-receiptable.
         $bDonNotRecorded = false;
@@ -497,34 +495,6 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
             goto done;
         }
 
-/*
-        foreach( $raPur as $oPur ) {
-            $sYes = $sNo = "";
-            switch( $oPur->GetProductType() ) {
-                case 'membership':
-                    $sYes = "Membership recorded {$oPur->GetExtra('dMailed')}";
-                    $sNo = "Membership not recorded";
-                    break;
-                case 'donation':
-                    $sYes = "Donation recorded #{$oPur->GetKRef()}";
-                    $sNo = "Donation not recorded";
-                    break;
-                case 'book':
-                    $sYes = "Book order mailed {$oPur->GetExtra('dMailed')}";
-                    $sNo = "Book order not mailed";
-                    break;
-                case 'special1':    // handled identically to books
-                    $sYes = "Seeds mailed {$oPur->GetExtra('dMailed')}";
-                    $sNo = "Seeds not mailed";
-                    break;
-            }
-            if( $sYes ) {   // test if the prodtype was in the switch above
-                $s .= $oPur->IsFulfilled() ? "<div style='font-size:9pt'>$sYes</div>"
-                                           : "<div class='alert alert-warning' style='font-size:9pt;margin:5px;padding:5px'>$sNo</div>";
-            }
-        }
-*/
-
         done:
         return( $s );
     }
@@ -563,103 +533,6 @@ class SoDOrderBasket
         }
         return( [$s,$oB] );
     }
-
-/*
-    function ShowBasketContents( $kB, $bFulfilControls = false, $bShowStatus = false )
-    [*********************************************************************************
-        Get sContents:       summary of basket contents
-            fTotal:          total amount
-     *]
-    {
-        $s = "";
-        $fTotal = 0.0;
-
-        if( !$kB )  goto done;
-
-// oB knows everything that this method returns so return it and use it to get those things
-// and DrawBasketWidget gets the $s that this returns
-        $oB = new SEEDBasket_Basket( $this->oSB, $kB );
-// deprecate this because raPur is better
-$raProd = $oB->GetProductsInBasket( ['returnType'=>'objects'] );
-//        $raPur = $oB->GetPurchasesInBasket();
-
-        // Find out if there is a membership or donation in this order.
-        $bHasMbrProduct = $bHasDonProduct = false;
-        foreach( $raProd as $oProd ) {
-            if( $oProd->GetProductType() == 'membership' ) { $bHasMbrProduct = true; }
-            if( $oProd->GetProductType() == 'donation' )   { $bHasDonProduct = true; }
-        }
-
-        if( @$raBContents['raSellers'][1] ) {
-            $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
-                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][1]['fTotal']}</td></tr>";
-            foreach( $raBContents['raSellers'][1]['raItems'] as $ra ) {
-                if( !($oPur = @$ra['oPur']) ) {
-                    continue;
-                }
-
-                $sCol1 = "";      // first col is a fulfil button or fulfilment record
-                $sCol2 = "";      // second col is an undo button if fulfilled and canfulfilundo and bFulfilControls
-                if( $bFulfilControls || $bShowStatus ) {
-                    // using [onclick=fn(kBP)] instead of [data-kPurchase='{$oPur->GetKey()}' class='doPurchaseFulfil']
-                    // because inconvenient to reconnect event listener when basketDetail redrawn
-                    $sFulfilButtonLabel = $sFulfilNote = "";
-                    switch( $oPur->GetProductType() ) {
-                        case 'membership':
-                            $sFulfilButtonLabel = "Record today";
-                            $sFulfilStatusY = "recorded {$oPur->GetExtra('dMailed')}";
-                            $sFulfilStatusN = "not recorded";
-                            break;
-                        case 'donation':
-                            $sFulfilButtonLabel = "Accept donation";
-                            $sFulfilStatusY = "recorded donation #{$oPur->GetKRef()}";
-                            $sFulfilStatusN = "not recorded";
-                            break;
-                        case 'book':
-                        case 'special1': // used for garlic bulbils with identical code to books
-                            $sFulfilButtonLabel = "Mail today";
-                            $sFulfilStatusY = "mailed {$oPur->GetExtra('dMailed')}";
-                            $sFulfilStatusN = "not mailed";
-                            break;
-                        default:
-                            $sFulfilButtonLabel = $sFulfilStatusY = $sFulfilStatusN = "Undefined";
-                    }
-
-                    // typically only one of these parameters is true
-                    if( $bFulfilControls ) {
-                        // col1 is the status if fulfilled, or a fulfillment button (or blank if not allowed)
-                        // col2 is an undo button if fulfilled
-                        $sCol1 = $oPur->IsFulfilled()
-                                  ? $sFulfilStatusY
-                                  : ($oPur->CanFulfil()
-                                      ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfil(\$(this),{$oPur->GetKey()})'>$sFulfilButtonLabel</button>"
-                                      : "");
-                        $sCol2 = $oPur->CanFulfilUndo()
-                                        ? "<button onclick='SoDBasketFulfilment.doPurchaseFulfilUndo(\$(this),{$oPur->GetKey()})'>Undo</button>"
-                                        : "";
-                    }
-                    if( $bShowStatus) {
-                        // col1 is the status, col2 is blank
-                        $sCol1 = $oPur->IsFulfilled() ? $sFulfilStatusY : "<div class='alert alert-warning' style='padding:3px;border-color:orange'>$sFulfilStatusN</div>";
-                        $sCol2 = "";
-                    }
-                }
-
-                $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sItem']}</td>"
-                         ."<td valign='top'>{$oPur->GetPrice()}</td>"
-                         .(($bFulfilControls | $bShowStatus) ? "<td valign='top' style='text-align:left'> $sCol1</td><td valign='top' style='text-align:left'> $sCol2</td>" : "")
-                     ."</tr>";
-            }
-            $s .= "</table>";
-        }
-
-        $raBContents = $oB->ComputeBasketContents( false );
-        $fTotal = $raBContents['fTotal'];
-
-        done:
-        return( [$fTotal] );
-    }
-*/
 }
 
 class SoDOrder_MbrOrder

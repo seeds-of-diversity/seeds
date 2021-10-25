@@ -607,6 +607,7 @@ class SEEDBasket_Basket
     private $raObjPur = null;       // [] of SEEDBasket_Purchase in this basket (loaded on demand)
     private $raExtraItems = null;   // [] of extra items in this basket (loaded on demand)
     private $raProdTypes = null;    // [] of distinct product_types in this basked (loaded on demand)
+    private $raComputed = null;     // computed contents (see ComputeBasketContents for format)
 
     function __construct( SEEDBasketCore $oSB, $kB )
     {
@@ -631,6 +632,17 @@ class SEEDBasket_Basket
 
     // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
     function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+
+    function GetTotal( $uidSeller = -1 )
+    {
+        $raBContents = $this->ComputeBasketContents2();
+        if( $uidSeller == -1 ) {
+            $fTotal = $raBContents['fTotal'];
+        } else {
+            $fTotal = @$raBContents['raSellers'][$uidSeller]['fSellerTotal'] ?: 0.0;
+        }
+        return( $fTotal );
+    }
 
     function GetProductTypesInBasket()
     {
@@ -789,61 +801,59 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
         return( $raOut );
     }
 
-    function ComputeBasketContents2( $klugeUTF8 )
-    /********************************************
+    function ComputeBasketContents2()
+    /********************************
         Return [ 'fTotal'               =>     total price of the basket
-                 [ uid                  =>     per seller:
-                    [ 'fSellerTotal'    =>         total price for this seller
-                      'raPur'           =>         array of purchases from this seller
-                        [ 'oPur         =>             purchase obj
-                          metadata      =>             other info about this purchase
-                        ]
-                      'raExtraItems'    =>         array of non-purchase items calculated from purchases (e.g. discount, shipping fee)
-                        [ 'sLabel'      =>             item label
-                          'fAmount'     =>             dollar amount
+                 'raSellers' =>
+                     [ uid                  =>     per seller:
+                        [ 'fSellerTotal'    =>         total price for this seller
+                          'raPur'           =>         array of purchases from this seller
+                            [ 'oPur         =>             purchase obj
+                              metadata      =>             other info about this purchase
+                            ]
+                          'raExtraItems'    =>         array of non-purchase items calculated from purchases (e.g. discount, shipping fee)
+                            [ 'sLabel'      =>             item label
+                              'fAmount'     =>             dollar amount
      */
     {
-        $raOut = [ 'fTotal'=>0.0, 'raSellers'=>[] ];
+        if( $this->raComputed ) goto done;
 
-        if( !($kBasket = $this->GetKey()) )  goto done;
+        $this->raComputed = [ 'fTotal'=>0.0, 'raSellers'=>[] ];
 
-        if( ($kfrBPxP = $this->oSB->oDB->GetPurchasesKFRC( $kBasket )) ) {
-            while( $kfrBPxP->CursorFetch() ) {
-                // create an object with a copy of the kfr, otherwise a reference is stored and the kfr changes
-                $oPur = $this->oSB->GetPurchaseObj( 0, '', ['kfr'=>$kfrBPxP->Copy()] );
+        if( !$this->GetKey() )  goto done;
 
-                $uidSeller = $oPur->GetSeller();
+        foreach( $this->GetPurchasesInBasket() as $oPur ) {
+            $uidSeller = $oPur->GetSeller();
 
 // handle volume pricing, shipping, discount
-                $fAmount = $oPur->GetPrice();
-                $raOut['fTotal'] += $fAmount;
-                if( !isset($raOut['raSellers'][$uidSeller]) ) {
-                    $raOut['raSellers'][$uidSeller] = [ 'fSellerTotal'=>0.0, 'raPur'=>[], 'raExtraItems'=>[] ];
-                }
+            $fAmount = $oPur->GetPrice();
+            $this->raComputed['fTotal'] += $fAmount;
+            if( !isset($this->raComputed['raSellers'][$uidSeller]) ) {
+                $this->raComputed['raSellers'][$uidSeller] = [ 'fSellerTotal'=>0.0, 'raPur'=>[], 'raExtraItems'=>[] ];
+            }
 
-                $raOut['raSellers'][$uidSeller]['fSellerTotal'] += $fAmount;
-                $raOut['raSellers'][$uidSeller]['raPur'][] = [ 'oPur'=>$oPur, 'fAmount'=>$fAmount ];
+            $this->raComputed['raSellers'][$uidSeller]['fSellerTotal'] += $fAmount;
+            $this->raComputed['raSellers'][$uidSeller]['raPur'][] = [ 'oPur'=>$oPur, 'fAmount'=>$fAmount ];
 
-                // derived class adjustment
+            // derived class adjustment
 // k is non-zero if the user is a current grower member
-if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
+if( $oPur->GetProductType() == 'seeds' ) {
     if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
-        if( floatval($kfrBPxP->Value('P_item_price')) > 10.00 ) {
+        if( floatval($oPur->GetPrice()) > 10.00 ) {
             $discount = -2.0;
         } else {
             $discount = -1.0;
         }
-        $raOut['fTotal'] += $discount;
-        $raOut['raSellers'][$uidSeller]['fSellerTotal'] += $discount;
-        $raOut['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
+        $this->raComputed['fTotal'] += $discount;
+        $this->raComputed['raSellers'][$uidSeller]['fSellerTotal'] += $discount;
+        $this->raComputed['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
     }
 }
                 // add other items for shipping / discount
-
-            }
         }
+
         done:
-        return( $raOut );
+        return( $this->raComputed );
     }
 
 // deprecated: use SEEDBasket_Purchase::GetPrice()
