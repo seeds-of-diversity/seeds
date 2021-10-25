@@ -29,7 +29,7 @@ class SEEDBasketUI_BasketWidget
         $this->oSB = $oSB;
     }
 
-    function DrawBasketWidget( int $kB, string $eMode, array $raParms )
+    function DrawBasketWidget( SEEDBasket_Basket $oB, string $eMode, array $raParms )
     {
         $bOk = false;
         $s = "";
@@ -39,11 +39,9 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 
 // TODO: require that the current user is allowed to edit the basket
 
-// TODO: parameterize the uidSeller to be shown
-$uidSeller = 1; // currently only drawing the widget for SoD's products
+// TODO: parameterize the uidSeller to be shown; int? [int,]? -1=all?
+        $uidSeller = intval(@$raParms['uidSeller']) ?: 1;   // default to SoD
 
-
-        if( !($oB = new SEEDBasket_Basket($this->oSB, $kB)) )  goto done;
 
         //$raPur = $oB->GetPurchasesInBasket();
 
@@ -108,7 +106,7 @@ $uidSeller = 1; // currently only drawing the widget for SoD's products
         $bOk = true;
 
         done:
-        return( [$bOk,$s,$oB] );
+        return( [$bOk,$s] );
     }
 
 

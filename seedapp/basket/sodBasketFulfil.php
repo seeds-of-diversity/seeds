@@ -553,10 +553,15 @@ class SoDOrderBasket
         return( $this->oSB->oDB->GetBasketKFR( $kB ) );
     }
 
+// transitional method - caller should use $oB and DrawBasketWidget directly
     function ShowBasketWidget( int $kB, string $eMode )
     {
-        list($bDummy,$s,$oBasket) = (new SEEDBasketUI_BasketWidget($this->oSB))->DrawBasketWidget( $kB, $eMode, [] );
-        return( [$s,$oBasket] );
+        $s = "";
+
+        if( ($oB = new SEEDBasket_Basket($this->oSB, $kB)) ) {
+            list($bDummy,$s) = (new SEEDBasketUI_BasketWidget($this->oSB))->DrawBasketWidget( $oB, $eMode, [] );
+        }
+        return( [$s,$oB] );
     }
 
 /*
