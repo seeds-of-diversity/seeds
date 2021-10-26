@@ -754,7 +754,7 @@ return;
 
         foreach( $this->getGroups() as $k => $ra )
         {
-            $this->raData[$k] = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM seeds_2.mbr_contacts WHERE $dGlobal AND ".implode(' AND ',$ra['cond'])." order by {$ra['order']}" );
+            $this->raData[$k] = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE $dGlobal AND ".implode(' AND ',$ra['cond'])." order by {$ra['order']}" );
             // now for each row in the result, insert the address block in the row
             $ra1 = array();
             foreach( $this->raData[$k] as $k1=>$ra1 ) {
