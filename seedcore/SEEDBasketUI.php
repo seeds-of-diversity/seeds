@@ -45,7 +45,7 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 
         //$raPur = $oB->GetPurchasesInBasket();
 
-        $raBContents = $oB->ComputeBasketContents2();
+        $raBContents = $oB->ComputeBasketContents();
         if( @$raBContents['raSellers'][$uidSeller] ) {
             $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
                  ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][$uidSeller]['fSellerTotal']}</td></tr>";

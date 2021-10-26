@@ -326,28 +326,6 @@ klugeUTF8 = true: return sOut and sErr in utf8
         return( $s );
     }
 
-    function ComputeBasketSummary( $klugeUTF8 = false )
-    /******************************
-        Compute information about the current basket
-
-        fTotal            : the total amount to pay
-        raSellers         : array( uidSeller1 => array( fTotal => the total amount to pay to this seller,
-                                                        raItems => array( kBP=>kBP, sItem => describes the item, fAmount => amount to pay ) )
-
-                            N.B. shipping / discount are formatted as individual raItems immediately following their item with kBP==0
-     */
-    {
-        $raOut = array( 'fTotal'=>0.0, 'raSellers'=>array() );
-
-        if( ($kBasket = $this->GetBasketKey()) ) {
-            $oB = new SEEDBasket_Basket( $this, $kBasket );
-            $raOut = $oB->ComputeBasketContents( $klugeUTF8 );
-        }
-
-        return( $raOut );
-    }
-
-
     function dollar( $d )  { return( "$".sprintf("%0.2f", $d) ); }
 
     /**
@@ -635,7 +613,7 @@ class SEEDBasket_Basket
 
     function GetTotal( $uidSeller = -1 )
     {
-        $raBContents = $this->ComputeBasketContents2();
+        $raBContents = $this->ComputeBasketContents();
         if( $uidSeller == -1 ) {
             $fTotal = $raBContents['fTotal'];
         } else {
@@ -708,6 +686,7 @@ class SEEDBasket_Basket
     }
 
     function DrawBasketContents( $raParms = array(), $klugeUTF8 = false )
+// MOVE TO SEEDBasketUI_BasketWidget
     {
         $s = "";
 
@@ -719,7 +698,7 @@ $s .= "<style>
 
         $kBPHighlight = intval(@$raParms['kBPHighlight']);
 
-        $raSummary = $this->ComputeBasketContents( $klugeUTF8 );
+        $raSummary = $this->ComputeBasketContents();
 
         foreach( $raSummary['raSellers'] as $uidSeller => $raSeller ) {
             if( isset($this->raParms['fn_sellerNameFromUid']) ) {
@@ -728,19 +707,32 @@ $s .= "<style>
                 $sSeller = "Seller $uidSeller";
             }
 
-            $s .= "<div style='margin-top:10px;font-weight:bold'>$sSeller (total ".$this->oSB->dollar($raSeller['fTotal']).")</div>";
+            $s .= "<div style='margin-top:10px;font-weight:bold'>$sSeller (total ".$this->oSB->dollar($raSeller['fSellerTotal']).")</div>";
 
             $s .= "<div class='sb_basket_table'>";
-            foreach( $raSeller['raItems'] as $raItem ) {
-                $sClass = ($kBPHighlight && $kBPHighlight == $raItem['kBP']) ? " sb_bp-change" : "";
+            foreach( $raSeller['raPur'] as $pur ) {
+                $oPur = $pur['oPur'];
+                $kPur = $oPur->GetKey();
+                $kfrP = $this->oSB->oDB->GetKFR( 'P', $oPur->GetProductKey() );
+                $sItem = $this->oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_TINY, ['bUTF8'=>false] );
+
+                $sClass = ($kBPHighlight && $kBPHighlight == $kPur) ? " sb_bp-change" : "";
                 $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
-                     ."<div class='sb_basket_td'>".$raItem['sItem']."</div>"
-                     ."<div class='sb_basket_td'>".$this->oSB->dollar($raItem['fAmount'])."</div>"
+                     ."<div class='sb_basket_td'>$sItem</div>"
+                     ."<div class='sb_basket_td'>".$this->oSB->dollar($oPur->GetPrice())."</div>"
                      ."<div class='sb_basket_td'>"
                          // Use full url instead of W_ROOT because this html can be generated via ajax (so not a relative url)
                          // Only draw the Remove icon for items with kBP because discounts, etc, are coded with kBP==0 and those shouldn't be removable on their own
-                         .($raItem['kBP'] ? ("<img height='14' onclick='RemoveFromBasket(".$raItem['kBP'].");' src='//seeds.ca/wcore/img/ctrl/delete01.png'/>") : "")
+                         .($kPur ? ("<img height='14' onclick='RemoveFromBasket($kPur);' src='//seeds.ca/wcore/img/ctrl/delete01.png'/>") : "")
                          ."</div>"
+                     ."</div>";
+            }
+            foreach( $raSeller['raExtraItems'] as $xtra ) {
+                $sClass = "";
+                $s .= "<div class='sb_basket_tr sb_bp$sClass'>"
+                     ."<div class='sb_basket_td'>{$xtra['sLabel']}</div>"
+                     ."<div class='sb_basket_td'>".$this->oSB->dollar($xtra['fAmount'])."</div>"
+                     ."<div class='sb_basket_td'></div>"
                      ."</div>";
             }
             $s .= "</div>";
@@ -756,7 +748,8 @@ $s .= "<style>
         return( $s ? $s : "Your Basket is Empty" );
     }
 
-    function ComputeBasketContents( $klugeUTF8 )
+/*
+    function ComputeBasketContents__old( $klugeUTF8 )
     {
         $raOut = [ 'fTotal'=>0.0, 'raSellers'=>[] ];
 
@@ -800,15 +793,16 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
         done:
         return( $raOut );
     }
+*/
 
-    function ComputeBasketContents2()
-    /********************************
+    function ComputeBasketContents()
+    /*******************************
         Return [ 'fTotal'               =>     total price of the basket
                  'raSellers' =>
                      [ uid                  =>     per seller:
                         [ 'fSellerTotal'    =>         total price for this seller
                           'raPur'           =>         array of purchases from this seller
-                            [ 'oPur         =>             purchase obj
+                            [ 'oPur'        =>             purchase obj
                               metadata      =>             other info about this purchase
                             ]
                           'raExtraItems'    =>         array of non-purchase items calculated from purchases (e.g. discount, shipping fee)
@@ -835,19 +829,20 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
             $this->raComputed['raSellers'][$uidSeller]['fSellerTotal'] += $fAmount;
             $this->raComputed['raSellers'][$uidSeller]['raPur'][] = [ 'oPur'=>$oPur, 'fAmount'=>$fAmount ];
 
-            // derived class adjustment
-// k is non-zero if the user is a current grower member
-if( $oPur->GetProductType() == 'seeds' ) {
-    if( ($this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" )) ) {
-        if( floatval($oPur->GetPrice()) > 10.00 ) {
-            $discount = -2.0;
-        } else {
-            $discount = -1.0;
-        }
-        $this->raComputed['fTotal'] += $discount;
-        $this->raComputed['raSellers'][$uidSeller]['fSellerTotal'] += $discount;
-        $this->raComputed['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
+// make this a derived class adjustment:  ComputeExtraItems( oPur, uidSeller, uidBuyer ) : [[sLabel,fAmount], ]
+// you get a discount if you are a grower member (but only on products over $2)
+if( $oPur->GetProductType() == 'seeds' &&
+    $this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" ) &&
+    $oPur->GetPrice() > 2.00 )
+{
+    if( floatval($oPur->GetPrice()) > 10.00 ) {
+        $discount = -2.0;
+    } else {
+        $discount = -1.0;
     }
+    $this->raComputed['fTotal'] += $discount;
+    $this->raComputed['raSellers'][$uidSeller]['fSellerTotal'] += $discount;
+    $this->raComputed['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
 }
                 // add other items for shipping / discount
         }
