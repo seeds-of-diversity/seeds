@@ -14,12 +14,12 @@ class SEEDBasketUI_BasketWidget
 /******************************
  * Draw a basket in various ways
  *
- * eMode: Readonly       = show what's in the basket with no controls or status
- *        ReadonlyStatus = no controls but show fulfilment status
- *        EditAdd        = purchases can be added via a picklist
- *        EditDelete     = purchases can be deleted via buttons
- *        EditAddDelete  = purchases can be removed, and added
- *        Fulfil         = fulfilment controls
+ * eMode: Readonly       = customer readonly - show what's in the basket with no controls or status
+ *        ReadonlyStatus = vendor readonly - no controls but show fulfilment status
+ *        EditDelete     = customer store - purchases can be deleted via buttons
+ *        EditAdd        = vendor editor - purchases can be added via a picklist
+ *        EditAddDelete  = vendor editor - purchases can be removed, and added
+ *        Fulfil         = vendor fulfilment - fulfilment controls
  */
 {
     private $oSB;
@@ -30,6 +30,12 @@ class SEEDBasketUI_BasketWidget
     }
 
     function DrawBasketWidget( SEEDBasket_Basket $oB, string $eMode, array $raParms )
+    /********************************************************************************
+        raParms:
+            uidSeller : int = only show products from this seller
+                        [int,...] = from these sellers
+                        -1 (default) = all sellers
+     */
     {
         $bOk = false;
         $s = "";
@@ -39,20 +45,28 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 
 // TODO: require that the current user is allowed to edit the basket
 
-// TODO: parameterize the uidSeller to be shown; int? [int,]? -1=all?
-        $uidSeller = intval(@$raParms['uidSeller']) ?: 1;   // default to SoD
-
+        /* specify which sellers' products to show
+         */
+        if( ($raUidSellers = @$raParms['uidSeller']) ) {
+            if( is_integer($raUidSellers) ) {
+                $raUidSellers = $raUidSellers > 0 ? [$raUidSellers] : [];  // empty array means all sellers
+            }
+        }
 
         //$raPur = $oB->GetPurchasesInBasket();
 
         $raBContents = $oB->ComputeBasketContents();
-        if( @$raBContents['raSellers'][$uidSeller] ) {
+        foreach( $raBContents['raSellers'] as $uidSeller => $raSeller ) {
+            if( $raUidSellers && !in_array($uidSeller, $raUidSellers) )  continue;
+
+            $s .= "<div style='margin-top:10px;font-weight:bold'>{$this->sellerName($uidSeller)} (total ".$this->oSB->dollar($raSeller['fSellerTotal']).")</div>";
+
             $s .= "<table class='sbfulfil_basket_table' style='text-align:right;width:100%'>"
-                 ."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raBContents['raSellers'][$uidSeller]['fSellerTotal']}</td></tr>";
+                 ;//."<tr><td>&nbsp;</td><td valign='top' style='border-bottom:1px solid'>$&nbsp;{$raSeller['fSellerTotal']}</td></tr>";
 
             /* Show Purchases
              */
-            foreach( $raBContents['raSellers'][$uidSeller]['raPur'] as $ra ) {
+            foreach( $raSeller['raPur'] as $ra ) {
                 $oPur = @$ra['oPur'];
 
                 $sCol1 = "";      // first col is a fulfil button or fulfilment record
@@ -94,7 +108,7 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
 
             /* Show Extra Items
              */
-            foreach( $raBContents['raSellers'][$uidSeller]['raExtraItems'] as $ra ) {
+            foreach( $raSeller['raExtraItems'] as $ra ) {
                 $s .= "<tr><td valign='top' style='padding-right:5px'>{$ra['sLabel']}</td>"
                          ."<td valign='top'>{$ra['fAmount']}</td>"
                      ."</tr>";
@@ -109,7 +123,6 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
         return( [$bOk,$s] );
     }
 
-
     private function getAddableProducts( $raParms )
     {
         /* raParms defines which products can be added to the basket
@@ -121,6 +134,11 @@ $bShowStatus = ($eMode == 'ReadonlyStatus');
          */
 
 
+    }
+
+    private function sellerName( $uidSeller )
+    {
+        return( "Seller #$uidSeller" );
     }
 
 }
