@@ -2,7 +2,7 @@
 
 /* SEEDBasket.php
  *
- * Copyright (c) 2016-2020 Seeds of Diversity Canada
+ * Copyright (c) 2016-2021 Seeds of Diversity Canada
  *
  * Manage a shopping basket of diverse products
  */
@@ -690,6 +690,9 @@ class SEEDBasket_Basket
     {
         $s = "";
 
+//        list($bDummy,$s) = (new SEEDBasketUI_BasketWidget($this->oSB))->DrawBasketWidget( $this, 'EditDelete', [] );
+
+
 $s .= "<style>
        .sb_basket_table { display:table }
        .sb_basket_tr    { display:table-row }
@@ -1272,8 +1275,9 @@ class SEEDBasket_Purchase
         return( self::FULFILUNDO_RESULT_FAILED );
     }
 
-    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
+    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext(), Product and Purchase objects exchanging data
     function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+    function _getKFR() { return( $this->kfr ); }
 }
 
 class SEEDBasketCursor
