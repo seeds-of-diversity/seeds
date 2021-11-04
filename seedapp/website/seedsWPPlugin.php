@@ -18,7 +18,17 @@ function seedsWPStart()
     add_action( 'init',      'seedsWPPlugin_SessionStart', 1 );
     add_action( 'wp_logout', 'seedsWPPlugin_SessionEnd');    // only necessary if the user is logging in/out of WP and needs session wiped
     add_action( 'wp_login',  'seedsWPPlugin_SessionEnd');    // only necessary if the user is logging in/out of WP and needs session wiped
+
+    // add our js files to the <head>
+    add_action( 'wp_enqueue_scripts', 'seedsWPPlugin_EnqueueScripts' );
 }
+
+function seedsWPPlugin_EnqueueScripts()
+{
+    wp_register_script( 'SEEDUI', "/wcore/js/SEEDUI.js", ['jquery'],'1.0', true );  // use root path of production server to avoid SEEDW weirdness
+    wp_enqueue_script( 'SEEDUI' );
+}
+
 
 
 function seedsWPPlugin_Filter( $content )
