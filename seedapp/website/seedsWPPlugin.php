@@ -19,14 +19,19 @@ function seedsWPStart()
     add_action( 'wp_logout', 'seedsWPPlugin_SessionEnd');    // only necessary if the user is logging in/out of WP and needs session wiped
     add_action( 'wp_login',  'seedsWPPlugin_SessionEnd');    // only necessary if the user is logging in/out of WP and needs session wiped
 
-    // add our js files to the <head>
-    add_action( 'wp_enqueue_scripts', 'seedsWPPlugin_EnqueueScripts' );
+    // add our css and js files to the <head>
+    add_action( 'wp_enqueue_scripts', 'seedsWPPlugin_EnqueueStylesAndScripts' );
 }
 
-function seedsWPPlugin_EnqueueScripts()
+
+function seedsWPPlugin_EnqueueStylesAndScripts()
 {
-    wp_register_script( 'SEEDUI', "/wcore/js/SEEDUI.js", ['jquery'],'1.0', true );  // use root path of production server to avoid SEEDW weirdness
-    wp_enqueue_script( 'SEEDUI' );
+    // Use root path of production server to avoid SEEDW weirdness
+    wp_register_style( 'SEEDUI-css', "//seeds.ca/wcore/css/SEEDUI.css", [], '1.0' /*, 'screen'*/ );    // optional final parm: not media-specific
+    wp_enqueue_style( 'SEEDUI-css' );
+
+    wp_register_script( 'SEEDUI-js', "//seeds.ca/wcore/js/SEEDUI.js", ['jquery'], '1.0', false );    // put the script at the top of the file because it's (sometimes) called in the middle
+    wp_enqueue_script( 'SEEDUI-js' );
 }
 
 
