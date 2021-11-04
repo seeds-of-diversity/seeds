@@ -2,7 +2,7 @@
 
 /* Basket product handler for Seeds
  *
- * Copyright (c) 2016-2019 Seeds of Diversity Canada
+ * Copyright (c) 2016-2021 Seeds of Diversity Canada
  */
 
 include_once( SEEDAPP."seedexchange/msdCommon.php" );
@@ -256,3 +256,24 @@ class SEEDBasketProductHandler_Seeds extends SEEDBasketProductHandler
         return( $raP );
     }
 }
+
+
+class SEEDBasket_Purchase_seeds extends sub_SEEDBasket_Purchase_mailable
+{
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
+    {
+        parent::__construct( $oSB, $kP, $raParms );
+    }
+
+    function GetDisplayName( $raParms )
+    {
+// should be a much better way to do this e.g. it should be built into SEEDBasket_Product_seeds
+        $oHandler = new SEEDBasketProductHandler_Seeds($this->oSB);
+        $kfr = $this->_getKFR();
+
+        $kfr = $this->oSB->oDB->GetProductKFR( $this->GetProductKey() );
+
+        return( $oHandler->ProductDraw( $kfr, SEEDBasketProductHandler::DETAIL_TINY, [] ) );
+    }
+}
+

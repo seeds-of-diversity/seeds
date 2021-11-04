@@ -2,7 +2,7 @@
 
 /* Basket product handlers
  *
- * Copyright (c) 2016-2020 Seeds of Diversity Canada
+ * Copyright (c) 2016-2021 Seeds of Diversity Canada
  */
 
 include_once( SEEDCORE."SEEDBasket.php" );
@@ -390,12 +390,12 @@ class SEEDBasketProductHandler_Book extends SEEDBasketProductHandler_ItemN
 
 
 /*********************************
-    N.B. this class is repurposed for SEEDBasket_Purcase_special1, which is meant for items that are sold individually (e.g. garlic bulbils)
-    That's different than books, which can be sold in any quantity, but for now the code is identical.
+    Subclass for items that are simply mailable.
+    It can be used for Item1 and ItemN products.
  */
-class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
+class sub_SEEDBasket_Purchase_mailable extends SEEDBasket_Purchase
 {
-    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
+    protected function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
     {
         parent::__construct( $oSB, $kP, $raParms );
     }
@@ -412,9 +412,9 @@ class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
 
 
     /**************************************
-        A book order is considered fulfilled when WORKFLOW_FLAG_MAILED.
+        A mailable order is considered fulfilled when WORKFLOW_FLAG_MAILED.
         uid_buyer can be zero.
-        The current date is stored in Purchase::sExtra so we can remember when the book was mailed, but this is nonessential to the workflow.
+        The current date is stored in Purchase::sExtra so we can remember when the item was mailed, but this is nonessential to the workflow.
      */
     function IsFulfilled()
     {
@@ -478,7 +478,15 @@ class SEEDBasket_Purchase_book extends SEEDBasket_Purchase
     }
 }
 
-class SEEDBasket_Purchase_special1 extends SEEDBasket_Purchase_book
+class SEEDBasket_Purchase_book extends sub_SEEDBasket_Purchase_mailable
+{
+    function __construct( SEEDBasketCore $oSB, int $kP, array $raParms = [] )
+    {
+        parent::__construct( $oSB, $kP, $raParms );
+    }
+}
+
+class SEEDBasket_Purchase_special1 extends sub_SEEDBasket_Purchase_mailable
 /*********************************
     special1 is meant for items that are sold individually (e.g. garlic bulbils)
     That's different than books, which can be sold in any quantity, but for now the code is identical.
