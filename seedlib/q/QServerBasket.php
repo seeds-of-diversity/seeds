@@ -2,7 +2,7 @@
 
 /* QServerBasket
  *
- * Copyright 2017-2020 Seeds of Diversity Canada
+ * Copyright 2017-2021 Seeds of Diversity Canada
  *
  * SEEDBasket functionality
  */

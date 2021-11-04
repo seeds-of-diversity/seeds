@@ -2,7 +2,7 @@
 
 /* SEEDBasketProductHandler.php
  *
- * Copyright (c) 2016-2020 Seeds of Diversity Canada
+ * Copyright (c) 2016-2021 Seeds of Diversity Canada
  *
  * Base class of the product handlers that you use whenever you do anything involving a product
  */

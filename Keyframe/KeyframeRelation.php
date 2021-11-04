@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2020 Seeds of Diversity Canada
+ * Copyright (c) 2006-2021 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
