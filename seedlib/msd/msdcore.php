@@ -25,6 +25,8 @@ class MSDCore
     private $dbname1;
     private $dbname2;
 
+    private $klugeBOutOfSeason = true;      // can't order seeds right now
+
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
         raConfig: sbdb     = config_KFDB name of db where the MSD's SEEDBasket lives. Defaults to 'seeds1'.
@@ -165,6 +167,10 @@ class MSDCore
         $ok = false;
 
         if( $kfrS->value('eStatus') != 'ACTIVE' )  goto done;
+
+        // check whether this seed is within its requestable period
+        // for now all seeds are out of season
+        if( $this->klugeBOutOfSeason )  goto done;
 
         switch( $kfrS->value('eOffer') ) {
             default:
