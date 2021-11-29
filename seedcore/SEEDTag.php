@@ -678,12 +678,20 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
             $tdattrs = @$raColAttrs[$iCol++];
             $col = trim($col);
 
-            // {attrs}
+            /* {attrs}             : append attrs to the default column attrs
+             * {replaceWith attrs} : use attrs instead of the default column attrs
+             */
             $s1 = strpos( $col, "{" );
             $s2 = strpos( $col, "}" );
             if( $s1 !== false && $s2 !== false ) {
-                $tdattrs .= " ".substr( $col, $s1 + 1, $s2 - $s1 - 1 );
+                $a = substr( $col, $s1 + 1, $s2 - $s1 - 1 );
                 $col = substr( $col, $s2 +1 );
+
+                if( SEEDCore_StartsWith($a, 'replaceWith ') ) {
+                    $tdattrs = substr($a, strlen('replaceWith ') );
+                } else {
+                    $tdattrs .= " ".$a;
+                }
             }
 
             // *label*
