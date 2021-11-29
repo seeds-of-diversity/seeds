@@ -99,7 +99,7 @@ class MSDLib
 
         /* Archive growers
          */
-        $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,notes, _created,_created_by,_updated,_updated_by";
+        $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,eDateRange,dDateRangeStart,dDateRangeEnd,eReqClass,notes, _created,_created_by,_updated,_updated_by";
         $sql = "INSERT INTO {$this->dbname1}.sed_growers (_key,_status, year, $fields )"
               ."SELECT NULL,0, '$year', $fields "
               ."FROM {$this->dbname1}.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
@@ -164,15 +164,19 @@ class MSDLib
         return( array( $ok, $s ) );
     }
 
-    function DrawGrowerBlock( KeyFrameRecord $kfrGxM, $bFull = true )
+    function DrawGrowerBlock( KeyframeRecord $kfrGxM, $bFull = true )
     {
         $s = $kfrGxM->Expand( "<b>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
              .($kfrGxM->value('organic') ? $this->S('Organic') : "")."</b>"
              ."<br/>";
 
         if( $bFull ) {
-            $s .= $kfrGxM->ExpandIfNotEmpty( 'company', "<strong>[[]]</strong>><br/>" )
-                 .$kfrGxM->Expand( "[[M_address]], [[M_city]] [[M_province]] [[M_postcode]]<br/>" );
+            $s .= $kfrGxM->ExpandIfNotEmpty( 'company', "<strong>[[]]</strong>><br/>" );
+
+            if( $kfrGxM->Value('eReqClass')!='email' ) {
+                // don't show mailing address if requests are accepted by email only
+                $s .= $kfrGxM->Expand( "[[M_address]], [[M_city]] [[M_province]] [[M_postcode]]<br/>" );
+            }
 
             $s1 = "";
             if( !$kfrGxM->value('unlisted_email') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_email', "<i>[[]]</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" );
@@ -181,10 +185,18 @@ class MSDLib
 
             $s .= $kfrGxM->ExpandIfNotEmpty( 'cutoff', "No requests after: [[]]<br/>" );
 
-            $s1 = $kfrGxM->ExpandIfNotEmpty( 'frostfree', "[[]] frost free days. " )
-                 .$kfrGxM->ExpandIfNotEmpty( 'soiltype',  "Soil: [[]]. " )
-                 .$kfrGxM->ExpandIfNotEmpty( 'zone',      "Zone: [[]]. " );
+            $s1 = $kfrGxM->ExpandIfNotEmpty( 'frostfree', "[[]] frost free days. " );
+                 //.$kfrGxM->ExpandIfNotEmpty( 'soiltype',  "Soil: [[]]. " )
+                 //.$kfrGxM->ExpandIfNotEmpty( 'zone',      "Zone: [[]]. " );
             if( $s1 )  $s .= $s1."<br/>";
+
+            $s .= "Requests accepted "
+                 .($kfrGxM->Value('eDateRange')=='all_year'
+                     ? "all year round"
+                     : ("from ".date_format(date_create($kfrGxM->Value('dDateRangeStart')), "M d")." to ".date_format(date_create($kfrGxM->Value('dDateRangeEnd')), "M d"))
+                  )
+                 .($kfrGxM->Value('eReqClass')=='mail' ? " by mail only" : ($kfrGxM->Value('eReqClass')=='email' ? " by e-payment only" : ""))
+                 .".<br/>";
 
             $ra = array();
             foreach( array('nFlower' => array('flower','flowers'),
@@ -210,17 +222,26 @@ class MSDLib
         return( $s );
     }
 
+    private $ePaymentMethods = [
+        'pay_cash'      => ['epay'=>0, 'en' => "Cash",                'fr' => "" ],
+        'pay_cheque'    => ['epay'=>0, 'en' => "Cheque",              'fr' => "" ],
+        'pay_stamps'    => ['epay'=>0, 'en' => "Stamps",              'fr' => "" ],
+        'pay_ct'        => ['epay'=>0, 'en' => "Canadian Tire money", 'fr' => "" ],
+        'pay_mo'        => ['epay'=>0, 'en' => "Money order",         'fr' => "" ],
+        'pay_etransfer' => ['epay'=>1, 'en' => "E-transfer",          'fr' => "" ],
+        'pay_paypal'    => ['epay'=>1, 'en' => "Paypal",              'fr' => "" ] ];
+
     private function drawPaymentMethod( $kfrGxM )
     {
-        $ra = array();
-        if( $kfrGxM->value('pay_cash') )        $ra[] = "Cash";
-        if( $kfrGxM->value('pay_cheque') )      $ra[] = "Cheque";
-        if( $kfrGxM->value('pay_stamps') )      $ra[] = "Stamps";
-        if( $kfrGxM->value('pay_ct') )          $ra[] = "Canadian-Tire";
-        if( $kfrGxM->value('pay_mo') )          $ra[] = "Money order";
-        if( !$kfrGxM->IsEmpty('pay_other') )    $ra[] = $kfrGxM->value('pay_other');
+        $raPay = [];
 
-        return( implode( ", ", $ra ) );
+        foreach( $this->ePaymentMethods as $k => $ra ) {
+            if( $kfrGxM->value('eReqClass')=='email' && !$ra['epay'] ) continue;    // exclude non-epay methods if grower only accepts epay
+            $raPay[] = $ra['en'];
+        }
+        if( $kfrGxM->value('pay_other') )  $raPay[] = $kfrGxM->value('pay_other');
+
+        return( implode( ", ", $raPay ) );
     }
 
     private function S( $sTranslate )
@@ -228,5 +249,152 @@ class MSDLib
         if( $sTranslate == 'Organic' ) return( $this->oApp->lang=='EN' ? $sTranslate : "Biologique" );
 
         return( $sTranslate );
+    }
+
+    function DrawGrowerForm( KeyframeRecord $kfrGxM, $bOffice = false )
+    {
+        $s = "";
+
+$s .= "
+<style>
+.msd_grower_edit_form       { padding:0px 1em; font-size:9pt; }
+.msd_grower_edit_form td    { font-size:9pt; }
+.msd_grower_edit_form input { font-size:8pt;}
+.msd_grower_edit_form h3    { font-size:12pt; }
+</style>
+";
+
+/*
+    alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
+    alter table sed_growers add eReqClass      enum ('mail_email','mail','email');
+
+    alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
+    alter table sed_curr_growers add pay_paypal    tinyint not null default 0;
+
+    alter table sed_curr_growers add eDateRange enum ('use_range','all_year') not null default 'use_range';
+    alter table sed_curr_growers add dDateRangeStart date not null default '2022-02-01';
+    alter table sed_curr_growers add dDateRangeEnd   date not null default '2022-05-31';
+
+    alter table sed_growers add eReqClass       text;
+    alter table sed_growers add eDateRange      text;
+    alter table sed_growers add dDateRangeStart text;
+    alter table sed_growers add dDateRangeEnd   text;
+
+ */
+
+
+        $bNew = !$kfrGxM->Key();
+
+        $s .= "<div class='msd_grower_edit_form'>"
+             ."<h3>".($bNew ? "Add a New Grower"
+                            : $kfrGxM->Expand( "Edit Grower [[mbr_code]] : [[M_firstname]] [[M_lastname]] [[M_company]]" ))."</h3>";
+
+        if( !$bNew ) {
+            $s .= "<div style='background-color:#ddd; margin-bottom:1em; padding:1em; font-size:9pt;'>"
+                 ."If your name, address, phone number, or email have changed, please notify our office"
+                 ."</div>";
+        }
+
+        $oForm = new KeyframeForm( $kfrGxM->KFRel(), "A" );
+        $oForm->SetKFR($kfrGxM);
+        $oFE = new SEEDFormExpand( $oForm );
+        $s .= "<form method='post'>
+               <div class='container-fluid'>
+                   <div class='row'>
+                       <div class='col-md-6'>"
+                         .$oFE->ExpandForm(
+                             "|||BOOTSTRAP_TABLE(class='col-md-4' | class='col-md-8')
+                              ||| <input type='submit' value='Save'/><br/><br/> || [[HiddenKey:]]
+                              ||| *Member&nbsp;#*        || ".($bOffice && $bNew ? "[[mbr_id]]" : "[[mbr_id | readonly]]" )
+                            ."||| *Member&nbsp;Code*     || ".($bOffice ? "[[mbr_code]]" : "[[mbr_code | readonly]]")
+                            ."||| *Email&nbsp;unlisted*  || [[Checkbox:unlisted_email]]&nbsp;&nbsp; do not publish
+                              ||| *Phone&nbsp;unlisted*  || [[Checkbox:unlisted_phone]]&nbsp;&nbsp; do not publish
+                              ||| *Frost&nbsp;free*      || [[frostfree | size:5]]&nbsp;&nbsp; days
+                              ||| *Organic*              || [[Checkbox: organic]]&nbsp;&nbsp; are your seeds organically grown?
+                              ||| *Notes*                || &nbsp;
+                              ||| {replaceWith class='col-md-12'} [[TextArea: notes | width:100% rows:10]]
+                             " )
+                     ."<div style='margin-top:10px;border:1px solid #aaa; padding:10px'>
+                         <p><strong>I accept seed requests:</strong></p>
+                         <p>".$oForm->Radio('eDateRange', 'use_range')."&nbsp;&nbsp;Between these dates</p>
+                         <p style='margin-left:20px'>Members will not be able to make online requests outside of this period. Our default is January 1 to May 31.</p>
+                         <p style='margin-left:20px'>".$oForm->Date('dDateRangeStart')."</p>
+                         <p style='margin-left:20px'>".$oForm->Date('dDateRangeEnd')."</p>
+                         <p>&nbsp;</p>
+                         <p>".$oForm->Radio('eDateRange', 'all_year')."&nbsp;&nbsp;All year round</p>
+                         <p style='margin-left:20px'>Members will be able to request your seeds at any time of year.</p>
+                       </div>
+                       </div>
+                       <div class='col-md-6'>
+                         <div style='border:1px solid #aaa; padding:10px'>
+                         <p><strong>I accept seed requests and payment:</strong></p>
+
+                         <p>".$oForm->Radio('eReqClass', 'mail_email')."&nbsp;&nbsp;By mail or email</p>
+                         <ul>
+                         <li>Members will see your mailing address and email address.</li>
+                         <li>You will receive seed requests in the mail and by email.</li>
+                         <li>Members will be prompted to send payment as you specify below.</li>
+                         </ul>
+
+                         <p>".$oForm->Radio('eReqClass', 'mail')."&nbsp;By mail only</p>
+                         <ul>
+                         <li>Members will see your mailing address.</li>
+                         <li>You will receive seed requests my mail only.</li>
+                         <li>Members will be prompted to send payment as you specify below.</li>
+                         </ul>
+
+                         <p>".$oForm->Radio('eReqClass', 'email')."&nbsp;By email only</p>
+                         <ul>
+                         <li>Members will not see your mailing address.</li>
+                         <li>You will receive seed requests my email only.</li>
+                         <li>Members will be prompted to send payment as you specify below (e-transfer and/or Paypal only).</li>
+                         </ul>
+
+                         <p><strong>Payment Types Accepted</strong></p>
+                         <p>".$oForm->Checkbox( 'pay_cash',      "Cash" ).SEEDCore_NBSP("",4)
+                             .$oForm->Checkbox( 'pay_cheque',    "Cheque" ).SEEDCore_NBSP("",4)
+                             .$oForm->Checkbox( 'pay_stamps',    "Stamps" )."<br/>"
+                             .$oForm->Checkbox( 'pay_ct',        "Canadian Tire money" ).SEEDCore_NBSP("",4)
+                             .$oForm->Checkbox( 'pay_mo',        "Money Order" )."<br/>"
+                             .$oForm->Checkbox( 'pay_etransfer', "e-transfer" ).SEEDCore_NBSP("",4)
+                             .$oForm->Checkbox( 'pay_paypal',    "Paypal" )."<br/>"
+                             .$oForm->Text( 'pay_other', "Other ", ['size'=> 30] )
+                       ."</p>
+                         </div>
+                       </div>
+                   </div>
+               </div></form>";
+
+goto done;
+        $s .= "<TABLE border='0'>";
+        $nSize = 30;
+        $raTxtParms = array('size'=>$nSize);
+        if( $bNew ) {
+            $s .= $bOffice ? ("<TR>".$oKForm->TextTD( 'mbr_id', "Member #", $raTxtParms  )."</TR>")
+                           : ("<TR><td>Member #</td><td>".$oKForm->Value('mbr_id')."</td></tr>" );
+        }
+        //if( $this->sess->CanAdmin('sed') ) {  // Only administrators can change a grower's code
+        if( $this->bOffice ) {  // Only the office application can change a grower's code
+            $s .= "<TR>".$oKForm->TextTD( 'mbr_code', "Member Code", $raTxtParms )."</TR>";
+        }
+        $s .= "<TR>".$oKForm->CheckboxTD( 'unlisted_phone', "Phone", array('sRightTail'=>" do not publish" ) )."</TR>"
+             ."<TR>".$oKForm->CheckboxTD( 'unlisted_email', "Email", array('sRightTail'=>" do not publish" ) )."</TR>"
+             ."<TR>".$oKForm->TextTD( 'frostfree', "Frost free", $raTxtParms )."<TD></TD></TR>"
+             ."<TR>".$oKForm->TextTD( 'soiltype', "Soil type", $raTxtParms )."<TD></TD></TR>"
+             ."<TR>".$oKForm->CheckboxTD( 'organic', "Organic" )."</TR>"
+             ."<TR>".$oKForm->TextTD( 'zone', "Zone", $raTxtParms )."</TR>"
+             ."<TR>".$oKForm->TextTD( 'cutoff', "Cutoff", $raTxtParms )."</TR>"
+
+             ."</TD></TR>"
+             ."<TR>".$oKForm->TextAreaTD( 'notes', "Notes", 35, 8, array( 'attrs'=>"wrap='soft'"))."</TD></TR>"
+             //."<TR>".$oKForm->CheckboxTD( 'bDone', "This Grower is Done:" )."</TR>"
+             ."</TABLE>"
+             ."<BR><INPUT type=submit value='Save' />"
+             ;
+
+done:
+$s .= "</div>";
+
+        return( $s );
     }
 }
