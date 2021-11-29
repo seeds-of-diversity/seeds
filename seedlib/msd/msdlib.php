@@ -183,7 +183,7 @@ class MSDLib
             if( !$kfrGxM->value('unlisted_phone') )  $s1 .= $kfrGxM->ExpandIfNotEmpty( 'M_phone', "[[]]" );
             if( $s1 )  $s .= $s1."<br/>";
 
-            $s .= $kfrGxM->ExpandIfNotEmpty( 'cutoff', "No requests after: [[]]<br/>" );
+            //$s .= $kfrGxM->ExpandIfNotEmpty( 'cutoff', "No requests after: [[]]<br/>" );
 
             $s1 = $kfrGxM->ExpandIfNotEmpty( 'frostfree', "[[]] frost free days. " );
                  //.$kfrGxM->ExpandIfNotEmpty( 'soiltype',  "Soil: [[]]. " )
@@ -262,6 +262,7 @@ $s .= "
 .msd_grower_edit_form td    { font-size:9pt; }
 .msd_grower_edit_form input { font-size:8pt;}
 .msd_grower_edit_form h3    { font-size:12pt; }
+.msd_grower_edit_form input[type='submit'] { background-color:#07f;color:white;font-size:9pt;font-weight:bold; }
 </style>
 ";
 
