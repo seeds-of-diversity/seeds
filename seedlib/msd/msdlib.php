@@ -237,7 +237,8 @@ class MSDLib
 
         foreach( $this->ePaymentMethods as $k => $ra ) {
             if( $kfrGxM->value('eReqClass')=='email' && !$ra['epay'] ) continue;    // exclude non-epay methods if grower only accepts epay
-            $raPay[] = $ra['en'];
+
+            if( $kfrGxM->value($k) )  $raPay[] = $ra['en'];
         }
         if( $kfrGxM->value('pay_other') )  $raPay[] = $kfrGxM->value('pay_other');
 
@@ -266,13 +267,12 @@ $s .= "
 
 /*
     alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
-    alter table sed_growers add eReqClass      enum ('mail_email','mail','email');
 
     alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
     alter table sed_curr_growers add pay_paypal    tinyint not null default 0;
 
     alter table sed_curr_growers add eDateRange enum ('use_range','all_year') not null default 'use_range';
-    alter table sed_curr_growers add dDateRangeStart date not null default '2022-02-01';
+    alter table sed_curr_growers add dDateRangeStart date not null default '2022-01-01';
     alter table sed_curr_growers add dDateRangeEnd   date not null default '2022-05-31';
 
     alter table sed_growers add eReqClass       text;
