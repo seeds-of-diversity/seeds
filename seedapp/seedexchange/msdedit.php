@@ -476,3 +476,218 @@ basketScript;
         return( array( $sList, $raSeeds ) );
     }
 }
+
+
+class MSDAppGrowerForm extends KeyframeForm
+{
+    private $oMSDLib;
+    private $bOffice;
+    private $yCurrent;
+
+    function __construct( MSDLib $oMSDLib, int $yCurrent, bool $bOffice )
+    {
+        $this->oMSDLib = $oMSDLib;
+        $this->bOffice = $bOffice;
+        $this->yCurrent = $yCurrent;
+
+        // do the right thing when these checkboxes are unchecked (http parms are absent, stored value is 1, so change stored value to 0)
+        $fields = ['unlisted_phone' => ['control'=>'checkbox'],
+                   'unlisted_email' => ['control'=>'checkbox'],
+                   'organic'        => ['control'=>'checkbox'],
+                   'pay_cash'       => ['control'=>'checkbox'],
+                   'pay_cheque'     => ['control'=>'checkbox'],
+                   'pay_stamps'     => ['control'=>'checkbox'],
+                   'pay_ct'         => ['control'=>'checkbox'],
+                   'pay_mo'         => ['control'=>'checkbox'],
+                   'pay_etransfer'  => ['control'=>'checkbox'],
+                   'pay_paypal'     => ['control'=>'checkbox'],
+                   //'bDone'          => ['control'=>'checkbox']
+                  ];
+
+        // KFForm is created with KFRelG for purpose of form updates, but SetKGrower() can put a kfrGxM in the form for convenience
+        parent::__construct( $this->oMSDLib->KFRelG(), null, ['fields'=>$fields, 'DSParms'=> ['fn_DSPreStore'=>[$this,'growerForm_DSPreStore']]] );
+    }
+
+    function growerForm_DSPreStore( $oDS )
+    /*************************************
+        Fix up the grower record before writing to db. Return true to proceed with the db write.
+    */
+    {
+        if( !$this->bOffice ) {
+            // regular users can only update their own listings
+            if( $oDS->Value('mbr_id') != $this->oMSDLib->oApp->sess->GetUID() ) {
+                die( "Cannot update grower information - mismatched grower code" );
+            }
+
+// *** Do this for seeds too
+            // record when the member saved the record because office changes overwrite _updated
+            $oDS->SetValue( '_updated_by_mbr', date("y-m-d") );  // this really should be the new _updated but that's hard to get
+        }
+
+        if( !$oDS->Value('year') )  $oDS->SetValue( 'year', $this->yCurrent );
+
+        $oDS->SetValue( 'bChanged', 1 );
+
+        return( true );
+    }
+
+    function SetKGrower( $kGrower )
+    /******************************
+        Replace the oDS->kfr with kfrGxM of this grower
+        The KFForm is created with KFRelG for purpose of form updates, but SetKGrower() can put a kfrGxM in the form for convenience
+     */
+    {
+        // first try to get GxM
+        if( !($kfr = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
+            // create empty form because Grower row doesn't exist (M_* will be blank)
+            $kfr = $this->oMSDLib->KFRelG()->CreateRecord();
+            $kfr->SetValue( 'mbr_id', $kGrower );
+        }
+        $this->SetKFR( $kfr );
+    }
+
+    function DrawGrowerForm()
+    {
+        $s = "
+<style>
+.msd_grower_edit_form       { padding:0px 1em; font-size:9pt; }
+.msd_grower_edit_form td    { font-size:9pt; }
+.msd_grower_edit_form input { font-size:8pt;}
+.msd_grower_edit_form h3    { font-size:12pt; }
+.msd_grower_edit_form input[type='submit'] { background-color:#07f;color:white;font-size:9pt;font-weight:bold; }
+</style>
+";
+
+/*
+    alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
+
+    alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
+    alter table sed_curr_growers add pay_paypal    tinyint not null default 0;
+
+    alter table sed_curr_growers add eDateRange enum ('use_range','all_year') not null default 'use_range';
+    alter table sed_curr_growers add dDateRangeStart date not null default '2022-01-01';
+    alter table sed_curr_growers add dDateRangeEnd   date not null default '2022-05-31';
+
+    alter table sed_growers add eReqClass       text;
+    alter table sed_growers add eDateRange      text;
+    alter table sed_growers add dDateRangeStart text;
+    alter table sed_growers add dDateRangeEnd   text;
+
+ */
+
+        $bNew = !$this->Value('mbr_id');  // only bOffice can instantiate this form with kGrower==0
+
+
+//        $oForm = new KeyframeForm( $kfrGxM->KFRel(), "A" );
+//        $oForm->SetKFR($kfrGxM);
+        $oFE = new SEEDFormExpand( $this );
+
+        $s .= "<div class='msd_grower_edit_form'>"
+             ."<h3>".($bNew ? "Add a New Grower"
+                            : $this->GetKFR()->Expand( "Edit Grower [[mbr_code]] : [[M_firstname]] [[M_lastname]] [[M_company]]" ))."</h3>"
+
+             .(!$bNew ? ("<div style='background-color:#ddd; margin-bottom:1em; padding:1em; font-size:9pt;'>"
+                        ."If your name, address, phone number, or email have changed, please notify our office"
+                        ."</div>") : "")
+
+             ."<form method='post'>
+               <div class='container-fluid'>
+                   <div class='row'>
+                       <div class='col-md-6'>"
+                         .$oFE->ExpandForm(
+                             "|||BOOTSTRAP_TABLE(class='col-md-4' | class='col-md-8')
+                              ||| <input type='submit' value='Save'/><br/><br/> || [[HiddenKey:]]
+                              ||| *Member&nbsp;#*        || ".($this->bOffice && $bNew ? "[[mbr_id]]" : "[[mbr_id | readonly]]" )
+                            ."||| *Member&nbsp;Code*     || ".($this->bOffice ? "[[mbr_code]]" : "[[mbr_code | readonly]]")
+                            ."||| *Email&nbsp;unlisted*  || [[Checkbox:unlisted_email]]&nbsp;&nbsp; do not publish
+                              ||| *Phone&nbsp;unlisted*  || [[Checkbox:unlisted_phone]]&nbsp;&nbsp; do not publish
+                              ||| *Frost&nbsp;free*      || [[frostfree | size:5]]&nbsp;&nbsp; days
+                              ||| *Organic*              || [[Checkbox: organic]]&nbsp;&nbsp; are your seeds organically grown?
+                              ||| *Notes*                || &nbsp;
+                              ||| {replaceWith class='col-md-12'} [[TextArea: notes | width:100% rows:10]]
+                             " )
+                     ."<div style='margin-top:10px;border:1px solid #aaa; padding:10px'>
+                         <p><strong>I accept seed requests:</strong></p>
+                         <p>".$this->Radio('eDateRange', 'use_range')."&nbsp;&nbsp;Between these dates</p>
+                         <p style='margin-left:20px'>Members will not be able to make online requests outside of this period. Our default is January 1 to May 31.</p>
+                         <p style='margin-left:20px'>".$this->Date('dDateRangeStart')."</p>
+                         <p style='margin-left:20px'>".$this->Date('dDateRangeEnd')."</p>
+                         <p>&nbsp;</p>
+                         <p>".$this->Radio('eDateRange', 'all_year')."&nbsp;&nbsp;All year round</p>
+                         <p style='margin-left:20px'>Members will be able to request your seeds at any time of year.</p>
+                       </div>
+                       </div>
+                       <div class='col-md-6'>
+                         <div style='border:1px solid #aaa; padding:10px'>
+                         <p><strong>I accept seed requests and payment:</strong></p>
+
+                         <p>".$this->Radio('eReqClass', 'mail_email')."&nbsp;&nbsp;By mail or email</p>
+                         <ul>
+                         <li>Members will see your mailing address and email address.</li>
+                         <li>You will receive seed requests in the mail and by email.</li>
+                         <li>Members will be prompted to send payment as you specify below.</li>
+                         </ul>
+
+                         <p>".$this->Radio('eReqClass', 'mail')."&nbsp;By mail only</p>
+                         <ul>
+                         <li>Members will see your mailing address.</li>
+                         <li>You will receive seed requests my mail only.</li>
+                         <li>Members will be prompted to send payment as you specify below.</li>
+                         </ul>
+
+                         <p>".$this->Radio('eReqClass', 'email')."&nbsp;By email only</p>
+                         <ul>
+                         <li>Members will not see your mailing address.</li>
+                         <li>You will receive seed requests my email only.</li>
+                         <li>Members will be prompted to send payment as you specify below (e-transfer and/or Paypal only).</li>
+                         </ul>
+
+                         <p><strong>Payment Types Accepted</strong></p>
+                         <p>".$this->Checkbox( 'pay_cash',      "Cash" ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_cheque',    "Cheque" ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_stamps',    "Stamps" )."<br/>"
+                             .$this->Checkbox( 'pay_ct',        "Canadian Tire money" ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_mo',        "Money Order" )."<br/>"
+                             .$this->Checkbox( 'pay_etransfer', "e-transfer" ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_paypal',    "Paypal" )."<br/>"
+                             .$this->Text( 'pay_other', "Other ", ['size'=> 30] )
+                       ."</p>
+                         </div>
+                       </div>
+                   </div>
+               </div></form>
+               </div>";
+
+/*
+        $s .= "<TABLE border='0'>";
+        $nSize = 30;
+        $raTxtParms = array('size'=>$nSize);
+        if( $bNew ) {
+            $s .= $bOffice ? ("<TR>".$oKForm->TextTD( 'mbr_id', "Member #", $raTxtParms  )."</TR>")
+                           : ("<TR><td>Member #</td><td>".$oKForm->Value('mbr_id')."</td></tr>" );
+        }
+        //if( $this->sess->CanAdmin('sed') ) {  // Only administrators can change a grower's code
+        if( $this->bOffice ) {  // Only the office application can change a grower's code
+            $s .= "<TR>".$oKForm->TextTD( 'mbr_code', "Member Code", $raTxtParms )."</TR>";
+        }
+        $s .= "<TR>".$oKForm->CheckboxTD( 'unlisted_phone', "Phone", array('sRightTail'=>" do not publish" ) )."</TR>"
+             ."<TR>".$oKForm->CheckboxTD( 'unlisted_email', "Email", array('sRightTail'=>" do not publish" ) )."</TR>"
+             ."<TR>".$oKForm->TextTD( 'frostfree', "Frost free", $raTxtParms )."<TD></TD></TR>"
+             ."<TR>".$oKForm->TextTD( 'soiltype', "Soil type", $raTxtParms )."<TD></TD></TR>"
+             ."<TR>".$oKForm->CheckboxTD( 'organic', "Organic" )."</TR>"
+             ."<TR>".$oKForm->TextTD( 'zone', "Zone", $raTxtParms )."</TR>"
+             ."<TR>".$oKForm->TextTD( 'cutoff', "Cutoff", $raTxtParms )."</TR>"
+
+             ."</TD></TR>"
+             ."<TR>".$oKForm->TextAreaTD( 'notes', "Notes", 35, 8, array( 'attrs'=>"wrap='soft'"))."</TD></TR>"
+             //."<TR>".$oKForm->CheckboxTD( 'bDone', "This Grower is Done:" )."</TR>"
+             ."</TABLE>"
+             ."<BR><INPUT type=submit value='Save' />"
+             ;
+
+*/
+
+        return( $s );
+    }
+
+}
