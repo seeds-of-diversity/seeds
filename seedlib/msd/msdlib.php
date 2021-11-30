@@ -37,7 +37,8 @@ class MSDLib
     function TranslateSpecies( $sSp )   { return( $this->oMSDCore->TranslateSpecies( $sSp ) ); }
     function TranslateSpecies2( $sSp )  { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
 
-    function KFRelGxM() { return( $this->oMSDCore->KfrelGxM() ); }
+    function KFRelG()   { return( $this->oMSDCore->KFRelG() ); }
+    function KFRelGxM() { return( $this->oMSDCore->KFRelGxM() ); }
 
     function AdminNormalizeStuff()
     {

@@ -514,6 +514,13 @@ class MSDCore
 
     function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
 
+    function KFRelG()
+    {
+        $defG = [ "Tables"=>[ 'G' => [ "Table" => "{$this->oApp->DBName('seeds1')}.sed_curr_growers",
+                                       "Type" => "Base",
+                                       "Fields" => "Auto" ] ]];
+        return( new KeyFrame_Relation( $this->oApp->kfdb, $defG, $this->oApp->sess->GetUID(), ['logfile'=>$this->oApp->logdir."msd.log"] ) );
+    }
 
     function KFRelGxM()
     {
