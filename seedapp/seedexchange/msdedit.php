@@ -555,6 +555,7 @@ class MSDAppGrowerForm extends KeyframeForm
 .msd_grower_edit_form input { font-size:8pt;}
 .msd_grower_edit_form h3    { font-size:12pt; }
 .msd_grower_edit_form input[type='submit'] { background-color:#07f;color:white;font-size:9pt;font-weight:bold; }
+.msd_grower_edit_form .help { padding:0 10px;font-weight:bold; font-size:10pt; color:#07f; }
 </style>
 ";
 
@@ -597,12 +598,12 @@ class MSDAppGrowerForm extends KeyframeForm
                          .$oFE->ExpandForm(
                              "|||BOOTSTRAP_TABLE(class='col-md-4' | class='col-md-8')
                               ||| <input type='submit' value='Save'/><br/><br/> || [[HiddenKey:]]
-                              ||| *Member&nbsp;#*        || ".($this->bOffice && $bNew ? "[[mbr_id]]" : "[[mbr_id | readonly]]" )
-                            ."||| *Member&nbsp;Code*     || ".($this->bOffice ? "[[mbr_code]]" : "[[mbr_code | readonly]]")
-                            ."||| *Email&nbsp;unlisted*  || [[Checkbox:unlisted_email]]&nbsp;&nbsp; do not publish
+                              ||| *Member&nbsp;#*        || ".($this->bOffice && $bNew ? "[[mbr_id]]" : "[[mbr_id | readonly]]" )."
+                              ||| *Member&nbsp;Code*     || ".($this->bOffice ? "[[mbr_code]]" : "[[mbr_code | readonly]]")."<span class='help SEEDPopover SPop_mbr_code'>?</span>
+                              ||| *Email&nbsp;unlisted*  || [[Checkbox:unlisted_email]]&nbsp;&nbsp; do not publish <span class='help SEEDPopover SPop_unlisted'>?</span>
                               ||| *Phone&nbsp;unlisted*  || [[Checkbox:unlisted_phone]]&nbsp;&nbsp; do not publish
-                              ||| *Frost&nbsp;free*      || [[frostfree | size:5]]&nbsp;&nbsp; days
-                              ||| *Organic*              || [[Checkbox: organic]]&nbsp;&nbsp; are your seeds organically grown?
+                              ||| *Frost&nbsp;free*      || [[frostfree | size:5]]&nbsp;&nbsp; days <span class='help SEEDPopover SPop_frost_free'>?</span>
+                              ||| *Organic*              || [[Checkbox: organic]]&nbsp;&nbsp; are your seeds organically grown?  <span class='help SEEDPopover SPop_organic'>?</span>
                               ||| *Notes*                || &nbsp;
                               ||| {replaceWith class='col-md-12'} [[TextArea: notes | width:100% rows:10]]
                              " )
