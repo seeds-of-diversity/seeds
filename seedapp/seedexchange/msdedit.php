@@ -159,7 +159,11 @@ $msdSeedEditForm = <<<msdSeedEditForm
         <td><select id='msdSeedEdit_quantity' name='quantity'><option value=''></option><option value='LQ'>Low Quantity</option><option value='PR'>Please Re-offer</option></select></td>
         <td><div class='msdSeedEdit_instruction'><b>Quantity</b>: If you have a low quantity of seeds, or if you want to ask requesters to re-offer seeds, indicate that here.</div></td>
     </tr><tr>
-        <td><select id='msdSeedEdit_eOffer' name='eOffer'><option value='member'>All Members</option><option value='grower-member'>Only members who also list seeds</option><option value='public'>General public</option></select></td>
+        <td><select id='msdSeedEdit_eOffer' name='eOffer'>
+                <option value='member'>All Members</option>
+                <option value='grower-member'>Only members who also list seeds</option> 
+                <!-- <option value='public'>General public</option> --> 
+            </select></td>
         <td><p class='msdSeedEdit_instruction'><b>Who may request these seeds from you</b>: <span id='msdSeedEdit_eOffer_instructions'></span></p></td>
     </tr><tr>
         <td><nobr>$<input type='text' id='msdSeedEdit_item_price' name='item_price' class='msdSeedEdit_inputText'/></nobr></td>
