@@ -169,6 +169,8 @@ function SEEDCore_ArrayExpandIfNotEmpty( $ra, $k, $sTemplate, $bEnt = true )
  * Replace "[[]]" with $ra[0], repeat for $ra[1], etc.
  *          [[v]] is the same as [[]]
  *          [[k]] substitutes the key instead of the value
+ *
+ *          $ra can be an array of arrays: [[v|foo]] is substituted with $ra[i]['foo'] for each i
  */
 function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = [] )
 /*********************************************************************************
@@ -185,8 +187,9 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
     $i = 0;
     $iLast = count($ra) - 1;
     foreach( $ra as $k => $v ) {
-        if( !(is_string($v) || is_numeric($v)) ) continue;  // you can't reference objects or arrays in your template
+        if( !(is_string($v) || is_numeric($v) || is_array($v)) ) continue;  // you can't reference objects in your template
 
+        // various ways to get the template for this iteration
         if( is_callable($template) ) {
             $tmpl = ($template)($k, $v, ['n'=>count($ra),'bEnt'=>$bEnt,'bFirst'=>($i==0),'bLast'=>($i==$iLast)]);
         } else {
@@ -195,10 +198,34 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
                                                                         : $template );
         }
 
-        if( $bEnt ) { $k = SEEDCore_HSC($k); $v = SEEDCore_HSC($v); }
-        $s .= str_replace( ['[[k]]', '[[v]]', '[[ku]]',      '[[vu]]',      '[[]]'],
-                           [$k,      $v,      urlencode($k), urlencode($v), $v],
-                           $tmpl );
+        // substitute key
+        if( $bEnt ) { $k = SEEDCore_HSC($k); }
+        $tmpl = str_replace( ['[[k]]', '[[ku]]'],
+                             [$k,      urlencode($k)],
+                             $tmpl );
+
+        // substitute value
+        if( is_array($v) ) {
+            // [[v|foo]] is $v['foo']
+            $raMatches = [];
+            preg_match_all( "/\[\[v\|(.*)\]\]/", $tmpl, $raMatches, PREG_SET_ORDER );   // returns [ ["[[v|foo]]", "foo"], ["[[v|bar]]","bar"], ...
+            foreach( $raMatches as $raM ) {
+                $v1 = $v[$raM[1]];
+                if( $bEnt ) $v1 = SEEDCore_HSC($v1);
+                $tmpl = str_replace( $raM[0], $v1, $tmpl );
+            }
+
+            // not implemented yet: [[vu|foo]] is urlencode($v['foo']) using similar to above
+
+            $s .= $tmpl;
+        } else {
+            // [[v]] is just a scalar substitution
+            if( $bEnt ) { $k = SEEDCore_HSC($k); $v = SEEDCore_HSC($v); }
+            $s .= str_replace( ['[[]]', '[[v]]', '[[vu]]'],
+                               [$v,     $v,      urlencode($k)],
+                               $tmpl );
+        }
+
         ++$i;
     }
 
@@ -430,6 +457,13 @@ function SEEDCore_EndsWith( $haystack, $needle )
 {
     $length = strlen($needle);
     return( substr( $haystack, -$length, $length ) === $needle );   // third parameter is for the boundary condition where $needle==''
+}
+
+function SEEDCore_Contains( $haystack, $needle )
+/***********************************************
+ */
+{
+    return( strpos($haystack,$needle) !== false );
 }
 
 function SEEDCore_ImplodeKeyValue( $ra, $sep1, $sep2 )
