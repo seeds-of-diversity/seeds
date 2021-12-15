@@ -11,7 +11,7 @@ $date  = @$_REQUEST['d'] ?: date("ymd");
 
 // format is the same as the myBackup shell script so it can be copied there easily
 
-$raTables1 = [ 
+$raTables1 = [
                "ev:              ev_events"                                                                                          ,
                "rl:              rl_companies"                                                                                       ,
                "bull:            bull_list"                                                                                          ,
@@ -19,10 +19,10 @@ $raTables1 = [
                "doclib:          doclib_document"                                                                                    ,
                "sed:             sed_growers sed_seeds"                                                                              ,
                "sedcurr:         sed_curr_growers sed_curr_seeds"                                                                    ,
-               "docrep1_:        docrep_docs docrep_docdata docrep_docxdata"                                                         ,
+               "docrep1_:        docrep_docs docrep_docdata docrep_docxdata docrep2_docs docrep2_data docrep2_docxdata"              ,
                "mbrorder:        mbr_order_pending"                                                                                  ,
                "pollcan:         pollcan_flowers pollcan_insects pollcan_insectsxflowers pollcan_sites pollcan_users pollcan_visits" ,
-               "sl:              sl_collection sl_accession sl_inventory sl_adoption sl_germ"                                        , 
+               "sl:              sl_collection sl_accession sl_inventory sl_adoption sl_germ"                                        ,
                "slrosetta:       sl_species sl_species_syn sl_species_map sl_pcv sl_pcv_syn sl_pcv_meta"                             ,
                "sldesc:          mbr_sites sl_varinst sl_desc_obs sl_desc_cfg_forms sl_desc_cfg_tags sl_desc_cfg_m"                  ,
                "slsources:       sl_sources"                                                                                         ,
@@ -35,12 +35,13 @@ $raTables1 = [
                "SEEDBasket:      SEEDBasket_Baskets SEEDBasket_Products SEEDBasket_ProdExtra SEEDBasket_BP"                          ,
 ];
 
-$raTables2 = [ 
+$raTables2 = [
                "mbr:             mbr_contacts mbr_donations"                                                        ,
                "mbrmail:         mbr_mail_send mbr_mail_send_recipients"                                            ,
+               "seedmail:        SEEDMail SEEDMail_Staged"                                                          ,
                "gcgc:            gcgc_growers gcgc_varieties gcgc_gxv"                                              ,
                "tasks:           task_tasks"                                                                        ,
-               "docrep2_:        docrep_docs docrep_docdata docrep_docxdata"                                        ,
+               "docrep2_:        docrep_docs docrep_docdata docrep_docxdata docrep2_docs docrep2_data docrep2_docxdata" ,
                "SEEDLocal2_:     SEEDLocal"                                                                         ,
                "SEEDMetaTable2_: SEEDMetaTable_StringBucket SEEDMetaTable_TablesLite SEEDMetaTable_TablesLite_Rows" ,
                "SEEDPerms2_:     SEEDPerms SEEDPerms_Classes"                                                       ,
@@ -67,7 +68,7 @@ $sCommands =
 $sChanged = "";
 $sDel = "";
 foreach( array_merge( $raTables1, $raTables2 ) as $tdef ) {
-    list($fprefix,$tabs) = explode( ':', $tdef );    
+    list($fprefix,$tabs) = explode( ':', $tdef );
     $ratab = explode( ' ', trim($tabs) );
 
     $f1short = $fprefix.$date.".sql";
@@ -142,9 +143,9 @@ function dumpTables( $raTables, $userid, $password, $db )
 
     $s = "";
     foreach( $raTables as $tdef ) {
-        list($fprefix,$tabs) = explode( ':', $tdef );    
+        list($fprefix,$tabs) = explode( ':', $tdef );
         $ratab = explode( ' ', trim($tabs) );
-    
+
         $s .= dumpTable( $ratab, $userid, $password, $db, "$dir/$fprefix$date.sql" );
     }
     return( $s );
@@ -163,17 +164,17 @@ function dumpTable( $ratab, $userid, $password, $db, $file )
 function filesMatch( $fname1, $fname2 )
 {
     $bMatch = true;
-    
+
     if( !($f1 = fopen( $fname1, 'r' )) ) goto done;
     if( !($f2 = fopen( $fname2, 'r' )) ) goto done;
     while( !feof($f1) && !feof($f2) ) {
         /* Read lines and compare.
          * 1) Some lines are very long. This reads up to the given length, or \n whichever comes first, then continues from that point next time.
-         * 2) One line contains "--Dump completed on..." with a different timestamp in each file. 
+         * 2) One line contains "--Dump completed on..." with a different timestamp in each file.
          */
         $l1 = fgets( $f1, 100000 );
         $l2 = fgets( $f2, 100000 );
-        
+
         if( SEEDCore_StartsWith( $l1, "--Dump completed on" ) ) continue;   // both l1 and l2 should have this line
         if( SEEDCore_StartsWith( $l1, "-- Dump completed on" ) ) continue;   // both l1 and l2 should have this line
         if( SEEDCore_StartsWith( $l1, "-- MySQL dump " ) ) continue;        // both l1 and l2 should have this line
@@ -185,12 +186,12 @@ function filesMatch( $fname1, $fname2 )
     }
     fclose($f1);
     fclose($f2);
-    
+
     done:
     return( $bMatch );
-    
+
     // this is better, if you have exec()
-    
+
     // exec returns output to second argument, which is passed by reference so it has to be defined and real.
     // This can overflow PHP memory if a large file changes substantially, so output is redirected to /dev/null
     $raDummy = array();
@@ -198,7 +199,7 @@ function filesMatch( $fname1, $fname2 )
     exec( "diff -I \"-- Dump completed on *\" $f1 $f2 > /dev/null", $raDummy, $iRet );
     if( $iRet == 0 ) $bMatch = true;
 
-    return( $bMatch );    
+    return( $bMatch );
 }
 
 exit;
@@ -266,7 +267,7 @@ echo "</PRE><HR/>";
  $raTables2['SEEDPerms2_'],
  $raTables2['SEEDSession2_'],
  array("SEEDSession")
- 
+
  );
  $raDump2b = array_merge(
  $raTables2['mbr'],
@@ -274,8 +275,8 @@ echo "</PRE><HR/>";
  $raTables2['gcgc'],
  $raTables2['tasks']
  );
- 
- 
+
+
  // Transfers to newsite
  $sTransfer = "\n\nTransfers to newsite:\n"
  .dumpTable( $raDump1a, "seeds", $pass1, "seeds", "/home/seeds2/public_html/transfer_1a.sql" )
@@ -287,7 +288,7 @@ echo "</PRE><HR/>";
  .dumpTable( $raDump2a, "seeds2", $pass2, "seeds2", "/home/seeds2/public_html/transfer_2a.sql" )
  ."\n"
  .dumpTable( $raDump2b, "seeds2", $pass2, "seeds2", "/home/seeds2/public_html/transfer_2b.sql" );
- 
+
  */
 /*******************************************************************************************************************
  End transfer section
