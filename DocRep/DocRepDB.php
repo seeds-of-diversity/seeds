@@ -8,15 +8,19 @@
  * DocRepDB methods guarantee that the integrity of the DocRepository is maintained. i.e. they clean up after errors.
  * Build your abstract DocRep manager on top of this.
  *
- * Internally-supported types:
+ * Document types (doc.type):
  *
- *      TEXT         - (leaf or non-leaf) text that is meant to be viewed as a document
- *      IMAGE        - (leaf) file meant to be embedded in a document
- *      BIN          - (leaf) text or binary file meant to be viewed standalone (e.g. pdf)
- *      TEXTFRAGMENT - fragment of text meant to be combined with other fragments to compose a document
  *      FOLDER       - (non-leaf) placeholder that groups other docs as their parent
+ *      TEXT         - (leaf or non-leaf) text that is meant to be viewed as a document
+ *      TEXTFRAGMENT - (leaf or non-leaf) fragment of text meant to be combined with other fragments to compose a document
+ *      IMAGE        - (leaf) file meant to be embedded in a document
+ *      BIN          - (leaf) text or binary file meant to be viewed standalone (e.g. pdf,docx)
+ *      U_*          - (leaf) user defined type treated identically to BIN
  *
- *      Not a type, but a storage method (data.src)
+ * Storage types (data.src):
+ *      TEXT         - data is stored in data.data_text
+ *      FILE         - data is in a file in virtual filesystem keyed by data._key
+ *      SFILE        - data is in a file in static filesystem
  *      LINK         - references another doc - allows transclusion into alternate tree structures when trees of links
  *                          reference TEXTFRAGMENTs. See "transclusion" in Wikipedia for an excellent explanation.
  *
@@ -314,7 +318,7 @@ class DocRepDoc2_ReadOnly
      */
     {
         $ra = $this->GetValues($flag);
-// type can be FOLDER, DOC, BIN, LINK
+// type can be FOLDER, TEXT, TEXTFRAGMENT, IMAGE, BIN, LINK
 // src just says where it's stored
          return( ($ra['type']=='TEXT' || $ra['type']=='TEXTFRAGMENT') && $ra['data_src'] == 'TEXT' ? $ra['data_text'] : "" );
         //return( $ra['type']=='TEXT' && $ra['data_src'] == 'TEXT'
@@ -822,13 +826,12 @@ class DocRepDoc2_Insert extends DocRepDoc2
         Insert a new doc.
         $this must be a blank DocRepDoc with kDoc==0
 
-        docType = TEXT | IMAGE | DOC | TEXTFRAGMENT | FOLDER | LINK | U_* (user type treated like DOC)
-        eSrcType = TEXT | FILE | SFILE
-        src     = eSrcType=TEXT: the content
-                | eSrcType=FILE: the uploaded file name
-                | eSrcType=SFILE: an optional uploaded file name
-                | docType=LINK: dest kDoc
-
+        docType = FOLDER | TEXT | TEXTFRAGMENT | IMAGE | BIN | U_* (user type treated like BIN)
+        eSrcType = TEXT | FILE | SFILE | LINK
+        src     = eSrcType==TEXT:  the content
+                          | FILE:  the uploaded file name
+                          | SFILE: an optional uploaded file name
+                          | LINK:  dest kDoc
 
         For SFILE:
             $src is an optional uploaded file name - if blank create a doc pointing to dr_name and assume somebody put it there
