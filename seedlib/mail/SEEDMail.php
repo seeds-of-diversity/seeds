@@ -76,8 +76,9 @@ class SEEDMail
 
             if( $docid ) {
                 $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp, ['bReadonly'=>true, 'db'=>$db] );
-                $oDoc = $oDocRepDB->GetDoc($docid); // new DocRepDoc2( $oDocRepDB, $docid );
-                $sMsg = $oDoc->GetText('');
+                if( ($oDoc = $oDocRepDB->GetDoc($docid)) ) { // new DocRepDoc2( $oDocRepDB, $docid );
+                    $sMsg = $oDoc->GetText('');
+                }
             }
         }
 
@@ -243,6 +244,7 @@ $raVars['lang'] = $this->oApp->lang;
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
         //$oDocRepWiki->AddVar( 'sEmailSubject', $sEmailSubject );
         $sBody = SEEDMail::ExpandMessage( $this->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
+
 
 // either here or in SEEDEmail put <html><body> </body></html> around the message if it doesn't already have that
         $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
