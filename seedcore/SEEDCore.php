@@ -222,7 +222,7 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
             // [[v]] is just a scalar substitution
             if( $bEnt ) { $k = SEEDCore_HSC($k); $v = SEEDCore_HSC($v); }
             $s .= str_replace( ['[[]]', '[[v]]', '[[vu]]'],
-                               [$v,     $v,      urlencode($k)],
+                               [$v,     $v,      urlencode($v)],
                                $tmpl );
         }
 
