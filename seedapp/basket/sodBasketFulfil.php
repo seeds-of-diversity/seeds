@@ -362,8 +362,8 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
          .$this->mailStatus( $kfr, $raOrder );
 
     $sFulfilment
-        = $this->doneAccountingButton( $kfr )
-         .$this->doneRecordingButton( $kfr );
+        = $this->doneAccountingButton( $kfr );
+         //.$this->doneRecordingButton( $kfr );
 
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
          ."<td valign='top' $style>$sOrderNum</td>"
@@ -423,9 +423,10 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
         return( $s );
     }
+/*
     private function doneRecordingButton( KeyframeRecord $kfr )
-    /**********************************************************
-     */
+    [**********************************************************
+     *]
     {
         $s = "";
 
@@ -437,7 +438,7 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
 
         return( $s );
     }
-
+*/
 
     private function basketContents( KeyframeRecord $kfr, $sContents, $fTotal, $bContactNeeded )
     /*******************************************************************************************
