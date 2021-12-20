@@ -241,7 +241,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 break;
             case "Not-recorded":
                 $label = "Non-Recorded";
-                $cond = "eStatus <> '".MBRORDER_STATUS_CANCELLED."' AND bDoneRecording=0";
+                $cond = "eStatus NOT IN ('".MBRORDER_STATUS_FILLED."','".MBRORDER_STATUS_CANCELLED."')";
                 $bSortDown = false;
                 break;
             case "Not-mailed":
@@ -310,10 +310,10 @@ $uidSeller = 1;     // only showing SoD's part of the basket
         }
 
         switch( $kfr->value('eStatus') ) {
-            case MBRORDER_STATUS_NEW:       $style = "style='background-color:#eee'";               break;
-            case MBRORDER_STATUS_PAID:
+            case MBRORDER_STATUS_NEW:       $style = "style='background-color:white'";            break;
+            case MBRORDER_STATUS_PAID:      $style = "style='background-color:#ffffd8'";            break;
             case MBRORDER_STATUS_FILLED:    $style = "style='color:green;background-color:#efe'";   break;
-            case MBRORDER_STATUS_CANCELLED: $style = "style='color:#844; background-color:#eee'";   break;
+            case MBRORDER_STATUS_CANCELLED: $style = "style='color:#844; background-color:#fff0f0'";   break;
             default:                        $style = "";
         }
 
@@ -355,8 +355,10 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         = SEEDCore_Dollar($kfr->value('pay_total'))." by ".$kfr->value('ePayType')."<br/>"
          //."<b>".@$mbr_PayStatus[$kfr->value('pay_status')]."</b><br/>"
          //."<b>".(($kfr->value('eStatus')==MBRORDER_STATUS_FILLED && $this->GetMailStatus_Pending($kfr)) ? "Accounted" : $kfr->value('eStatus'))."</b>"
-         ."<b>".$kfr->value('eStatus')."</b>"
-         .$this->paidButton( $kfr )
+         ."<b>".($kfr->value('eStatus') == 'New' ? "Not paid" : $kfr->value('eStatus'))."</b>"
+         //if( $kfr->value('eStatus')=='New' ) {
+         //   $s = "<div class='doStatusPaid' data-kOrder='".$kfr->Key()."'><button>Change to Paid</button></div>";
+         //}
          .$this->mailStatus( $kfr, $raOrder );
 
     $sFulfilment
@@ -366,9 +368,9 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
     $s .= "<tr class='mbro-row' data-kOrder='".$kfr->Key()."'>"
          ."<td valign='top' $style>$sOrderNum</td>"
          ."<td valign='top' $style>$sName</td>"
-         ."<td valign='top'>$sAddress</td>"
-         ."<td valign='top'>$sEbulletin</td>"
-         ."<td valign='top'>$sConciseSummary". /*$this->mailNothingButton( $kfr, $raOrder ).*/ $this->basketContents( $kfr, $sContents, $fTotal, $bContactNeeded )."</td>"
+         ."<td valign='top' $style>$sAddress</td>"
+         ."<td valign='top' $style>$sEbulletin</td>"
+         ."<td valign='top' $style>$sConciseSummary". /*$this->mailNothingButton( $kfr, $raOrder ).*/ $this->basketContents( $kfr, $sContents, $fTotal, $bContactNeeded )."</td>"
          ."<td valign='top' $style>$sPayment</td>"
          ."<td valign='top' $style>$sFulfilment</td>"
          ."</tr>";
@@ -382,17 +384,6 @@ $sConciseSummary = str_replace( "One Year Membership with printed and on-line Se
         $ra = SEEDCore_ParmsURL2RA( $kfr->value('sExtra') );
         $to = @$ra['mbrid'] ?: $kfr->value('mail_email');
         return( "window.open(\"../int/emailme.php?to=$to\",\"_blank\",\"width=900,height=800,scrollbars=yes\")" );
-    }
-
-    private function paidButton( $kfr )
-    {
-        $s = "";
-
-        if( $kfr->value('eStatus')=='New' ) {
-            $s = "<div class='doStatusPaid' data-kOrder='".$kfr->Key()."'><button>Change to Paid</button></div>";
-        }
-
-        return( $s );
     }
 
 /*

@@ -33,12 +33,14 @@ class QServerBasket extends SEEDQ
             case 'sb--basketStatus':
                 /* kBasket, eStatus, sNote : set the eStatus for this basket and record optional sNote
                  */
-                if( ($eStatus = SEEDCore_ArraySmartVal( $parms, 'eStatus', ['','Open','Paid','Filled','Cancelled'])) &&
+                if( ($eStatus = SEEDCore_ArraySmartVal( $parms, 'eStatus', ['','Open','Confirmed','Paid','Filled','Cancelled'])) &&     // '' forces exit if no match
                     ($kBasket = intval(@$parms['kBasket'])) &&
 // put this in SEEDBasket_Basket::StatusChange()
                     ($kfrB = $this->oSB->oDB->GetBasketKFR($kBasket))
 /*&& $this->permsBasket($kfrB)*/   // test permission and ownership of this basket (buyers can confirm and cancel, system can set paid/filled, vendors only fill purchases)
                 ) {
+                    $sNote = @$parms['sNote'];  // sNote is optional
+
                     $kfrB->SetValue( 'eStatus', $eStatus );
 
                     // record the status change in the notes, with optional sNote
@@ -49,14 +51,14 @@ class QServerBasket extends SEEDQ
                     $rQ['sOut'] = "Changed eStatus to $eStatus";
 
 // TODO: remove this when mbr_order.php shows eStatus from basket
+                    $e2 = in_array($eStatus,['Open','Confirmed']) ? 'New' : $eStatus;   // old status code for Confirmed
                     $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending "
-                                               ."SET eStatus='$eStatus' "
+                                               ."SET eStatus='$e2' "
                                                ."WHERE kBasket='$kBasket'" );
 
 // TODO: store this note in SEEDBasket_Baskets instead
                     $s1 = $this->oApp->kfdb->Query1( "SELECT notes FROM {$this->oApp->DBName('seeds1')}.mbr_order_pending WHERE kBasket='$kBasket'" )
-                         ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] Changed status to $eStatus. "
-                         .@$parms['sNote']."\n";
+                         ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] Changed status to $eStatus. {$sNote}\n";
                     $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending SET notes='".addslashes($s1)."' WHERE kBasket='$kBasket'" );
                 }
                 break;
@@ -76,8 +78,7 @@ class QServerBasket extends SEEDQ
 
 // mbr_order: remove this when mbr_order.php shows notes from basket
                     $s1 = $this->oApp->kfdb->Query1( "SELECT notes FROM {$this->oApp->DBName('seeds1')}.mbr_order_pending WHERE kBasket='$kBasket'" )
-                         ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] "
-                         .$parms['sNote']."\n";
+                         ."[".$this->oApp->sess->GetName()." at ".date( "Y-M-d h:i")."] {$sNote}\n";
                     $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending SET notes='".addslashes($s1)."' where kBasket='$kBasket'" );
                 }
                 break;
