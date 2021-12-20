@@ -22,6 +22,8 @@ class SEEDBasketStore
         $this->oSB = $oSB;
     }
 
+    function KlugeGetSB() { return($this->oSB); }   // allow transitional Store to get this in awkward places
+
     public function Log( $s )
     {
         $this->oSB->oApp->Log( 'SEEDBasketStore.log', $s );
