@@ -241,7 +241,7 @@ class SodOrderFulfilUI extends SodOrderFulfil
                 break;
             case "Not-recorded":
                 $label = "Non-Recorded";
-                $cond = "eStatus NOT IN ('".MBRORDER_STATUS_FILLED."','".MBRORDER_STATUS_CANCELLED."')";
+                $cond = "eStatus NOT IN ('".MBRORDER_STATUS_FILLED."','".MBRORDER_STATUS_CANCELLED."') AND NOT bDoneRecording";
                 $bSortDown = false;
                 break;
             case "Not-mailed":
