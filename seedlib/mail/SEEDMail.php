@@ -43,7 +43,7 @@ class SEEDMail
         if( $this->kfr ) {
             $s = $this->kfr->Value('sBody');
             $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
-            $s = self::ExpandMessage( $this->oApp, $s, ['raVars'=>$raVars] );
+            list($okDummy,$s) = self::ExpandMessage( $this->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
         }
 
         return( $s );
@@ -65,6 +65,8 @@ class SEEDMail
              any local state (e.g. the local kfr)
      */
     {
+        $ok = true;
+
         $bDocRepFetch = SEEDCore_ArraySmartBool( $raParms, 'bDocRepFetch', true );  // fetch docrep by default (if it's a docrep code)
         $bExpandTags  = SEEDCore_ArraySmartBool( $raParms, 'bExpandTags', true );   // expand tags by default
         $raVars       = @$raParms['raVars'] ?: [];
@@ -78,6 +80,10 @@ class SEEDMail
                 $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp, ['bReadonly'=>true, 'db'=>$db] );
                 if( ($oDoc = $oDocRepDB->GetDoc($docid)) ) { // new DocRepDoc2( $oDocRepDB, $docid );
                     $sMsg = $oDoc->GetText('');
+                } else {
+                    $this->oApp->Log("mailsend.log", "*** Failed to expand mail message - '$docid' not found in DocRep - a blank email was probably sent anyway" );
+                    $sMsg = "";
+                    $ok = false;
                 }
             }
         }
@@ -94,7 +100,7 @@ class SEEDMail
             $sMsg = $oTmpl->ExpandStr( $sMsg, $raVars );
         }
 
-        return( $sMsg );
+        return( [$ok,$sMsg] );
     }
 
     function Store( $raParms )
@@ -243,11 +249,13 @@ $raVars['lang'] = $this->oApp->lang;
         //$oDocRepWiki->AddVar( 'kMbrTo', $kMbr );
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
         //$oDocRepWiki->AddVar( 'sEmailSubject', $sEmailSubject );
-        $sBody = SEEDMail::ExpandMessage( $this->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
+        list($ok,$sBody) = SEEDMail::ExpandMessage( $this->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
 
-
+        // if ExpandMessage failed, don't send the message (sBody probably blank) - SEEDMail should have logged the problem (e.g. DocRep doc not found)
+        if( $ok ) {
 // either here or in SEEDEmail put <html><body> </body></html> around the message if it doesn't already have that
-        $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
+            $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
+        }
 
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()
         $kfrStage->SetValue( "eStageStatus", $ok ? "SENT" : "FAILED");
