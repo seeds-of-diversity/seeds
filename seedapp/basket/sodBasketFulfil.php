@@ -61,6 +61,7 @@ class SodOrder
                                                     array("col"=>"bDoneRecording",  "type"=>"I"),
                                                     array("col"=>"kBasket",         "type"=>"I"),
                                                     array("col"=>"ePayType",        "type"=>"S", "default"=>'PayPal'),
+                                                    ['col'=>"depositCode",          'type'=>'S'],
                                                     array("col"=>"sExtra",          "type"=>"S") )
         ]]] );
     }
