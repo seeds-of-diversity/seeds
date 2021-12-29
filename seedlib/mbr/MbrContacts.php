@@ -341,9 +341,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         Return array of M_D where D is the most recent donation for M
 
             raParms:
-                condM_D = condition on mbr_contacts LEFT JOIN mbr_donations with cols prefixed "M." and "D." e.g. M.email <> '' AND year(D.date_received)>'2019'
-                condD2  = (not used because _D is always just the most recent donation and you can filter on that with M_D ?)
-                          condition on mbr_donations with cols prefixed "D2." e.g. year(D2.date_received) > '2019'
+                condM_D         : condition on mbr_contacts LEFT JOIN mbr_donations with cols prefixed "M." and "D." e.g. M.email <> '' AND year(D.date_received)>'2019'
                 bRequireEmail   : default false
                 bRequireAddress : default true
 
@@ -355,28 +353,105 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                 D_amountTotal   = sum of amounts that satisfies cond
      */
     {
-        if( !SEED_isLocal ) { echo "MySQL 5 does not support 'partition by'<br/>"; return([]); }
-
         if( !isset($raParms['bRequireAddress']) ) $raParms['bRequireAddress'] = true;
 
         $condM_D = ""//"M.country='Canada' AND "
                   .(@$raParms['bRequireAddress'] ? "M.address IS NOT NULL AND M.address<>'' AND " : "")   // address is blanked out if mail comes back RTS
                   .(@$raParms['bRequireEmail'] ? "M.email IS NOT NULL AND M.email<>'' AND " : "")
-                  ."NOT M.bNoDonorAppeals"
-                  .(@$raParms['condM_D'] ? " AND ({$raParms['condM_D']}) " : "");
-        $condD2  = @$raParms['condD2'] ? " AND ({$raParms['condD2']}) " : "";
+                  ."NOT M.bNoDonorAppeals";
 
-        $dbname = $this->oApp->GetDBName('seeds2');
+        $condM_D .= ($c = @$raParms['condM_D']) ? " AND ($c) " : "";
+
+        /* Include members who have had a membership or made a donation after a given date
+         * D.date_received NULL means the LEFT JOIN failed (member has never made a donation)
+         */
+        $dM = @$raParms['dIncludeIfMbrAfter'];
+        $dD = @$raParms['dIncludeIfDonAfter'];
+        // pre-calc both to prevent short-circuit
+        if( $dM || $dD ) {
+            $c = ($dM        ? "(M.expires IS NOT NULL AND M.expires>='$dM')" : "")
+                .($dM && $dD ? " OR " : "")
+                .($dD        ? "(D.date_received IS NOT NULL AND D.date_received>='$dD')" : "" );
+
+            $condM_D .= " AND ($c)";
+        }
+
+        /* Exclude members who have made a donation after a given date
+         * D.date_received NULL means the LEFT JOIN failed (member has never made a donation) so keep that record
+         */
+        if( ($d = @$raParms['dExcludeIfDonAfter']) )  $condM_D .= " AND (D.date_received IS NULL OR D.date_received<'$d')";
+
+
+        if( SEED_isLocal ) {
+            $raOut = $this->getMD( $condM_D, $retSql, $raParms, 'old' );
+
+            $sql2 = "";
+            $raOut2 = $this->getMD( $condM_D, $sql, $raParms, 'new' );
+
+            echo "Using both methods: new has ".count($raOut)." elements; old has ".count($raOut2)." elements<br/>";
+
+            $diff = false;
+            for( $i = 0; $i < count($raOut); ++$i ) {
+                if( $raOut[$i]['M_lastname'] <> $raOut2[$i]['M_lastname'] || $raOut[$i]['D_amountTotal'] <> $raOut2[$i]['D_amountTotal'] ) {
+                    $diff = true; var_dump( "new", "{$raOut[$i]['M_firstname']} {$raOut[$i]['M_lastname']} {$raOut[$i]['D_date_received']} {$raOut[$i]['D_amount']} {$raOut[$i]['D_amountTotal']}",
+                                            "old", "{$raOut2[$i]['M_firstname']} {$raOut2[$i]['M_lastname']} {$raOut2[$i]['D_date_received']} {$raOut2[$i]['D_amount']} {$raOut2[$i]['D_amountTotal']}" );
+                }
+            }
+
+            echo ($diff ? "not the same" : "identical")."<br/>";
+
+        } else {
+            $raOut = $this->getMD( $condM_D, $retSql, $raParms, 'old' );
+        }
+
+        return( $raOut );
+    }
+
+    private function getMD( string $condM_D, ?string &$retSql, array $raParms, string $mode )
+    {
+        $dbname = $this->oApp->DBName('seeds2');
+
+        if( $mode == 'old' ) {
+            $sqlDonors =
+                /* Create table D: one row per fk_mbr_contacts containing their most recent donation and the sum of all their donations.
+                   D2 is a unique fk_mbr_contacts, the most recent donation _key for that member, and the sum of donations for that member.
+                   Join each D2 row with the details for that most recent donation _key.
+                 */
+                "(SELECT d1._key as _key,d1.fk_mbr_contacts as fk_mbr_contacts,d1.amount as amount,d2.amountTotal as amountTotal,
+                         d1.date_received as date_received,d1.receipt_num as receipt_num
+                  FROM {$dbname}.mbr_donations d1,
+                       ". /* For each fk_mbr_contacts get the total donations and most recent donation.
+                             Since (fk_mbr_contacts,date_received) is often duplicated there are only two deterministic ways to get a consistent one of those duplicates.
+                             i.e. max(date_received) group by fk_mbr_contacts will not necessarily return the same record
+                             (max(_key) group by fk_mbr_contacts) and (max(_created) group by fk_mbr_contacts) probably give the most recent date_received, though rarely not.
+                             Of these, _key is a little easier to implement.
+                           */ "
+                      (SELECT fk_mbr_contacts,sum(amount) as amountTotal,max(_key) as kDonLastReceived
+                       FROM {$dbname}.mbr_donations where _status='0' group by fk_mbr_contacts
+                       ) as d2
+
+                  WHERE d1._key=d2.kDonLastReceived
+                 ) as D";
+
+        } else {
+            /* Create table D: one row per fk_mbr_contacts containing their most recent donation and the sum of all their donations.
+             * D1 is all rows of mbr_donations with row_num indicating recentness and amountTotal showing the sum per member.
+             * Choose only the rows with row_num==1 to get the most recent donations per member.
+             */
+            $sqlDonors =
+                "(SELECT * FROM
+                     (SELECT *,
+                             row_number() over (partition by fk_mbr_contacts order by date_received desc) as row_num,
+                             sum(amount) over (partition by fk_mbr_contacts) as amountTotal
+                      FROM {$dbname}.mbr_donations D2 WHERE D2._status='0') as D1
+                  WHERE D1.row_num=1) as D";
+        }
 
         /* Get each mbr_contact with a left-joined row of mbr_donations that is that contact's most recent donation.
          *
-         * Table D2 is mbr_donations. Filtering of the donations rows should be done using D2.* conditions.
-         * Table D1 is the result of filtering D2 with condD, partitioning that by fk_mbr_contacts
-         * (partitioning happens after WHERE), sorting each partition by date_received desc, and applying row_number().
-         * Therefore every row of D1 with row_num==1 is the newest donation per fk_mbr_contacts.
-         * Table D is D1 filtered with row_num=1 to get just the newest donations.
-         * Then M is LEFT JOINED with D and filtered with condM to get every qualified mbr_contact and their
-         * most recent donation that matches condD.
+         * Table D is fk_mbr_contacts, details of their most recent donation, sum of all their donations
+         * M is LEFT JOINED with D to get details of every member, details of their most recent donation, and their all-time sum of donations.
+         * The result is filtered by parameters.
          */
         $sql = "SELECT M._key as M__key,
                        M.firstname as M_firstname,M.lastname as M_lastname,
@@ -386,16 +461,13 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                        M.email as M_email,M.phone as M_phone,
                        D._key as D__key,D.date_received as D_date_received,D.receipt_num as D_receipt_num,
                        D.amount as D_amount,D.amountTotal as D_amountTotal
-                    FROM {$dbname}.mbr_contacts M LEFT JOIN
-                    (SELECT * FROM
-                        (SELECT *,
-                                row_number() over (partition by fk_mbr_contacts order by date_received desc) as row_num,
-                                sum(amount) over (partition by fk_mbr_contacts) as amountTotal
-                         FROM {$dbname}.mbr_donations D2 WHERE D2._status=0 $condD2) as D1
-                     WHERE D1.row_num=1) as D
+                FROM {$dbname}.mbr_contacts M LEFT JOIN
+                     $sqlDonors
                 ON M._key=D.fk_mbr_contacts WHERE M._status=0 AND $condM_D "
               ."ORDER BY cast(D.amountTotal as decimal) desc,M.lastname,M.firstname";
+
         if( $retSql !== null ) $retSql = $sql;
+//echo ($mode.$sql."<br/><br/>");
 
         return( $this->oApp->kfdb->QueryRowsRA($sql) );
     }
@@ -453,7 +525,7 @@ class MbrContactsList
             // fetch the mailing list if not already loaded
             if( !$this->raGroups[$sGroup]['raList'] ) {
                 $this->raGroups[$sGroup]['raList'] = $this->oMbr->oDB->GetContacts_MostRecentDonation(
-                        ['condM_D'=>$this->raGroups[$sGroup]['cond']], $this->raGroups[$sGroup]['sql'] );
+                        ['condM_D'=>$this->raGroups[$sGroup]['cond']], $this->raGroups[$sGroup]['sql'], $this->raGroups[$sGroup]['parms'] );
                 foreach( $this->raGroups[$sGroup]['raList'] as &$ra ) {
                     $ra['SEEDPrint:addressblock'] = Mbr_Contacts::DrawAddressBlockFromRA( $ra, 'HTML', 'M_' );
                 }
@@ -478,8 +550,6 @@ class MbrContactsList
 // parameterize
         $condLarge = "D.amountTotal>=150";
 
-        // condD2 filters mbr_donations (just get the most recent donation, which is the default)
-        $condD2 = "";
         /* condM_D filters the results of the final join M_D
          * 1) Donor is anyone eligible for a donation request who made a donation between dDonorStart and dDonorEnd
          * 2) NonDonorMember is anyone eligible for a donation request who did not make a donation since dDonorStart
@@ -487,20 +557,21 @@ class MbrContactsList
          * 3) This excludes anyone who neither was a member nor made a donation since dStart
          * 4) Also excludes anyone who made a donation since $dDonorEnd
          */
+// use dIncludeMbrAfter, dIncludeIfDonAfter, dExcludeIfDonAfter
         $condDonor = "D.date_received IS NOT NULL AND D.date_received BETWEEN '$dStart' AND '$dDonorEnd'";
         $condNonDonorMember = "(D.date_received IS NULL OR D.date_received<'$dStart') AND M.expires>='$dStart'";
 
-        foreach(['donorEN'    => ['title'=>'Donors English',       'cond'=>[$condDonor,          $lEN],       ],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donorFR'    => ['title'=>'Donors French',        'cond'=>[$condDonor,          $lFR],       ],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor100EN' => ['title'=>'Donors English $100+', 'cond'=>[$condDonor,          $lEN, $condLarge],],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor100FR' => ['title'=>'Donors French $100+',  'cond'=>[$condDonor,          $lFR, $condLarge],],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor99EN'  => ['title'=>'Donors English $99-',  'cond'=>[$condDonor,          $lEN, "NOT $condLarge"], ],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor99FR'  => ['title'=>'Donors French $99-',   'cond'=>[$condDonor,          $lFR, "NOT $condLarge"], ],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'nonDonorEN' => ['title'=>'Non-donors English',   'cond'=>[$condNonDonorMember, $lEN],       ],// 'order'=>"lastname,firstname"],
-                 'nonDonorFR' => ['title'=>'Non-donors French',    'cond'=>[$condNonDonorMember, $lFR],       ],// 'order'=>"lastname,firstname"]
+        foreach(['donorEN'    => ['title'=>'Donors English',       'cond'=>[$condDonor,          $lEN],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donorFR'    => ['title'=>'Donors French',        'cond'=>[$condDonor,          $lFR],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor100EN' => ['title'=>'Donors English $150+', 'cond'=>[$condDonor,          $lEN, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor100FR' => ['title'=>'Donors French $150+',  'cond'=>[$condDonor,          $lFR, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor99EN'  => ['title'=>'Donors English $149-', 'cond'=>[$condDonor,          $lEN, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor99FR'  => ['title'=>'Donors French $149-',  'cond'=>[$condDonor,          $lFR, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'nonDonorEN' => ['title'=>'Non-donors English',   'cond'=>[$condNonDonorMember, $lEN],                   'parms'=>[]],// 'order'=>"lastname,firstname"],
+                 'nonDonorFR' => ['title'=>'Non-donors French',    'cond'=>[$condNonDonorMember, $lFR],                   'parms'=>[]],// 'order'=>"lastname,firstname"]
                 ] as $k => $ra )
         {
-            $this->raGroups[$k] = ['title'=>$ra['title'], 'raList'=>null, 'cond'=>implode(' AND ',$ra['cond']), 'sql'=>""];
+            $this->raGroups[$k] = ['title'=>$ra['title'], 'raList'=>null, 'cond'=>implode(' AND ',$ra['cond']), 'parms'=>$ra['parms'], 'sql'=>""];
         }
     }
 }

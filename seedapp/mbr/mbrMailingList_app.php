@@ -164,12 +164,15 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
 
 
     // get all members and/or donors since $dStart, optionally exclude those with donations within 6 months ago
-    $condM_D = "((M.expires IS NOT NULL AND M.expires>='$dStart') OR
-                 (D.date_received IS NOT NULL AND D.date_received>='$dStart'))"
-              .($eGroup=='membersAndDonors2YearsNoDonationInSixMonths' ? " AND (D.date_received IS NULL OR D.date_received<'$dSixMonthsAgo')" : "")
-              .$condFilter;
-    $raMD = $oMbr->oDB->GetContacts_MostRecentDonation( ['condM_D' => $condM_D,
-                                                         'bRequireEmail'=>true, 'bRequireAddress'=>false], $sql );
+    $mrdParms = ['condM_D' => $condFilter,
+                 'bRequireEmail'=>true, 'bRequireAddress'=>false,
+                 'dIncludeIfMbrAfter' => $dStart,
+                 'dIncludeIfDonAfter' => $dStart
+    ];
+    if( $eGroup == 'membersAndDonors2YearsNoDonationInSixMonths' ) {
+        $mrdParms['dExcludeIfDonAfter'] = $dSixMonthsAgo;
+    }
+    $raMD = $oMbr->oDB->GetContacts_MostRecentDonation( $mrdParms, $sql );
 
     if( $eGroup =='membersAndDonors2Years' ) {
         /* Contacts who have been members and/or donors within the past 2 years
