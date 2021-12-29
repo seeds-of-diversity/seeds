@@ -147,7 +147,8 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
     $sql = "";
     $oMbr = new Mbr_Contacts( $oApp );
 
-    $condFilter = $p_lang ? ($p_lang=='FR'? " AND M.lang IN ('B','F')" : " AND M.lang IN ('','B','E')") : "";
+    $condFilter = "1=1";
+    $condFilter .= $p_lang ? ($p_lang=='FR'? " AND M.lang IN ('B','F')" : " AND M.lang IN ('','B','E')") : "";
 // Duplicated below
     switch( $p_mbrFilter1 ) {
         case 'getMagazine':                                                  break;  // all members get the magazine
