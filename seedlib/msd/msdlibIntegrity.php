@@ -97,7 +97,7 @@ class MSDLibIntegrity
                      ),
 
             'integ_grower_code_unique2' =>
-                array( 'title' => "Check for grower codes that have changed from previous years",
+                array( 'title' => "Check for grower codes that have changed from previous years (only comparing the new format)",
                        'testType' => 'rows0',
                        'failLabel' => "Warning: Grower codes changed",
                        'failShowRow' => "Member [[mbr_id]] was [[G2_mbr_code]] in [[G2_year]], but is now [[G_mbr_code]]",
@@ -105,7 +105,9 @@ class MSDLibIntegrity
                        'testSql' =>
                            "SELECT G.mbr_id as mbr_id,G.year as G_year,G2.year as G2_year,G.mbr_code as G_mbr_code,G2.mbr_code as G2_mbr_code "
                           ."FROM {$this->dbname1}.sed_curr_growers G, {$this->dbname1}.sed_growers G2 "
-                          ."WHERE (G.mbr_id=G2.mbr_id) AND G.mbr_code <> G2.mbr_code ORDER BY G.mbr_id",
+                          ."WHERE (G.mbr_id=G2.mbr_id) AND G.mbr_code <> G2.mbr_code
+                                  AND LENGTH(G2.mbr_code)=7 " // only compare new-format codes AA AA A"
+                          ."ORDER BY G.mbr_id",
                      ),
 
             'integ_grower_code_badly_reused' =>
@@ -211,14 +213,14 @@ class MSDLibIntegrity
 
             /* Check that the data is normalized
              */
-            'data_mbrcode_8chars' =>
+            'data_mbrcode_7chars' =>
                 array( 'title' => "Check for non-standard mbrcode format",
                        'testType' => 'rows0',
-                       'failLabel' => "Mbr codes don't have 8 characters",
+                       'failLabel' => "Mbr codes don't have 7 characters",
                        'failShowRow' => "[[m]] : [[mc]]",
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM {$this->dbname1}.sed_curr_growers G WHERE LENGTH(G.mbr_code)<>8 AND G.mbr_code<>'SODC/SDPC'",
+                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM {$this->dbname1}.sed_curr_growers G WHERE LENGTH(G.mbr_code)<>7 AND G.mbr_code<>'SODC/SDPC'",
                      ),
 
             'data_cat_sp_var_exist' =>
