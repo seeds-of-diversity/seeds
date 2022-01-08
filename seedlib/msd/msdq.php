@@ -377,7 +377,7 @@ class MSDQ extends SEEDQ
         }
         // except the VIEW_REQUESTABLE mode is only allowed if the current user is allowed to request the seed
         if( $eView == 'VIEW_REQUESTABLE' ) {
-            $eView = $this->oMSDCore->IsRequestableByUser( $kfrS ) ? 'VIEW_REQUESTABLE' : 'VIEW';
+            $eView = $this->oMSDCore->IsRequestableByUser( $kfrS )==MSDCore::REQUESTABLE_YES ? 'VIEW_REQUESTABLE' : 'VIEW';
         }
         // and REVIEW is currently identical to EDIT so they coded as EDIT below
         if( $eView == 'REVIEW' )  $eView = 'EDIT';

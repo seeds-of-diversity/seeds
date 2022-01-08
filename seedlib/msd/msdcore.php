@@ -25,7 +25,7 @@ class MSDCore
     private $dbname1;
     private $dbname2;
 
-    private $klugeBOutOfSeason = true;      // can't order seeds right now
+    private $bShutdown = false;      // can't order seeds right now
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
@@ -159,44 +159,63 @@ class MSDCore
         return( $bOk );
     }
 
+    const REQUESTABLE_YES = 'YES';
+    const REQUESTABLE_NO_INACTIVE = 'NO_INACTIVE';
+    const REQUESTABLE_NO_OUTOFSEASON = 'NO_OUTOFSEASON';
+    const REQUESTABLE_NO_NONGROWER = 'NO_NONGROWER';
+
     function IsRequestableByUser( $kfrS )
     /************************************
-        Return true if the currently logged-in user is allowed to request this seed
+        Return YES if the currently logged-in user is allowed to request this seed
      */
     {
-        $ok = false;
+        $eReq = self::REQUESTABLE_NO_INACTIVE;
 
+        if( $this->bShutdown )  goto done;
         if( $kfrS->value('eStatus') != 'ACTIVE' )  goto done;
 
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
-        if( $this->klugeBOutOfSeason )  goto done;
+        if( false
+            // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
+            ) {
+            $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
+            goto done;
+        }
 
-        switch( $kfrS->value('eOffer') ) {
+        $eReq = self::REQUESTABLE_YES;
+
+        // this should be obtained by the caller and used everywhere
+        $kfrBetter = $this->GetSeedKfr($kfrS->Key());
+
+        switch( $kfrBetter->value('eOffer') ) {
             default:
             case 'member':
                 // I am a member
 // use a different method to determine membership
-                $ok = $this->oApp->sess->CanRead( 'sed' );
+//                $ok = $this->oApp->sess->CanRead( 'sed' );
                 break;
-            case 'grower':
+            case 'grower-member':
                 // I am a member offering seeds
 // use a different method to determine membership
-                $ok = $this->oApp->sess->CanRead( 'sed' ) &&
-                      ($this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products "
+                if( // $this->oApp->sess->CanRead( 'sed' ) &&
+                     !($this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products "
                                                  ."WHERE uid_seller='".$this->oApp->sess->GetUID()."' AND "
                                                        ."product_type='seeds' AND "
                                                        ."eStatus='ACTIVE' AND "
-                                                       ."_status='0'" ));
+                                                       ."_status='0'" )) )
+                {
+                    $eReq = self::REQUESTABLE_NO_NONGROWER;
+                }
                 break;
             case 'public':
                 // anyone can request these seeds
-                $ok = true;
+//                $ok = true;
                 break;
         }
 
         done:
-        return( $ok );
+        return( $eReq );
     }
 
     function SeedCursorOpen( $cond )
