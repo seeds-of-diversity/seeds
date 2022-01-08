@@ -418,7 +418,7 @@ function msdResizeList()
 #    <p>You are logged in. Please enter your address information below.</p>
 #  {% endif %}
 
-  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
+#  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
   <p style='margin-left:10px'><a href="[[Var:siteroot]]login?sessioncmd=logout">Logout</a></p>
 
 {% else %}
@@ -456,6 +456,7 @@ function msdResizeList()
 
 %% msdSeasonalNotice
 # always show this for now but it should be configurable
+<!--
 <div style="border: 1px solid #aaa; margin-bottom:20px; padding: 15px; width: 100%;">
   {% if lang == 'EN' %}
     <h3>The Seed Exchange will open on January 8, 2022</h3>
@@ -476,7 +477,7 @@ function msdResizeList()
     <p>Merci d'avoir partag&eacute;!</p>
 {% endif %}
 </div>
-
+-->
 
 %% msdConfirmed
 <table style='width:60%'><tr><td><img src='//seeds.ca/i/img/logo/logoA_h-[[lower:$lang]]-300x.png' style='max-height:80px' class='img-responsive'/></td>
@@ -491,7 +492,7 @@ function msdResizeList()
 </div>
 
 %% msdConfirmedFooter
-  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
+#  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
 
 
 %% msdSeedRequestForm
