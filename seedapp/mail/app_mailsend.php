@@ -59,7 +59,7 @@ $sBody .= $sTest;
 $bSendMail = ($bTestOk && $nToSend);
 
 if( $bSendMail ) {
-    $sBody .= "<p>Sending one email every 20 seconds.</p>";
+    $sBody .= "<p>Sending one email every $nDelay seconds.</p>";
     $sBody .= "<br/><br/>";
 
     while( $bTestOk && $nQuantity-- ) {
