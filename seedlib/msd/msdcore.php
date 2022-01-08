@@ -34,7 +34,8 @@ class MSDCore
                   currYear = the current year for entering MSD entries
      */
     {
-        $this->bShutdown = ($oApp->sess->GetUID() != 1499);
+        // shut down for everyone except Bob
+        //$this->bShutdown = ($oApp->sess->GetUID() != 1499);
 
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
