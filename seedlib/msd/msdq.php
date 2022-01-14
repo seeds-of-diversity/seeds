@@ -402,6 +402,7 @@ class MSDQ extends SEEDQ
 
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
         $sV = "<b>{$raSeed['variety']}</b>"
+             .(SEEDCore_StartsWith(($sp = $kfrS->value('species')), 'TOMATO') ? "&nbsp;&nbsp;&nbsp;<span style='color:gray;font-size:9pt;border:1px solid:#ccc'>($sp)</span>&nbsp;&nbsp;&nbsp;" : "")
              .( $eView=='PRINT' ? (" @M@ <b>$mbrCode</b>".SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'bot_name', "<br/><b><i>[[]]</i></b>" ))
                                 : (SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'bot_name', " <b><i>[[]]</i></b>" )) );
         $sOut .= $eView=='VIEW_REQUESTABLE'
