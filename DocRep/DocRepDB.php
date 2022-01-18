@@ -763,6 +763,28 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
 
         return( $ok );
     }
+
+    function Rename( $parms )
+    /************************
+        Update the content and/or metadata of a document
+     */
+    {
+        $ok = true;
+
+        if( @$parms['name'] ) {
+            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
+            $kfrDoc->SetValue( 'name', $parms['name'] );
+            $ok = $kfrDoc->PutDBRow();
+        }
+
+        if( $ok && @$parms['title'] ) {
+            $kfrData = $this->getKfrData( $this->kDoc, '' );
+            $kfrData->SetValue( 'title', $parms['title'] );
+            $ok = $kfrData->PutDBRow();
+        }
+
+        return( $ok );
+    }
 }
 
 class DocRepDoc2_Insert extends DocRepDoc2

@@ -40,6 +40,11 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doUpdate($kDoc);
                 break;
+
+            case 'dr--rename':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doRename($kDoc, $parms);
+                break;
         }
 
         done:
@@ -93,4 +98,15 @@ class QServerDocRep extends SEEDQ
         return( [$bOk,$s] );
     }
 
+    private function doRename( $kDoc, $parms )
+    {
+        $s = "";
+        $bOk = false;
+
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            $bOk = $oDoc->Rename( $parms );
+        }
+
+        return( [$bOk,$s] );
+    }
 }
