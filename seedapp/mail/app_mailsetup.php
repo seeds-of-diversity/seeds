@@ -2,7 +2,7 @@
 
 /* mailsetup.php
  *
- * Copyright 2010-2021 Seeds of Diversity Canada
+ * Copyright 2010-2022 Seeds of Diversity Canada
  *
  * Prepare mail to be sent to members / donors / subscribers.
  * Use mbr_mailsend to send the mail.
@@ -37,6 +37,7 @@ $consoleConfig = [
                   'right'=>['tabs' => [ 'mailitem' => ['label'=>'Mail Item'],
                                         'text'     => ['label'=>'Text'],
                                         'controls' => ['label'=>'Controls'],
+                                        'schedule' => ['label'=>'Schedule'],
                                         'delete'   => ['label'=>'Delete'],
                                         'ghost'   =>  ['label'=>'Ghost']
                                       ],
@@ -44,6 +45,7 @@ $consoleConfig = [
                             'perms' =>[ 'mailitem' => [],
                                         'text'     => ['PUBLIC'],
                                         'controls' => [],
+                                        'schedule' => [],
                                         'delete'   => ['A MBRMAIL'],
                                         'ghost'    => ['A notyou'],
                                       ]
@@ -69,7 +71,7 @@ $sPreview = "";
 $sControls = "[[TabSet:right]]"; // $oConsole->TabSetDraw( "right" )
 
 
-$s = "<table cellspacing='0' cellpadding='10' style='width:100%;border:1px solid #888'><tr>"
+$s = "<table cellspacing='0' cellpadding='10' style='width:100%;'><tr>"
     ."<td valign='top'>"
         ."<form method='post' action='{$oApp->PathToSelf()}'>"
         ."<input type='hidden' name='cmd' value='CreateMail'/>"
@@ -79,7 +81,7 @@ $s = "<table cellspacing='0' cellpadding='10' style='width:100%;border:1px solid
         .$sMailTable
         .$sPreview
     ."</td>"
-    ."<td valign='top' style='border-left:solid grey 1px;padding-left:2em;width:50%'>"
+    ."<td valign='top' style='padding-left:2em;width:50%'>"
         .$sControls
     ."</td>"
     ."</tr></table>";
@@ -123,6 +125,35 @@ class MyConsole02TabSet extends Console02TabSet
 
 
         return( "<div style='padding:20px'>$sMessageText</div>" );
+    }
+
+    function TabSet_right_schedule_ContentDraw()
+    {
+        $s = "";
+
+        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oMailUI->oApp );
+
+        // this is how you get the information about a named folder
+        $oDocScheduleFolder = $oDocRepDB->GetDocRepDoc( 'Schedule2' );
+
+        // this is how you find all the documents in the folder, and their details
+        $raChildren = $oDocRepDB->GetSubtree( $oDocScheduleFolder->GetKey(), 1 );
+        foreach( $raChildren as $kChild => $ra ) {
+            if( $ra['visible'] ) {
+                $oChild = $oDocRepDB->GetDocRepDoc( $kChild );
+                $s .= $oChild->GetName()."<br/>";
+            }
+        }
+
+
+        // this is how you get random info from the current mail record
+        $oMailCurr = new SEEDMail( $this->oMailUI->oApp, $this->oMailUI->CurrKMail() );
+        $extra = $oMailCurr->GetKFR()->Value('sExtra');
+
+        // this is how you store random info in the current mail record
+        $oMailCurr->Store( ['sExtra' => "FOO"] );
+
+        return( $s );
     }
 }
 
