@@ -52,7 +52,7 @@ $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
                                    ],
              ] ];
 
-$oApp = SEEDConfig_NewAppConsole( ['db'=>'drdev',
+$oApp = SEEDConfig_NewAppConsole( ['db'=>'cats',
                               'sessPermsRequired' => $tabConfig['main']['perms'] ] );
                               //     'consoleConfig' => $consoleConfig] );
 

@@ -54,13 +54,14 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
+$db = 'cats';   // seeds2
 
-$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2',
-                                   'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
+$oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>$db,
+                                 //  'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
 SEEDPRG();
 
-$oMailUI = new SEEDMailUI( $oApp );
+$oMailUI = new SEEDMailUI( $oApp, ['db'=>$db] );
 $oMailUI->Init();
 
 $sMailTable = $oMailUI->GetMessageList( '' );
