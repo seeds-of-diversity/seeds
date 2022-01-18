@@ -17,10 +17,10 @@ class SEEDMailUI
     private $kMail = 0;
     private $oMailItemForm;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
         $this->oApp = $oApp;
-        $this->oDB = new SEEDMailDB( $oApp );
+        $this->oDB = new SEEDMailDB( $oApp, $raConfig );
     }
 
     function CurrKMail()  { return( $this->kMail ); }
