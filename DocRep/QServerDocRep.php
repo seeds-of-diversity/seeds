@@ -2,7 +2,7 @@
 
 /* QServerDocRep
  *
- * Copyright 2021 Seeds of Diversity Canada
+ * Copyright 2021-2022 Seeds of Diversity Canada
  *
  * Serve queries for Document Repositories
  */

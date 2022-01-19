@@ -2,7 +2,7 @@
 
 /* DocRepDB
  *
- * Copyright (c) 2006-2021 Seeds of Diversity Canada
+ * Copyright (c) 2006-2022 Seeds of Diversity Canada
  *
  * Manipulate DocRep documents at the database level.
  * DocRepDB methods guarantee that the integrity of the DocRepository is maintained. i.e. they clean up after errors.
