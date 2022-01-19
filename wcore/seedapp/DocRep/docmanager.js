@@ -166,10 +166,13 @@ class myDocRepCtrlView extends DocRepCtrlView
 //            sPerms = oDoc['perms'];
         }
         
-        let s = `<div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
+        let s = `<form onsubmit='myDocRepRenameSubmit(event)'>
+        		 <div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/></div></div>
-                 <p><button>Change</button></p>`;
+                 <input type='hidden' id='drRename_kDoc' value='${kCurrDoc}'/>
+                 <input type='submit' value='Change'/>
+                 </form>`;
         s = s.replaceAll("[label]", "class='col-md-3'");
         s = s.replaceAll("[ctrl]",  "class='col-md-6'");
         
@@ -190,8 +193,37 @@ function myDocRepEditSubmit( e )
     console.log(rQ);
         $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
     }
+    console.log(kDoc + "kdoc");
 }
 
+/*
+rename submit 
+*/
+function myDocRepRenameSubmit( e ) {
+	e.preventDefault();;
+	let kDoc = $('#drRename_kDoc').val();
+	let name = $('#formRename_name').val();
+	let title = $('#formRename_title').val();
+	let permissions = $('#formRename_perms').val();
+	
+	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, class: title, permclass: permissions});
+	
+	if(rQ.bOk){
+		myDocRepRenameUpdateTree(kDoc, name);
+	}
+	else{
+		console.log("error rename");
+	}
+}
+
+/*
+update tree after rename 
+*/
+function myDocRepRenameUpdateTree( kDoc, name ) {
+	let parent = document.querySelectorAll(`[data-kdoc='${kDoc}']`);
+	let child = parent[0].children[0].children[1].nextSibling;
+	child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
+}
 
 class DocRepUI02
 /***************
