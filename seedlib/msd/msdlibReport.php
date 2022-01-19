@@ -118,7 +118,7 @@ class MSDLibReport
                                         ,
                                         ['sSortCol'=>'PE1_v,PE2_v,PE3_v'] )) )
         {
-            $s .= $this->janSeedsDrawList( $oSB, $kfrP );
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES );
         }
 
         // All tomatoes sorted by variety
@@ -132,13 +132,13 @@ class MSDLibReport
                                         ,
                                         ['sSortCol'=>'PE3_v'] )) )
         {
-            $s .= $this->janSeedsDrawList( $oSB, $kfrP );
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_WITH_SPECIES );
         }
 
         return( $s );
     }
 
-    private function janSeedsDrawList( $oSB, $kfrP )
+    private function janSeedsDrawList( $oSB, $kfrP, $eMode )
     {
         $s = "";
         $lastCat = $lastSp = "";
@@ -172,7 +172,7 @@ class MSDLibReport
                 $s .= "<div class='sed_type'><h3><b>$sSp</b></h3></div>";
             }
 
-            $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
+            $s .= $oSB->DrawProduct( $kfrP, $eMode, ['bUTF8'=>false] );
         }
 
         return( $s );
