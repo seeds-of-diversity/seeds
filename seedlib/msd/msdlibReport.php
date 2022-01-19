@@ -93,7 +93,6 @@ class MSDLibReport
     private function janSeeds()
     {
         $s = "";
-        $lastCat = $lastSp = "";
 
 // replace this with MSDQ::msdSeedList-GetData
 // Even faster is to make MSDQ::msdSeedList-DrawList (using SEEDCursor like msdSeedList-GetData does) with different draw modes, but don't call back to DrawProduct because it just calls
@@ -103,6 +102,7 @@ class MSDLibReport
         $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
                                    SEEDBasketProducts_SoD::$raProductTypes );
 
+        // Everything that isn't tomatoes
         if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
                                          "product_type='seeds' AND "
                                         ."eStatus='ACTIVE' AND "
@@ -112,43 +112,67 @@ class MSDLibReport
 // uncomment one of these to limit the query to a section
 //." AND PE1.v in ('flowers')"
 //." AND PE1.v in ('fruit','grain','herbs','misc','trees')"
-//." AND PE1.v in ('vegetables') AND PE2.v not like 'TOMATO%'"
+." AND not (PE1.v = 'vegetables' AND PE2.v like 'TOMATO%')"
 //." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO%' AND PE2.v not like 'TOMATO/YELLOW%'"
 //." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO/YELLOW%'"
                                         ,
-                                        array('sSortCol'=>'PE1_v,PE2_v,PE3_v') )) )
+                                        ['sSortCol'=>'PE1_v,PE2_v,PE3_v'] )) )
         {
-            while( $kfrP->CursorFetch() ) {
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP );
+        }
 
-                if( ($sCat = $kfrP->Value('PE1_v')) != $lastCat ) {
-                    /* Start a new category
-                     */
-                    /*
-                    if( $this->oMSDLib->oApp->lang == 'FR' ) {
-                        foreach( $this->raCategories as $ra ) {
-                            if( $ra['db'] == $kfrS->value('category') ) {
-                                $sCat = $ra['FR'];
-                                break;
-                            }
+        // All tomatoes sorted by variety
+        if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
+                                         "product_type='seeds' AND "
+                                        ."eStatus='ACTIVE' AND "
+                                        ."PE1.k='category' AND "
+                                        ."PE2.k='species' AND "
+                                        ."PE3.k='variety'"
+." AND (PE1.v = 'vegetables' AND PE2.v like 'TOMATO%')"
+                                        ,
+                                        ['sSortCol'=>'PE3_v'] )) )
+        {
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP );
+        }
+
+        return( $s );
+    }
+
+    private function janSeedsDrawList( $oSB, $kfrP )
+    {
+        $s = "";
+        $lastCat = $lastSp = "";
+
+        while( $kfrP->CursorFetch() ) {
+
+            if( ($sCat = $kfrP->Value('PE1_v')) != $lastCat ) {
+                /* Start a new category
+                 */
+                /*
+                if( $this->oMSDLib->oApp->lang == 'FR' ) {
+                    foreach( $this->raCategories as $ra ) {
+                        if( $ra['db'] == $kfrS->value('category') ) {
+                            $sCat = $ra['FR'];
+                            break;
                         }
                     }
-                    */
-                    $s .= "<div class='sed_category'><h2>$sCat</h2></div>";
-                    $lastCat = $sCat;
-                    $lastSp = "";   // in case this code is used in a search on a species that appears in more than one category
                 }
-                if( ($sSp = $kfrP->Value('PE2_v')) != $lastSp ) {
-                    /* Start a new species
-                     */
-                    $lastSp = $sSp;
-                    if( ($sFR = $this->oMSDLib->TranslateSpecies2( $sSp )) ) {
-                        $sSp .= " @T@ $sFR";
-                    }
-                    $s .= "<div class='sed_type'><h3><b>$sSp</b></h3></div>";
-                }
-
-                $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
+                */
+                $s .= "<div class='sed_category'><h2>$sCat</h2></div>";
+                $lastCat = $sCat;
+                $lastSp = "";   // in case this code is used in a search on a species that appears in more than one category
             }
+            if( ($sSp = $kfrP->Value('PE2_v')) != $lastSp ) {
+                /* Start a new species
+                 */
+                $lastSp = $sSp;
+                if( ($sFR = $this->oMSDLib->TranslateSpecies2( $sSp )) ) {
+                    $sSp .= " @T@ $sFR";
+                }
+                $s .= "<div class='sed_type'><h3><b>$sSp</b></h3></div>";
+            }
+
+            $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
         }
 
         return( $s );
