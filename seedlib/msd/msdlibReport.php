@@ -118,10 +118,11 @@ class MSDLibReport
                                         ,
                                         ['sSortCol'=>'PE1_v,PE2_v,PE3_v'] )) )
         {
-            $s .= $this->janSeedsDrawList( $oSB, $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES );
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP, true );
         }
 
         // All tomatoes sorted by variety
+        $s .= "<div class='sed_type'><h3><b>TOMATO</b></h3></div>";
         if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
                                          "product_type='seeds' AND "
                                         ."eStatus='ACTIVE' AND "
@@ -132,20 +133,20 @@ class MSDLibReport
                                         ,
                                         ['sSortCol'=>'PE3_v'] )) )
         {
-            $s .= $this->janSeedsDrawList( $oSB, $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_WITH_SPECIES );
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP, false );
         }
 
         return( $s );
     }
 
-    private function janSeedsDrawList( $oSB, $kfrP, $eMode )
+    private function janSeedsDrawList( $oSB, $kfrP, $bShowSpecies )
     {
         $s = "";
         $lastCat = $lastSp = "";
 
         while( $kfrP->CursorFetch() ) {
 
-            if( ($sCat = $kfrP->Value('PE1_v')) != $lastCat ) {
+            if( $bShowSpecies && ($sCat = $kfrP->Value('PE1_v')) != $lastCat ) {
                 /* Start a new category
                  */
                 /*
@@ -162,7 +163,7 @@ class MSDLibReport
                 $lastCat = $sCat;
                 $lastSp = "";   // in case this code is used in a search on a species that appears in more than one category
             }
-            if( ($sSp = $kfrP->Value('PE2_v')) != $lastSp ) {
+            if( $bShowSpecies && ($sSp = $kfrP->Value('PE2_v')) != $lastSp ) {
                 /* Start a new species
                  */
                 $lastSp = $sSp;
@@ -172,7 +173,7 @@ class MSDLibReport
                 $s .= "<div class='sed_type'><h3><b>$sSp</b></h3></div>";
             }
 
-            $s .= $oSB->DrawProduct( $kfrP, $eMode, ['bUTF8'=>false] );
+            $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
         }
 
         return( $s );
