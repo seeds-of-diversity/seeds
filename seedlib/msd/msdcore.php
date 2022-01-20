@@ -339,7 +339,7 @@ class MSDCore
             "FOUR O'CLOCKS"                 => ['FR'=>"Belle de nuit"],
             'FOXGLOVE'                      => ['FR' => "Digitale"],
             'GAILLARDIA (BLANKETFLOWER)' => array( 'FR' => 'Gaillarde' ),
-            'HOLLYHOCK'  => array( 'FR' => 'Tr&eacute;mi&egrave;re' ),
+            'HOLLYHOCK'                     => ['FR' => 'Rose Tr&eacute;mi&egrave;re'],
             'LATHYRUS (SWEET PEA)' => array( 'FR' => 'Pois de senteur' ),
             'LAVATERA' => array( 'FR' => 'Lavat&egrave;re' ),
             'LINUM (FLAX)' => array( 'FR' => "Lin" ),
@@ -351,6 +351,7 @@ class MSDCore
             'POPPY' => array( 'FR' => "Pavot" ),
             'SEA HOLLY'                     => ['FR' => 'Panicaut'],
             'SNAPDRAGON'                    => ['FR' => 'Muflier'],
+            'STRAWFLOWER'                   => ['FR' => 'Fleur de paille'],
             'SUNFLOWER' => array( 'FR' => 'Tournesol' ),
 
 
