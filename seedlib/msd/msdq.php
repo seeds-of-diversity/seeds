@@ -403,9 +403,10 @@ class MSDQ extends SEEDQ
 
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
         if( SEEDCore_StartsWith(($sp = $kfrS->value('species')), 'TOMATO') ) {
-            $tag = "&nbsp;&nbsp;&nbsp;<span style='color:gray;font-size:9pt;border:1px solid:#ccc'>("
+            $tag = ($eView=='PRINT' ? "<br/>" : "")
+                  ."<span style='color:gray;font-size:".($eView=='PRINT' ? '8pt;' : '9pt;')."border:1px solid:#ccc'>("
                   .strtolower(trim(substr($sp,6), " /-,"))   // trim off leading spaces and characters used to denote different tomato categories
-                  .")</span>&nbsp;&nbsp;&nbsp;";
+                  .")</span>";
         } else {
             $tag = "";
         }
