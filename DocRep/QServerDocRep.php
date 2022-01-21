@@ -35,6 +35,11 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doPreview($kDoc);
                 break;
+                
+            case 'dr--add':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doAdd($kDoc, $parms);
+                break;
 
             case 'dr--update':
                 $rQ['bHandled'] = true;
@@ -81,6 +86,20 @@ class QServerDocRep extends SEEDQ
             $bOk = true;
         }
 
+        return( [$bOk,$s] );
+    }
+    
+    private function doAdd ( $kDoc, $parms ){
+        $s = "";
+        $bOk = false;
+        $oDoc = new DocRepDoc2_Insert( $this->oDocRepDB );
+        
+        if( $parms['type'] == 'file' ) {
+            $bOk = $oDoc->InsertFile( "", $parms );
+        }
+        else if( $parms['type'] == 'folder' ) {
+            $bOk = $oDoc->InsertFolder($parms);
+        }
         return( [$bOk,$s] );
     }
 

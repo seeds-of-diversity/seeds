@@ -93,7 +93,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", edit:"Edit", rename:"Rename", versions:"Versions" };
+        oConfig.defTabs = { preview:"Preview", add:"Add", edit:"Edit", rename:"Rename", versions:"Versions" };
 
         super(oConfig);
     }
@@ -123,6 +123,10 @@ class myDocRepCtrlView extends DocRepCtrlView
             case 'preview':
                 rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
                 s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${kCurrDoc}`;
+                break;
+
+            case 'add':
+                s = this.drawFormAdd(kCurrDoc);
                 break;
 
             case 'edit':
@@ -155,6 +159,73 @@ class myDocRepCtrlView extends DocRepCtrlView
 
         return( s );
     }
+
+	drawFormAdd(kCurrDoc) {
+
+		// file no need for option 
+
+		let s = `<form onsubmit='myDocRepAddSubmit(event)'>
+					<br>	
+					<div>Type: </div>
+					<div class='row'> 
+						<div [label]>File</div>
+						<div [ctrl]>
+							<input type='radio' id='add-file'  name='file-or-folder' value='file' checked/>
+						</div>
+					</div>
+					<div class='row'> 
+						<div [label]>Folder</div>
+						<div [ctrl]>
+							<input type='radio' id='add-folder'  name='file-or-folder' value='folder' />
+						</div>
+					</div>
+					<br>
+					`
+		let current = $(`.DocRepTree_title[data-kDoc=${kCurrDoc}]`)[0];
+		if (current.dataset.doctype == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
+			s += `	<div class='row'> 
+						<div [label]>Add under folder</div>
+						<div [ctrl]>
+							<input type='radio' id='add-as-child'  name='child-or-sibling' value='child' checked/>
+						</div>
+					</div>
+					<div class='row'> 
+						<div [label]>Add beside folder</div>
+						<div [ctrl]>
+							<input type='radio' id='add-as-sibling'  name='child-or-sibling' value='sibling' />
+						</div>
+					</div>
+					<br>`
+		}
+		s += `		<div class='row'> 
+						<div [label]>Name</div>
+						<div [ctrl]>
+							<input type='text' id='add-name'  value='' style='width:100%'/>
+						</div>
+					</div>
+					<div class='row'> 
+						<div [label]>Title</div>
+						<div [ctrl]>
+							<input type='text' id='add-title'  value='' style='width:100%'/>
+						</div>
+					</div>
+					<div class='row'> 
+						<div [label]>Permissions</div>
+						<div [ctrl]>
+							<input type='text' id='add-permissions'  value='' style='width:100%'/>
+						</div>
+					</div>										
+					<input type='hidden' id='drAdd_kDoc' value='${kCurrDoc}'/>
+				    <input type='submit' value='Add'/>
+				 <form>`
+
+		s = s.replaceAll("[label]", "class='col-md-3'");
+		s = s.replaceAll("[ctrl]", "class='col-md-6'");
+
+
+		return s;
+	}
+	
     
     drawFormRename( kCurrDoc )
     {
@@ -181,7 +252,50 @@ s += "<p>Put the current values in. Make the button send the new values to the s
     }
 }
 
+function myDocRepAddSubmit( e ) 
+{
 
+	e.preventDefault();
+	var rQ;
+	let kDoc = $('#drAdd_kDoc').val();
+	let position = $('input[name=child-or-sibling]:checked').val()
+	let type = $('input[name=file-or-folder]:checked').val()
+	let name = $('#add-name').val();
+	let title = $('#add-title').val();
+	let permissions = $('#add-permissions').val();
+
+
+	if( !name ) {
+		return;
+	}
+	else if( !permissions ) {
+		return; 
+	}
+	else if( !kDoc ) {
+		return;
+	}
+
+	if ( !position ) { // if no position is selected, or position does not exist, default sibling 
+		position == "sibling";
+	}
+
+	if ( position == "child" ) {
+		rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
+	}
+	else {
+		rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
+	}
+
+	if (!rQ.bOk) {
+		console.log("error add");
+	}
+	else {
+		console.log("add success");
+		// update tree with new folder/file
+
+		myDocRepAddUpdateTree();
+	}
+}
 
 function myDocRepEditSubmit( e )
 {
@@ -199,30 +313,46 @@ function myDocRepEditSubmit( e )
 /*
 rename submit 
 */
-function myDocRepRenameSubmit( e ) {
+function myDocRepRenameSubmit( e ) 
+{
 	e.preventDefault();;
 	let kDoc = $('#drRename_kDoc').val();
 	let name = $('#formRename_name').val();
 	let title = $('#formRename_title').val();
 	let permissions = $('#formRename_perms').val();
-	
-	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, class: title, permclass: permissions});
-	
-	if(rQ.bOk){
-		myDocRepRenameUpdateTree(kDoc, name);
-	}
-	else{
+
+	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, class: title, permclass: permissions });
+
+	console.log("pressed submit");
+	console.log(rQ);
+
+	if ( !rQ.bOk ) {
 		console.log("error rename");
+	}
+	else {
+		myDocRepRenameUpdateTree(kDoc, name);
 	}
 }
 
 /*
 update tree after rename 
 */
-function myDocRepRenameUpdateTree( kDoc, name ) {
-	let parent = document.querySelectorAll(`[data-kdoc='${kDoc}']`);
-	let child = parent[0].children[0].children[1].nextSibling;
+function myDocRepRenameUpdateTree( kDoc, name ) 
+{
+	let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
+	let child = doc.children[1].nextSibling;
 	child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
+}
+/*
+update tree after adding new doc 
+for now, just reload page 
+TODO: add doc on front end 
+*/
+function myDocRepAddUpdateTree() 
+{
+	location.reload();
+	
+	// use myDocRepTree to update tree 
 }
 
 class DocRepUI02

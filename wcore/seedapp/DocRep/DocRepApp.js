@@ -107,7 +107,7 @@ class DocRepTree
     {
         let s = "";
 
-        s = `<div class='DocRepTree_title' data-kdoc='${oDoc.k}'>
+        s = `<div class='DocRepTree_title' data-kdoc='${oDoc.k}' data-doctype='${oDoc.doctype}'>
                  <div class='DocRepTree_titleFolderTriangle' style='width:10px;display:inline-block;margin:0 3px'>`
                 +this.drawFolderTriangle( oDoc )
                 +`</div>`
