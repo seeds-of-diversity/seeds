@@ -120,7 +120,16 @@
                 <div class='storeBoxHeader'>[[ifeq:$lang|EN|Your Basket|Votre panier]]</div>
                 <div class='storeBasketErrmsg'></div>
                 <div class='storeBasketContent'>[[Basket_Contents:]]</div>
-                <div style='width:100%;text-align:center'><form method='post'><input type='hidden' name='msdStateChange' value='Confirmed'/><button>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button></form></div>
+                <div style='width:100%;text-align:center'>
+                    {% if bMbrLogin %}
+                        <form method='post'>
+                        <input type='hidden' name='msdStateChange' value='Confirmed'/><button>[[ifeq:$lang|EN|Place Your Request|Faites votre demande]]</button>
+                        </form>
+                    {% else %}
+                        <div>Login Below to Place Your Seed Requests</div> 
+                    {% endif %}
+
+                </div>
                 <div style='width:100%;text-align:center;margin-top:10px;margin-bottom:10px'><button onclick='msdClearBasket();'>[[ifeq:$lang|EN|Clear Your Basket|Vider votre panier]]</button></div>
             </div>
             <div class='storeBox storeBoxBuyer'>
@@ -418,7 +427,7 @@ function msdResizeList()
 #    <p>You are logged in. Please enter your address information below.</p>
 #  {% endif %}
 
-  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
+#  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
   <p style='margin-left:10px'><a href="[[Var:siteroot]]login?sessioncmd=logout">Logout</a></p>
 
 {% else %}
@@ -456,6 +465,7 @@ function msdResizeList()
 
 %% msdSeasonalNotice
 # always show this for now but it should be configurable
+<!--
 <div style="border: 1px solid #aaa; margin-bottom:20px; padding: 15px; width: 100%;">
   {% if lang == 'EN' %}
     <h3>The Seed Exchange will open on January 8, 2022</h3>
@@ -476,7 +486,7 @@ function msdResizeList()
     <p>Merci d'avoir partag&eacute;!</p>
 {% endif %}
 </div>
-
+-->
 
 %% msdConfirmed
 <table style='width:60%'><tr><td><img src='//seeds.ca/i/img/logo/logoA_h-[[lower:$lang]]-300x.png' style='max-height:80px' class='img-responsive'/></td>
@@ -484,14 +494,14 @@ function msdResizeList()
 <h3 style='margin-right:10%;text-align:left'>[[ifeq:$lang|FR|Catalogue de semences|Member Seed Directory]] {{msdYear}}</h3>
 </td></tr></table>
 <div style='width:60%; margin:20px;'>
-    <p>For each member offering seeds, please print a Seed Request Form and mail it directly to them with appropriate payment.</p>
+    <p>For each member offering seeds, please send a Seed Request Form directly to them with appropriate payment.</p>
     <p>Each grower member accepts different methods of payment, so please check their notes below. Orders with inadequate or incomplete payment will be discarded.</p>
     <p>Also, some growers might specify non-standard prices. Please check the grower's notes and the variety description for pricing, and adjust your Seed Request Form accordingly.</p>
     <div style='text-align:center;width:100%'><form method='post'><input type='hidden' name='msdStateChange' value='Open'/><button>Back to Your Basket</button></form></div>
 </div>
 
 %% msdConfirmedFooter
-  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
+#  <p style='margin-left:10px'><a href="https://seeds.ca/d?n=www/msd/SeedRequestForm{{msdYear}}.pdf" target="_blank">Download a copy of the paper-based Seed Request Form and Instructions</a></p>
 
 
 %% msdSeedRequestForm
@@ -516,7 +526,7 @@ function msdResizeList()
 <h3 style='margin-left:10%;'>[[ifeq:$lang|FR|Formulaire de demande de semences|Seed Request Form]]</h3>
 </td></tr></table>
 <div style='width:100%; margin:20px;'>
-    <p>Please print this form and send it directly to the member offering seeds, with appropriate payment.</p>
+    <p>Please send this form directly to the member offering seeds, with appropriate payment.</p>
     <p>Each grower member accepts different methods of payment, so please check their notes carefully. Orders with inadequate or incomplete payment will be discarded.</p>
     <p>Some growers might specify non-standard prices. Please check the grower's notes and the variety description for pricing, and adjust the prices listed here accordingly.</p>
 </div>
