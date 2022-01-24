@@ -81,6 +81,8 @@ class MSDCommonDraw
         return( $sMSDList );
     }
 
+
+// Seems to be obsolete
 private $eReportMode = 'VIEW-PUB';
 private $bHideDetail = false;
 private $kfrelG;
