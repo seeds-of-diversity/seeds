@@ -1,6 +1,6 @@
 /* Implements a custom DocManager
  *
- * Copyright (c) 2021 Seeds of Diversity Canada
+ * Copyright (c) 2022 Seeds of Diversity Canada
  *
  * usage: DocRepApp02::InitUI() makes it all start up
  *
@@ -121,8 +121,9 @@ class myDocRepCtrlView extends DocRepCtrlView
 
         switch( this.GetCtrlMode() ) {
             case 'preview':
-                let o = new myDocRepCtrlView_Preview(this, kCurrDoc);
-                s = o.DrawTabBody();
+                // use static class to implement the Preview pane
+                myDocRepCtrlView_Preview.Init(this, kCurrDoc);
+                s = myDocRepCtrlView_Preview.DrawTabBody();
                 break;
 
             case 'add':
@@ -287,39 +288,48 @@ class myDocRepCtrlView_Preview
     Implement the Preview pane of the Ctrlview
  */
 {
-    constructor( oCtrlView, kCurrDoc )
+    static oCtrlView = null;    // the myDocRepCtrlView using this class
+    static kCurrDoc = 0;        // the current doc (you could also get this via oCtrlView)
+    
+    static Init( oCtrlView, kCurrDoc )
     {
         this.oCtrlView = oCtrlView;
         this.kCurrDoc = kCurrDoc;
     }
     
-    GetMode()
+    static #getMode()
     {
         // default is preview
         return( this.#normalizeMode( sessionStorage.getItem('drCtrlview-preview-mode') ) );
     }
 
-    SetMode( m )
+    static #setMode( m )
     {
         m = this.#normalizeMode(m);    // mode can be preview, source, or edit
         
         sessionStorage.setItem( 'drCtrlview-preview-mode', m );
-        this.DrawTabBody();
     }
     
     // modes can be preview (default), source, or edit
-    #normalizeMode( m ) { return( (m == 'source' || m == 'edit') ? m : 'preview'); }
+    static #normalizeMode( m ) { return( (m == 'source' || m == 'edit') ? m : 'preview'); }
     
-    DrawTabBody()
+    static DrawTabBody()
     {
         let s = "";
+        let rQ = null;
 
-        switch( this.GetMode() ) {
+        switch( this.#getMode() ) {
             case 'preview':
-                let rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
-                s = (rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`);
+                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
                 break;
             case 'source':
+                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                if( rQ.bOk ) {
+                    s = '<pre>' + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
+                } else {
+                    s = `Cannot get preview for document ${this.kCurrDoc}`;
+                }
                 break;
             case 'edit':
                 break;
@@ -327,11 +337,19 @@ class myDocRepCtrlView_Preview
         
 
         s = `<div>
-             <select id='drCtrlview-preview-state-select' onclick=''><option value='preview'>Preview</option><option value='source'>Source</option><option value='edit'>Edit</select>
+             <select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'><option value='preview'>Preview</option><option value='source'>Source</option><option value='edit'>Edit</select>
              <div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
              </div>`;
         
         return( s );
+    }
+    
+    static Change( mode )
+    /********************
+        Called when the <select> changes
+     */
+    {
+        alert(mode);
     }
 }
 
