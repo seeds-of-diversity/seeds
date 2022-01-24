@@ -169,7 +169,7 @@ class QServerSLCollectionReports extends SEEDQ
             // Now get every psp/cv from sl_cv_sources where fk_sl_pcv=0 and add those to the list
             if( ($dbc = $this->oApp->kfdb->CursorOpen(
                     "SELECT osp,ocv,S.name_en as S_name_en,S.name_fr as S_name_fr,S.psp as S_psp,S._key as S__key,count(*) as c "
-                   ."FROM seeds_1.sl_cv_sources SrcCV LEFT JOIN seeds_1.sl_species S ON (SrcCV.fk_sl_species=S._key) "
+                   ."FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources SrcCV LEFT JOIN {$this->oApp->DBName('seeds1')}.sl_species S ON (SrcCV.fk_sl_species=S._key) "
                    ."WHERE SrcCV.fk_sl_sources>='3' AND SrcCV._status='0' AND SrcCV.fk_sl_pcv='0' "
                    ."GROUP BY osp,ocv,S.name_en,S.name_fr,S.psp,S._key")) )
             {
@@ -204,14 +204,17 @@ class QServerSLCollectionReports extends SEEDQ
 */
 
                     $raOut[] = [
-                        'cv'          => 0,
-                        'species'     => $ra['S_psp'],
-                        'cultivar'    => $this->QCharSetFromLatin($ra['P_name']),
-                        'csci_count'  => $ra['nCSCI'],
-                        'adoption'    => '',
-                        'year_newest' => '',
-                        'total_grams' => '',
-                        'notes'       => ''
+                        'cv'                     => 0,
+                        'species'                => $ra['S_psp'],
+                        'cultivar'               => $this->QCharSetFromLatin($ra['P_name']),
+                        'csci_count'             => $ra['nCSCI'],
+                        'adoption'               => '',
+                        'newest_lot_year'        => '',
+                        'newest_lot_grams'       => '',
+                        'newest_lot_germ_result' => '',
+                        'newest_lot_germ_year'   => '',
+                        'total_grams'            => '',
+                        'notes'                  => ''
                     ];
                 }
             }
@@ -247,16 +250,19 @@ class QServerSLCollectionReports extends SEEDQ
         $fAdoption = $ra['fAdoption'];  // ok to show the amount publicly
 
         // Get the number of csci companies that have the given pcv
-        $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM seeds_1.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
+        $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
 
-        $raOut = ['cv'          => $raPCV['P__key'],
-                  'species'     => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
-                  'cultivar'    => $this->QCharSetFromLatin( $raPCV['P_name'] ),
-                  'csci_count'  => $nCSCI,
-                  'adoption'    => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
-                  'year_newest' => $yNewest,
-                  'total_grams' => $nWeightTotal,
-                  'notes'       => $sNotes,           // already QCharset in the method that aggregates it
+        $raOut = ['cv'                     => $raPCV['P__key'],
+                  'species'                => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
+                  'cultivar'               => $this->QCharSetFromLatin( $raPCV['P_name'] ),
+                  'csci_count'             => $nCSCI,
+                  'adoption'               => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
+                  'newest_lot_year'        => $yNewest,
+                  'newest_lot_grams'       => $ra['newest_lot_grams'],
+                  'newest_lot_germ_result' => $ra['newest_lot_germ_result'],
+                  'newest_lot_germ_year'   => $ra['newest_lot_germ_year'],
+                  'total_grams'            => $nWeightTotal,
+                  'notes'                  => $sNotes,           // already QCharset in the method that aggregates it
                  ];
 
         return( $raOut );
@@ -268,6 +274,7 @@ class QServerSLCollectionReports extends SEEDQ
 
         Return:
             yNewest      = year of the newest non-bDeAcc accession
+            newest_lot_grams      = grams of the newest non-bDeAcc accession
             nWeightTotal = sum of lot weights for this pcv
             fAdoption    = sum of adoption amounts for this pcv
             sNotes       = summary of lot notes (if $bCanReadInternal)
@@ -278,6 +285,9 @@ class QServerSLCollectionReports extends SEEDQ
      */
     {
         $raOut = [ 'yNewest' => 0,
+                   'newest_lot_grams' => 0,
+                   'newest_lot_germ_result' => '',
+                   'newest_lot_germ_year' => '',
                    'nWeightTotal' => 0.0,
                    'fAdoption' => 0.0,
                    'sNotes' => "",
@@ -310,20 +320,25 @@ class QServerSLCollectionReports extends SEEDQ
          * two different places, so store array( '0year i'=>weight, ... ) where i is a unique number, then sort, then unpack.
          */
         $i = 0;
+        $kLotNewest = 0;
         $raNotes = array();
-        $kfrcI = $this->oSLDB->GetKFRC( "IxA", "A.fk_sl_pcv='$kPCV' AND I.fk_sl_collection='$kCollection' AND NOT I.bDeAcc" );
+        $kfrcI = $this->oSLDB->GetKFRC( "IxA", "A.fk_sl_pcv='$kPCV' AND I.fk_sl_collection='$kCollection' AND NOT I.bDeAcc AND I.g_weight > 0.0" );
         while( $kfrcI && $kfrcI->CursorFetch() ) {
             // don't report zero-weight lots publicly
             if( !$bCanReadInternal && $kfrcI->Value('g_weight')==0 ) continue;
+
+            $g = intval($kfrcI->Value('g_weight')*100.0)/100.0;     // round to 0.01
+            $raOut['nWeightTotal'] += $g;
 
             // sometimes these fields contain a date and sometimes just the year. Mysql doesn't allow dates to just be years, so these are plain strings.
             $yHarvested = intval(substr($kfrcI->Value('A_x_d_harvest'),0,4));
             $yReceived  = intval(substr($kfrcI->Value('A_x_d_received'),0,4));
             $y = $yHarvested or $y = $yReceived;
-            $raOut['yNewest'] = max( $raOut['yNewest'], $y );
-
-            $g = intval($kfrcI->Value('g_weight')*100.0)/100.0;     // round to 0.01
-            $raOut['nWeightTotal'] += $g;
+            if( $y > $raOut['yNewest'] ) {
+                $kLotNewest = $kfrcI->Key();
+                $raOut['yNewest'] = $y;
+                $raOut['newest_lot_grams'] = $g;
+            }
 
             if( $bFullDetails ) {
                 /* Note that everything returned by this method has QCharset, so avoid double-converting by clients.
@@ -349,8 +364,19 @@ class QServerSLCollectionReports extends SEEDQ
 
         // It's okay to show the adoption amount publicly. Adoption info only makes sense for kCollection==1
         if( $bAdoption && $kCollection == 1 ) {
-            $raOut['fAdoption'] = $this->oApp->kfdb->Query1( "SELECT SUM(amount) FROM seeds_1.sl_adoption WHERE fk_sl_pcv='$kPCV' AND _status='0'" );
+            $raOut['fAdoption'] = $this->oApp->kfdb->Query1( "SELECT SUM(amount) FROM {$this->oApp->DBName('seeds1')}.sl_adoption WHERE fk_sl_pcv='$kPCV' AND _status='0'" );
         }
+
+        if( $kLotNewest ) {
+            // Find most recent germ test results for the newest lot
+            if( ($kfrG = $this->oSLDB->GetKFRCond( "G", "fk_sl_inventory='$kLotNewest'", ['sSortCol'=>'dStart','bSortDown'=>true] )) &&
+                ($nSown = $kfrG->Value('nSown')) )
+            {
+                $raOut['newest_lot_germ_result'] = $kfrG->Value('nGerm');
+                $raOut['newest_lot_germ_year'] = substr($kfrG->Value('dStart'), 0, 4);
+            }
+        }
+
 
         /* This method returns everything with QCharset, so avoid double-converting in client code.
          */
@@ -373,7 +399,7 @@ class QServerSLCollectionReports extends SEEDQ
 
         // Get the pcv of every adopted variety
         $raDRows = $this->oApp->kfdb->QueryRowsRA( "SELECT P._key as P__key,P.name as P_name,S.psp as S_psp,SUM(D.amount) as amount "
-                                             ."FROM seeds_1.sl_adoption D,seeds_1.sl_pcv P,seeds_1.sl_species S "
+                                             ."FROM {$this->oApp->DBName('seeds1')}.sl_adoption D,{$this->oApp->DBName('seeds1')}.sl_pcv P,{$this->oApp->DBName('seeds1')}.sl_species S "
                                              ."WHERE D.amount AND D.fk_sl_pcv=P._key AND P.fk_sl_species=S._key "
                                              ."AND D._status='0' AND P._status='0' AND S._status='0' "
                                              ."GROUP BY P._key ORDER BY S.psp,P.name" );

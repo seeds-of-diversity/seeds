@@ -289,11 +289,17 @@ class DocRepDoc2_ReadOnly
     {
         $this->oDocRepDB = $oDocRepDB;
         $this->kDoc = $kDoc;
-        $this->GetValues( "" );    // load the "" version to validate that the doc exists and is at least readable
-        if( isset($this->raValues[""]['doc_key']) ) {
+        
+        if($kDoc != 0){
+            $this->GetValues( "" );    // load the "" version to validate that the doc exists and is at least readable
+            if( isset($this->raValues[""]['doc_key']) ) {
+                $this->bValid = true;
+            } else {
+                $this->voidDoc();   // make the object unusable
+            }
+        }
+        else{
             $this->bValid = true;
-        } else {
-            $this->voidDoc();   // make the object unusable
         }
     }
 
@@ -772,7 +778,16 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         $ok = true;
 
         if( @$parms['name'] ) {
-            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
+            $parent = $this->GetParentObj();
+            $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
+        
+            foreach($siblings as $k => $ra){
+                $name = $this->oDocRepDB->GetDoc($k)->GetName();
+                if($name == $parms['name']){ // if sibling has same name 
+                    return false; // dont change name 
+                }
+            }
+            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name 
             $kfrDoc->SetValue( 'name', $parms['name'] );
             $ok = $kfrDoc->PutDBRow();
         }

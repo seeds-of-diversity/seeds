@@ -17,6 +17,7 @@ $raTables1 = [
                "bull:            bull_list"                                                                                          ,
                "csci:            csci_seeds csci_company csci_seeds_archive"                                                         ,
                "doclib:          doclib_document"                                                                                    ,
+               "hvd:             hpd_species hvd_catlist hvd_onames hvd_pnames hvd_refs hvd_sodclist hvd_sourcelist hvd_species"     ,
                "sed:             sed_growers sed_seeds"                                                                              ,
                "sedcurr:         sed_curr_growers sed_curr_seeds"                                                                    ,
                "docrep1_:        docrep_docs docrep_docdata docrep_docxdata docrep2_docs docrep2_data docrep2_docxdata"              ,
@@ -31,7 +32,7 @@ $raTables1 = [
                "SEEDLocal1_:     SEEDLocal"                                                                                          ,
                "SEEDPerms1_:     SEEDPerms SEEDPerms_Classes"                                                                        ,
                "SEEDMetaTable1_: SEEDMetaTable_StringBucket SEEDMetaTable_TablesLite SEEDMetaTable_TablesLite_Rows"                  ,
-               "SEEDSession1_:   SEEDSession_Users SEEDSession_Groups SEEDSession_UsersXGroups SEEDSession_Perms"                    ,
+               "SEEDSession1_:   SEEDSession_Users SEEDSession_Groups SEEDSession_UsersXGroups SEEDSession_Perms SEEDSession_UsersMetadata SEEDSession_GroupsMetadata SEEDSession_MagicLogin" ,
                "SEEDBasket:      SEEDBasket_Baskets SEEDBasket_Products SEEDBasket_ProdExtra SEEDBasket_BP"                          ,
 ];
 
@@ -45,7 +46,7 @@ $raTables2 = [
                "SEEDLocal2_:     SEEDLocal"                                                                         ,
                "SEEDMetaTable2_: SEEDMetaTable_StringBucket SEEDMetaTable_TablesLite SEEDMetaTable_TablesLite_Rows" ,
                "SEEDPerms2_:     SEEDPerms SEEDPerms_Classes"                                                       ,
-               "SEEDSession2_:   SEEDSession_Users SEEDSession_Groups SEEDSession_UsersXGroups SEEDSession_Perms"   ,
+               "SEEDSession2_:   SEEDSession_Users SEEDSession_Groups SEEDSession_UsersXGroups SEEDSession_Perms SEEDSession_UsersMetadata SEEDSession_GroupsMetadata"   ,
 ];
 
 

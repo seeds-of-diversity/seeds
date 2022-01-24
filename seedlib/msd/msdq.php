@@ -377,7 +377,7 @@ class MSDQ extends SEEDQ
         }
         // except the VIEW_REQUESTABLE mode is only allowed if the current user is allowed to request the seed
         if( $eView == 'VIEW_REQUESTABLE' ) {
-            $eView = $this->oMSDCore->IsRequestableByUser( $kfrS ) ? 'VIEW_REQUESTABLE' : 'VIEW';
+            $eView = $this->oMSDCore->IsRequestableByUser( $kfrS )==MSDCore::REQUESTABLE_YES ? 'VIEW_REQUESTABLE' : 'VIEW';
         }
         // and REVIEW is currently identical to EDIT so they coded as EDIT below
         if( $eView == 'REVIEW' )  $eView = 'EDIT';
@@ -400,8 +400,18 @@ class MSDQ extends SEEDQ
                     ."</div>";
         }
 
+
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
-        $sV = "<b>{$raSeed['variety']}</b>"
+        if( SEEDCore_StartsWith(($sp = $kfrS->value('species')), 'TOMATO') ) {
+            $tag = ($eView=='PRINT' ? "<br/>" : "&nbsp;&nbsp;&nbsp;")
+                  ."<span style='color:gray;font-size:".($eView=='PRINT' ? '8pt;' : '9pt;')."'>("
+                  .strtolower(trim(substr($sp,6), " /-,"))   // trim off leading spaces and characters used to denote different tomato categories
+                  .")</span>"
+                  .($eView=='PRINT' ? "" : "&nbsp;&nbsp;&nbsp;");
+        } else {
+            $tag = "";
+        }
+        $sV = "<b>{$raSeed['variety']}</b>$tag"
              .( $eView=='PRINT' ? (" @M@ <b>$mbrCode</b>".SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'bot_name', "<br/><b><i>[[]]</i></b>" ))
                                 : (SEEDCore_ArrayExpandIfNotEmpty( $raSeed, 'bot_name', " <b><i>[[]]</i></b>" )) );
         $sOut .= $eView=='VIEW_REQUESTABLE'

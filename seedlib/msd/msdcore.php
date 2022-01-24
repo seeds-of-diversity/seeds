@@ -25,7 +25,7 @@ class MSDCore
     private $dbname1;
     private $dbname2;
 
-    private $klugeBOutOfSeason = true;      // can't order seeds right now
+    private $bShutdown = false;      // can't order seeds right now
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
@@ -34,6 +34,9 @@ class MSDCore
                   currYear = the current year for entering MSD entries
      */
     {
+        // shut down for everyone except Bob
+        //$this->bShutdown = ($oApp->sess->GetUID() != 1499);
+
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
 
@@ -159,44 +162,64 @@ class MSDCore
         return( $bOk );
     }
 
+    const REQUESTABLE_YES = 'YES';
+    const REQUESTABLE_NO_NOLOGIN = 'NO_NOLOGIN';
+    const REQUESTABLE_NO_INACTIVE = 'NO_INACTIVE';
+    const REQUESTABLE_NO_OUTOFSEASON = 'NO_OUTOFSEASON';
+    const REQUESTABLE_NO_NONGROWER = 'NO_NONGROWER';
+
     function IsRequestableByUser( $kfrS )
     /************************************
-        Return true if the currently logged-in user is allowed to request this seed
+        Return YES if the currently logged-in user is allowed to request this seed
      */
     {
-        $ok = false;
+        $eReq = self::REQUESTABLE_NO_INACTIVE;
 
+        if( $this->bShutdown )  goto done;
         if( $kfrS->value('eStatus') != 'ACTIVE' )  goto done;
 
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
-        if( $this->klugeBOutOfSeason )  goto done;
+        if( false
+            // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
+            ) {
+            $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
+            goto done;
+        }
 
-        switch( $kfrS->value('eOffer') ) {
+        $eReq = self::REQUESTABLE_YES;
+
+        // this should be obtained by the caller and used everywhere
+        $kfrBetter = $this->GetSeedKfr($kfrS->Key());
+
+        switch( $kfrBetter->value('eOffer') ) {
             default:
             case 'member':
                 // I am a member
 // use a different method to determine membership
-                $ok = $this->oApp->sess->CanRead( 'sed' );
+//                $ok = $this->oApp->sess->CanRead( 'sed' );
                 break;
-            case 'grower':
+            case 'grower-member':
                 // I am a member offering seeds
 // use a different method to determine membership
-                $ok = $this->oApp->sess->CanRead( 'sed' ) &&
-                      ($this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products "
+                if( // $this->oApp->sess->CanRead( 'sed' ) &&
+                     !($this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products "
                                                  ."WHERE uid_seller='".$this->oApp->sess->GetUID()."' AND "
                                                        ."product_type='seeds' AND "
                                                        ."eStatus='ACTIVE' AND "
-                                                       ."_status='0'" ));
+                                                       ."_status='0'" )) )
+                {
+                    $eReq = self::REQUESTABLE_NO_NONGROWER;
+                }
                 break;
             case 'public':
                 // anyone can request these seeds
-                $ok = true;
+//                $ok = true;
                 break;
         }
 
         done:
-        return( $ok );
+        return( $eReq );
     }
 
     function SeedCursorOpen( $cond )
@@ -307,23 +330,28 @@ class MSDCore
     private $raSpecies = array(
             'ALPINE COLUMBINE' => array( 'FR' => 'Ancolie des Alpes' ),
             'COLUMBINE' => array( 'FR' => 'Ancolie' ),
-            'BACHELOR BUTTONS' => array( 'FR' => 'Bluet' ),
+            'BACHELOR BUTTONS'              => ['FR' => 'Bluet'],
             'CALENDULA' => array( 'FR' => 'Souci' ),
             'CASTOR OIL PLANT' => array( 'FR' => 'Ricin' ),
             'COLUMBINE' => array( 'FR' => 'Ancolie' ),
+            'CORNFLOWER'                    => ['FR' => 'Bluet'],
             'COTTON' => array( 'FR' => 'Coton' ),
-            'GAILLARDIA' => array( 'FR' => 'Gaillarde' ),
-            'HOLLYHOCK'  => array( 'FR' => 'Tr&eacute;mi&egrave;re' ),
+            "FOUR O'CLOCKS"                 => ['FR'=>"Belle de nuit"],
+            'FOXGLOVE'                      => ['FR' => "Digitale"],
+            'GAILLARDIA (BLANKETFLOWER)' => array( 'FR' => 'Gaillarde' ),
+            'HOLLYHOCK'                     => ['FR' => 'Rose Tr&eacute;mi&egrave;re'],
             'LATHYRUS (SWEET PEA)' => array( 'FR' => 'Pois de senteur' ),
             'LAVATERA' => array( 'FR' => 'Lavat&egrave;re' ),
             'LINUM (FLAX)' => array( 'FR' => "Lin" ),
             'MALVA (MALLOW)' => ['FR'=>"Mauve"],
             'MARIGOLD' => array( 'FR' => "Oeillets d'Inde" ),
-            "MIRABILIS (FOUR O'CLOCKS)" => ['FR'=>"Belle de nuit"],
             'MORNING GLORY' => array( 'FR' => 'Belle-de-jour' ),
             'NASTURTIUM' => array( 'FR' => 'Capucine' ),
             'OENOTHERA' => array( 'FR' => 'Onagre' ),
-            'POPPY (PAPAVER)' => array( 'FR' => "Pavot" ),
+            'POPPY' => array( 'FR' => "Pavot" ),
+            'SEA HOLLY'                     => ['FR' => 'Panicaut'],
+            'SNAPDRAGON'                    => ['FR' => 'Muflier'],
+            'STRAWFLOWER'                   => ['FR' => 'Fleur de paille'],
             'SUNFLOWER' => array( 'FR' => 'Tournesol' ),
 
 
@@ -353,6 +381,7 @@ class MSDCore
             'ANGELICA' => array( 'FR' => 'Ang&eacute;lique' ),
             'ANISE HYSSOP' => array( 'FR' => 'Agastache fenouil' ),
             'BASIL' => array( 'FR' => 'Basilic' ),
+            'BERGAMOT'                      => ['FR' => 'Bergamote'],
             'BLACK CUMIN' => array( 'FR' => 'Cumin' ),
             'BORAGE' => array( 'FR' => 'Bourrache' ),
             'CARAWAY' => array( 'FR' => 'Carvi' ),

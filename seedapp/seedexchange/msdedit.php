@@ -636,14 +636,14 @@ class MSDAppGrowerForm extends KeyframeForm
                          <p>".$this->Radio('eReqClass', 'mail')."&nbsp;By mail only</p>
                          <ul>
                          <li>Members will see your mailing address.</li>
-                         <li>You will receive seed requests my mail only.</li>
+                         <li>You will receive seed requests by mail only.</li>
                          <li>Members will be prompted to send payment as you specify below.</li>
                          </ul>
 
                          <p>".$this->Radio('eReqClass', 'email')."&nbsp;By email only</p>
                          <ul>
                          <li>Members will not see your mailing address.</li>
-                         <li>You will receive seed requests my email only.</li>
+                         <li>You will receive seed requests by email only.</li>
                          <li>Members will be prompted to send payment as you specify below (e-transfer and/or Paypal only).</li>
                          </ul>
 

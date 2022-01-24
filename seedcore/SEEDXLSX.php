@@ -160,13 +160,14 @@ class SEEDXlsWrite
         }
 
         // Set document properties
-        $this->oXls->getProperties()->setCreator(@$raConfig['creator'])
-            ->setLastModifiedBy(@$raConfig['author'])
-            ->setTitle(@$raConfig['title'])
-            ->setSubject(@$raConfig['subject'])
-            ->setDescription(@$raConfig['description'])
-            ->setKeywords(@$raConfig['keywords'])
-            ->setCategory(@$raConfig['category']);
+        $this->oXls->getProperties()
+            ->setCreator(       @$raConfig['creator']     ?: "")
+            ->setLastModifiedBy(@$raConfig['author']      ?: "")
+            ->setTitle(         @$raConfig['title']       ?: "")
+            ->setSubject(       @$raConfig['subject']     ?: "")
+            ->setDescription(   @$raConfig['description'] ?: "")
+            ->setKeywords(      @$raConfig['keywords']    ?: "")
+            ->setCategory(      @$raConfig['category']    ?: "");
 
         $this->filename = @$raConfig['filename'] ?: "spreadsheet.xlsx";
     }

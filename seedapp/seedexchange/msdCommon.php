@@ -32,6 +32,7 @@ class MSDCommonDraw
     function DrawMSDList()
     {
         $sMSDList = "";
+        $bTomatoFound = false;
 
         // Get all distinct categories (distinct prodextra-values for prodextra-key=='category' and product-type='seeds'),
         // and for each category get all distinct species (distinct prodextra-values for prodextra-key=='species').
@@ -49,14 +50,29 @@ class MSDCommonDraw
             foreach( $raSpList as $ra2 ) {
                 $raSp[] = $ra2['PE2_v'];
             }
-            $raSp = $this->oMSDCore->TranslateSpeciesList( $raSp );
 
+            $bTomatoFound = false;
             $sMSDList .= "<div class='msd-list-category'>"
                             ."<div class='msd-list-category-title'>$sCat</div>"
-                            ."<div class='msd-list-species-group'>"
-                                // no bEnt because the &ent; characters below get escaped otherwise; escaping EN types below to prevent XSS
-                                .SEEDCore_ArrayExpandRows( $raSp, "<div class='msd-list-species-title' kSpecies='[[kSpecies]]'>[[label]]</div>", false )
-                            ."</div>"
+                            ."<div class='msd-list-species-group'>";
+            foreach( $this->oMSDCore->TranslateSpeciesList( $raSp ) as $ra3 ) {
+                if( SEEDCore_StartsWith( $ra3['label'], "TOMATO" ) || SEEDCore_StartsWith( $ra3['label'], "Tomates" ) ) {
+                    if( !$bTomatoFound ) {
+                        $l = $this->oMSDCore->oApp->lang =='FR' ? "Tomates" : "TOMATO";
+                        // no bEnt because the &ent; characters below get escaped otherwise; escaping EN types below to prevent XSS
+                        $sMSDList .= "<div class='msd-list-species-title' kSpecies='tomatoAC'>$l A-C</div>"
+                                    ."<div class='msd-list-species-title' kSpecies='tomatoDH'>$l D-H</div>"
+                                    ."<div class='msd-list-species-title' kSpecies='tomatoIM'>$l I-M</div>"
+                                    ."<div class='msd-list-species-title' kSpecies='tomatoNR'>$l N-R</div>"
+                                    ."<div class='msd-list-species-title' kSpecies='tomatoSZ'>$l S-Z</div>";
+
+                        $bTomatoFound = true;
+                    }
+                } else {
+                    $sMSDList .= SEEDCore_ArrayExpand( $ra3, "<div class='msd-list-species-title' kSpecies='[[kSpecies]]'>[[label]]</div>", false );
+                }
+            }
+            $sMSDList .= "</div>"
                         ."</div>";
         }
 
