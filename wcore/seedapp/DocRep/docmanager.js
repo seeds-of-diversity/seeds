@@ -121,8 +121,8 @@ class myDocRepCtrlView extends DocRepCtrlView
 
         switch( this.GetCtrlMode() ) {
             case 'preview':
-                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
-                s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${kCurrDoc}`;
+                let o = new myDocRepCtrlView_Preview(this, kCurrDoc);
+                s = o.DrawTabBody();
                 break;
 
             case 'add':
@@ -286,6 +286,60 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 		return s;
 	}
+}
+
+
+class myDocRepCtrlView_Preview
+/*****************************
+    Implement the Preview pane of the Ctrlview
+ */
+{
+    constructor( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    GetMode()
+    {
+        // default is preview
+        return( this.#normalizeMode( sessionStorage.getItem('drCtrlview-preview-mode') ) );
+    }
+
+    SetMode( m )
+    {
+        m = this.#normalizeMode(m);    // mode can be preview, source, or edit
+        
+        sessionStorage.setItem( 'drCtrlview-preview-mode', m );
+        this.DrawTabBody();
+    }
+    
+    // modes can be preview (default), source, or edit
+    #normalizeMode( m ) { return( (m == 'source' || m == 'edit') ? m : 'preview'); }
+    
+    DrawTabBody()
+    {
+        let s = "";
+
+        switch( this.GetMode() ) {
+            case 'preview':
+                let rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                s = (rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`);
+                break;
+            case 'source':
+                break;
+            case 'edit':
+                break;
+        }
+        
+
+        s = `<div>
+             <select id='drCtrlview-preview-state-select' onclick=''><option value='preview'>Preview</option><option value='source'>Source</option><option value='edit'>Edit</select>
+             <div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
+             </div>`;
+        
+        return( s );
+    }
 }
 
 function myDocRepAddSubmit( e ) 
