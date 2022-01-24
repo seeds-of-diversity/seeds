@@ -814,9 +814,9 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $parent = $this->GetParentObj();
             $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
 
-            foreach($siblings as $k => $ra){
+            foreach( $siblings as $k => $ra ){
                 $name = $this->oDocRepDB->GetDoc($k)->GetName();
-                if($name == $parms['name']){ // if sibling has same name
+                if( $name == $parms['name'] ){ // if sibling has same name
                     return false; // dont change name
                 }
             }
@@ -835,17 +835,15 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
     {
         $ok = true;
         
-        if($this->GetType() != 'DOC' && $this->GetType() != 'TEXT'){
+        if( $this->GetType() != 'DOC' && $this->GetType() != 'TEXT' ){ // schedule can only be added to DOC and TEXT 
             return false;
         }
-        
         if( @$parms['schedule'] ){
-            $this->setDocMetadataValue('schedule', $parms['schedule']);
+            $this->setDocMetadataValue( 'schedule', $parms['schedule'] ); // update schedule
         }
         else{
             return false;
         }
-        
         return( $ok );
     }
 }

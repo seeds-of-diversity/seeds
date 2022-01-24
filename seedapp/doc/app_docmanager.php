@@ -127,14 +127,16 @@ class DocManagerTabDocuments
             $n = $oDoc->GetName();
             $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
             $p = $oDoc->GetParent();
+            $schedule = !empty($oDoc->GetDocMetadataValue('schedule')) ? $oDoc->GetDocMetadataValue('schedule') : '';
         } else {
             $p = 0;
             $n = '';
             $t = 'folder';
+            $schedule = '';
         }
         $c = implode(',', array_keys($raChildren));
 
-        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c] }],";
+        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule' }],";
 
         foreach( $raChildren as $k => $ra ) {
             $s .= $this->outputTree( $oDocRepDB, $k, $ra['children'] );
