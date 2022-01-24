@@ -93,7 +93,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", add:"Add", edit:"Edit", rename:"Rename", versions:"Versions" };
+        oConfig.defTabs = { preview:"Preview", add:"Add", edit:"Edit", rename:"Rename", versions:"Versions", schedule:"Schedule" };
 
         super(oConfig);
     }
@@ -147,11 +147,16 @@ class myDocRepCtrlView extends DocRepCtrlView
             case 'rename':
                 s = this.drawFormRename( kCurrDoc );
                 break;
+                
             case 'versions':
                 s = "<p>Todo:<br/>"
                    +`For doc ${kCurrDoc}<br/>`
                    +"Show versions of this document, allow preview, diff view, restore, and delete.<br/>";
                 break;
+                
+            case 'schedule':
+            	s = this.drawFormSchedule( kCurrDoc );
+            	break;
 
             default:
                 s = "Unknown control mode";
@@ -160,7 +165,7 @@ class myDocRepCtrlView extends DocRepCtrlView
         return( s );
     }
 
-	drawFormAdd(kCurrDoc) {
+	drawFormAdd( kCurrDoc ) {
 
 		// file no need for option 
 
@@ -250,6 +255,30 @@ class myDocRepCtrlView extends DocRepCtrlView
 s += "<p>Put the current values in. Make the button send the new values to the server, and update the tree with new name/title.";
         return( s );
     }
+    
+    drawFormSchedule( kCurrDoc )
+    {
+		let s = "Schedule not available";
+		let doc = $(`.DocRepTree_title[data-kDoc=${kCurrDoc}]`)[0];
+		
+		if(doc.dataset.doctype == 'page'){
+			
+			let name = doc.children[1].nextSibling.nodeValue;
+			
+			s = `<form onsubmit='myDocRepScheduleSubmit(event)'>
+					<div class='row'> 
+						<div class='col-md-3'>${name}</div>
+						<div class='col-md-6'>
+							<input type='text' id='schedule'  value='' style='width:100%'/>
+						</div>
+					</div>	
+					
+					<input type='hidden' id='drAdd_kDoc' value='${kCurrDoc}'/>
+				    <input type='submit' value='update schedule'/>
+				</form>`
+		}
+		return s;
+	}
 }
 
 function myDocRepAddSubmit( e ) 
@@ -310,9 +339,6 @@ function myDocRepEditSubmit( e )
     console.log(kDoc + "kdoc");
 }
 
-/*
-rename submit 
-*/
 function myDocRepRenameSubmit( e ) 
 {
 	e.preventDefault();;
@@ -334,6 +360,13 @@ function myDocRepRenameSubmit( e )
 	}
 }
 
+
+function myDocRepScheduleSubmit( e )
+{
+	e.preventDefault();
+	console.log("pressed schedule submit");
+}
+
 /*
 update tree after rename 
 */
@@ -343,6 +376,7 @@ function myDocRepRenameUpdateTree( kDoc, name )
 	let child = doc.children[1].nextSibling;
 	child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
 }
+
 /*
 update tree after adding new doc 
 for now, just reload page 
