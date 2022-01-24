@@ -289,7 +289,7 @@ class DocRepDoc2_ReadOnly
     {
         $this->oDocRepDB = $oDocRepDB;
         $this->kDoc = $kDoc;
-        
+
         if($kDoc != 0){
             $this->GetValues( "" );    // load the "" version to validate that the doc exists and is at least readable
             if( isset($this->raValues[""]['doc_key']) ) {
@@ -299,6 +299,7 @@ class DocRepDoc2_ReadOnly
             }
         }
         else{
+// kDoc==0 : this object is used during Insert -- is it more correct to use voidDoc() at this point?
             $this->bValid = true;
         }
     }
@@ -331,13 +332,22 @@ class DocRepDoc2_ReadOnly
         //    ? $ra['data_text'] : "" );
     }
 
+    function GetDocMetadataValue( $k )
+    /*********************************
+        Return the value of docMetadata[$k] (doc metadata is unversioned so there is no $flag to select a version)
+     */
+    {
+        $ra = $this->GetValue('raDocMetadata', self::FLAG_INDEPENDENT);
+        return( @$ra[$k] );
+    }
+
     function GetMetadataValue( $k, $flag )
     /*************************************
         Return the value of Data_metadata[$k] for the 'flag' version
      */
     {
-        $ra = $this->GetValues($flag);
-        return( @$ra['raMetadata'][$k] );
+        $ra = $this->GetValue('raMetadata', $flag);
+        return( @$ra[$k] );
     }
 
     function GetValuesVer( $iVer )
@@ -377,6 +387,7 @@ class DocRepDoc2_ReadOnly
         $raV['dataspec']       = $kfr->Value('Data_dataspec');
         $raV['title']          = $kfr->Value('Data_title');
         $raV['mimetype']       = $kfr->Value('Data_mimetype');
+        $raV['raDocMetadata']  = SEEDCore_ParmsURL2RA( $kfr->Value('docMetadata') );
         $raV['raMetadata']     = SEEDCore_ParmsURL2RA( $kfr->Value('Data_metadata') );
 
         // make this a client-defined variable in Data_metadata
@@ -748,6 +759,22 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         parent::__construct( $oDocRepDB, $kDoc );
     }
 
+    function SetDocMetadataValue( $k, $v )
+    /*************************************
+        Change the value of docMetadata[$k] (doc metadata is unversioned so there is no $flag to select a version)
+     */
+    {
+        $ra = $this->GetValue('raDocMetadata', self::FLAG_INDEPENDENT);
+        $ra[$k] = $v;
+        if( ($kfr = $this->getKfrDoc($this->kDoc, '')) ) {
+            $kfr->SetValue( 'docMetadata', SEEDCore_ParmsRA2URL($ra) );
+            $kfr->PutDBRow();
+        }
+
+        $this->clearCache();    // force a data refresh
+    }
+
+
     function Update( $parms )
     /************************
         Update the content and/or metadata of a document
@@ -780,14 +807,14 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         if( @$parms['name'] ) {
             $parent = $this->GetParentObj();
             $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
-        
+
             foreach($siblings as $k => $ra){
                 $name = $this->oDocRepDB->GetDoc($k)->GetName();
-                if($name == $parms['name']){ // if sibling has same name 
-                    return false; // dont change name 
+                if($name == $parms['name']){ // if sibling has same name
+                    return false; // dont change name
                 }
             }
-            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name 
+            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name
             $kfrDoc->SetValue( 'name', $parms['name'] );
             $ok = $kfrDoc->PutDBRow();
         }
@@ -797,6 +824,14 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $kfrData->SetValue( 'title', $parms['title'] );
             $ok = $kfrData->PutDBRow();
         }
+
+// this is just for example; remove it please
+$a = $this->GetDocMetadataValue('a');
+$b = $this->GetDocMetadataValue('b');
+$c = $this->GetDocMetadataValue('c');
+$this->SetDocMetadataValue('a', $a+1);
+$this->SetDocMetadataValue('b', $b+1);
+$this->SetDocMetadataValue('c', $c+1);
 
         return( $ok );
     }
@@ -1160,6 +1195,8 @@ CREATE TABLE docrep2_docs (
     kDoc_parent             INTEGER NOT NULL DEFAULT 0,        # docrep2_docs._key of this doc's parent (0 means this is at the top)
     siborder                INTEGER NOT NULL DEFAULT 0,
 
+    docMetadata             TEXT,                              # url-encoded  N.B. docrep2_data.metadata is versioned; this is not
+
     INDEX (name(20)),
     INDEX (kDoc_parent)
 );
@@ -1218,7 +1255,7 @@ CREATE TABLE docrep2_data (
     title               VARCHAR(200) DEFAULT '',        # metadata that is so commonly used it deserves to have its own field
     mimetype            VARCHAR(100) DEFAULT '',        # standalone docs should be served with this type in the http header
     dataspec            VARCHAR(200) DEFAULT '',        # user defined for searching, grouping, ordering, etc
-    metadata            TEXT,                           # url-encoded
+    metadata            TEXT,                           # url-encoded  N.B. this is versioned; docrep2_docs.docMetadata is not
 
     INDEX (fk_docrep2_docs)
 );
