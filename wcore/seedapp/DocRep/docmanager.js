@@ -324,8 +324,9 @@ class myDocRepCtrlView_Preview
     {
         let s = "";
         let rQ = null;
-
-        switch( this.#getMode() ) {
+        let m = this.#getMode();
+        
+        switch( m ) {
             case 'preview':
                 rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
@@ -333,7 +334,9 @@ class myDocRepCtrlView_Preview
             case 'source':
                 rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
-                    s = '<pre>' + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
+                    s = "<div style='font-family:monospace'>" 
+                      + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') 
+                      + "</div>";
                 } else {
                     s = `Cannot get preview for document ${this.kCurrDoc}`;
                 }
@@ -342,9 +345,12 @@ class myDocRepCtrlView_Preview
                 break;
         }
         
-
         s = `<div>
-             <select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'><option value='preview'>Preview</option><option value='source'>Source</option><option value='edit'>Edit</select>
+             <select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
+                 <option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
+                 <option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
+                 <option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
+             </select>
              <div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
              </div>`;
         
@@ -356,7 +362,8 @@ class myDocRepCtrlView_Preview
         Called when the <select> changes
      */
     {
-        alert(mode);
+        this.#setMode(mode);
+        this.oCtrlView.fnHandleEvent('ctrlviewRedraw', 0);
     }
 }
 
@@ -561,7 +568,8 @@ class DocRepApp02
     HandleRequest( eRequest, p )
     {
         switch( eRequest ) {
-            case 'docSelected':
+            case 'docSelected':     // when a doc/folder is clicked in the tree, this request is issued to redraw the CtrlView
+            case 'ctrlviewRedraw':  // the CtrlView can request itself to be redrawn when its state changes
                 $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
                 break;
         }
