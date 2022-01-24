@@ -263,7 +263,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
     drawFormSchedule( kCurrDoc )
     {
 		let s = "Schedule not available";	
-		let sName = "", sType = "";
+		let sName = "", sType = "", sSchedule = "";
         let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
         
         console.log(oDoc);
@@ -271,6 +271,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
         if( oDoc ) {
             sName = oDoc['name'];
             sType = oDoc['doctype'];
+            sSchedule = oDoc['schedule'];
         }
 		
 		if(sType == 'page'){
@@ -279,7 +280,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 					<div class='row'> 
 						<div class='col-md-3'>${sName}</div>
 						<div class='col-md-6'>
-							<input type='text' id='schedule-date'  value='' style='width:100%'/>
+							<input type='text' id='schedule-date'  value='${sSchedule}' style='width:100%'/>
 						</div>
 					</div>	
 					
@@ -487,18 +488,20 @@ function myDocRepRenameUpdateTree( kDoc, name )
 	let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
 	let child = doc.children[1].nextSibling;
 	child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
+	
+	// TODO: redraw tree with update map instead 
 }
 
 /*
 update tree after adding new doc 
 for now, just reload page 
-TODO: add doc on front end 
 */
 function myDocRepAddUpdateTree() 
 {
 	location.reload();
-	
-	// use myDocRepTree to update tree 
+	// TODO: 
+	// call ajax to update map 
+	// redraw tree with updated map 
 }
 
 class DocRepUI02
