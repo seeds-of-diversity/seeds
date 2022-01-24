@@ -50,6 +50,11 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doRename($kDoc, $parms);
                 break;
+                
+            case 'dr--schedule':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doSchedule($kDoc, $parms);
+                break;
         }
 
         done:
@@ -127,5 +132,16 @@ class QServerDocRep extends SEEDQ
         }
 
         return( [$bOk,$s] );
+    }
+    
+    private function doSchedule( $kDoc, $parms )
+    {
+        $s = "";
+        $bOk = false;
+        
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            $bOk = $oDoc->UpdateSchedule( $parms );
+        }
+        return( [$bOk, $s] );
     }
 }

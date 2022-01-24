@@ -803,6 +803,12 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
      */
     {
         $ok = true;
+        
+        if( $ok && @$parms['title'] ) {
+            $kfrData = $this->getKfrData( $this->kDoc, '' );
+            $kfrData->SetValue( 'title', $parms['title'] );
+            $ok = $kfrData->PutDBRow();
+        }
 
         if( @$parms['name'] ) {
             $parent = $this->GetParentObj();
@@ -819,20 +825,27 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $ok = $kfrDoc->PutDBRow();
         }
 
-        if( $ok && @$parms['title'] ) {
-            $kfrData = $this->getKfrData( $this->kDoc, '' );
-            $kfrData->SetValue( 'title', $parms['title'] );
-            $ok = $kfrData->PutDBRow();
+        return( $ok );
+    }
+    
+    function UpdateSchedule( $parms )
+    /**
+     * update schedule in docMetadata
+     */
+    {
+        $ok = true;
+        
+        if($this->GetType() != 'DOC' && $this->GetType() != 'TEXT'){
+            return false;
         }
-
-// this is just for example; remove it please
-$a = $this->GetDocMetadataValue('a');
-$b = $this->GetDocMetadataValue('b');
-$c = $this->GetDocMetadataValue('c');
-$this->SetDocMetadataValue('a', $a+1);
-$this->SetDocMetadataValue('b', $b+1);
-$this->SetDocMetadataValue('c', $c+1);
-
+        
+        if( @$parms['schedule'] ){
+            $this->setDocMetadataValue('schedule', $parms['schedule']);
+        }
+        else{
+            return false;
+        }
+        
         return( $ok );
     }
 }
