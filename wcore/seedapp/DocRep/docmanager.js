@@ -167,7 +167,11 @@ class myDocRepCtrlView extends DocRepCtrlView
 
 	drawFormAdd( kCurrDoc ) {
 
-		// file no need for option 
+		let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);        
+		let sType = "";
+        if( oDoc ) {
+            sType = oDoc['doctype'];
+        }
 
 		let s = `<form onsubmit='myDocRepAddSubmit(event)'>
 					<br>	
@@ -186,8 +190,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 					</div>
 					<br>
 					`
-		let current = $(`.DocRepTree_title[data-kDoc=${kCurrDoc}]`)[0];
-		if (current.dataset.doctype == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
+		if (sType == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
 			s += `	<div class='row'> 
 						<div [label]>Add under folder</div>
 						<div [ctrl]>
@@ -227,11 +230,9 @@ class myDocRepCtrlView extends DocRepCtrlView
 		s = s.replaceAll("[label]", "class='col-md-3'");
 		s = s.replaceAll("[ctrl]", "class='col-md-6'");
 
-
 		return s;
 	}
 	
-    
     drawFormRename( kCurrDoc )
     {
         let sName = "", sTitle = "", sPerms = "";
@@ -258,22 +259,28 @@ s += "<p>Put the current values in. Make the button send the new values to the s
     
     drawFormSchedule( kCurrDoc )
     {
-		let s = "Schedule not available";
-		let doc = $(`.DocRepTree_title[data-kDoc=${kCurrDoc}]`)[0];
+		let s = "Schedule not available";	
+		let sName = "", sType = "";
+        let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
+        
+        console.log(oDoc);
+        
+        if( oDoc ) {
+            sName = oDoc['name'];
+            sType = oDoc['doctype'];
+        }
 		
-		if(doc.dataset.doctype == 'page'){
-			
-			let name = doc.children[1].nextSibling.nodeValue;
+		if(sType == 'page'){
 			
 			s = `<form onsubmit='myDocRepScheduleSubmit(event)'>
 					<div class='row'> 
-						<div class='col-md-3'>${name}</div>
+						<div class='col-md-3'>${sName}</div>
 						<div class='col-md-6'>
-							<input type='text' id='schedule'  value='' style='width:100%'/>
+							<input type='text' id='schedule-date'  value='' style='width:100%'/>
 						</div>
 					</div>	
 					
-					<input type='hidden' id='drAdd_kDoc' value='${kCurrDoc}'/>
+					<input type='hidden' id='drSchedule_kDoc' value='${kCurrDoc}'/>
 				    <input type='submit' value='update schedule'/>
 				</form>`
 		}
@@ -349,9 +356,6 @@ function myDocRepRenameSubmit( e )
 
 	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, class: title, permclass: permissions });
 
-	console.log("pressed submit");
-	console.log(rQ);
-
 	if ( !rQ.bOk ) {
 		console.log("error rename");
 	}
@@ -365,6 +369,17 @@ function myDocRepScheduleSubmit( e )
 {
 	e.preventDefault();
 	console.log("pressed schedule submit");
+	let kDoc = $('#drSchedule_kDoc').val();
+	let schedule = $('#schedule-date').val();
+
+	let rQ = SEEDJXSync( "",{ qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
+	
+	if ( !rQ.bOk ) {
+		console.log("error schedule");
+	}
+	else {
+		// console.log("ok schedule")
+	}
 }
 
 /*
