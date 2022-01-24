@@ -9,8 +9,6 @@
  * DocRepCtrlView - a base control-view widget that needs a subclass to implement its contents (e.g. tabs, forms, controls )   
  */
 
-var editor; // The CKEditor instance
-
 class DocRepCache
 {
     constructor( oConfig )
@@ -233,15 +231,16 @@ class DocRepTree
                     let jDoc = $(this).closest('.DocRepTree_doc');
                     saveThis.LevelOpenGet(jDoc) ? saveThis.levelHide(jDoc) : saveThis.levelShow(jDoc); 
             });
+/*            
             if(document.querySelector('#drEdit_text')){
-            	/* Initialize the editor
-             	*/
+            	// Initialize the editor
             	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
             		editor = newEditor;
             	}).catch(err => {
             		console.error(err.stack);
             	});
             }
+*/
         });
         
         // open/close each level based on stored status 
@@ -310,15 +309,16 @@ class DocRepCtrlView
             let kDocCurr = saveThis.fnHandleEvent('getKDocCurr');
             if( kDocCurr ) {
                 $('#docrepctrlview_body').html( saveThis.DrawCtrlView(kDocCurr) );
+/*
                 if(document.querySelector('#drEdit_text')){
-                	/* Initialize the editor
-                 	*/
+                	// Initialize the editor
                 	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
                 		editor = newEditor;
                 	}).catch(err => {
                 		console.error(err.stack);
                 	});
                 }
+*/
             }
         });
     }

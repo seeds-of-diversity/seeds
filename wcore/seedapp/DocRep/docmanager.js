@@ -93,7 +93,9 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", add:"Add", edit:"Edit", rename:"Rename", versions:"Versions", schedule:"Schedule" };
+        oConfig.defTabs = { preview:"Preview", add:"Add", 
+                            //edit:"Edit", 
+                            rename:"Rename", versions:"Versions", schedule:"Schedule" };
 
         super(oConfig);
     }
@@ -307,14 +309,14 @@ class myDocRepCtrlView_Preview
     static #getMode()
     {
         // default is preview
-        return( this.#normalizeMode( sessionStorage.getItem('drCtrlview-preview-mode') ) );
+        return( this.#normalizeMode( sessionStorage.getItem('DocRepCtrlView_preview_mode') ) );
     }
 
     static #setMode( m )
     {
         m = this.#normalizeMode(m);    // mode can be preview, source, or edit
         
-        sessionStorage.setItem( 'drCtrlview-preview-mode', m );
+        sessionStorage.setItem( 'DocRepCtrlView_preview_mode', m );
     }
     
     // modes can be preview (default), source, or edit
@@ -325,6 +327,9 @@ class myDocRepCtrlView_Preview
         let s = "";
         let rQ = null;
         let m = this.#getMode();
+        
+        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
         
         switch( m ) {
             case 'preview':
@@ -342,6 +347,16 @@ class myDocRepCtrlView_Preview
                 }
                 break;
             case 'edit':
+                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                if( rQ.bOk ) {
+                    s = `<div id='drEdit_notice'></div>
+                         <form onsubmit='myDocRepEditSubmit(event)'>
+                         <textarea id='drEdit_text' style='width:100%'>${rQ.sOut}</textarea>
+                         <br/>
+                         <input type='hidden' id='drEdit_kDoc' value='${this.kCurrDoc}'/>
+                         <input type='submit' value='Save'/>
+                         </form>`;
+                }
                 break;
         }
         
@@ -411,6 +426,9 @@ function myDocRepAddSubmit( e )
 		myDocRepAddUpdateTree();
 	}
 }
+
+// Put this and editor-related things in a class
+var editor; // The CKEditor instance
 
 function myDocRepEditSubmit( e )
 {
@@ -571,6 +589,17 @@ class DocRepApp02
             case 'docSelected':     // when a doc/folder is clicked in the tree, this request is issued to redraw the CtrlView
             case 'ctrlviewRedraw':  // the CtrlView can request itself to be redrawn when its state changes
                 $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
+                
+                // Initialize the editor if its <textarea> exists 
+                // -- not the best place to put this - should be another listener-init call into oDocRepUI?
+                if(document.querySelector('#drEdit_text')){
+                    // Initialize the editor
+                    ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
+                        editor = newEditor;
+                    }).catch(err => {
+                        console.error(err.stack);
+                    });
+                }
                 break;
         }
     }
