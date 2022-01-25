@@ -308,17 +308,7 @@ class DocRepCtrlView
             // draw the form for the new tab            
             let kDocCurr = saveThis.fnHandleEvent('getKDocCurr');
             if( kDocCurr ) {
-                $('#docrepctrlview_body').html( saveThis.DrawCtrlView(kDocCurr) );
-/*
-                if(document.querySelector('#drEdit_text')){
-                	// Initialize the editor
-                	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
-                		editor = newEditor;
-                	}).catch(err => {
-                		console.error(err.stack);
-                	});
-                }
-*/
+                saveThis.DrawCtrlView(kDocCurr);
             }
         });
     }
@@ -334,9 +324,24 @@ class DocRepCtrlView
         $(`#docrepctrlview_tabs .tab[data-tabname=${m}]`).addClass("active-tab");
     }
 
-    DrawCtrlView()
+    DrawCtrlView( kCurrDoc )
+    /***********************
+        Draw the ctrlview_body for the current tab & doc, and attach event listeners to controls as needed
+     */
     {
+        $('#docrepctrlview_body').html( this.DrawCtrlView_Render(kCurrDoc) );
+        this.DrawCtrlView_Attach();
+    }
+
+    DrawCtrlView_Render( kCurrDoc )
+    {
+        // override to draw the ctrlview_body for the current tab
         return( "" );
+    }
+    
+    DrawCtrlView_Attach()
+    {
+        // override to attach event listeners to the html from DrawCtrlView_Render, which is now in the DOM
     }
 
     HandleRequest( eRequest, p )

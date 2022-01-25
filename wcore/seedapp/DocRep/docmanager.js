@@ -98,6 +98,7 @@ class myDocRepCtrlView extends DocRepCtrlView
                             rename:"Rename", versions:"Versions", schedule:"Schedule" };
 
         super(oConfig);
+        myDocRepCtrlView_Preview.Reset();   // so the Preview tab starts in Preview mode
     }
 
     GetCtrlMode()
@@ -111,7 +112,7 @@ class myDocRepCtrlView extends DocRepCtrlView
         super.SetCtrlMode( m );
     }
     
-    DrawCtrlView( kCurrDoc )
+    DrawCtrlView_Render( kCurrDoc )
     {
         let s = "";
         let rQ = [];
@@ -130,21 +131,6 @@ class myDocRepCtrlView extends DocRepCtrlView
 
             case 'add':
                 s = this.drawFormAdd(kCurrDoc);
-                break;
-
-            case 'edit':
-                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: kCurrDoc} );
-                if( rQ.bOk ) {
-                    s = `<div id='drEdit_notice'></div>
-                         <form onsubmit='myDocRepEditSubmit(event)'>
-                         <textarea id='drEdit_text' style='width:100%'>${rQ.sOut}</textarea>
-                         <br/>
-                         <input type='hidden' id='drEdit_kDoc' value='${kCurrDoc}'/>
-                         <input type='submit' value='Save'/>
-                         </form>`;
-                } else {
-                    s = `Cannot get preview for document ${kCurrDoc}`;
-                }
                 break;
 
             case 'rename':
@@ -166,6 +152,19 @@ class myDocRepCtrlView extends DocRepCtrlView
         }
 
         return( s );
+    }
+
+    DrawCtrlView_Attach()
+    {
+// move this into a myDocRepCtrlView_Edit object        
+        if( this.GetCtrlMode() == 'preview' && sessionStorage.getItem('DocRepCtrlView_preview_mode') == 'edit' ) {
+                // Now that there is a <textarea> for the editor, initialize CKEditor and attach it there
+                ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
+                        editor = newEditor;
+                    }).catch(err => {
+                        console.error(err.stack);
+                    });
+        }
     }
 
 	drawFormAdd( kCurrDoc ) {
@@ -307,6 +306,11 @@ class myDocRepCtrlView_Preview
         this.kCurrDoc = kCurrDoc;
     }
     
+    static Reset()
+    {
+        this.#setMode('');  // force to default
+    }
+    
     static #getMode()
     {
         // default is preview
@@ -429,7 +433,7 @@ function myDocRepAddSubmit( e )
 }
 
 // Put this and editor-related things in a class
-var editor; // The CKEditor instance
+var editor = null; // The CKEditor instance
 
 function myDocRepEditSubmit( e )
 {
@@ -534,9 +538,8 @@ class DocRepUI02
 
     DrawCtrlView()
     {
-// The ctrlMode is awkwardly set to this obj, then this is called to draw it. Should be a cleaner way to change mode and draw.
-// Also oCtrlView should either know which doc is current, or it should be able to ask DocRepUI02 through a callback (eliminate the fn parm).
-        return( this.oCtrlView.DrawCtrlView( this.oTree.GetCurrDoc() ) );
+// oCtrlView should be able to know which doc is current via the getKDocCurr request
+        this.oCtrlView.DrawCtrlView( this.oTree.GetCurrDoc() );
     }
     InitUI()
     {
@@ -582,7 +585,7 @@ class DocRepApp02
     {
         // draw the components before initializing them because InitUI sets js bindings in the dom
         $('#docmanui_tree').html( this.oDocRepUI.DrawTree() );
-        $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
+        this.oDocRepUI.DrawCtrlView();
         this.oDocRepUI.InitUI();
     }
 
@@ -591,18 +594,7 @@ class DocRepApp02
         switch( eRequest ) {
             case 'docSelected':     // when a doc/folder is clicked in the tree, this request is issued to redraw the CtrlView
             case 'ctrlviewRedraw':  // the CtrlView can request itself to be redrawn when its state changes
-                $('#docrepctrlview_body').html( this.oDocRepUI.DrawCtrlView() );
-                
-                // Initialize the editor if its <textarea> exists 
-                // -- not the best place to put this - should be another listener-init call into oDocRepUI?
-                if(document.querySelector('#drEdit_text')){
-                    // Initialize the editor
-                    ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
-                        editor = newEditor;
-                    }).catch(err => {
-                        console.error(err.stack);
-                    });
-                }
+                this.oDocRepUI.DrawCtrlView();
                 break;
         }
     }
