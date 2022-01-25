@@ -111,7 +111,7 @@ class myDocRepCtrlView extends DocRepCtrlView
         sessionStorage.setItem( 'DocRepCtrlView_Mode', m );
         super.SetCtrlMode( m );
     }
-    
+
     DrawCtrlView_Render( kCurrDoc )
     {
         let s = "";
@@ -383,7 +383,7 @@ class myDocRepCtrlView_Preview
      */
     {
         this.#setMode(mode);
-        this.oCtrlView.fnHandleEvent('ctrlviewRedraw', 0);
+        this.oCtrlView.DrawCtrlView();
     }
 }
 
@@ -538,9 +538,9 @@ class DocRepUI02
 
     DrawCtrlView()
     {
-// oCtrlView should be able to know which doc is current via the getKDocCurr request
-        this.oCtrlView.DrawCtrlView( this.oTree.GetCurrDoc() );
+        this.oCtrlView.DrawCtrlView();
     }
+    
     InitUI()
     {
         this.oTree.InitUI();

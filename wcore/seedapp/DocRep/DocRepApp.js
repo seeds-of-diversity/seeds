@@ -306,10 +306,7 @@ class DocRepCtrlView
             // store the new tab and redraw tabs
             saveThis.SetCtrlMode( $(this).attr('data-tabname') );
             // draw the form for the new tab            
-            let kDocCurr = saveThis.fnHandleEvent('getKDocCurr');
-            if( kDocCurr ) {
-                saveThis.DrawCtrlView(kDocCurr);
-            }
+            saveThis.DrawCtrlView();
         });
     }
 
@@ -324,13 +321,17 @@ class DocRepCtrlView
         $(`#docrepctrlview_tabs .tab[data-tabname=${m}]`).addClass("active-tab");
     }
 
-    DrawCtrlView( kCurrDoc )
-    /***********************
+    DrawCtrlView()
+    /*************
         Draw the ctrlview_body for the current tab & doc, and attach event listeners to controls as needed
      */
     {
-        $('#docrepctrlview_body').html( this.DrawCtrlView_Render(kCurrDoc) );
-        this.DrawCtrlView_Attach();
+        let kCurrDoc = this.fnHandleEvent('getKDocCurr');
+
+        if( kCurrDoc ) {
+            $('#docrepctrlview_body').html( this.DrawCtrlView_Render(kCurrDoc) );
+            this.DrawCtrlView_Attach();
+        }
     }
 
     DrawCtrlView_Render( kCurrDoc )
