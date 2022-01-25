@@ -166,7 +166,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 	drawFormAdd( kCurrDoc ) {
 
 		let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);        
-		let sType = "";
+		let sType = '';
         if( oDoc ) {
             sType = oDoc['doctype'];
         }
@@ -257,8 +257,9 @@ s += "<p>Put the current values in. Make the button send the new values to the s
     
     drawFormSchedule( kCurrDoc )
     {
-		let s = "Schedule not available";	
-		let sName = "", sType = "", sSchedule = "";
+		let s = 'Schedule not available';	
+		let sName = '', sType = '', sSchedule = '', raChildren = '', kDocParent = '';
+		let sNameEmail = '', sTypeEmail = '', sScheduleEmail = '';
         let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
         
         console.log(oDoc);
@@ -267,25 +268,92 @@ s += "<p>Put the current values in. Make the button send the new values to the s
             sName = oDoc['name'];
             sType = oDoc['doctype'];
             sSchedule = oDoc['schedule'];
+            raChildren = oDoc['children'];
+            kDocParent = oDoc['kParent'];
         }
 		
-		if(sType == 'page'){
+		if( sType == 'page' ){ // if selected is a file 
+		
+			let oDocParent = this.fnHandleEvent('getDocInfo', kDocParent);
 			
-			s = `<form onsubmit='myDocRepScheduleSubmit(event)'>
-					<div class='row'> 
-						<div class='col-md-3'>${sName}</div>
-						<div class='col-md-6'>
-							<input type='text' id='schedule-date'  value='${sSchedule}' style='width:100%'/>
-						</div>
-					</div>	
-					
-					<input type='hidden' id='drSchedule_kDoc' value='${kCurrDoc}'/>
-				    <input type='submit' value='update schedule'/>
-				</form>`
+			if(oDocParent['name'].toLowerCase().includes('schedule')){
+				
+				s = `<form onsubmit='myDocRepScheduleSubmit(event)'>
+						<div class='row'> 
+							<div class='col-md-3'>${sName}</div>
+							<div class='col-md-6'>
+								<input type='text' class='schedule-date'  value='${sSchedule}' style='width:100%'/>
+							</div>
+						</div>	
+						
+						<input type='hidden' class='drSchedule_kDoc' value='${kCurrDoc}'/>
+					    <input type='submit' value='update schedule'/>
+					</form>`
+			}
 		}
+		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
+			
+			if( this.folderContainsEmail( kCurrDoc ) ){
+				s = `<form onsubmit='myDocRepScheduleSubmit(event)'>`;
+			}
+			else{
+				s = `No emails found under folder`;
+			}		
+			
+			for( let kDocEmail of raChildren ){ // loop through all children 
+				let oDocEmail = this.fnHandleEvent('getDocInfo', kDocEmail);
+				
+				if( oDocEmail ) {
+		            sNameEmail = oDocEmail['name'];
+		            sTypeEmail = oDocEmail['doctype'];
+		            sScheduleEmail = oDocEmail['schedule'];
+        		}
+        		
+				if( sTypeEmail == 'page' ){ // if child is a file 
+			
+					s +=   `<div class='row'> 
+								<div class='col-md-3'>${sNameEmail}</div>
+								<div class='col-md-6'>
+									<input type='text' class='schedule-date'  value='${sScheduleEmail}' style='width:100%'/>
+								</div>
+							</div>	
+							
+							<input type='hidden' class='drSchedule_kDoc' value='${kDocEmail}'/>`
+				}
+			}
+			
+			if( this.folderContainsEmail( kCurrDoc ) ){
+				s += 	`<input type='submit' value='update schedule'/>
+					<form onsubmit='myDocRepScheduleSubmit(event)'>`;
+			}		
+		}
+		
+		s = s.replaceAll("[label]", "class='col-md-3'");
+        s = s.replaceAll("[ctrl]",  "class='col-md-6'");
+		
 		return s;
+		
+	}
+	/**
+	check to see if a given folder contains emails
+	 */
+	folderContainsEmail( kDoc )
+	{
+		let oDoc = this.fnHandleEvent('getDocInfo', kDoc);
+		
+		if( oDoc['doctype'] == 'folder' && oDoc['name'].toLowerCase().includes('schedule') ){
+			for( let kDocEmail of oDoc['children'] ){
+				let oDocEmail = this.fnHandleEvent('getDocInfo', kDocEmail);			
+				if ( oDocEmail['doctype'] == 'page' ){
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }
+
+
 
 
 class myDocRepCtrlView_Preview
@@ -496,16 +564,23 @@ function myDocRepScheduleSubmit( e )
 {
 	e.preventDefault();
 	console.log("pressed schedule submit");
-	let kDoc = $('#drSchedule_kDoc').val();
-	let schedule = $('#schedule-date').val();
-
-	let rQ = SEEDJXSync( "",{ qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
+	let allKDoc = $('.drSchedule_kDoc');
+	let allSchedule = $('.schedule-date');
 	
-	if ( !rQ.bOk ) {
-		console.log("error schedule");
-	}
-	else {
-		// console.log("ok schedule")
+	for(let i = 0; i < allKDoc.length; i++){
+		
+		let kDoc = allKDoc[i].value;
+		let schedule = allSchedule[i].value;
+		
+		let rQ = SEEDJXSync( "",{ qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
+	
+		if ( !rQ.bOk ) {
+			console.log("error schedule");
+		}
+		else {
+			// console.log("ok schedule")
+		}
+		
 	}
 }
 
