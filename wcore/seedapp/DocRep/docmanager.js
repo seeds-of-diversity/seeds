@@ -262,8 +262,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		let sNameEmail = '', sTypeEmail = '', sScheduleEmail = '';
         let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
         
-        console.log(oDoc);
-        
         if( oDoc ) {
             sName = oDoc['name'];
             sType = oDoc['doctype'];
@@ -275,7 +273,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		if( sType == 'page' ){ // if selected is a file 
 		
 			let oDocParent = this.fnHandleEvent('getDocInfo', kDocParent);
-			
 			if(oDocParent['name'].toLowerCase().includes('schedule')){
 				
 				s = `<form onsubmit='myDocRepScheduleSubmit(event)'>
@@ -299,7 +296,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			else{
 				s = `No emails found under folder`;
 			}		
-			
 			for( let kDocEmail of raChildren ){ // loop through all children 
 				let oDocEmail = this.fnHandleEvent('getDocInfo', kDocEmail);
 				
@@ -308,7 +304,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		            sTypeEmail = oDocEmail['doctype'];
 		            sScheduleEmail = oDocEmail['schedule'];
         		}
-        		
 				if( sTypeEmail == 'page' ){ // if child is a file 
 			
 					s +=   `<div class='row'> 
@@ -321,13 +316,11 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 							<input type='hidden' class='drSchedule_kDoc' value='${kDocEmail}'/>`
 				}
 			}
-			
 			if( this.folderContainsEmail( kCurrDoc ) ){
 				s += 	`<input type='submit' value='update schedule'/>
 					<form onsubmit='myDocRepScheduleSubmit(event)'>`;
 			}		
 		}
-		
 		s = s.replaceAll("[label]", "class='col-md-3'");
         s = s.replaceAll("[ctrl]",  "class='col-md-6'");
 		
@@ -508,13 +501,7 @@ function myDocRepAddSubmit( e )
 	let permissions = $('#add-permissions').val();
 
 
-	if( !name ) {
-		return;
-	}
-	else if( !permissions ) {
-		return; 
-	}
-	else if( !kDoc ) {
+	if( !name || !permissions || !kDoc) {
 		return;
 	}
 
@@ -533,9 +520,7 @@ function myDocRepAddSubmit( e )
 		console.log("error add");
 	}
 	else {
-		console.log("add success");
 		// update tree with new folder/file
-
 		myDocRepAddUpdateTree();
 	}
 }
@@ -563,7 +548,6 @@ function myDocRepRenameSubmit( e )
 function myDocRepScheduleSubmit( e )
 {
 	e.preventDefault();
-	console.log("pressed schedule submit");
 	let allKDoc = $('.drSchedule_kDoc');
 	let allSchedule = $('.schedule-date');
 	
