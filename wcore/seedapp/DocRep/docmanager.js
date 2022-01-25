@@ -238,7 +238,7 @@ class myDocRepCtrlView extends DocRepCtrlView
         if( oDoc ) {
             sName = oDoc['name'];
 //            sTitle = oDoc['title'];
-//            sPerms = oDoc['perms'];
+            sPerms = oDoc['perms'];
         }
         
         let s = `<form onsubmit='myDocRepRenameSubmit(event)'>
