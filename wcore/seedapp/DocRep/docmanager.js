@@ -156,14 +156,10 @@ class myDocRepCtrlView extends DocRepCtrlView
 
     DrawCtrlView_Attach()
     {
-// move this into a myDocRepCtrlView_Edit object        
+// move this into myDocRepCtrlView_Preview       
         if( this.GetCtrlMode() == 'preview' && sessionStorage.getItem('DocRepCtrlView_preview_mode') == 'edit' ) {
                 // Now that there is a <textarea> for the editor, initialize CKEditor and attach it there
-                ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
-                        editor = newEditor;
-                    }).catch(err => {
-                        console.error(err.stack);
-                    });
+            myDocRepCtrlView_Edit.InitEditor();
         }
     }
 
@@ -354,13 +350,7 @@ class myDocRepCtrlView_Preview
             case 'edit':
                 rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
-                    s = `<div id='drEdit_notice'></div>
-                         <form onsubmit='myDocRepEditSubmit(event)'>
-                         <textarea id='drEdit_text' style='width:100%'>${rQ.sOut}</textarea>
-                         <br/>
-                         <input type='hidden' id='drEdit_kDoc' value='${this.kCurrDoc}'/>
-                         <input type='submit' value='Save'/>
-                         </form>`;
+                    s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut);
                 }
                 break;
         }
@@ -384,6 +374,56 @@ class myDocRepCtrlView_Preview
     {
         this.#setMode(mode);
         this.oCtrlView.DrawCtrlView();
+    }
+}
+
+
+class myDocRepCtrlView_Edit
+/**************************
+    Implement the Edit control of the Ctrlview.
+    This is used within the Preview pane, and also in a full-screen mode.
+ */
+{
+    static CKEditorInstance = null;
+
+    static InitEditor()
+    /******************
+        Attach the CKEditor to the <textarea>
+     */
+    {
+        ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
+            this.CKEditorInstance = newEditor;
+        }).catch(err => {
+            console.error(err.stack);
+        });
+    }
+
+    static DrawEditor( kCurrDoc, sContent )
+    {
+        let s = `<div id='drEdit_notice'></div>
+                 <form onsubmit='myDocRepCtrlView_Edit.SaveHandler(event)'>
+                 <textarea id='drEdit_text' style='width:100%'>${sContent}</textarea>
+                 <br/>
+                 <input type='hidden' id='drEdit_kDoc' value='${kCurrDoc}'/>
+                 <input type='submit' value='Save'/>
+                 </form>`;
+        return( s );
+    }    
+    
+    static SaveHandler( e )
+    /**********************
+        Event handler for editor Save
+     */
+    {
+        e.preventDefault();
+        this.CKEditorInstance.updateSourceElement();
+        let kDoc = $('#drEdit_kDoc').val();
+        if( kDoc ) {
+            let rQ = SEEDJXSync( "", {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', p_text:$('#drEdit_text').val() } );
+            // console.log(rQ);
+            $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
+        }
+        // console.log(kDoc + "kdoc");
     }
 }
 
@@ -432,21 +472,6 @@ function myDocRepAddSubmit( e )
 	}
 }
 
-// Put this and editor-related things in a class
-var editor = null; // The CKEditor instance
-
-function myDocRepEditSubmit( e )
-{
-    e.preventDefault();
-    editor.updateSourceElement();
-    let kDoc = $('#drEdit_kDoc').val();
-    if( kDoc ) {
-        let rQ = SEEDJXSync( "", {qcmd: 'dr--update', kDoc: kDoc, src: 'TEXT', p_text: $('#drEdit_text').val() } );
-    console.log(rQ);
-        $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
-    }
-    console.log(kDoc + "kdoc");
-}
 
 function myDocRepRenameSubmit( e ) 
 {

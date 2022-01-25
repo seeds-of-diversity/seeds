@@ -231,16 +231,6 @@ class DocRepTree
                     let jDoc = $(this).closest('.DocRepTree_doc');
                     saveThis.LevelOpenGet(jDoc) ? saveThis.levelHide(jDoc) : saveThis.levelShow(jDoc); 
             });
-/*            
-            if(document.querySelector('#drEdit_text')){
-            	// Initialize the editor
-            	ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
-            		editor = newEditor;
-            	}).catch(err => {
-            		console.error(err.stack);
-            	});
-            }
-*/
         });
         
         // open/close each level based on stored status 
