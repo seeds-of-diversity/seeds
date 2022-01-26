@@ -861,6 +861,11 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         }
 
         if( @$parms['name'] ) {
+            
+            if($this->GetName() == $parms['name']){
+                return $ok;
+            }
+            
             $parent = $this->GetParentObj();
             $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
 
