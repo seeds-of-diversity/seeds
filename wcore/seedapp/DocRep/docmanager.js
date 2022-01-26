@@ -466,7 +466,7 @@ class myDocRepCtrlView_Edit
                  <textarea id='drEdit_text' style='width:100%'>${sContent}</textarea>
                  <br/>
                  <input type='hidden' id='drEdit_kDoc' value='${kCurrDoc}'/>
-                 <input type='submit' value='Save'/>
+                 <input type='submit' value='Save'/> <input type='checkbox' id='dr_Edit_newversion' value='1'/> Save New Version
                  </form>`;
         return( s );
     }    
@@ -478,9 +478,12 @@ class myDocRepCtrlView_Edit
     {
         e.preventDefault();
         this.CKEditorInstance.updateSourceElement();
+
         let kDoc = $('#drEdit_kDoc').val();
         if( kDoc ) {
-            let rQ = SEEDJXSync( "", {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', p_text:$('#drEdit_text').val() } );
+            let rQ = SEEDJXSync( "", {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', 
+                                                         p_text:$('#drEdit_text').val(), 
+                                                         p_bNewVersion:$('#dr_Edit_newversion').val() } );
             // console.log(rQ);
             $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
         }

@@ -788,8 +788,22 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                 case 'TEXT':
                     $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
                     $kfrData = $this->getKfrData( $this->kDoc, '' );
-                    $kfrData->SetValue( 'data_text', $parms['data_text'] );
-                    $kfrData->PutDBRow();
+                    if( @$parms['bNewVersion'] ) {
+                        // create a new version
+                        $kfrNew = $kfrData->Copy();
+                        $kfrNew->SetKey(0);                 // will force a new db record to be inserted
+                        $kfrNew->SetValue( 'ver', $kfrNew->Value('ver') + 1 );
+                        $kfrNew->SetValue( 'data_text', $parms['data_text'] );
+                        $kfrNew->PutDBRow();
+
+                        // now that the new data record is saved, update the doc record to point to it
+                        $kfrDoc->SetValue( 'kData_top', $kfrNew->Key() );
+                        $kfrDoc->PutDBRow();
+                    } else {
+                        // just update the data in the current version
+                        $kfrData->SetValue( 'data_text', $parms['data_text'] );
+                        $kfrData->PutDBRow();
+                    }
                     break;
             }
         }
@@ -803,7 +817,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
      */
     {
         $ok = true;
-        
+
         if( $ok && @$parms['title'] ) {
             $kfrData = $this->getKfrData( $this->kDoc, '' );
             $kfrData->SetValue( 'title', $parms['title'] );
@@ -827,15 +841,15 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
 
         return( $ok );
     }
-    
+
     function UpdateSchedule( $parms )
     /**
      * update schedule in docMetadata
      */
     {
         $ok = true;
-        
-        if( $this->GetType() != 'DOC' && $this->GetType() != 'TEXT' ){ // schedule can only be added to DOC and TEXT 
+
+        if( $this->GetType() != 'DOC' && $this->GetType() != 'TEXT' ){ // schedule can only be added to DOC and TEXT
             return false;
         }
         if( @$parms['schedule'] ){

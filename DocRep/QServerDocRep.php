@@ -35,7 +35,7 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doPreview($kDoc);
                 break;
-                
+
             case 'dr--add':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doAdd($kDoc, $parms);
@@ -50,7 +50,7 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doRename($kDoc, $parms);
                 break;
-                
+
             case 'dr--schedule':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doSchedule($kDoc, $parms);
@@ -93,12 +93,12 @@ class QServerDocRep extends SEEDQ
 
         return( [$bOk,$s] );
     }
-    
+
     private function doAdd ( $kDoc, $parms ){
         $s = "";
         $bOk = false;
         $oDoc = new DocRepDoc2_Insert( $this->oDocRepDB );
-        
+
         if( $parms['type'] == 'file' ) {
             $bOk = $oDoc->InsertFile( "", $parms );
         }
@@ -115,7 +115,7 @@ class QServerDocRep extends SEEDQ
 
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             if( ($p_text = SEEDInput_Str('p_text')) ) {
-                $bOk = $oDoc->Update( ['src'=>'TEXT', 'data_text'=>$p_text] );
+                $bOk = $oDoc->Update( ['src'=>'TEXT', 'data_text'=>$p_text, 'bNewVersion'=>SEEDInput_Int('p_bNewVersion')] );
             }
         }
 
@@ -133,12 +133,12 @@ class QServerDocRep extends SEEDQ
 
         return( [$bOk,$s] );
     }
-    
+
     private function doSchedule( $kDoc, $parms )
     {
         $s = "";
         $bOk = false;
-        
+
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             $bOk = $oDoc->UpdateSchedule( $parms );
         }
