@@ -356,7 +356,43 @@ class DocRepDoc2_ReadOnly
         These values are not cached because this method is probably not used much except in Version UI.
      */
     {
+        $ra = [];
 
+        if( ($kfrData = $this->oDocRepDB->GetRel()->GetKFRCond('Data', "fk_docrep2_docs='{$this->kDoc}' AND ver='".intval($iVer)."'")) )
+        {
+            $ra = $this->GetValues( self::FLAG_INDEPENDENT );       // get all the version-independent information
+            $ra['ver']            = $kfrData->Value('ver');
+            $ra['dataspec']       = $kfrData->Value('dataspec');
+            $ra['title']          = $kfrData->Value('title');
+            $ra['mimetype']       = $kfrData->Value('mimetype');
+            $ra['raMetadata']     = SEEDCore_ParmsURL2RA( $kfrData->Value('metadata') );
+            $ra['data_key']       = $kfrData->Value('_key');
+            $ra['data_src']       = $kfrData->Value('src');
+            $ra['data_text']      = $kfrData->Value('data_text');
+        }
+
+        return( $ra );
+    }
+
+    function GetAllVersions()
+    /************************
+        Return an array of all information about all versions, sorted by reverse version-number
+            [ verN => [ array from GetValuesVer ],
+              ...
+              2   =>  [ array from GetValuesVer ],
+              1   =>  [ array from GetValuesVer ]
+            ]
+     */
+    {
+        $ra = [];
+
+        if( ($kfr = $this->oDocRepDB->GetRel()->GetKFRC('Data', "fk_docrep2_docs='{$this->kDoc}'", ['sSortCol'=>'ver','bSortDown'=>true])) ) {
+            while( $kfr->CursorFetch() ) {
+                $ra[$kfr->Value('ver')] = $this->GetValuesVer( $kfr->Value('ver') );
+            }
+        }
+
+        return( $ra );
     }
 
     function GetValues( $flag )
