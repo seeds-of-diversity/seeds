@@ -163,6 +163,9 @@ class QServerDocRep extends SEEDQ
     }
     
     private function doVersions( $kDoc, $parms )
+    /**
+     * return 1 or all versions of a document 
+     */
     {
         $s = "";
         $bOk = false;
@@ -181,6 +184,9 @@ class QServerDocRep extends SEEDQ
     }
     
     private function diffVersion( $kDoc1, $kDoc2, $ver1, $ver2 )
+    /**
+     * return html showing the difference between 2 versions 
+     */
     {
         $s = "";
         $bOk = false;
@@ -257,20 +263,19 @@ class QServerDocRep extends SEEDQ
             ];
             
 
-            
-
-            
             $differ = new Differ(explode("\n", $previous), explode("\n", $current), $differOptions);
             $renderer = RendererFactory::make($rendererName, $rendererOptions); // or your own renderer object
             $result = $renderer->render($differ);
             
             $result = DiffHelper::calculate($previous, $current, $rendererName, $differOptions, $rendererOptions);
             
-            //$s .= $current;
-            //$s .= "diff";
-            //$s .= $previous;
+            $result = str_replace("&lt;", "<", $result);
+            $result = str_replace("&gt;", ">", $result);
+            $result = str_replace("&amp;", "&", $result);
+            $result = str_replace("&nbsp;", " ", $result);
+            // quotation marks might mess something up 
+            
             $s .= $result;
-            str_replace('&lt;', ' ', $s);
             
             $bOk = true;
         }
@@ -306,6 +311,9 @@ class QServerDocRep extends SEEDQ
     }
 
     private function doSchedule( $kDoc, $parms )
+    /**
+     * update schedule in database
+     */
     {
         $s = "";
         $bOk = false;

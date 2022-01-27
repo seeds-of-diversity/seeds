@@ -295,7 +295,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
      */
     {
 		let s = '';
-		let preview = '';
 		if( versionNumber ){ // if version is selected 
 			console.log("version selected");
 		}
@@ -303,11 +302,11 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		s += `
 		<div>
 			<span >preview: </span>
-			<div id='versions-preview' style='min-height:100px; border:1px solid;'>${preview}</div>
+			<div id='versions-preview' style='min-height:100px; border:1px solid;'>preview placeholder</div>
 		</div>
 		<div>
 			<span>changes / diff view: </span>
-			<div id='versions-diff' style='min-height:50px; border:1px solid;'>changes placeholder</div>
+			<div id='versions-diff' style='min-height:50px; border:1px solid;'>diff placeholder</div>
 		</div>
 		<div>
 			<span>delete/restore: </span>
@@ -353,21 +352,19 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 				// update diff view 
 				
 				let diffString = rQ.sOut;
-				
+
 				console.log(diffString);
-				/*
-				diffString = diffString.replace('&lt;', '<');
-				diffString = diffString.replace('&gt;', '>');
-				diffString = diffString.replace('&nbsp;', ' ');
 				
-				diffString = diffString.replace('&quot;', '"');
-				diffString = diffString.replace('"', '');
-				*/
+				diffString = diffString.replace(/&nbsp;/g, ' ');
+				
 				console.log(diffString);
 				
 				
 				$('#versions-diff').html(diffString);
 			}
+		}
+		else{
+			$('#versions-diff').html('diff placeholder');
 		}
 	}
 	
@@ -638,6 +635,8 @@ class myDocRepCtrlView_Edit
         // console.log(kDoc + "kdoc");
     }
 }
+
+// TODO: can make these functions static functions in myDocRepCtrlView
 
 function myDocRepAddSubmit( e ) 
 {
