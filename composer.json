@@ -21,6 +21,7 @@
         "twig/twig": "1.42.2",
         "components/jquery": "^3.3",
         "dompdf/dompdf": "^1.0.5",
-        "10bestdesign/jqvmap": "1.5.*"
+        "10bestdesign/jqvmap": "1.5.*",
+          "jfcherng/php-diff": "^6.11"
     }
 }
