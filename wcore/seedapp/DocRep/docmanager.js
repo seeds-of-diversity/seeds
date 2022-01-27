@@ -142,7 +142,7 @@ class myDocRepCtrlView extends DocRepCtrlView
                    +`For doc ${kCurrDoc}<br/>`
                    +"Show versions of this document, allow preview, diff view, restore, and delete.<br/>";
                 s += this.drawVersions(kCurrDoc);
-                s += this.drawFormVersions(kCurrDoc, 1);
+                s += this.drawFormVersions(kCurrDoc);
                 break;
                 
             case 'schedule':
@@ -275,7 +275,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			for( let i in versions ){	
 				//console.log(versions[i]);
 				s += `
-					<div class='versions-file'onclick='myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i})'> 
+					<div class='versions-file'onclick='myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i}); myDocRepCtrlView.updateVersionDiff(${kCurrDoc}, ${i})'> 
 						<span class='versions-number'>${versions[i].ver}</span>
 						<span class='versions-title'>${versions[i].title}</span>
 					</div>
@@ -289,32 +289,30 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		
 	}
     
-    drawFormVersions( kCurrDoc, version )
+    drawFormVersions( kCurrDoc, versionNumber = 1 )
     /**
     form for previewing and modifying versions
      */
     {
 		let s = '';
 		let preview = '';
-		if( version ){ // if version is selected 
-		
+		if( versionNumber ){ // if version is selected 
 			console.log("version selected");
-			preview = version.data_text
 		}
 			
 		s += `
 		<div>
 			<span >preview: </span>
-			<div id='versions-preview' style='height:100px; border:1px solid;'>${preview}</div>
+			<div id='versions-preview' style='min-height:100px; border:1px solid;'>${preview}</div>
 		</div>
 		<div>
 			<span>changes / diff view: </span>
-			<div id='versions-changes'>changes placeholder</div>
+			<div id='versions-diff' style='min-height:50px; border:1px solid;'>changes placeholder</div>
 		</div>
 		<div>
 			<span>delete/restore: </span>
-			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${version.ver})'>delete</button>
-			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${version.ver})'>restore</button>
+			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${versionNumber})'>delete</button>
+			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${versionNumber})'>restore</button>
 		</div>
 		<div>
 			<span>flags: </span>
@@ -343,6 +341,36 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
+	static updateVersionDiff( kCurrDoc, versionNumber )
+	{
+		if( versionNumber > 1 ){
+			let rQ = SEEDJXSync( "", {qcmd: 'dr-diffVersion', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber-1} );
+			
+			if(!rQ.bOk){
+				return;
+			}
+			else{
+				// update diff view 
+				
+				let diffString = rQ.sOut;
+				
+				console.log(diffString);
+				/*
+				diffString = diffString.replace('&lt;', '<');
+				diffString = diffString.replace('&gt;', '>');
+				diffString = diffString.replace('&nbsp;', ' ');
+				
+				diffString = diffString.replace('&quot;', '"');
+				diffString = diffString.replace('"', '');
+				*/
+				console.log(diffString);
+				
+				
+				$('#versions-diff').html(diffString);
+			}
+		}
+	}
+	
 	static deleteVersion( kCurrDoc, versionNumber )
 	/**
 	delete current version 
@@ -364,7 +392,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 	restore current version 
 	 */
 	{
-		console.log("clicked on delete");
+		console.log("clicked on restore");
 		let rQ = SEEDJXSync( "", {qcmd: 'dr--restoreVersion', kDoc: kCurrDoc, version: versionNumber} );
 		console.log('restore not implemented in database yet');
 		if(!rQ.bOk){
