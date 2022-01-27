@@ -141,6 +141,8 @@ class myDocRepCtrlView extends DocRepCtrlView
                 s = "<p>Todo:<br/>"
                    +`For doc ${kCurrDoc}<br/>`
                    +"Show versions of this document, allow preview, diff view, restore, and delete.<br/>";
+                s += this.drawVersions(kCurrDoc);
+                s += this.drawFormVersions(kCurrDoc, 1);
                 break;
                 
             case 'schedule':
@@ -237,7 +239,7 @@ class myDocRepCtrlView extends DocRepCtrlView
         let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
         if( oDoc ) {
             sName = oDoc['name'];
-//            sTitle = oDoc['title'];
+            sTitle = oDoc['title'];
             sPerms = oDoc['perms'];
         }
         
@@ -254,6 +256,124 @@ class myDocRepCtrlView extends DocRepCtrlView
 s += "<p>Put the current values in. Make the button send the new values to the server, and update the tree with new name/title.";
         return( s );
     }
+    
+    drawVersions( kCurrDoc )
+    /**
+    display a list of versions of a doc 
+     */
+    {
+		let s = 'Version information not available';
+		let rQ = SEEDJXSync( "", {qcmd: 'dr-versions', kDoc: kCurrDoc} );
+		
+		if(!rQ.bOk){
+			return s;
+		}
+		else{
+			s = '<div>versions: </div>'
+			let versions = rQ.sOut;
+			
+			for( let i in versions ){	
+				//console.log(versions[i]);
+				s += `
+					<div class='versions-file'onclick='myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i})'> 
+						<span class='versions-number'>${versions[i].ver}</span>
+						<span class='versions-title'>${versions[i].title}</span>
+					</div>
+					`
+			}
+		}
+		
+		s += `<br>`;
+		
+		return s;
+		
+	}
+    
+    drawFormVersions( kCurrDoc, version )
+    /**
+    form for previewing and modifying versions
+     */
+    {
+		let s = '';
+		let preview = '';
+		if( version ){ // if version is selected 
+		
+			console.log("version selected");
+			preview = version.data_text
+		}
+			
+		s += `
+		<div>
+			<span >preview: </span>
+			<div id='versions-preview' style='height:100px; border:1px solid;'>${preview}</div>
+		</div>
+		<div>
+			<span>changes / diff view: </span>
+			<div id='versions-changes'>changes placeholder</div>
+		</div>
+		<div>
+			<span>delete/restore: </span>
+			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${version.ver})'>delete</button>
+			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${version.ver})'>restore</button>
+		</div>
+		<div>
+			<span>flags: </span>
+			<div id='versions-flags' style='height:50px; border:1px solid;'>flags placeholder</div>
+		</div>
+		
+		`
+
+		return s;
+	}
+	
+	static updateVersionPreview( kCurrDoc, versionNumber )
+	/**
+	update preview based on version selected 
+	 */
+	{
+		console.log("clicked on version");
+		
+		let rQ = SEEDJXSync( "", {qcmd: 'dr-versions', kDoc: kCurrDoc, version: versionNumber} );
+		
+		if(!rQ.bOk){
+			return;
+		}
+		else{
+			$('#versions-preview').html(rQ.sOut['data_text']);
+		}
+	}
+	
+	static deleteVersion( kCurrDoc, versionNumber )
+	/**
+	delete current version 
+	 */
+	{
+		console.log("clicked on delete");
+		let rQ = SEEDJXSync( "", {qcmd: 'dr--deleteVersion', kDoc: kCurrDoc, version: versionNumber} );
+		console.log('delete not implemented in database yet');
+		if(!rQ.bOk){
+			return;
+		}
+		else{
+
+		}
+	}
+	
+	static restoreVersion( kCurrDoc, versionNumber )
+	/**
+	restore current version 
+	 */
+	{
+		console.log("clicked on delete");
+		let rQ = SEEDJXSync( "", {qcmd: 'dr--restoreVersion', kDoc: kCurrDoc, version: versionNumber} );
+		console.log('restore not implemented in database yet');
+		if(!rQ.bOk){
+			return;
+		}
+		else{
+			
+		}
+	}
     
     drawFormSchedule( kCurrDoc )
     {
@@ -537,7 +657,7 @@ function myDocRepRenameSubmit( e )
 	let title = $('#formRename_title').val();
 	let permissions = $('#formRename_perms').val();
 
-	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, class: title, permclass: permissions });
+	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
 
 	if ( !rQ.bOk ) {
 		console.log("error rename");
@@ -546,7 +666,6 @@ function myDocRepRenameSubmit( e )
 		myDocRepRenameUpdateTree(kDoc, name);
 	}
 }
-
 
 function myDocRepScheduleSubmit( e )
 {

@@ -42,3 +42,7 @@
 /* the div under the tabs where forms go
  */
 #docrepctrlview_body { border: 1px solid var(--tab-color); padding:15px; }
+
+.versions-file {
+	cursor: pointer;
+}

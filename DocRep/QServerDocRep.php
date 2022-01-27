@@ -50,11 +50,27 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doRename($kDoc, $parms);
                 break;
+                
+            case 'dr-versions':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doVersions($kDoc, $parms);
+                break;
+                
+            case 'dr--deleteVersion':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->deleteVersion($kDoc, $parms);
+                break;
+                
+            case 'dr--restoreVersion':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->restoreVersion($kDoc, $parms);
+                break;
 
             case 'dr--schedule':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doSchedule($kDoc, $parms);
                 break;
+                
         }
 
         done:
@@ -131,6 +147,50 @@ class QServerDocRep extends SEEDQ
             $bOk = $oDoc->Rename( $parms );
         }
 
+        return( [$bOk,$s] );
+    }
+    
+    private function doVersions( $kDoc, $parms )
+    {
+        $s = "";
+        $bOk = false;
+        
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            if(array_key_exists('version', $parms)){
+                $s = $oDoc->GetValuesVer($parms['version']);
+            }
+            else{
+                $s = $oDoc->GetAllVersions(); 
+            }
+            $bOk = true;
+        }
+        
+        return( [$bOk,$s] );
+    }
+    
+    private function deleteVersion( $kDoc, $parms )
+    {
+        $s = "";
+        $bOk = false;
+        
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            
+            // delete version 
+        }
+        
+        return( [$bOk,$s] );
+    }
+    
+    private function restoreVersion( $kDoc, $parms )
+    {
+        $s = "";
+        $bOk = false;
+        
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            
+            // restore version
+        }
+        
         return( [$bOk,$s] );
     }
 
