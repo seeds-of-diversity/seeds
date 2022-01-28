@@ -63,19 +63,19 @@ class QServerDocRep extends SEEDQ
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersions($kDoc, $parms);
                 break;
                 
-            case 'dr-diffVersion':
+            case 'dr-versionsDiff':
                 $rQ['bHandled'] = true;
-                list($rQ['bOk'],$rQ['sOut']) = $this->diffVersion($parms['kDoc1'], $parms['kDoc2'], $parms['ver1'], $parms['ver2']);
+                list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsDiff($parms['kDoc1'], $parms['kDoc2'], $parms['ver1'], $parms['ver2']);
                 break;
                 
-            case 'dr--deleteVersion':
+            case 'dr--versionsDelete':
                 $rQ['bHandled'] = true;
-                list($rQ['bOk'],$rQ['sOut']) = $this->deleteVersion($kDoc, $parms);
+                list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsDelete($kDoc, $parms);
                 break;
                 
-            case 'dr--restoreVersion':
+            case 'dr--versionsRestore':
                 $rQ['bHandled'] = true;
-                list($rQ['bOk'],$rQ['sOut']) = $this->restoreVersion($kDoc, $parms);
+                list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsRestore($kDoc, $parms);
                 break;
 
             case 'dr--schedule':
@@ -183,7 +183,7 @@ class QServerDocRep extends SEEDQ
         return( [$bOk,$s] );
     }
     
-    private function diffVersion( $kDoc1, $kDoc2, $ver1, $ver2 )
+    private function doVersionsDiff( $kDoc1, $kDoc2, $ver1, $ver2 )
     /**
      * return html showing the difference between 2 versions 
      */
@@ -252,7 +252,7 @@ class QServerDocRep extends SEEDQ
     }
     
     
-    private function deleteVersion( $kDoc, $parms )
+    private function doVersionsDelete( $kDoc, $parms )
     {
         $s = "";
         $bOk = false;
@@ -265,7 +265,7 @@ class QServerDocRep extends SEEDQ
         return( [$bOk,$s] );
     }
     
-    private function restoreVersion( $kDoc, $parms )
+    private function doVersionsRestore( $kDoc, $parms )
     {
         $s = "";
         $bOk = false;

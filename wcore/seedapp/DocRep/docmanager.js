@@ -296,26 +296,28 @@ s += "<p>Put the current values in. Make the button send the new values to the s
     {
 		let s = '';
 		if( versionNumber ){ // if version is selected 
-			console.log("version selected");
 		}
 			
 		s += `
 		<div>
-			<span >preview: </span>
-			<div id='versions-preview' style='min-height:100px; border:1px solid;'>preview placeholder</div>
+			<span >Preview: </span>
+			<div id='versions-preview' style='min-height:100px; border:1px solid;'>Select a version to preview</div>
 		</div>
 		<div>
-			<span>changes / diff view: </span>
-			<div id='versions-diff' style='min-height:50px; border:1px solid;'>diff placeholder</div>
+			<span>Difference between current and previous version: </span>
+			<div id='versions-diff' style='min-height:50px; border:1px solid;'>Difference not available</div>
 		</div>
 		<div>
-			<span>delete/restore: </span>
+			<span>Delete / Restore: </span>
 			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${versionNumber})'>delete</button>
 			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${versionNumber})'>restore</button>
 		</div>
 		<div>
-			<span>flags: </span>
-			<div id='versions-flags' style='height:50px; border:1px solid;'>flags placeholder</div>
+			<span>Flags: </span>
+			<div id='versions-flags' style='height:50px; border:1px solid;'>Select a version to see flags</div>
+		</div>
+		<div>
+		Note: delete, restore, flags not finished yet
 		</div>
 		
 		`
@@ -328,8 +330,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 	update preview based on version selected 
 	 */
 	{
-		console.log("clicked on version");
-		
 		let rQ = SEEDJXSync( "", {qcmd: 'dr-versions', kDoc: kCurrDoc, version: versionNumber} );
 		
 		if(!rQ.bOk){
@@ -343,28 +343,19 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 	static updateVersionDiff( kCurrDoc, versionNumber )
 	{
 		if( versionNumber > 1 ){
-			let rQ = SEEDJXSync( "", {qcmd: 'dr-diffVersion', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber-1} );
+			let rQ = SEEDJXSync( "", {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber-1} );
 			
 			if(!rQ.bOk){
 				return;
 			}
 			else{
 				// update diff view 
-				
 				let diffString = rQ.sOut;
-
-				console.log(diffString);
-				
-				diffString = diffString.replace(/&nbsp;/g, ' ');
-				
-				console.log(diffString);
-				
-				
 				$('#versions-diff').html(diffString);
 			}
 		}
 		else{
-			$('#versions-diff').html('diff placeholder');
+			$('#versions-diff').html('Difference not available');
 		}
 	}
 	
@@ -374,7 +365,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 	 */
 	{
 		console.log("clicked on delete");
-		let rQ = SEEDJXSync( "", {qcmd: 'dr--deleteVersion', kDoc: kCurrDoc, version: versionNumber} );
+		let rQ = SEEDJXSync( "", {qcmd: 'dr--versionsDelete', kDoc: kCurrDoc, version: versionNumber} );
 		console.log('delete not implemented in database yet');
 		if(!rQ.bOk){
 			return;
@@ -390,7 +381,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 	 */
 	{
 		console.log("clicked on restore");
-		let rQ = SEEDJXSync( "", {qcmd: 'dr--restoreVersion', kDoc: kCurrDoc, version: versionNumber} );
+		let rQ = SEEDJXSync( "", {qcmd: 'dr--versionsRestore', kDoc: kCurrDoc, version: versionNumber} );
 		console.log('restore not implemented in database yet');
 		if(!rQ.bOk){
 			return;
