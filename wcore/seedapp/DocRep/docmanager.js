@@ -321,7 +321,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		</div>
 		
 		`
-
 		return s;
 	}
 	

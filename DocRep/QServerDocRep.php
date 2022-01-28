@@ -199,18 +199,9 @@ class QServerDocRep extends SEEDQ
             $current = $oDoc1->GetValuesVer($ver1)['data_text'];
             $previous = $oDoc2->GetValuesVer($ver2)['data_text'];
             
-            // add new line so php-diff will display it as multiple lines 
-            $current = str_replace("</p>", "</p>\n", $current);
-            $current = str_replace("</h1>", "</h1>\n", $current);
-            $current = str_replace("</h2>", "</h2>\n", $current);
-            $current = str_replace("</h3>", "</h3>\n", $current);
-            $current = str_replace("<br>", "<br>\n", $current);
-            
-            $previous = str_replace("</p>", "</p>\n", $previous);
-            $previous = str_replace("</h1>", "</h1>\n", $previous);
-            $previous = str_replace("</h2>", "</h2>\n", $previous);
-            $previous = str_replace("</h3>", "</h3>\n", $previous);
-            $previous = str_replace("<br>", "<br>\n", $previous);
+            // add new line so php-diff will display it as multiple lines   
+            $current = str_replace(["</p>", "</h1>", "</h2>", "</h3>", "<br>"], ["</p>\n", "</h1>\n", "</h2>\n", "</h3>\n", "<br>\n"], $current);
+            $previous = str_replace(["</p>", "</h1>", "</h2>", "</h3>", "<br>"], ["</p>\n", "</h1>\n", "</h2>\n", "</h3>\n", "<br>\n"], $previous);
             
             // TODO: add something like if a paragraph is multiple lines, put a \n every 30 char 
             
@@ -236,11 +227,9 @@ class QServerDocRep extends SEEDQ
             
             $result = DiffHelper::calculate($previous, $current, $rendererName, $differOptions, $rendererOptions);
             
-            // show html elements as formatting
-            $result = str_replace("&lt;", "<", $result);
-            $result = str_replace("&gt;", ">", $result);
-            $result = str_replace("&amp;", "&", $result);
-            $result = str_replace("&nbsp;", " ", $result);
+            // show html elements as formatting    
+            $result = str_replace(["&lt;", "&gt;", "&amp;", "&nbsp;"], ["<", ">", "&", " "], $result);
+            
             // quotation marks might mess something up 
             
             $s .= $result;
