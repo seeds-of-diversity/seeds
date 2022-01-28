@@ -46,3 +46,145 @@
 .versions-file {
 	cursor: pointer;
 }
+
+/*
+The following code is taken from php-diff library 
+*/
+/*
+BSD 3-Clause License
+
+Copyright (c) 2018-2022 Jack Cherng <jfcherng@gmail.com>
+Copyright (c) 2009 Chris Boulton <chris.boulton@interspire.com>
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+.diff-wrapper.diff {
+  background: repeating-linear-gradient(-45deg, whitesmoke, whitesmoke 0.5em, #e8e8e8 0.5em, #e8e8e8 1em);
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid black;
+  color: black;
+  empty-cells: show;
+  font-family: monospace;
+  font-size: 13px;
+  width: 100%;
+  word-break: break-all;
+}
+.diff-wrapper.diff th {
+  font-weight: 700;
+}
+.diff-wrapper.diff td {
+  vertical-align: baseline;
+}
+.diff-wrapper.diff td,
+.diff-wrapper.diff th {
+  border-collapse: separate;
+  border: none;
+  padding: 1px 2px;
+  background: #fff;
+}
+.diff-wrapper.diff td:empty:after,
+.diff-wrapper.diff th:empty:after {
+  content: " ";
+  visibility: hidden;
+}
+.diff-wrapper.diff td a,
+.diff-wrapper.diff th a {
+  color: #000;
+  cursor: inherit;
+  pointer-events: none;
+}
+.diff-wrapper.diff thead th {
+  background: #a6a6a6;
+  border-bottom: 1px solid black;
+  padding: 4px;
+  text-align: left;
+}
+.diff-wrapper.diff tbody.skipped {
+  border-top: 1px solid black;
+}
+.diff-wrapper.diff tbody.skipped td,
+.diff-wrapper.diff tbody.skipped th {
+  display: none;
+}
+.diff-wrapper.diff tbody th {
+  background: #cccccc;
+  border-right: 1px solid black;
+  text-align: right;
+  vertical-align: top;
+  width: 4em;
+}
+.diff-wrapper.diff tbody th.sign {
+  background: #fff;
+  border-right: none;
+  padding: 1px 0;
+  text-align: center;
+  width: 1em;
+}
+.diff-wrapper.diff tbody th.sign.del {
+  background: #fbe1e1;
+}
+.diff-wrapper.diff tbody th.sign.ins {
+  background: #e1fbe1;
+}
+.diff-wrapper.diff.diff-html {
+  white-space: pre-wrap;
+}
+.diff-wrapper.diff.diff-html.diff-combined .change.change-rep .rep {
+  white-space: normal;
+}
+.diff-wrapper.diff.diff-html .change.change-eq .old,
+.diff-wrapper.diff.diff-html .change.change-eq .new {
+  background: #fff;
+}
+.diff-wrapper.diff.diff-html .change .old {
+  background: #fbe1e1;
+}
+.diff-wrapper.diff.diff-html .change .new {
+  background: #e1fbe1;
+}
+.diff-wrapper.diff.diff-html .change .rep {
+  background: #fef6d9;
+}
+.diff-wrapper.diff.diff-html .change .old.none,
+.diff-wrapper.diff.diff-html .change .new.none,
+.diff-wrapper.diff.diff-html .change .rep.none {
+  background: transparent;
+  cursor: not-allowed;
+}
+.diff-wrapper.diff.diff-html .change ins,
+.diff-wrapper.diff.diff-html .change del {
+  font-weight: bold;
+  text-decoration: none;
+}
+.diff-wrapper.diff.diff-html .change ins {
+  background: #94f094;
+}
+.diff-wrapper.diff.diff-html .change del {
+  background: #f09494;
+}
