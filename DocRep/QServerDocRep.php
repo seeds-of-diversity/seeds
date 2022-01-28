@@ -199,11 +199,30 @@ class QServerDocRep extends SEEDQ
             $current = $oDoc1->GetValuesVer($ver1)['data_text'];
             $previous = $oDoc2->GetValuesVer($ver2)['data_text'];
             
+            $current = str_replace("</p>", "</p>\n", $current);
+            $current = str_replace("</h1>", "</h1>\n", $current);
+            $current = str_replace("</h2>", "</h2>\n", $current);
+            $current = str_replace("</h3>", "</h3>\n", $current);
+            $current = str_replace("<br>", "<br>\n", $current);
+            
+            $previous = str_replace("</p>", "</p>\n", $previous);
+            $previous = str_replace("</h1>", "</h1>\n", $previous);
+            $previous = str_replace("</h2>", "</h2>\n", $previous);
+            $previous = str_replace("</h3>", "</h3>\n", $previous);
+            $previous = str_replace("<br>", "<br>\n", $previous);
+            
+            // TODO: add something like if a paragraph is multiple lines, put a \n every 30 char 
+            
+            
+            /*
+             * php diff config information 
+             * TODO: remove everything except for the needed stuff 
+             */
             
             // renderer class name:
             //     Text renderers: Context, JsonText, Unified
             //     HTML renderers: Combined, Inline, JsonHtml, SideBySide
-            $rendererName = 'Inline';
+            $rendererName = 'SideBySide';
             
             // the Diff class options
             $differOptions = [
@@ -219,7 +238,7 @@ class QServerDocRep extends SEEDQ
             // the renderer class options
             $rendererOptions = [
                 // how detailed the rendered HTML in-line diff is? (none, line, word, char)
-                'detailLevel' => 'word',
+                'detailLevel' => 'line',
                 // renderer language: eng, cht, chs, jpn, ...
                 // or an array which has the same keys with a language file
                 'language' => 'eng',
@@ -262,10 +281,17 @@ class QServerDocRep extends SEEDQ
                 'wrapperClasses' => ['diff-wrapper'],
             ];
             
+            //$currentFile = SEEDROOT.'current.txt';
+            //$previousFile = SEEDROOT.'previous.txt';
+            
+            //file_put_contents($currentFile, $current);
+            //file_put_contents($previousFile, $previous);
+            
+            
 
-            $differ = new Differ(explode("\n", $previous), explode("\n", $current), $differOptions);
-            $renderer = RendererFactory::make($rendererName, $rendererOptions); // or your own renderer object
-            $result = $renderer->render($differ);
+            //$differ = new Differ(explode("\n", $previous), explode("\n", $current), $differOptions);
+            //$renderer = RendererFactory::make($rendererName, $rendererOptions); // or your own renderer object
+            //$result = $renderer->render($differ);
             
             $result = DiffHelper::calculate($previous, $current, $rendererName, $differOptions, $rendererOptions);
             
