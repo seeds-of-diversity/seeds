@@ -220,7 +220,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 					<div class='row'> 
 						<div [label]>Permissions</div>
 						<div [ctrl]>
-							<input type='text' id='add-permissions'  value='' style='width:100%'/>
+							<input type='text' id='add-permissions'  value='1' style='width:100%'/>
 						</div>
 					</div>										
 					<input type='hidden' id='drAdd_kDoc' value='${kCurrDoc}'/>
@@ -500,10 +500,10 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	
 		if ( position == "child" ) {
-			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
+			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
 		}
 		else {
-			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
+			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
 		}
 	
 		if (!rQ.bOk) {
@@ -580,11 +580,6 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		// redraw tree with updated map 
 	}
 }
-
-// TODO: 
-// when adding new file, title is undefined 
-// when adding, permission can be 1 by default 
-// version tab
 
 class myDocRepCtrlView_Preview
 /*****************************
