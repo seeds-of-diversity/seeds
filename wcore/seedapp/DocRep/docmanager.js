@@ -173,7 +173,7 @@ class myDocRepCtrlView extends DocRepCtrlView
             sType = oDoc['doctype'];
         }
 
-		let s = `<form onsubmit='myDocRepAddSubmit(event)'>
+		let s = `<form onsubmit='myDocRepCtrlView.addSubmit(event)'>
 					<br>	
 					<div>Type: </div>
 					<div class='row'> 
@@ -243,7 +243,7 @@ class myDocRepCtrlView extends DocRepCtrlView
             sPerms = oDoc['perms'];
         }
         
-        let s = `<form onsubmit='myDocRepRenameSubmit(event)'>
+        let s = `<form onsubmit='myDocRepCtrlView.renameSubmit(event)'>
         		 <div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/></div></div>
@@ -410,7 +410,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			let oDocParent = this.fnHandleEvent('getDocInfo', kDocParent);
 			if(oDocParent['name'].toLowerCase().includes('schedule')){
 				
-				s = `<form onsubmit='myDocRepScheduleSubmit(event)'>
+				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event)'>
 						<div class='row'> 
 							<div class='col-md-3'>${sName}</div>
 							<div class='col-md-6'>
@@ -426,7 +426,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
 			
 			if( this.folderContainsEmail( kCurrDoc ) ){
-				s = `<form onsubmit='myDocRepScheduleSubmit(event)'>`;
+				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event)'>`;
 			}
 			else{
 				s = `No emails found under folder`;
@@ -453,7 +453,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			}
 			if( this.folderContainsEmail( kCurrDoc ) ){
 				s += 	`<input type='submit' value='update schedule'/>
-					<form onsubmit='myDocRepScheduleSubmit(event)'>`;
+					<form onsubmit='myDocRepCtrlView.scheduleSubmit(event)'>`;
 			}		
 		}
 		s = s.replaceAll("[label]", "class='col-md-3'");
@@ -479,10 +479,112 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 		return false;
 	}
+	
+	static addSubmit( e ) 
+	{
+		e.preventDefault();
+		var rQ;
+		let kDoc = $('#drAdd_kDoc').val();
+		let position = $('input[name=child-or-sibling]:checked').val()
+		let type = $('input[name=file-or-folder]:checked').val()
+		let name = $('#add-name').val();
+		let title = $('#add-title').val();
+		let permissions = $('#add-permissions').val();
+	
+		if( !name || !permissions || !kDoc) {
+			return;
+		}
+	
+		if ( !position ) { // if no position is selected, or position does not exist, default sibling 
+			position == "sibling";
+		}
+	
+		if ( position == "child" ) {
+			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
+		}
+		else {
+			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
+		}
+	
+		if (!rQ.bOk) {
+			console.log("error add");
+		}
+		else {
+			// update tree with new folder/file
+			this.addUpdateTree();
+		}
+	}
+	
+	static renameSubmit( e ) 
+	{
+		e.preventDefault();;
+		let kDoc = $('#drRename_kDoc').val();
+		let name = $('#formRename_name').val();
+		let title = $('#formRename_title').val();
+		let permissions = $('#formRename_perms').val();
+	
+		let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
+	
+		if ( !rQ.bOk ) {
+			console.log("error rename");
+		}
+		else {
+			this.renameUpdateTree(kDoc, name);
+		}
+	}
+	
+	static scheduleSubmit( e )
+	{
+		e.preventDefault();
+		let allKDoc = $('.drSchedule_kDoc');
+		let allSchedule = $('.schedule-date');
+		
+		for(let i = 0; i < allKDoc.length; i++){
+			
+			let kDoc = allKDoc[i].value;
+			let schedule = allSchedule[i].value;
+			
+			let rQ = SEEDJXSync( "",{ qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
+		
+			if ( !rQ.bOk ) {
+				console.log("error schedule");
+			}
+			else {
+				// console.log("ok schedule")
+			}
+			
+		}
+	}
+	
+	/*
+	update tree after rename 
+	*/
+	static renameUpdateTree( kDoc, name ) 
+	{
+		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
+		let child = doc.children[1].nextSibling;
+		child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
+		
+		// TODO: redraw tree with update map instead 
+	}
+	
+	/*
+	update tree after adding new doc 
+	for now, just reload page 
+	*/
+	static addUpdateTree() 
+	{
+		location.reload();
+		// TODO: 
+		// call ajax to update map 
+		// redraw tree with updated map 
+	}
 }
 
-
-
+// TODO: 
+// when adding new file, title is undefined 
+// when adding, permission can be 1 by default 
+// version tab
 
 class myDocRepCtrlView_Preview
 /*****************************
@@ -629,110 +731,6 @@ class myDocRepCtrlView_Edit
     }
 }
 
-// TODO: can make these functions static functions in myDocRepCtrlView
-
-function myDocRepAddSubmit( e ) 
-{
-
-	e.preventDefault();
-	var rQ;
-	let kDoc = $('#drAdd_kDoc').val();
-	let position = $('input[name=child-or-sibling]:checked').val()
-	let type = $('input[name=file-or-folder]:checked').val()
-	let name = $('#add-name').val();
-	let title = $('#add-title').val();
-	let permissions = $('#add-permissions').val();
-
-
-	if( !name || !permissions || !kDoc) {
-		return;
-	}
-
-	if ( !position ) { // if no position is selected, or position does not exist, default sibling 
-		position == "sibling";
-	}
-
-	if ( position == "child" ) {
-		rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
-	}
-	else {
-		rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_class: title, dr_permclass: permissions });
-	}
-
-	if (!rQ.bOk) {
-		console.log("error add");
-	}
-	else {
-		// update tree with new folder/file
-		myDocRepAddUpdateTree();
-	}
-}
-
-
-function myDocRepRenameSubmit( e ) 
-{
-	e.preventDefault();;
-	let kDoc = $('#drRename_kDoc').val();
-	let name = $('#formRename_name').val();
-	let title = $('#formRename_title').val();
-	let permissions = $('#formRename_perms').val();
-
-	let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
-
-	if ( !rQ.bOk ) {
-		console.log("error rename");
-	}
-	else {
-		myDocRepRenameUpdateTree(kDoc, name);
-	}
-}
-
-function myDocRepScheduleSubmit( e )
-{
-	e.preventDefault();
-	let allKDoc = $('.drSchedule_kDoc');
-	let allSchedule = $('.schedule-date');
-	
-	for(let i = 0; i < allKDoc.length; i++){
-		
-		let kDoc = allKDoc[i].value;
-		let schedule = allSchedule[i].value;
-		
-		let rQ = SEEDJXSync( "",{ qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
-	
-		if ( !rQ.bOk ) {
-			console.log("error schedule");
-		}
-		else {
-			// console.log("ok schedule")
-		}
-		
-	}
-}
-
-/*
-update tree after rename 
-*/
-function myDocRepRenameUpdateTree( kDoc, name ) 
-{
-	let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
-	let child = doc.children[1].nextSibling;
-	child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
-	
-	// TODO: redraw tree with update map instead 
-}
-
-/*
-update tree after adding new doc 
-for now, just reload page 
-*/
-function myDocRepAddUpdateTree() 
-{
-	location.reload();
-	// TODO: 
-	// call ajax to update map 
-	// redraw tree with updated map 
-}
 
 class DocRepUI02
 /***************
