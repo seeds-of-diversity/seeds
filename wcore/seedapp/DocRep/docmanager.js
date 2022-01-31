@@ -615,11 +615,12 @@ class myDocRepCtrlView_Edit
 		
         e.preventDefault();
         //this.CKEditorInstance.updateSourceElement();
+        let text = this.CKEditorInstance.getData();
 
         let kDoc = $('#drEdit_kDoc').val();
         if( kDoc ) {
             let rQ = SEEDJXSync( "", {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', 
-                                                         p_text:$('#drEdit_text').val(), 
+                                                         p_text:text, 
                                                          p_bNewVersion:$('#dr_Edit_newversion').val() } );
             // console.log(rQ);
             $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
