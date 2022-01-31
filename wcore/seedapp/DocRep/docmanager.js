@@ -547,6 +547,7 @@ class myDocRepCtrlView_Preview
                 rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
                     s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut);
+                        
                 }
                 break;
         }
@@ -587,12 +588,12 @@ class myDocRepCtrlView_Edit
         Attach the CKEditor to the <textarea>
      */
     {
-        ClassicEditor.create(document.querySelector('#drEdit_text')).then( newEditor => {
-            this.CKEditorInstance = newEditor;
-        }).catch(err => {
-            console.error(err.stack);
-        });
-    }
+    	CKEDITOR.replace( 'drEdit_text', {
+			//customConfig: '/seeds/wcore/seedapp/DocRep/ckeditor_config.js'
+		} );
+		
+		this.CKEditorInstance = CKEDITOR.instances.drEdit_text;
+	}
 
     static DrawEditor( kCurrDoc, sContent )
     {
@@ -611,8 +612,9 @@ class myDocRepCtrlView_Edit
         Event handler for editor Save
      */
     {
+		
         e.preventDefault();
-        this.CKEditorInstance.updateSourceElement();
+        //this.CKEditorInstance.updateSourceElement();
 
         let kDoc = $('#drEdit_kDoc').val();
         if( kDoc ) {
