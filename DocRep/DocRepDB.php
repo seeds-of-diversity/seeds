@@ -916,6 +916,21 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         }  
         return( $ok );
     } 
+    
+    function restoreVersion( $iVer )
+    /**
+     * restore a version of the doc
+     * set status to 0
+     */
+    {
+        
+        if( ($kfrData = $this->oDocRepDB->GetRel()->GetKFRCond('Data', "fk_docrep2_docs='{$this->kDoc}' AND ver='".intval($iVer)."'")) )
+        {
+            $kfrData->SetValue( '_status', 0 );
+            $ok = $kfrData->PutDBRow();
+        }
+        return( $ok );
+    } 
 }
 
 class DocRepDoc2_Insert extends DocRepDoc2

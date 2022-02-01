@@ -263,7 +263,7 @@ class QServerDocRep extends SEEDQ
         
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             
-            // restore version
+            $bOk = $oDoc->restoreVersion($parms['version']);
         }
         
         return( [$bOk,$s] );
