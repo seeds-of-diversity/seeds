@@ -276,7 +276,11 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			for( let i of index ){	
 				//console.log(versions[i]);
 				s += `
-					<div class='versions-file'onclick='myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i}); myDocRepCtrlView.updateVersionDiff(${kCurrDoc}, ${i})'> 
+					<div class='versions-file'onclick='
+						myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i}); 
+						myDocRepCtrlView.updateVersionDiff(event, ${kCurrDoc}, ${i}); 
+						myDocRepCtrlView.updateVersionModify(${kCurrDoc}, ${i})'> 
+						
 						<span class='versions-number'>${versions[i].ver}</span>
 						<span class='versions-title'>${versions[i].title}</span>
 					</div>
@@ -290,7 +294,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		
 	}
     
-    drawFormVersions( kCurrDoc, versionNumber = 1 )
+    drawFormVersions( kCurrDoc, versionNumber )
     /**
     form for previewing and modifying versions
      */
@@ -310,8 +314,8 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		</div>
 		<div>
 			<span>Delete / Restore: </span>
-			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${versionNumber})'>delete</button>
-			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${versionNumber})'>restore</button>
+			<div id='versions-modify'>Select a version to delete</div>
+			
 		</div>
 		<div>
 			<span>Flags: </span>
@@ -340,10 +344,20 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static updateVersionDiff( kCurrDoc, versionNumber )
+	static updateVersionDiff( e, kCurrDoc, versionNumber )
+	/**
+	show difference between current selected and previous version
+	 */
 	{
-		if( versionNumber > 1 ){
-			let rQ = SEEDJXSync( "", {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber-1} );
+		
+		let target = e.target;
+		if(target.className == 'versions-number' || target.className == 'version-title'){
+			target = target.parentNode;
+		}
+
+		if(target.nextElementSibling.className == 'versions-file'){ // find next available version
+			let versionNumber2 = target.nextElementSibling.firstElementChild.innerHTML;
+			let rQ = SEEDJXSync( "", {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber2} );
 			
 			if(!rQ.bOk){
 				return;
@@ -357,21 +371,30 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		else{
 			$('#versions-diff').html('Difference not available');
 		}
+			
 	}
 	
+	static updateVersionModify( kCurrDoc, versionNumber )
+	/**
+	add delete and restore button when a version is clicked
+	 */
+	{
+		$('#versions-modify').html(`
+			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${versionNumber})'>delete</button>
+			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${versionNumber})'>restore</button>`);
+	}
 	static deleteVersion( kCurrDoc, versionNumber )
 	/**
 	delete current version 
 	 */
 	{
-		console.log("clicked on delete");
+
 		let rQ = SEEDJXSync( "", {qcmd: 'dr--versionsDelete', kDoc: kCurrDoc, version: versionNumber} );
-		console.log('delete not implemented in database yet');
 		if(!rQ.bOk){
-			return;
+			console.log('error delete version');
 		}
 		else{
-
+			$(`.versions-number:contains(${versionNumber})`).parent().remove();
 		}
 	}
 	

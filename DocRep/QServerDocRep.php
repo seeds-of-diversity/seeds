@@ -247,8 +247,10 @@ class QServerDocRep extends SEEDQ
         $bOk = false;
         
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
-            
-            // delete version 
+            if(sizeof($oDoc->GetAllVersions()) <= 1){ // if there is only 1 version, need to delete the entire doc
+                return; // do nothing for now TODO: add option to delete entire doc
+            }
+            $bOk = $oDoc->deleteVersion($parms['version']);
         }
         
         return( [$bOk,$s] );

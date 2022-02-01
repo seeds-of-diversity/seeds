@@ -901,6 +901,21 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         }
         return( $ok );
     }
+    
+    function deleteVersion( $iVer )
+    /**
+     * delete a version of the doc 
+     * set status to -1
+     */
+    {
+        
+        if( ($kfrData = $this->oDocRepDB->GetRel()->GetKFRCond('Data', "fk_docrep2_docs='{$this->kDoc}' AND ver='".intval($iVer)."'")) )
+        {
+            $kfrData->SetValue( '_status', -1 );
+            $ok = $kfrData->PutDBRow();
+        }  
+        return( $ok );
+    } 
 }
 
 class DocRepDoc2_Insert extends DocRepDoc2
