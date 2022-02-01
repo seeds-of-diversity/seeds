@@ -48,6 +48,31 @@
 	color: #337ab7;
 }
 
+#versions-preview {
+	min-height: 100px;
+	max-height: 150px;
+	overflow-y: auto;
+	border:1px solid;
+	padding: 2px 2px 2px 2px;
+}	
+
+#versions-diff {
+	min-height: 100px;
+	max-height: 150px;
+	overflow-y: auto;
+	border:1px solid;
+
+}
+
+#versions-flags {
+	min-height: 100px;
+	max-height: 150px;
+	overflow-y: auto;
+	border:1px solid;
+	padding: 2px 2px 2px 2px;
+}
+
+
 /*
 The following code is taken from php-diff library 
 */

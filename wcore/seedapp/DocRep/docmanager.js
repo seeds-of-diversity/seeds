@@ -301,11 +301,11 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		s += `
 		<div>
 			<span >Preview: </span>
-			<div id='versions-preview' style='min-height:100px; border:1px solid;'>Select a version to preview</div>
+			<div id='versions-preview'>Select a version to preview</div>
 		</div>
 		<div>
 			<span>Difference between current and previous version: </span>
-			<div id='versions-diff' style='min-height:50px; border:1px solid;'>Difference not available</div>
+			<div id='versions-diff'>Difference not available</div>
 		</div>
 		<div>
 			<span>Delete / Restore: </span>
