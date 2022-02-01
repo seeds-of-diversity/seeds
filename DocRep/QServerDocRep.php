@@ -213,7 +213,7 @@ class QServerDocRep extends SEEDQ
             // renderer class name:
             //     Text renderers: Context, JsonText, Unified
             //     HTML renderers: Combined, Inline, JsonHtml, SideBySide
-            $rendererName = 'SideBySide';
+            $rendererName = 'Combined';
             
             // the Diff class options
             $differOptions = [
