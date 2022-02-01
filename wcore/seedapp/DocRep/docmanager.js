@@ -277,9 +277,9 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 				//console.log(versions[i]);
 				s += `
 					<div class='versions-file'onclick='
-						myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i}); 
-						myDocRepCtrlView.updateVersionDiff(event, ${kCurrDoc}, ${i}); 
-						myDocRepCtrlView.updateVersionModify(${kCurrDoc}, ${i})'> 
+						myDocRepCtrlView.updateVersionsPreview(${kCurrDoc}, ${i}); 
+						myDocRepCtrlView.updateVersionsDiff(event, ${kCurrDoc}, ${i}); 
+						myDocRepCtrlView.updateVersionsModify(${kCurrDoc}, ${i})'> 
 						
 						<span class='versions-number'>${versions[i].ver}</span>
 						<span class='versions-title'>${versions[i].title}</span>
@@ -329,7 +329,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		return s;
 	}
 	
-	static updateVersionPreview( kCurrDoc, versionNumber )
+	static updateVersionsPreview( kCurrDoc, versionNumber )
 	/**
 	update preview based on version selected 
 	 */
@@ -344,14 +344,14 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static updateVersionDiff( e, kCurrDoc, versionNumber )
+	static updateVersionsDiff( e, kCurrDoc, versionNumber )
 	/**
 	show difference between current selected and previous version
 	 */
 	{
 		
 		let target = e.target;
-		if(target.className == 'versions-number' || target.className == 'version-title'){
+		if(target.className == 'versions-number' || target.className == 'versions-title'){
 			target = target.parentNode;
 		}
 
@@ -374,16 +374,16 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			
 	}
 	
-	static updateVersionModify( kCurrDoc, versionNumber )
+	static updateVersionsModify( kCurrDoc, versionNumber )
 	/**
 	add delete and restore button when a version is clicked
 	 */
 	{
 		$('#versions-modify').html(`
-			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.deleteVersion(${kCurrDoc}, ${versionNumber})'>delete</button>
-			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.restoreVersion(${kCurrDoc}, ${versionNumber})'>restore</button>`);
+			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.versionsDeleteSubmit(${kCurrDoc}, ${versionNumber})'>delete</button>
+			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.versionsRestoreSubmit(${kCurrDoc}, ${versionNumber})'>restore</button>`);
 	}
-	static deleteVersion( kCurrDoc, versionNumber )
+	static versionsDeleteSubmit( kCurrDoc, versionNumber )
 	/**
 	delete current version 
 	 */
@@ -398,7 +398,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static restoreVersion( kCurrDoc, versionNumber )
+	static versionsRestoreSubmit( kCurrDoc, versionNumber )
 	/**
 	restore current version 
 	 */
