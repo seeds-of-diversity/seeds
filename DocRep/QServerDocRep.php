@@ -57,22 +57,22 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doRename($kDoc, $parms);
                 break;
-                
+
             case 'dr-versions':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersions($kDoc, $parms);
                 break;
-                
+
             case 'dr-versionsDiff':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsDiff($parms['kDoc1'], $parms['kDoc2'], $parms['ver1'], $parms['ver2']);
                 break;
-                
+
             case 'dr--versionsDelete':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsDelete($kDoc, $parms);
                 break;
-                
+
             case 'dr--versionsRestore':
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsRestore($kDoc, $parms);
@@ -82,7 +82,7 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doSchedule($kDoc, $parms);
                 break;
-                
+
         }
 
         done:
@@ -127,11 +127,10 @@ class QServerDocRep extends SEEDQ
         $bOk = false;
         $oDoc = new DocRepDoc2_Insert( $this->oDocRepDB );
 
-        if( $parms['type'] == 'file' ) {
-            $bOk = $oDoc->InsertFile( "", $parms );
-        }
-        else if( $parms['type'] == 'folder' ) {
-            $bOk = $oDoc->InsertFolder($parms);
+        switch( $parms['type'] ) {
+            case 'text':    $bOk = $oDoc->InsertText( "", $parms );   break;      // todo: allow optional text string to be input
+            case 'file':    $bOk = $oDoc->InsertFile( "", $parms );   break;      // todo: this needs a filename for the first argument
+            case 'folder':  $bOk = $oDoc->InsertFolder($parms);       break;
         }
         return( [$bOk,$s] );
     }
@@ -161,111 +160,111 @@ class QServerDocRep extends SEEDQ
 
         return( [$bOk,$s] );
     }
-    
+
     private function doVersions( $kDoc, $parms )
     /**
-     * return 1 or all versions of a document 
+     * return 1 or all versions of a document
      */
     {
         $s = "";
         $bOk = false;
-        
+
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             if(array_key_exists('version', $parms)){
                 $s = $oDoc->GetValuesVer($parms['version']);
             }
             else{
-                $s = $oDoc->GetAllVersions(); 
+                $s = $oDoc->GetAllVersions();
             }
             $bOk = true;
         }
-        
+
         return( [$bOk,$s] );
     }
-    
+
     private function doVersionsDiff( $kDoc1, $kDoc2, $ver1, $ver2 )
     /**
-     * return html showing the difference between 2 versions 
+     * return html showing the difference between 2 versions
      */
     {
         $s = "";
         $bOk = false;
-        
+
         if( $kDoc1 && $kDoc2 ){
-        
+
             $oDoc1 = $this->oDocRepDB->GetDocRepDoc( $kDoc1 );
             $oDoc2 = $this->oDocRepDB->GetDocRepDoc( $kDoc2 );
-            
+
             $current = $oDoc1->GetValuesVer($ver1)['data_text'];
             $previous = $oDoc2->GetValuesVer($ver2)['data_text'];
-            
-            // add new line so php-diff will display it as multiple lines   
+
+            // add new line so php-diff will display it as multiple lines
             $current = str_replace(["</p>", "</h1>", "</h2>", "</h3>", "<br>"], ["</p>\n", "</h1>\n", "</h2>\n", "</h3>\n", "<br>\n"], $current);
             $previous = str_replace(["</p>", "</h1>", "</h2>", "</h3>", "<br>"], ["</p>\n", "</h1>\n", "</h2>\n", "</h3>\n", "<br>\n"], $previous);
-            
-            // TODO: add something like if a paragraph is multiple lines, put a \n every 30 char 
-            
-            
-            // config for php-diff 
-            // list of configs available can be found at 
+
+            // TODO: add something like if a paragraph is multiple lines, put a \n every 30 char
+
+
+            // config for php-diff
+            // list of configs available can be found at
             // https://github.com/jfcherng/php-diff
-            
+
             // renderer class name:
             //     Text renderers: Context, JsonText, Unified
             //     HTML renderers: Combined, Inline, JsonHtml, SideBySide
             $rendererName = 'Combined';
-            
+
             // the Diff class options
             $differOptions = [
-                
+
             ];
-            
+
             // the renderer class options
             $rendererOptions = [
                 'detailLevel' => 'word',
             ];
-            
+
             $result = DiffHelper::calculate($previous, $current, $rendererName, $differOptions, $rendererOptions);
-            
-            // show html elements as formatting    
+
+            // show html elements as formatting
             $result = str_replace(["&lt;", "&gt;", "&amp;", "&nbsp;"], ["<", ">", "&", " "], $result);
-            
-            // quotation marks might mess something up 
-            
+
+            // quotation marks might mess something up
+
             $s .= $result;
-            
+
             $bOk = true;
         }
-        
+
         return( [$bOk,$s] );
     }
-    
-    
+
+
     private function doVersionsDelete( $kDoc, $parms )
     {
         $s = "";
         $bOk = false;
-        
+
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             if(sizeof($oDoc->GetAllVersions()) <= 1){ // if there is only 1 version, need to delete the entire doc
                 return; // do nothing for now TODO: add option to delete entire doc
             }
             $bOk = $oDoc->deleteVersion($parms['version']);
         }
-        
+
         return( [$bOk,$s] );
     }
-    
+
     private function doVersionsRestore( $kDoc, $parms )
     {
         $s = "";
         $bOk = false;
-        
+
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
-            
+
             $bOk = $oDoc->restoreVersion($parms['version']);
         }
-        
+
         return( [$bOk,$s] );
     }
 

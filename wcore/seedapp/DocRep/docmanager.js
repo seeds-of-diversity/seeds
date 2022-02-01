@@ -179,13 +179,13 @@ class myDocRepCtrlView extends DocRepCtrlView
 					<div class='row'> 
 						<div [label]>File</div>
 						<div [ctrl]>
-							<input type='radio' id='add-file'  name='file-or-folder' value='file' checked/>
+							<input type='radio' id='add-file'  name='text-or-folder' value='text' checked/>
 						</div>
 					</div>
 					<div class='row'> 
 						<div [label]>Folder</div>
 						<div [ctrl]>
-							<input type='radio' id='add-folder'  name='file-or-folder' value='folder' />
+							<input type='radio' id='add-folder'  name='text-or-folder' value='folder' />
 						</div>
 					</div>
 					<br>
@@ -510,11 +510,11 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		var rQ;
 		let kDoc = $('#drAdd_kDoc').val();
 		let position = $('input[name=child-or-sibling]:checked').val()
-		let type = $('input[name=file-or-folder]:checked').val()
+		let type = $('input[name=text-or-folder]:checked').val()
 		let name = $('#add-name').val();
 		let title = $('#add-title').val();
 		let permissions = $('#add-permissions').val();
-	
+
 		if( !name || !permissions || !kDoc) {
 			return;
 		}

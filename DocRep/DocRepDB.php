@@ -861,11 +861,11 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         }
 
         if( @$parms['name'] ) {
-            
+
             if($this->GetName() == $parms['name']){
                 return $ok;
             }
-            
+
             $parent = $this->GetParentObj();
             $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
 
@@ -901,36 +901,36 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         }
         return( $ok );
     }
-    
+
     function deleteVersion( $iVer )
     /**
-     * delete a version of the doc 
+     * delete a version of the doc
      * set status to -1
      */
     {
-        
+
         if( ($kfrData = $this->oDocRepDB->GetRel()->GetKFRCond('Data', "fk_docrep2_docs='{$this->kDoc}' AND ver='".intval($iVer)."'")) )
         {
             $kfrData->SetValue( '_status', -1 );
             $ok = $kfrData->PutDBRow();
-        }  
+        }
         return( $ok );
-    } 
-    
+    }
+
     function restoreVersion( $iVer )
     /**
      * restore a version of the doc
      * set status to 0
      */
     {
-        
+
         if( ($kfrData = $this->oDocRepDB->GetRel()->GetKFRCond('Data', "fk_docrep2_docs='{$this->kDoc}' AND ver='".intval($iVer)."'")) )
         {
             $kfrData->SetValue( '_status', 0 );
             $ok = $kfrData->PutDBRow();
         }
         return( $ok );
-    } 
+    }
 }
 
 class DocRepDoc2_Insert extends DocRepDoc2
@@ -956,7 +956,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
         Create a TEXT document
      */
     {
-        return( $this->insertDoc( 'TEXT', 'TEXT', $tmp_fname, $parms ) );
+        return( $this->insertDoc( 'TEXT', 'TEXT', $sText, $parms ) );
     }
 
     function InsertFile( $tmp_fname, $parms = array() )
@@ -964,7 +964,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
         Create a FILE document
      */
     {
-        return( $this->insertDoc( 'DOC', 'FILE', $tmp_fname, $parms ) );
+        return( $this->insertDoc( 'BIN', 'FILE', $tmp_fname, $parms ) );
     }
 
     function InsertSFile( $name, $tmp_fname = "", $parms = array() )
