@@ -271,8 +271,9 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		else{
 			s = '<div>versions: </div>'
 			let versions = rQ.sOut;
+			let index = Object.keys(versions).reverse();
 			
-			for( let i in versions ){	
+			for( let i of index ){	
 				//console.log(versions[i]);
 				s += `
 					<div class='versions-file'onclick='myDocRepCtrlView.updateVersionPreview(${kCurrDoc}, ${i}); myDocRepCtrlView.updateVersionDiff(${kCurrDoc}, ${i})'> 
