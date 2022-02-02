@@ -315,12 +315,11 @@ switch( $p_outFormat ) {
 
         $row = 2;
         foreach( $raMbr as $ra ) {
-            $name1 = trim($ra['firstname'].' '.$ra['lastname']);
-            $name2 = trim($ra['firstname2'].' '.$ra['lastname2']);
-            if( $name1 ) {
-                $name2 = $name2 ?: $ra['company'];
+            if( ($name1 = Mbr_Contacts::FirstnameLastname( $ra, '' )) ) {
+                $name2 = $ra['company'];
             } else {
                 $name1 = $ra['company'];
+                $name2 = '';
             }
 
             $oXls->WriteRow( 0, $row++,
