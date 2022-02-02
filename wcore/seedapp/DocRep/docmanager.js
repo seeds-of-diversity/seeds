@@ -395,6 +395,10 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 		else{
 			$(`.versions-number:contains(${versionNumber})`).parent().remove();
+			$('#versions-preview').html('Select a version to preview');
+			$('#versions-diff').html('Difference not available');
+			$('#versions-modify').html('Select a version to delete');
+			$('#versions-flags').html('Select a version to see flags');
 		}
 	}
 	
@@ -742,7 +746,7 @@ class myDocRepCtrlView_Edit
         if( kDoc ) {
             let rQ = SEEDJXSync( "", {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', 
                                                          p_text:text, 
-                                                         p_bNewVersion:$('#dr_Edit_newversion').val() } );
+                                                         p_bNewVersion:$('#dr_Edit_newversion').is(':checked') } );
             // console.log(rQ);
             $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
         }
