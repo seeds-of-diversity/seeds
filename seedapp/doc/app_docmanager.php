@@ -2,33 +2,10 @@
 
 /* app_docmanager.php
  *
- * Copyright 2006-2021 Seeds of Diversity Canada
+ * Copyright 2006-2022 Seeds of Diversity Canada
  *
  * Manage docrep documents.
  */
-
-
-
-/* Todo:
-
-Preview tab:
-    Remove the instruction text. "If it's html put it here..." etc
-    Put a checkbox at the top of #docrepctrlview called "Show source". If it's
-    unchecked show the preview normally, if checked escape htmlchars and make it
-    monospace font so source html is shown
-
-Edit tab:
-    Find an html editor and put it here with the doc's html. I've used CKEditor and MCE but
-    there are others that might be better now. I'm okay with Save doing a page refresh but if
-    it's easy to hook the save to an ajax command then make a command called dr--textsave
-
-Rename tab:
-    Put a form here showing the document name, title, and permission class. Get title using GetTitle('').
-    Make an ajax command called dr--metadatasave that updates these three.
-    The hard part might be changing the tree to show the new name... hmm.
-
-*/
-
 
 if( !defined( "SEEDROOT" ) ) {
     define( "SEEDROOT", "../../" );
@@ -39,6 +16,7 @@ if( !defined( "SEEDROOT" ) ) {
 include_once( SEEDROOT."DocRep/DocRep.php" );
 include_once( SEEDROOT."DocRep/DocRepUI.php" );
 include_once( SEEDROOT."DocRep/QServerDocRep.php" );
+include_once( "docmanagerui.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
                                      'files'     => ['label'=>'Files'],
@@ -81,72 +59,17 @@ class DocManagerTabSet extends Console02TabSet
 
 class DocManagerTabDocuments
 {
+    private $oApp;
+
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
+        $this->oDocManUI = new DocManagerUI_Documents( $oApp );
     }
 
-    function Init()
-    {
-    }
-
+    function Init()        {}
     function ControlDraw() { return( "<br/>" ); }
-    function ContentDraw()
-    {
-        $s = "";
-
-//        $o = new DocManagerUI( $this->oApp, $this->kSelectedDoc );
-
-//        $s .= $o->Style();
-        $s .= DocRepApp1::Style();
-
-        $s .= "<div class='docman_doctree'>"
-             ."<div class='container-fluid'>"
-                 ."<div class='row'>"
-                     ."<div class='col-md-6'> <div id='docmanui_tree'></div> </div>"
-                     ."<div class='col-md-6'> <div id='docrepctrlview'></div> </div>"
-                 ."</div>"
-            ."</div></div>";
-
-//        $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
-
-        $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
-        $raTree = $oDocRepDB->GetSubTree( 0, -1 );
-        $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
-
-        return( $s );
-    }
-
-    private function outputTree( $oDocRepDB, $kDoc, $raChildren )
-    {
-        $s = "";
-
-        if( $kDoc ) {
-            if( !($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) )  goto done;
-
-            $n = $oDoc->GetName();
-            $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
-            $p = $oDoc->GetParent();
-            $schedule = !empty($oDoc->GetDocMetadataValue('schedule')) ? $oDoc->GetDocMetadataValue('schedule') : '';
-            $perms = $oDoc->GetPermclass();
-        } else {
-            $p = 0;
-            $n = '';
-            $t = 'folder';
-            $schedule = '';
-            $perms = '';
-        }
-        $c = implode(',', array_keys($raChildren));
-
-        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', perms:'$perms' }],";
-
-        foreach( $raChildren as $k => $ra ) {
-            $s .= $this->outputTree( $oDocRepDB, $k, $ra['children'] );
-        }
-
-        done:
-        return( $s );
-    }
+    function ContentDraw() { return( DocRepApp1::Style() . $this->oDocManUI->DrawDocumentsUI() ); }
 }
 
 
@@ -169,8 +92,7 @@ $oDocTS = new DocManagerTabSet( $oApp, $kSelectedDoc );
 
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
-echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "<script src='https://cdn.ckeditor.com/4.17.1/standard/ckeditor.js'></script>", 'EN',
-                                ['raScriptFiles' => [W_CORE_URL."js/SEEDCore.js",
-                                                     W_CORE_URL."seedapp/DocRep/DocRepApp.js",W_CORE_URL."seedapp/DocRep/docmanager.js"],
-                                 'raCSSFiles' => [W_CORE_URL."seedapp/DocRep/DocRepApp.css"],
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
+                                ['raScriptFiles' => array_merge([W_CORE_URL."js/SEEDCore.js"], DocManagerUI_Documents::ScriptFiles()),
+                                 'raCSSFiles' => DocManagerUI_Documents::StyleFiles(),
                                  'consoleSkin'=>'green'] );
