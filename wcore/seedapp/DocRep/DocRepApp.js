@@ -1,6 +1,6 @@
 /* DocRepApp.js
  *
- * Copyright (c) 2021 Seeds of Diversity Canada
+ * Copyright (c) 2021-2022 Seeds of Diversity Canada
  *
  * UI widgets for managing DocRep documents.
  *

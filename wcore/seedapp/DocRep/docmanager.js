@@ -1,6 +1,6 @@
 /* Implements a custom DocManager
  *
- * Copyright (c) 2022 Seeds of Diversity Canada
+ * Copyright (c) 2021-2022 Seeds of Diversity Canada
  *
  * usage: DocRepApp02::InitUI() makes it all start up
  *
@@ -651,8 +651,9 @@ class myDocRepCtrlView_Preview
         
         switch( m ) {
             case 'preview':
-                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
-                s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
+                if( (rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
+                    s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
+                }
                 break;
             case 'source':
                 rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
@@ -759,6 +760,12 @@ class DocRepUI02
 {
     constructor( oConfig )
     {
+        let seedw_url = '../../wcore/';   // url to seeds wcore dir (this is probably wrong so set the oConfig)
+
+        if( 'seedw_url' in oConfig ) {
+            seedw_url = oConfig.seedw_url;
+        }
+        
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
         this.oCache = new myDocRepCache( 
@@ -767,7 +774,7 @@ class DocRepUI02
 // these parms should be in oConfig
         this.oTree = new myDocRepTree(
                         { mapDocs: mymapDocs,
-                          dirIcons: '../../wcore/img/icons/',
+                          dirIcons: seedw_url+'img/icons/',
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
         this.oCtrlView = new myDocRepCtrlView(
                         { fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
@@ -821,7 +828,8 @@ class DocRepApp02
 {
     constructor( oConfig )
     {
-        this.oDocRepUI = new DocRepUI02( { fnHandleEvent: this.HandleRequest.bind(this) } );    // tell DocRepUI how to send events here
+        oConfig.fnHandleEvent = this.HandleRequest.bind(this);      // tell DocRepUI how to send events here
+        this.oDocRepUI = new DocRepUI02( oConfig );
     }
 
     InitUI()
@@ -843,7 +851,9 @@ class DocRepApp02
     }
 }
 
+// add config values to this variable before document.ready
+var oDocRepApp02_Config = {};
 
 $(document).ready( function () {
-    (new DocRepApp02( { } )).InitUI();
+    (new DocRepApp02( oDocRepApp02_Config )).InitUI();
 });

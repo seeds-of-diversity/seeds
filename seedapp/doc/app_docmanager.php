@@ -13,10 +13,8 @@ if( !defined( "SEEDROOT" ) ) {
     include_once( SEEDROOT."seedConfig.php" );
 }
 
-include_once( SEEDROOT."DocRep/DocRep.php" );
-include_once( SEEDROOT."DocRep/DocRepUI.php" );
-include_once( SEEDROOT."DocRep/QServerDocRep.php" );
 include_once( "docmanagerui.php" );
+include_once( SEEDROOT."DocRep/DocRepUI.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
                                      'files'     => ['label'=>'Files'],

@@ -7,6 +7,10 @@
  * UI components for document management
  */
 
+include_once( SEEDROOT."DocRep/DocRep.php" );
+include_once( SEEDROOT."DocRep/QServerDocRep.php" );
+
+
 class DocManagerUI_Documents
 /***************************
     Application UI for the DocRep document tree and ctrlview
@@ -53,6 +57,7 @@ class DocManagerUI_Documents
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
         $raTree = $oDocRepDB->GetSubTree( 0, -1 );
         $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
+        $s .= "<script>oDocRepApp02_Config.seedw_url = '".SEEDW_URL."';</script>";
 
         return( $s );
     }
