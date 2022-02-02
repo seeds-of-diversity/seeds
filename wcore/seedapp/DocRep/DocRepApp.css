@@ -4,6 +4,29 @@
  */
 
 
+/* DocRepTree
+   Each level of children is indented.
+   Since the root forest is a fake doc (kDoc==0) containing an (indented) level of root-children, compensate by back-indenting that doc.
+ */
+.DocRepTree_level              { margin-left:30px; }
+.DocRepTree_doc[data-kdoc='0'] { margin-left:-30px; }
+.DocRepTree_doc                {}
+
+/* Make titles clickable, and bold the selected title
+ */
+.DocRepTree_title {
+    padding: 1px;
+    color: #337ab7;
+    text-decoration: none;
+    cursor: pointer;
+}
+.DocRepTree_titleSelected {
+    font-weight: bold;
+}
+
+
+
+
 /* the top level of the ctrlview widget
  */
 #docrepctrlview {

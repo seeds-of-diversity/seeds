@@ -25,7 +25,7 @@ class Console02
     private $bBootstrap;
     private $oTabSet = null;    // Custom Console02TabSet can be specified by DrawConsole parms
 
-    public $oSVA;      // user's stuff with namespace of CONSOLE_NAME
+    public $oSVA; // should be private and accessed by GetSVA()      // user's stuff with namespace of CONSOLE_NAME
     /* private but used by Console02TabSet */ public $oSVAInt;  // console's own stuff
 
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
@@ -68,6 +68,9 @@ class Console02
 
     function GetMsg( $sKey )     { return( @$this->raMsg[$sKey] ); }
     function AddMsg( $s, $sKey ) { @$this->raMsg[$sKey] .= $s; }
+
+    // get the console's user SVA, or a named child of that
+    function GetSVA( $sChildName = "" ) { return( $sChildName ? $this->oSVA->CreateChild($sChildName) : $this->oSVA ); }
 
     function DrawConsole( $sTemplate, $raParms = array() )
     /*****************************************************

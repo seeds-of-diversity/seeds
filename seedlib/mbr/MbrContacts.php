@@ -73,18 +73,7 @@ class Mbr_Contacts
                                          ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
 
         // firstname(s)/lastname(s)
-        $f1 = $ra['firstname']; $f2 = $ra['firstname2'];
-        $l1 = $ra['lastname'];  $l2 = $ra['lastname2'];
-
-        if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
-            $s = trim("$f1 $l1");
-        } else if( !$f1 && !$l1 ) {         // name2 only
-            $s = trim("$f2 $l2");
-        } else if( $l1 == $l2 ) {           // both names, lastname is the same
-            $s = trim("$f1 & $f2 $l2");
-        } else {                            // both names, lastnames are different
-            $s = trim("$f1 $l1 & $f2 $l2");
-        }
+        $name = self::FirstnameLastname( $raMbr, '' );
 
         // company
         if( !$s || $bShowCompanyWithName ) {
@@ -109,6 +98,24 @@ class Mbr_Contacts
         if( $bShowCityProvince )  $s .= " in {$ra['city']}, {$ra['province']}";
 
         return( $s );
+    }
+
+    static function FirstnameLastname( $raMbr, $prefix = '' )
+    {
+        $f1 = $raMbr[$prefix.'firstname']; $f2 = $raMbr[$prefix.'firstname2'];
+        $l1 = $raMbr[$prefix.'lastname'];  $l2 = $raMbr[$prefix.'lastname2'];
+
+        if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
+            $name = trim("$f1 $l1");
+        } else if( !$f1 && !$l1 ) {         // name2 only
+            $name = trim("$f2 $l2");
+        } else if( $l1 == $l2 ) {           // both names, lastname is the same
+            $name = trim("$f1 & $f2 $l2");
+        } else {                            // both names, lastnames are different
+            $name = trim("$f1 $l1 & $f2 $l2");
+        }
+
+        return( $name );
     }
 
     function DrawAddressBlock( $mbrid, $format = 'HTML', $prefix = '' )
@@ -149,18 +156,7 @@ class Mbr_Contacts
         }
 
         // firstname(s)/lastname(s)
-        $f1 = $raMbr[$prefix.'firstname']; $f2 = $raMbr[$prefix.'firstname2'];
-        $l1 = $raMbr[$prefix.'lastname'];  $l2 = $raMbr[$prefix.'lastname2'];
-
-        if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
-            $name = trim("$f1 $l1");
-        } else if( !$f1 && !$l1 ) {         // name2 only
-            $name = trim("$f2 $l2");
-        } else if( $l1 == $l2 ) {           // both names, lastname is the same
-            $name = trim("$f1 & $f2 $l2");
-        } else {                            // both names, lastnames are different
-            $name = trim("$f1 $l1 & $f2 $l2");
-        }
+        $name = self::FirstnameLastname( $raMbr, $prefix );
 
         if( ($company = $raMbr[$prefix.'company']) ) {
             if( $name ) $name .= $lnbreak.$leftMargin;

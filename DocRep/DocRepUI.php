@@ -171,26 +171,6 @@ class DocRepApp1
                   border:1px solid #777;
                   border-bottom:none;
               }
-
-              /* Each set of children is indented.
-                 Since the root forest is a fake doc containing an (indented) level of root-children, compensate by back-indenting that doc.
-               */
-              .DocRepTree_doc[data-kdoc='0'] { margin-left:-30px; }
-              .DocRepTree_doc {}
-              .DocRepTree_level            { margin-left:30px; }
-
-
-
-              .DocRepTree_title {
-                  padding: 1px;
-                  color: #337ab7;
-                  text-decoration: none;
-                  cursor: pointer;
-              }
-              .DocRepTree_titleSelected {
-                  font-weight: bold;
-              }
-
               </style>";
 
         $s .= <<<DocRepApp1_Script
