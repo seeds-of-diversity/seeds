@@ -98,6 +98,8 @@ class myDocRepCtrlView extends DocRepCtrlView
                             rename:"Rename", versions:"Versions", schedule:"Schedule" };
 
         super(oConfig);
+
+        this.oConfigEnv = oConfig.env;      // save the application environment config
         myDocRepCtrlView_Preview.Reset();   // so the Preview tab starts in Preview mode
     }
 
@@ -161,7 +163,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 // move this into myDocRepCtrlView_Preview       
         if( this.GetCtrlMode() == 'preview' && sessionStorage.getItem('DocRepCtrlView_preview_mode') == 'edit' ) {
                 // Now that there is a <textarea> for the editor, initialize CKEditor and attach it there
-            myDocRepCtrlView_Edit.InitEditor();
+            myDocRepCtrlView_Edit.InitEditor(this);
         }
     }
 
@@ -173,7 +175,7 @@ class myDocRepCtrlView extends DocRepCtrlView
             sType = oDoc['doctype'];
         }
 
-		let s = `<form onsubmit='myDocRepCtrlView.addSubmit(event)'>
+        let s = `<form onsubmit='myDocRepCtrlView.addSubmit(event, "${this.oConfigEnv.q_url}")'>
 					<br>	
 					<div>Type: </div>
 					<div class='row'> 
@@ -243,7 +245,7 @@ class myDocRepCtrlView extends DocRepCtrlView
             sPerms = oDoc['perms'];
         }
         
-        let s = `<form onsubmit='myDocRepCtrlView.renameSubmit(event)'>
+        let s = `<form onsubmit='myDocRepCtrlView.renameSubmit(event, "${this.oConfigEnv.q_url}")'>
         		 <div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/></div></div>
@@ -253,7 +255,6 @@ class myDocRepCtrlView extends DocRepCtrlView
         s = s.replaceAll("[label]", "class='col-md-3'");
         s = s.replaceAll("[ctrl]",  "class='col-md-6'");
         
-s += "<p>Put the current values in. Make the button send the new values to the server, and update the tree with new name/title.";
         return( s );
     }
     
@@ -263,7 +264,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
      */
     {
 		let s = 'Version information not available';
-		let rQ = SEEDJXSync( "", {qcmd: 'dr-versions', kDoc: kCurrDoc} );
+		let rQ = SEEDJXSync( this.oConfigEnv.q_url, {qcmd: 'dr-versions', kDoc: kCurrDoc} );
 		
 		if(!rQ.bOk){
 			return s;
@@ -277,9 +278,9 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 				//console.log(versions[i]);
 				s += `
 					<div class='versions-file'onclick='
-						myDocRepCtrlView.updateVersionsPreview(${kCurrDoc}, ${i}); 
-						myDocRepCtrlView.updateVersionsDiff(event, ${kCurrDoc}, ${i}); 
-						myDocRepCtrlView.updateVersionsModify(${kCurrDoc}, ${i})'> 
+						myDocRepCtrlView.updateVersionsPreview(${kCurrDoc}, ${i}, "${this.oConfigEnv.q_url}"); 
+						myDocRepCtrlView.updateVersionsDiff(event, ${kCurrDoc}, ${i}, "${this.oConfigEnv.q_url}"); 
+						myDocRepCtrlView.updateVersionsModify(${kCurrDoc}, ${i}, "${this.oConfigEnv.q_url}")'> 
 						
 						<span class='versions-number'>${versions[i].ver}</span>
 						<span class='versions-title'>${versions[i].title}</span>
@@ -329,12 +330,13 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		return s;
 	}
 	
-	static updateVersionsPreview( kCurrDoc, versionNumber )
+	static updateVersionsPreview( kCurrDoc, versionNumber, q_url )
 	/**
 	update preview based on version selected 
 	 */
 	{
-		let rQ = SEEDJXSync( "", {qcmd: 'dr-versions', kDoc: kCurrDoc, version: versionNumber} );
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview        
+		let rQ = SEEDJXSync( q_url, {qcmd: 'dr-versions', kDoc: kCurrDoc, version: versionNumber} );
 		
 		if(!rQ.bOk){
 			return;
@@ -344,7 +346,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static updateVersionsDiff( e, kCurrDoc, versionNumber )
+	static updateVersionsDiff( e, kCurrDoc, versionNumber, q_url )
 	/**
 	show difference between current selected and previous version
 	 */
@@ -357,7 +359,8 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 
 		if(target.nextElementSibling.className == 'versions-file'){ // find next available version
 			let versionNumber2 = target.nextElementSibling.firstElementChild.innerHTML;
-			let rQ = SEEDJXSync( "", {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber2} );
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+			let rQ = SEEDJXSync( q_url, {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber2} );
 			
 			if(!rQ.bOk){
 				return;
@@ -374,22 +377,22 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			
 	}
 	
-	static updateVersionsModify( kCurrDoc, versionNumber )
+	static updateVersionsModify( kCurrDoc, versionNumber, q_url )
 	/**
 	add delete and restore button when a version is clicked
 	 */
 	{
 		$('#versions-modify').html(`
-			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.versionsDeleteSubmit(${kCurrDoc}, ${versionNumber})'>delete</button>
-			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.versionsRestoreSubmit(${kCurrDoc}, ${versionNumber})'>restore</button>`);
+			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.versionsDeleteSubmit(${kCurrDoc}, ${versionNumber}, "${q_url}")'>delete</button>
+			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.versionsRestoreSubmit(${kCurrDoc}, ${versionNumber}, "${q_url}")'>restore</button>`);
 	}
-	static versionsDeleteSubmit( kCurrDoc, versionNumber )
+	static versionsDeleteSubmit( kCurrDoc, versionNumber, q_url )
 	/**
 	delete current version 
 	 */
 	{
-
-		let rQ = SEEDJXSync( "", {qcmd: 'dr--versionsDelete', kDoc: kCurrDoc, version: versionNumber} );
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+		let rQ = SEEDJXSync( q_url, {qcmd: 'dr--versionsDelete', kDoc: kCurrDoc, version: versionNumber} );
 		if(!rQ.bOk){
 			console.log('error delete version');
 		}
@@ -398,13 +401,14 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static versionsRestoreSubmit( kCurrDoc, versionNumber )
+	static versionsRestoreSubmit( kCurrDoc, versionNumber, q_url )
 	/**
 	restore current version 
 	 */
 	{
 		console.log("clicked on restore");
-		let rQ = SEEDJXSync( "", {qcmd: 'dr--versionsRestore', kDoc: kCurrDoc, version: versionNumber} );
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+		let rQ = SEEDJXSync( q_url, {qcmd: 'dr--versionsRestore', kDoc: kCurrDoc, version: versionNumber} );
 		console.log('restore not implemented in database yet');
 		if(!rQ.bOk){
 			return;
@@ -434,7 +438,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 			let oDocParent = this.fnHandleEvent('getDocInfo', kDocParent);
 			if(oDocParent['name'].toLowerCase().includes('schedule')){
 				
-				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event)'>
+				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event, "${this.oConfigEnv.q_url}")'>
 						<div class='row'> 
 							<div class='col-md-3'>${sName}</div>
 							<div class='col-md-6'>
@@ -450,7 +454,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
 			
 			if( this.folderContainsEmail( kCurrDoc ) ){
-				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event)'>`;
+				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event, "${this.oConfigEnv.q_url}")'>`;
 			}
 			else{
 				s = `No emails found under folder`;
@@ -476,8 +480,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 				}
 			}
 			if( this.folderContainsEmail( kCurrDoc ) ){
-				s += 	`<input type='submit' value='update schedule'/>
-					<form onsubmit='myDocRepCtrlView.scheduleSubmit(event)'>`;
+				s += `<input type='submit' value='update schedule'/></form>`;
 			}		
 		}
 		s = s.replaceAll("[label]", "class='col-md-3'");
@@ -504,7 +507,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		return false;
 	}
 	
-	static addSubmit( e ) 
+	static addSubmit( e, q_url ) 
 	{
 		e.preventDefault();
 		var rQ;
@@ -522,12 +525,13 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		if ( !position ) { // if no position is selected, or position does not exist, default sibling 
 			position == "sibling";
 		}
-	
+
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
 		if ( position == "child" ) {
-			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
+			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
 		}
 		else {
-			rQ = SEEDJXSync("", { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
+			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
 		}
 	
 		if (!rQ.bOk) {
@@ -539,7 +543,7 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static renameSubmit( e ) 
+	static renameSubmit( e, q_url ) 
 	{
 		e.preventDefault();;
 		let kDoc = $('#drRename_kDoc').val();
@@ -547,7 +551,8 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		let title = $('#formRename_title').val();
 		let permissions = $('#formRename_perms').val();
 	
-		let rQ = SEEDJXSync( "",{ qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
 	
 		if ( !rQ.bOk ) {
 			console.log("error rename");
@@ -557,19 +562,20 @@ s += "<p>Put the current values in. Make the button send the new values to the s
 		}
 	}
 	
-	static scheduleSubmit( e )
+	static scheduleSubmit( e, q_url )
 	{
 		e.preventDefault();
 		let allKDoc = $('.drSchedule_kDoc');
 		let allSchedule = $('.schedule-date');
-		
+
 		for(let i = 0; i < allKDoc.length; i++){
 			
 			let kDoc = allKDoc[i].value;
 			let schedule = allSchedule[i].value;
 			
-			let rQ = SEEDJXSync( "",{ qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
-		
+// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+			let rQ = SEEDJXSync( q_url, { qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
+		console.log(rQ);
 			if ( !rQ.bOk ) {
 				console.log("error schedule");
 			}
@@ -651,12 +657,12 @@ class myDocRepCtrlView_Preview
         
         switch( m ) {
             case 'preview':
-                if( (rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
+                if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
                     s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
                 }
                 break;
             case 'source':
-                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
                     s = "<div style='font-family:monospace'>" 
                       + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') 
@@ -666,7 +672,7 @@ class myDocRepCtrlView_Preview
                 }
                 break;
             case 'edit':
-                rQ = SEEDJXSync( "", {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
                     s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut);
                         
@@ -704,12 +710,15 @@ class myDocRepCtrlView_Edit
  */
 {
     static CKEditorInstance = null;
+    static oCtrlView = null;            // the ctrlview using this object
 
-    static InitEditor()
+    static InitEditor( oCtrlView )
     /******************
         Attach the CKEditor to the <textarea>
      */
     {
+        this.oCtrlView = oCtrlView;
+        
     	CKEDITOR.replace( 'drEdit_text', {
 			//customConfig: '/seeds/wcore/seedapp/DocRep/ckeditor_config.js'
 		} );
@@ -741,7 +750,8 @@ class myDocRepCtrlView_Edit
 
         let kDoc = $('#drEdit_kDoc').val();
         if( kDoc ) {
-            let rQ = SEEDJXSync( "", {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', 
+            let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url,
+                                 {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', 
                                                          p_text:text, 
                                                          p_bNewVersion:$('#dr_Edit_newversion').val() } );
             // console.log(rQ);
@@ -760,24 +770,22 @@ class DocRepUI02
 {
     constructor( oConfig )
     {
-        let seedw_url = '../../wcore/';   // url to seeds wcore dir (this is probably wrong so set the oConfig)
-
-        if( 'seedw_url' in oConfig ) {
-            seedw_url = oConfig.seedw_url;
-        }
-        
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
         this.oCache = new myDocRepCache( 
                         { mapDocs: mymapDocs,
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
-// these parms should be in oConfig
+
         this.oTree = new myDocRepTree(
                         { mapDocs: mymapDocs,
-                          dirIcons: seedw_url+'img/icons/',
+                          dirIcons: oConfig.env.seedw_url+'img/icons/',
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
+
         this.oCtrlView = new myDocRepCtrlView(
-                        { fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
+                        { fnHandleEvent: this.HandleRequest.bind(this),        // tell the object how to send events here
+                          env: oConfig.env                                     // tell the ctrlview how to interact with the application environment 
+                        } );
+
         this.kCurrDoc = 0;
     }
 
@@ -851,8 +859,15 @@ class DocRepApp02
     }
 }
 
-// add config values to this variable before document.ready
-var oDocRepApp02_Config = {};
+// override these config values before document.ready
+var oDocRepApp02_Config = {
+    // configuration of the application's environment
+    env: { 
+        seedw_url:    '../../wcore/',         // url to seeds wcore directory
+        q_url:        'jx.php'                // url to server that handles QServerDocRep commands
+    },
+    docsPreloaded: null                       // array of docs pre-loaded for DocRepTree
+};
 
 $(document).ready( function () {
     (new DocRepApp02( oDocRepApp02_Config )).InitUI();
