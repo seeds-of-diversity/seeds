@@ -56,10 +56,10 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
-$db = 'cats';   // seeds2
+$db = 'seeds2';
 
-$oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>$db,
-                                 //  'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
+$oApp = SEEDConfig_NewAppConsole( ['db'=>$db,
+                                   'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
 SEEDPRG();
 

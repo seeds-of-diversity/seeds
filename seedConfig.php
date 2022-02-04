@@ -144,7 +144,7 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
 {
     global $config_KFDB;
 
-    $db = @$raConfig['db'] ?: 'seeds1';
+    $db = @$raConfig['db'] ?: (defined('SEED_DB_DEFAULT') ? SEED_DB_DEFAULT : 'seeds1');
 
     $raP = [
         'lang'              => @$raConfig['lang'] ?: 'EN',

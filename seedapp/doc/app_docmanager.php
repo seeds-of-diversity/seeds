@@ -18,18 +18,18 @@ include_once( SEEDROOT."DocRep/DocRepUI.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
                                      'files'     => ['label'=>'Files'],
-                                     'ghost'     => ['label'=>'Ghost']
+                                     //'ghost'     => ['label'=>'Ghost']
                                    ],
                          // this doubles as sessPermsRequired and console::TabSetPermissions
                          'perms' =>[ 'documents' => ['W DocRepMgr'],
                                      'files'     => ['W DocRepMgr'],
-                                     'ghost'     => ['A notyou'],
+                                     //'ghost'     => ['A notyou'],
                                                     '|'  // allows screen-login even if some tabs are ghosted
                                    ],
              ] ];
 
-$oApp = SEEDConfig_NewAppConsole( ['db'=>'cats',
-                              'sessPermsRequired' => $tabConfig['main']['perms'] ] );
+$oApp = SEEDConfig_NewAppConsole( ['db'=>'',    // default is SEED_DB_DEFAULT or 'seeds1'
+                                   'sessPermsRequired' => $tabConfig['main']['perms'] ] );
                               //     'consoleConfig' => $consoleConfig] );
 
 
