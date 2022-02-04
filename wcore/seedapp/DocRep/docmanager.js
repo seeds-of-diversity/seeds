@@ -93,9 +93,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", add:"Add", 
-                            //edit:"Edit", 
-                            rename:"Rename", versions:"Versions", schedule:"Schedule" };
+        oConfig.defTabs = { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule" };
 
         super(oConfig);
 
@@ -119,11 +117,6 @@ class myDocRepCtrlView extends DocRepCtrlView
         let s = "";
         let rQ = [];
 
-/****************************
-   Here is where you add code to implement the controls.
-   Preferably create a new method, or even a new class, for each of the cases. Don't just put all the code in the switch.
- */
-
         switch( this.GetCtrlMode() ) {
             case 'preview':
                 // use static class to implement the Preview pane
@@ -140,13 +133,15 @@ class myDocRepCtrlView extends DocRepCtrlView
                 break;
                 
             case 'versions':
-                s = "<p>Todo:<br/>"
-                   +`For doc ${kCurrDoc}<br/>`
-                   +"Show versions of this document, allow preview, diff view, restore, and delete.<br/>";
                 s += this.drawVersions(kCurrDoc);
                 s += this.drawFormVersions(kCurrDoc);
                 break;
                 
+            case 'vars':
+                myDocRepCtrlView_Vars.Init(this, kCurrDoc);
+                s = myDocRepCtrlView_Vars.DrawTabBody();
+                break;
+            
             case 'schedule':
             	s = this.drawFormSchedule( kCurrDoc );
             	break;
@@ -763,6 +758,39 @@ class myDocRepCtrlView_Edit
         }
         // console.log(kDoc + "kdoc");
     }
+}
+
+class myDocRepCtrlView_Vars
+/**************************
+    Implement the Variables pane of the Ctrlview
+ */
+{
+    static oCtrlView = null;    // the myDocRepCtrlView using this class
+    static kCurrDoc = 0;        // the current doc (you could also get this via oCtrlView)
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    static DrawTabBody()
+    {
+        let s = "";
+        let rQ = null;
+        
+        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
+        
+        s = "<form onsubmit='myDocRepCtrlView_Vars.Submit()'>";
+        let i = 0;
+        for( const k in oDoc.docMetadata ) {
+            s += `<input type='text' id='var_k${i}' value='${k}'/> <input type='text' id='var_v${i}' value='${oDoc.docMetadata[k]}'/><br/>`;
+            ++i;
+        }
+        
+        return( s );
+    }    
 }
 
 
