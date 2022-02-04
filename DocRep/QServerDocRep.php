@@ -50,7 +50,7 @@ class QServerDocRep extends SEEDQ
 
             case 'dr--update':
                 $rQ['bHandled'] = true;
-                list($rQ['bOk'],$rQ['sOut']) = $this->doUpdate($kDoc);
+                list($rQ['bOk'],$rQ['sOut']) = $this->doUpdate($kDoc, $parms);
                 break;
 
             case 'dr--rename':
@@ -135,15 +135,21 @@ class QServerDocRep extends SEEDQ
         return( [$bOk,$s] );
     }
 
-    private function doUpdate( $kDoc )
+    private function doUpdate( $kDoc, $parms )
+    /*****************************************
+        Replace a document's content
+        p_src         = TEXT, FILE, SFILE
+        p_text        = text content
+        p_bNewVersion = true:create a new version
+     */
     {
         $s = "";
         $bOk = false;
 
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
-            if( ($p_text = SEEDInput_Str('p_text')) ) {
-                $bOk = $oDoc->Update( ['src'=>'TEXT', 'data_text'=>$p_text, 'bNewVersion'=>SEEDInput_Int('p_bNewVersion')] );
-            }
+            $bOk = $oDoc->Update( ['src' => SEEDCore_ArraySmartVal( $parms, 'p_src', ['TEXT','FILE','SFILE'] ),
+                                   'data_text' => @$parms['p_text'],
+                                   'bNewVersion' => intval(@$parms['p_bNewVersion'])] );
         }
 
         return( [$bOk,$s] );

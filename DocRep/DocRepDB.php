@@ -830,6 +830,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                         $kfrNew->SetKey(0);                 // will force a new db record to be inserted
                         $kfrNew->SetValue( 'ver', $kfrNew->Value('ver') + 1 );
                         $kfrNew->SetValue( 'data_text', $parms['data_text'] );
+                        $kfrNew->SetValue( 'src', $parms['src'] );             // should be idempotent but just in case
                         $kfrNew->PutDBRow();
 
                         // now that the new data record is saved, update the doc record to point to it
@@ -838,6 +839,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                     } else {
                         // just update the data in the current version
                         $kfrData->SetValue( 'data_text', $parms['data_text'] );
+                        $kfrData->SetValue( 'src', $parms['src'] );             // should be idempotent but just in case
                         $kfrData->PutDBRow();
                     }
                     break;
@@ -979,14 +981,14 @@ class DocRepDoc2_Insert extends DocRepDoc2
     {
         $parms['dr_name'] = $name;
 
-        return( $this->insertDoc( 'DOC', 'SFILE', $tmp_fname, $parms ) );
+        return( $this->insertDoc( 'BIN', 'SFILE', $tmp_fname, $parms ) );
     }
 
     function InsertLink( $kLinkDoc, $parms = array() )
     /*************************************************
      */
     {
-        return( $this->insertDoc( 'LINK', '', '', $parms ) );
+        return( $this->insertDoc( '', 'LINK', '', $parms ) );   // should the docType be LINK or a copy of the target's docType?
     }
 
     private function insertDoc( $docType, $eSrcType, $src, $parms )

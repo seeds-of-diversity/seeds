@@ -755,9 +755,9 @@ class myDocRepCtrlView_Edit
         let kDoc = $('#drEdit_kDoc').val();
         if( kDoc ) {
             let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url,
-                                 {qcmd:'dr--update', kDoc:kDoc, src:'TEXT', 
-                                                         p_text:text, 
-                                                         p_bNewVersion:$('#dr_Edit_newversion').is(':checked') } );
+                                 {qcmd:'dr--update', kDoc:kDoc, p_src:'TEXT', p_text:text, 
+                                                     p_bNewVersion:$('#dr_Edit_newversion').is(':checked') ? 1 : 0
+                                 } );
             // console.log(rQ);
             $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
         }
