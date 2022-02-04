@@ -56,8 +56,15 @@ class DocManagerUI_Documents
 
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
         $raTree = $oDocRepDB->GetSubTree( 0, -1 );
+
+        /* oDocRepApp02_Config is defined in docmanager.js with default config values.
+         * Set them here to reflect the actual application environment.
+         * q_url='' means the current application must handle dr-* ajax commands via QServerDocRep
+         */
         $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
-        $s .= "<script>oDocRepApp02_Config.seedw_url = '".SEEDW_URL."';</script>";
+        $s .= "<script>oDocRepApp02_Config.env.seedw_url = '".SEEDW_URL."';
+                       oDocRepApp02_Config.env.q_url = '';
+               </script>";
 
         return( $s );
     }
