@@ -42,8 +42,11 @@ class DocManagerUI_Documents
         return( [SEEDW_URL."seedapp/DocRep/DocRepApp.css"] );
     }
 
-    function DrawDocumentsUI()
+    function DrawDocumentsUI( $raConfig )
     {
+        $seedw_url = @$raConfig['seedw_url'] ?: SEEDW_URL;      // url to seeds/wcore/
+        $q_url     = @$raConfig['q_url']     ?: '';             // url to QServerDocRep ajax handler
+
         $s = "<div class='docman_doctree'>"
              ."<div class='container-fluid'>"
                  ."<div class='row'>"
@@ -62,8 +65,8 @@ class DocManagerUI_Documents
          * q_url='' means the current application must handle dr-* ajax commands via QServerDocRep
          */
         $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
-        $s .= "<script>oDocRepApp02_Config.env.seedw_url = '".SEEDW_URL."';
-                       oDocRepApp02_Config.env.q_url = '';
+        $s .= "<script>oDocRepApp02_Config.env.seedw_url = '${seedw_url}';
+                       oDocRepApp02_Config.env.q_url = '${q_url}';
                </script>";
 
         return( $s );

@@ -67,7 +67,7 @@ class DocManagerTabDocuments
 
     function Init()        {}
     function ControlDraw() { return( "<br/>" ); }
-    function ContentDraw() { return( DocRepApp1::Style() . $this->oDocManUI->DrawDocumentsUI() ); }
+    function ContentDraw() { return( DocRepApp1::Style() . $this->oDocManUI->DrawDocumentsUI([]) ); }
 }
 
 

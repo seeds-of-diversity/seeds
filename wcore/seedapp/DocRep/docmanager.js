@@ -868,7 +868,7 @@ var oDocRepApp02_Config = {
     // configuration of the application's environment
     env: { 
         seedw_url:    '../../wcore/',         // url to seeds wcore directory
-        q_url:        'jx.php'                // url to server that handles QServerDocRep commands
+        q_url:        ''                      // url to server that handles QServerDocRep commands
     },
     docsPreloaded: null                       // array of docs pre-loaded for DocRepTree
 };
