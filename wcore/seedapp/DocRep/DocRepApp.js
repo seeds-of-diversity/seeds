@@ -319,15 +319,18 @@ class DocRepCtrlView
         let kCurrDoc = this.fnHandleEvent('getKDocCurr');
 
         if( kCurrDoc ) {
-            $('#docrepctrlview_body').html( this.DrawCtrlView_Render(kCurrDoc) );
+            $('#docrepctrlview_body').append( this.DrawCtrlView_Render(kCurrDoc) );
             this.DrawCtrlView_Attach();
         }
     }
 
     DrawCtrlView_Render( kCurrDoc )
+    /******************************
+        Returns a jquery object containing the content of the ctrlview_body
+     */
     {
         // override to draw the ctrlview_body for the current tab
-        return( "" );
+        return( null );
     }
     
     DrawCtrlView_Attach()
