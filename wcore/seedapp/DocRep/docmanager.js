@@ -142,7 +142,7 @@ class myDocRepCtrlView extends DocRepCtrlView
                 
             case 'vars':
                 myDocRepCtrlView_Vars.Init(this, kCurrDoc);
-                s = myDocRepCtrlView_Vars.DrawTabBody();
+                j = myDocRepCtrlView_Vars.DrawTabBody();
                 break;
             
             case 'schedule':
@@ -782,21 +782,54 @@ class myDocRepCtrlView_Vars
     
     static DrawTabBody()
     {
-        let s = "";
+        let jForm = null;
         let rQ = null;
         
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
         if( !oDoc || oDoc.doctype != 'page' ) return( "" );
         
-        s = "<form onsubmit='myDocRepCtrlView_Vars.Submit()'>";
+        jForm = $(`<form id='drVars_form' onsubmit='myDocRepCtrlView_Vars.Submit(event)'>
+                   
+                   </form>`);
         let i = 0;
         for( const k in oDoc.docMetadata ) {
-            s += `<input type='text' id='var_k${i}' value='${k}'/> <input type='text' id='var_v${i}' value='${oDoc.docMetadata[k]}'/><br/>`;
+            // create a pair of input elements for the key and value of this variable, and append them to the form 
+            let jInput = $(`<div class='row'>
+                            <div class='col-4'>${k}</div>
+                            <div class='col-8'><input type='text' id='var_v${i}' style='width:100%'/></div>
+                            </div>`);
+            jInput.find('input').val(oDoc.docMetadata[k]);
+            jForm.append(jInput);
+
             ++i;
         }
+        // append an empty pair of inputs so a new value can be entered, and a Save button
+        jForm.append( $(`<div class='row'>
+                         <div class='col-4'><input type='text' id='var_knew' style='width:100%'/></div>
+                         <div class='col-8'><input type='text' id='var_vnew' style='width:100%'/></div>
+                         </div>
+                         <input type='submit' value='Save'/>`) );
         
-        return( s );
-    }    
+        return( jForm );
+    }
+    
+    static Submit(e)
+    {
+        e.preventDefault();
+        
+        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
+        
+        let i = 0;
+        for( const k in oDoc.docMetadata ) {
+            let p_k = $("#drVars_form input#var_k"+i).val();
+            let p_v = $("#drVars_form input#var_v"+i).val();
+            console.log( `${i}: ${p_k} = ${p_v}`)
+            
+            ++i    
+        }
+        console.log( "new: "+$("#drVars_form input#var_knew").val()+" = "+$("#drVars_form input#var_vnew").val() );
+    }
 }
 
 
