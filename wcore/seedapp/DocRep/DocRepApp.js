@@ -319,7 +319,7 @@ class DocRepCtrlView
         let kCurrDoc = this.fnHandleEvent('getKDocCurr');
 
         if( kCurrDoc ) {
-            $('#docrepctrlview_body').append( this.DrawCtrlView_Render(kCurrDoc) );
+            $('#docrepctrlview_body').empty().append( this.DrawCtrlView_Render(kCurrDoc) );
             this.DrawCtrlView_Attach();
         }
     }
