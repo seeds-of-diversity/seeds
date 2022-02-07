@@ -113,9 +113,12 @@ class myDocRepCtrlView extends DocRepCtrlView
     }
 
     DrawCtrlView_Render( kCurrDoc )
+    /******************************
+        Returns a jquery object containing the content of the ctrlview_body
+     */
     {
-        let s = "";
-        let rQ = [];
+        let j = null;   // jquery object containing the DOM content of the ctrlview 
+        let s = "";     // deprecate this technique
 
         switch( this.GetCtrlMode() ) {
             case 'preview':
@@ -150,7 +153,10 @@ class myDocRepCtrlView extends DocRepCtrlView
                 s = "Unknown control mode";
         }
 
-        return( s );
+// The code above should create a DOM tree rooted by a jquery object instead of just html.
+// Transition to use j instead of s
+        if( !j ) j = $(s);
+        return( j );
     }
 
     DrawCtrlView_Attach()
