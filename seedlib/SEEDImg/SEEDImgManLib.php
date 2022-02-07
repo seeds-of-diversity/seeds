@@ -147,6 +147,8 @@ class SEEDImgManLib
 
     function DoAction( $dir, $filebase, $raFVar, $bBackground = false )
     {
+        $ret = null;
+
         list($action) = explode( ' ', $raFVar['action'] );    // because KEEP_ORIG and DELETE_ORIG multiplex their action information
 
         switch( $action ) {
@@ -157,10 +159,13 @@ class SEEDImgManLib
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
                        ."\"{$sFileR}\""
-                       // to convert in background put & at end of command line; exec() will wait to collect output unless the output is redirected somewhere
-                       .($bBackground ? "> /dev/null &" : "");
+                       /* To convert in background put & at end of command line.
+                        * exec() will wait to collect output unless the output is redirected somewhere
+                        * echo $! outputs the process's pid
+                        */
+                       .($bBackground ? "> /dev/null 2>&1 & echo $!;" : "");
                 if( $this->bDebug ) echo $exec."<br/>";
-                exec( $exec );
+                $ret = exec( $exec );   // if bBackground this will be the pid of the convert process
                 // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)
                 break;
 
@@ -189,5 +194,7 @@ class SEEDImgManLib
             default:
                 die( "Unexpected action $action" );
         }
+
+        return( $ret );
     }
 }

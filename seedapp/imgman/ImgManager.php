@@ -13,6 +13,33 @@ if( !isset($oApp) ) {
     $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => [] ] );
 }
 
+//$_SESSION['imgman_pids'] = [];        // uncomment to abort monitoring background conversion
+//var_dump($_SESSION['imgman_pids']);
+if( count($_SESSION['imgman_pids']) ) {
+    echo "<html><head><meta http-equiv='refresh' content='1'></head><body>";
+    $raPids = $_SESSION['imgman_pids'];
+    $_SESSION['imgman_pids'] = [];
+
+    foreach( $raPids as $pid ) {
+        if( file_exists("/proc/$pid") ) {
+//            echo "Waiting for $pid<br/>";
+            $_SESSION['imgman_pids'][] = $pid;
+//        } else {
+//            echo "$pid finished<br/>";
+        }
+    }
+    if( ($n = count($_SESSION['imgman_pids'])) ) {
+        echo "<h4>Waiting for $n image conversions to finish.</h4>";
+    }
+    echo "</body></html>";
+
+    exit;
+}
+
+
+
+
+
 /* Defaults below are overridden by raConfig defined by an including file
  */
 $raConfig = array_replace_recursive(
@@ -69,6 +96,7 @@ class SEEDAppImgManager
     {
         $s = "";
 
+$_SESSION['imgman_pids'] = [];
         if( ($n = SEEDInput_Str('n')) ) {
             $this->oIML->ShowImg( $this->rootdir.$n );
             exit;   // ShowImg exits anyway but this makes it obvious
@@ -103,7 +131,12 @@ class SEEDAppImgManager
                         ($cmd == 'multikeep' && SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' )) ||
                         ($cmd == 'multidelete' && SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' )) )
                     {
-                        $this->oIML->DoAction( $dir, $filebase, $raFVar, $this->bUsePFork && $raFVar['action'] == 'CONVERT' );
+                        $bConvertInBackground = $this->bUsePFork && $raFVar['action'] == 'CONVERT';
+                        $ret = $this->oIML->DoAction( $dir, $filebase, $raFVar, $bConvertInBackground );
+
+                        if( $bConvertInBackground ) {
+                            $_SESSION['imgman_pids'][] = $ret;   // store the convert process pid so it can be monitored
+                        }
                     }
 
                     if( ($cmd == 'singlekeep' && SEEDCore_StartsWith($raFVar['action'],'KEEP_ORIG') && $dir.$filebase == $searchForFilebase) ||
@@ -114,6 +147,12 @@ class SEEDAppImgManager
                 }
             }
         }
+
+        if( count($_SESSION['imgman_pids']) ) {
+            // Convert processes are running in the background. Reload the application to monitor them.
+            header( "Location:".$_SERVER['PHP_SELF'] );
+        }
+
         skipCmd:
 
         // re-run this to get any changes made above
@@ -132,13 +171,39 @@ class SEEDAppImgManager
                  ."<div><input type='submit' value='Set Controls'/></div>"
              ."</form></div>";
 
-        if( $nActionConvert )  $s .= "<p><a href='?cmd=convert'>Click here to convert $nActionConvert jpg files to {$this->oIML->targetExt}</a></p>";
-        if( $nActionKeep )     $s .= "<p><a href='?cmd=multikeep' style='color:green'>Click here to execute the $nActionKeep <b>Keep</b> links below</a></p>";
-        if( $nActionDelete )   $s .= "<p><a href='?cmd=multidelete' style='color:red'>Click here to execute the $nActionDelete <b>Delete</b> links below</a></p>";
+//        if( $nActionConvert )  $s .= "<p><a href='?cmd=convert'>Click here to convert $nActionConvert jpg files to {$this->oIML->targetExt}</a></p>";
+//        if( $nActionKeep )     $s .= "<p><a href='?cmd=multikeep' style='color:green'>Click here to execute the $nActionKeep <b>Keep</b> links below</a></p>";
+//        if( $nActionDelete )   $s .= "<p><a href='?cmd=multidelete' style='color:red'>Click here to execute the $nActionDelete <b>Delete</b> links below</a></p>";
 
         $s .= ($realDir=realPath($currDir)) ? "<h3>Files under $realDir</h3>" : "<h3 style='color:red'>Can't find $currDir</h3>";
 
-        $s .= $this->DrawFiles( $raFiles );
+        list($sFileList,$totalWhatYouSaved) = $this->DrawFiles( $raFiles );
+
+        $s .= "<style>
+               #imgman_actionButtons_div       { float:right;margin-right:20px; }
+               #imgman_actionButtons_reload    { margin:10px 0px 0px 0px; padding:5px; border:1px solid #777; }
+               #imgman_actionButtons_reload  a { color:#333; }
+               #imgman_actionButtons_convert   { margin:10px 0px 0px 0px; padding:5px; border:1px solid #337ab7; }
+               #imgman_actionButtons_convert a { color:#337ab7; }
+               #imgman_actionButtons_keep      { margin:10px 0px 0px 0px; padding:5px; border:1px solid green; }
+               #imgman_actionButtons_keep    a { color:green; }
+               #imgman_actionButtons_delete    { margin:10px 0px 0px 0px; padding:5px; border:1px solid red; }
+               #imgman_actionButtons_delete  a { color:red }
+               </style>
+               <div id='imgman_actionButtons_div'>
+               <div id='imgman_actionButtons_reload'><a href='?'>Reload</a></div>";
+
+        if( $nActionConvert ) {
+            $s .= "<div id='imgman_actionButtons_convert'><a href='?cmd=convert'>Convert $nActionConvert<br/>files to {$this->oIML->targetExt}</a></div>";
+        }
+        if( $nActionKeep ) {
+            $s .= "<div id='imgman_actionButtons_keep'><a href='?cmd=multikeep'>Keep $nActionKeep files</a></div>";
+        }
+        if( $nActionDelete ) {
+            $s .= "<div id='imgman_actionButtons_delete'><a href='?cmd=multidelete'>Delete $nActionDelete files to<br/>save ".SEEDCore_HumanFileSize($totalWhatYouSaved)."</a></div>";
+        }
+        $s .= "</div>"
+             .$sFileList;
 
         $s .= "<style>
                #backbutton {}
@@ -192,11 +257,8 @@ class SEEDAppImgManager
     {
         $totalWhatYouSaved = 0;
 
-        $s = "<style>#drawfilestable td { padding-right:20px }
-                     #totalWhatYouSaved { float:right;margin-right:20px;border:1px solid green;padding:5px;color:green }
-              </style>"
-            ."[[totalWhatYouSaved]]"
-            ."<table id='drawfilestable' style='border:none'>";
+        $s = "<style>#drawfilestable td { padding-right:20px }</style>
+              <table id='drawfilestable' style='border:none'>";
 
         /* $raFiles = array( dir => array( filebase => array( ext1 => fileinfo, ext2 => fileinfo, ...
          */
@@ -358,8 +420,6 @@ $fScalePercentThreshold = 90.0;
 
         $s .= "</table>";
 
-        $s = str_replace( "[[totalWhatYouSaved]]", ($totalWhatYouSaved ? ("<h4 id='totalWhatYouSaved'>Saved ".SEEDCore_HumanFileSize($totalWhatYouSaved)."</h4>") : ""), $s );
-
-        return( $s );
+        return( [$s,$totalWhatYouSaved] );
     }
 }
