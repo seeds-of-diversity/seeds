@@ -7,37 +7,26 @@ if( !defined( "SEEDROOT" ) ) {
 }
 
 include_once( SEEDCORE."console/console02.php" );
+include_once( SEEDCORE."SEEDProcCtrl.php" );
 include_once( SEEDLIB."SEEDImg/SEEDImgManLib.php" );
 
 if( !isset($oApp) ) {
     $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => [] ] );
 }
 
-//$_SESSION['imgman_pids'] = [];        // uncomment to abort monitoring background conversion
+
+/* If images are being converted in the background, monitor until they're done.
+ */
+$oSEEDProcCtrl = new SEEDProcCtrl( "imgman_pids" );
+//$oSEEDProcCtrl->ClearCache();        // uncomment to abort monitoring background conversion
 //var_dump($_SESSION['imgman_pids']);
-if( count($_SESSION['imgman_pids']) ) {
-    echo "<html><head><meta http-equiv='refresh' content='1'></head><body>";
-    $raPids = $_SESSION['imgman_pids'];
-    $_SESSION['imgman_pids'] = [];
-
-    foreach( $raPids as $pid ) {
-        if( file_exists("/proc/$pid") ) {
-//            echo "Waiting for $pid<br/>";
-            $_SESSION['imgman_pids'][] = $pid;
-//        } else {
-//            echo "$pid finished<br/>";
-        }
-    }
-    if( ($n = count($_SESSION['imgman_pids'])) ) {
-        echo "<h4>Waiting for $n image conversions to finish.</h4>";
-    }
-    echo "</body></html>";
-
+$oSEEDProcCtrl->RefreshProcList();
+if( ($n = $oSEEDProcCtrl->CountProcList()) ) {
+    echo "<html><head><meta http-equiv='refresh' content='1'></head>
+                <body><h4>Waiting for $n image conversions to finish.</h4></body>
+          </html>";
     exit;
 }
-
-
-
 
 
 /* Defaults below are overridden by raConfig defined by an including file
@@ -48,7 +37,8 @@ $raConfig = array_replace_recursive(
                        'bounding_box' => 1200,             // scale down to 1200x1200 if larger
                        'outfmt' => 'webp',
                        'jpg_quality' => 85
-                     ]
+                     ],
+      'oSEEDProcCtrl' => $oSEEDProcCtrl
     ],
     (isset($raConfig) ? $raConfig : []) );
 
@@ -62,6 +52,7 @@ class SEEDAppImgManager
     private $oApp;
     private $rootdir;
     private $oIML;
+    private $oSEEDProcCtrl;
 
     // controls
     private $currSubdir;
@@ -74,6 +65,7 @@ class SEEDAppImgManager
     {
         $this->oApp = $oApp;
         $this->oIML = new SEEDImgManLib( $oApp, $raConfig['imgmanlib'] );
+        $this->oSEEDProcCtrl = @$raConfig['oSEEDProcCtrl'] ?: null;
 
         $this->rootdir = $raConfig['rootdir'];
         $this->currSubdir = $oApp->oC->oSVA->SmartGPC( 'imgman_currSubdir', array() );
@@ -96,7 +88,8 @@ class SEEDAppImgManager
     {
         $s = "";
 
-$_SESSION['imgman_pids'] = [];
+        if( $this->oSEEDProcCtrl )  $this->oSEEDProcCtrl->ClearCache();
+
         if( ($n = SEEDInput_Str('n')) ) {
             $this->oIML->ShowImg( $this->rootdir.$n );
             exit;   // ShowImg exits anyway but this makes it obvious
@@ -134,8 +127,8 @@ $_SESSION['imgman_pids'] = [];
                         $bConvertInBackground = $this->bUsePFork && $raFVar['action'] == 'CONVERT';
                         $ret = $this->oIML->DoAction( $dir, $filebase, $raFVar, $bConvertInBackground );
 
-                        if( $bConvertInBackground ) {
-                            $_SESSION['imgman_pids'][] = $ret;   // store the convert process pid so it can be monitored
+                        if( $bConvertInBackground && $this->oSEEDProcCtrl ) {
+                            $this->oSEEDProcCtrl->AddProc($ret);   // store the convert process pid so it can be monitored
                         }
                     }
 
@@ -148,7 +141,7 @@ $_SESSION['imgman_pids'] = [];
             }
         }
 
-        if( count($_SESSION['imgman_pids']) ) {
+        if( $this->oSEEDProcCtrl && $this->oSEEDProcCtrl->CountProcList() ) {
             // Convert processes are running in the background. Reload the application to monitor them.
             header( "Location:".$_SERVER['PHP_SELF'] );
         }

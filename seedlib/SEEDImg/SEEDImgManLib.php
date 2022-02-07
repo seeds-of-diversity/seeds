@@ -2,7 +2,7 @@
 
 /* SEEDImgManLib.php
  *
- * Copyright (c) 2010-2020 Seeds of Diversity Canada
+ * Copyright (c) 2010-2022 Seeds of Diversity Canada
  *
  * The basics of an Image Management interface.
  */
