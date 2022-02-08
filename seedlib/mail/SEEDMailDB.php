@@ -14,7 +14,7 @@ class SEEDMailDB extends Keyframe_NamedRelations
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
-        $this->dbname = $oApp->GetDBName(@$raConfig['db'] ?: $oApp->kfdb->GetDB()); // 'seeds2');
+        $this->dbname = 'seeds2';// $oApp->GetDBName(@$raConfig['db'] ?: $oApp->kfdb->GetDB()); // 'seeds2');
         $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
     }
