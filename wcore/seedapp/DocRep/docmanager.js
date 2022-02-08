@@ -111,52 +111,51 @@ class myDocRepCtrlView extends DocRepCtrlView
         sessionStorage.setItem( 'DocRepCtrlView_Mode', m );
         super.SetCtrlMode( m );
     }
+    
+    // TODO: on first time load, no doc is selected 
+    // show default message or select a doc by default
 
-    DrawCtrlView_Render( kCurrDoc )
+    DrawCtrlView_Render( parentID, kCurrDoc )
     /******************************
-        Returns a jquery object containing the content of the ctrlview_body
+        draws contents of ctrl_view body under parentID
      */
     {
-        let j = null;   // jquery object containing the DOM content of the ctrlview 
-        let s = "";     // deprecate this technique
-
         switch( this.GetCtrlMode() ) {
             case 'preview':
                 // use static class to implement the Preview pane
                 myDocRepCtrlView_Preview.Init(this, kCurrDoc);
-                s = myDocRepCtrlView_Preview.DrawTabBody();
+                myDocRepCtrlView_Preview.DrawTabBody(parentID);
                 break;
 
             case 'add':
-                s = this.drawFormAdd(kCurrDoc);
+            	myDocRepCtrlView_Add.Init(this, kCurrDoc);
+                myDocRepCtrlView_Add.DrawTabBody(parentID);
                 break;
 
             case 'rename':
-                s = this.drawFormRename( kCurrDoc );
+                myDocRepCtrlView_Rename.Init(this, kCurrDoc);
+                myDocRepCtrlView_Rename.DrawTabBody(parentID);
                 break;
                 
             case 'versions':
-                s += this.drawVersions(kCurrDoc);
-                s += this.drawFormVersions(kCurrDoc);
+            	myDocRepCtrlView_Versions.Init(this, kCurrDoc);
+                myDocRepCtrlView_Versions.DrawVersions(parentID);
+                myDocRepCtrlView_Versions.DrawTabBody(parentID);
                 break;
                 
             case 'vars':
                 myDocRepCtrlView_Vars.Init(this, kCurrDoc);
-                j = myDocRepCtrlView_Vars.DrawTabBody();
+                myDocRepCtrlView_Vars.DrawTabBody(parentID);
                 break;
             
             case 'schedule':
-            	s = this.drawFormSchedule( kCurrDoc );
+            	myDocRepCtrlView_Schedule.Init(this, kCurrDoc);
+                myDocRepCtrlView_Schedule.DrawTabBody(parentID);
             	break;
 
             default:
-                s = "Unknown control mode";
+                $(`#${parentID}`).html(`<div>unknown control mode</div>`);
         }
-
-// The code above should create a DOM tree rooted by a jquery object instead of just html.
-// Transition to use j instead of s
-        if( !j ) j = $(s);
-        return( j );
     }
 
     DrawCtrlView_Attach()
@@ -167,16 +166,185 @@ class myDocRepCtrlView extends DocRepCtrlView
             myDocRepCtrlView_Edit.InitEditor(this);
         }
     }
+}
 
-	drawFormAdd( kCurrDoc ) {
+class myDocRepCtrlView_Preview
+/*****************************
+    Implement the Preview pane of the Ctrlview
+ */
+{
+    static oCtrlView = null;    // the myDocRepCtrlView using this class
+    static kCurrDoc = 0;        // the current doc (you could also get this via oCtrlView)
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    static Reset()
+    {
+        this.#setMode('');  // force to default
+    }
+    
+    static #getMode()
+    {
+        // default is preview
+        return( this.#normalizeMode( sessionStorage.getItem('DocRepCtrlView_preview_mode') ) );
+    }
 
-		let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);        
+    static #setMode( m )
+    {
+        m = this.#normalizeMode(m);    // mode can be preview, source, or edit
+        
+        sessionStorage.setItem( 'DocRepCtrlView_preview_mode', m );
+    }
+    
+    // modes can be preview (default), source, or edit
+    static #normalizeMode( m ) { return( (m == 'source' || m == 'edit') ? m : 'preview'); }
+    
+    static DrawTabBody( parentID )
+    {
+        let s = "";
+        let rQ = null;
+        let m = this.#getMode();
+        
+        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
+        
+        switch( m ) {
+            case 'preview':
+                if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
+                    s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
+                }
+                break;
+            case 'source':
+                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                if( rQ.bOk ) {
+                    s = "<div style='font-family:monospace'>" 
+                      + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') 
+                      + "</div>";
+                } else {
+                    s = `Cannot get preview for document ${this.kCurrDoc}`;
+                }
+                break;
+            case 'edit':
+                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                if( rQ.bOk ) {
+                    s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut);
+                        
+                }
+                break;
+        }
+        
+        s = `<div>
+             <select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
+                 <option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
+                 <option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
+                 <option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
+             </select>
+             <div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
+             </div>`;
+        
+        $(`#${parentID}`).html(s);
+    }
+    
+    static Change( mode )
+    /********************
+        Called when the <select> changes
+     */
+    {
+        this.#setMode(mode);
+        this.oCtrlView.DrawCtrlView();
+    }
+}
+
+class myDocRepCtrlView_Edit
+/**************************
+    Implement the Edit control of the Ctrlview.
+    This is used within the Preview pane, and also in a full-screen mode.
+ */
+{
+    static CKEditorInstance = null;
+    static oCtrlView = null;            // the ctrlview using this object
+
+    static InitEditor( oCtrlView )
+    /******************
+        Attach the CKEditor to the <textarea>
+     */
+    {
+        this.oCtrlView = oCtrlView;
+        
+    	CKEDITOR.replace( 'drEdit_text', {
+			//customConfig: '/seeds/wcore/seedapp/DocRep/ckeditor_config.js'
+		} );
+		
+		this.CKEditorInstance = CKEDITOR.instances.drEdit_text;
+	}
+
+    static DrawEditor( kCurrDoc, sContent )
+    {
+        let s = `<div id='drEdit_notice'></div>
+                 <form onsubmit='myDocRepCtrlView_Edit.SaveHandler(event)'>
+                 <textarea id='drEdit_text' style='width:100%'>${sContent}</textarea>
+                 <br/>
+                 <input type='hidden' id='drEdit_kDoc' value='${kCurrDoc}'/>
+                 <input type='submit' value='Save'/> <input type='checkbox' id='dr_Edit_newversion' value='1'/> Save New Version
+                 </form>`;
+        return( s );
+    }    
+    
+    static SaveHandler( e )
+    /**********************
+        Event handler for editor Save
+     */
+    {
+        e.preventDefault();
+        //this.CKEditorInstance.updateSourceElement();
+        let text = this.CKEditorInstance.getData();
+
+        let kDoc = $('#drEdit_kDoc').val();
+        if( kDoc ) {
+            let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url,
+                                 {qcmd:'dr--update', kDoc:kDoc, p_src:'TEXT', p_text:text, 
+                                                     p_bNewVersion:$('#dr_Edit_newversion').is(':checked') ? 1 : 0
+                                 } );
+            // console.log(rQ);
+            $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
+        }
+        // console.log(kDoc + "kdoc");
+    }
+}
+
+class myDocRepCtrlView_Add
+{
+	
+	static oCtrlView = null;    // the myDocRepCtrlView using this class
+    static kCurrDoc = 0;        // the current doc (you could also get this via oCtrlView)
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    static DrawTabBody( parentID ) 
+    /**
+    draw form for add 
+    if CurrDoc is a file, add beside 
+    if CurrDoc is a folder, show option to add under folder or beside folder 
+     */
+    {
+
+		let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);   
 		let sType = '';
         if( oDoc ) {
             sType = oDoc['doctype'];
         }
+        
+        $(`#${parentID}`).empty();
 
-        let s = `<form onsubmit='myDocRepCtrlView.addSubmit(event, "${this.oConfigEnv.q_url}")'>
+        let s = `<form onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
 					<br>	
 					<div>Type: </div>
 					<div class='row'> 
@@ -226,46 +394,155 @@ class myDocRepCtrlView extends DocRepCtrlView
 							<input type='text' id='add-permissions'  value='1' style='width:100%'/>
 						</div>
 					</div>										
-					<input type='hidden' id='drAdd_kDoc' value='${kCurrDoc}'/>
+					<input type='hidden' id='drAdd_kDoc' value='${this.kCurrDoc}'/>
 				    <input type='submit' value='Add'/>
 				 <form>`
 
 		s = s.replaceAll("[label]", "class='col-md-3'");
 		s = s.replaceAll("[ctrl]", "class='col-md-6'");
-
-		return s;
+		
+		$(`#${parentID}`).html(s);
 	}
 	
-    drawFormRename( kCurrDoc )
+	static Submit( e, q_url ) 
+	{
+		e.preventDefault();
+		var rQ;
+		let kDoc = $('#drAdd_kDoc').val();
+		let position = $('input[name=child-or-sibling]:checked').val()
+		let type = $('input[name=text-or-folder]:checked').val()
+		let name = $('#add-name').val();
+		let title = $('#add-title').val();
+		let permissions = $('#add-permissions').val();
+
+		if( !name || !permissions || !kDoc) {
+			return;
+		}
+	
+		if ( !position ) { // if no position is selected, or position does not exist, default sibling 
+			position == "sibling";
+		}
+		// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+		if ( position == "child" ) {
+			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
+		}
+		else {
+			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
+		}
+	
+		if (!rQ.bOk) {
+			console.log("error add");
+		}
+		else {
+			// update tree with new folder/file
+			this.UpdateTree();
+		}
+	}
+		
+	/*
+	update tree after adding new doc 
+	for now, just reload page 
+	*/
+	static UpdateTree() 
+	{
+		location.reload();
+		// TODO: 
+		// call ajax to update map 
+		// redraw tree with updated map 
+	}
+}
+
+class myDocRepCtrlView_Rename
+{
+	static oCtrlView = null;
+    static kCurrDoc = 0;
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    static DrawTabBody( parentID )
+    /**
+    draw rename form
+     */
     {
         let sName = "", sTitle = "", sPerms = "";
-        let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
+        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
         if( oDoc ) {
             sName = oDoc['name'];
             sTitle = oDoc['title'];
             sPerms = oDoc['perms'];
         }
         
-        let s = `<form onsubmit='myDocRepCtrlView.renameSubmit(event, "${this.oConfigEnv.q_url}")'>
+        let s = `<form onsubmit='myDocRepCtrlView_Rename.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
         		 <div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/></div></div>
                  <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/></div></div>
-                 <input type='hidden' id='drRename_kDoc' value='${kCurrDoc}'/>
+                 <input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
                  <input type='submit' value='Change'/>
                  </form>`;
         s = s.replaceAll("[label]", "class='col-md-3'");
         s = s.replaceAll("[ctrl]",  "class='col-md-6'");
         
-        return( s );
+        $(`#${parentID}`).html(s);
+        
     }
     
-    drawVersions( kCurrDoc )
+   static Submit( e, q_url ) 
+   /**
+   change name 
+    */
+	{
+		e.preventDefault();;
+		let kDoc = $('#drRename_kDoc').val();
+		let name = $('#formRename_name').val();
+		let title = $('#formRename_title').val();
+		let permissions = $('#formRename_perms').val();
+	
+		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
+	
+		if ( !rQ.bOk ) {
+			console.log("error rename");
+		}
+		else {
+			this.UpdateTree(kDoc, name);
+		}
+	}
+	
+	/*
+	update tree after rename 
+	*/
+	static UpdateTree( kDoc, name ) 
+	{
+		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
+		let child = doc.children[1].nextSibling;
+		child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
+		
+		// TODO: redraw tree with update map instead 
+	}
+    
+}
+
+class myDocRepCtrlView_Versions
+{
+	static oCtrlView = null;
+    static kCurrDoc = 0;
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+	static DrawVersions( parentID )
     /**
     display a list of versions of a doc 
      */
     {
 		let s = 'Version information not available';
-		let rQ = SEEDJXSync( this.oConfigEnv.q_url, {qcmd: 'dr-versions', kDoc: kCurrDoc} );
+		let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-versions', kDoc: this.kCurrDoc} );
 		
 		if(!rQ.bOk){
 			return s;
@@ -279,9 +556,9 @@ class myDocRepCtrlView extends DocRepCtrlView
 				//console.log(versions[i]);
 				s += `
 					<div class='versions-file'onclick='
-						myDocRepCtrlView.updateVersionsPreview(${kCurrDoc}, ${i}, "${this.oConfigEnv.q_url}"); 
-						myDocRepCtrlView.updateVersionsDiff(event, ${kCurrDoc}, ${i}, "${this.oConfigEnv.q_url}"); 
-						myDocRepCtrlView.updateVersionsModify(${kCurrDoc}, ${i}, "${this.oConfigEnv.q_url}")'> 
+						myDocRepCtrlView_Versions.UpdatePreview(${this.kCurrDoc}, ${i}, "${this.oCtrlView.oConfigEnv.q_url}"); 
+						myDocRepCtrlView_Versions.UpdateDiff(event, ${this.kCurrDoc}, ${i}, "${this.oCtrlView.oConfigEnv.q_url}"); 
+						myDocRepCtrlView_Versions.UpdateModify(${this.kCurrDoc}, ${i}, "${this.oCtrlView.oConfigEnv.q_url}")'> 
 						
 						<span class='versions-number'>${versions[i].ver}</span>
 						<span class='versions-title'>${versions[i].title}</span>
@@ -292,11 +569,11 @@ class myDocRepCtrlView extends DocRepCtrlView
 		
 		s += `<br>`;
 		
-		return s;
+		$(`#${parentID}`).html(s);
 		
 	}
-    
-    drawFormVersions( kCurrDoc, versionNumber )
+	
+    static DrawTabBody( parentID, versionNumber )
     /**
     form for previewing and modifying versions
      */
@@ -328,15 +605,14 @@ class myDocRepCtrlView extends DocRepCtrlView
 		</div>
 		
 		`
-		return s;
+		$(`#${parentID}`).append(s);
 	}
 	
-	static updateVersionsPreview( kCurrDoc, versionNumber, q_url )
+	static UpdatePreview( kCurrDoc, versionNumber, q_url )
 	/**
 	update preview based on version selected 
 	 */
 	{
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview        
 		let rQ = SEEDJXSync( q_url, {qcmd: 'dr-versions', kDoc: kCurrDoc, version: versionNumber} );
 		
 		if(!rQ.bOk){
@@ -347,20 +623,18 @@ class myDocRepCtrlView extends DocRepCtrlView
 		}
 	}
 	
-	static updateVersionsDiff( e, kCurrDoc, versionNumber, q_url )
+	static UpdateDiff( e, kCurrDoc, versionNumber, q_url )
 	/**
 	show difference between current selected and previous version
 	 */
 	{
-		
 		let target = e.target;
 		if(target.className == 'versions-number' || target.className == 'versions-title'){
 			target = target.parentNode;
 		}
 
 		if(target.nextElementSibling.className == 'versions-file'){ // find next available version
-			let versionNumber2 = target.nextElementSibling.firstElementChild.innerHTML;
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
+			let versionNumber2 = target.nextElementSibling.firstElementChild.innerHTML;
 			let rQ = SEEDJXSync( q_url, {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber2} );
 			
 			if(!rQ.bOk){
@@ -374,25 +648,24 @@ class myDocRepCtrlView extends DocRepCtrlView
 		}
 		else{
 			$('#versions-diff').html('Difference not available');
-		}
-			
+		}	
 	}
 	
-	static updateVersionsModify( kCurrDoc, versionNumber, q_url )
+	static UpdateModify( kCurrDoc, versionNumber, q_url )
 	/**
 	add delete and restore button when a version is clicked
 	 */
 	{
 		$('#versions-modify').html(`
-			<button id='versions-delete' type='button' onclick='myDocRepCtrlView.versionsDeleteSubmit(${kCurrDoc}, ${versionNumber}, "${q_url}")'>delete</button>
-			<button id='versions-restore' type='button' onclick='myDocRepCtrlView.versionsRestoreSubmit(${kCurrDoc}, ${versionNumber}, "${q_url}")'>restore</button>`);
+			<button id='versions-delete' type='button' onclick='myDocRepCtrlView_Versions.SubmitDelete(${kCurrDoc}, ${versionNumber}, "${q_url}")'>delete</button>
+			<button id='versions-restore' type='button' onclick='myDocRepCtrlView_Versions.SubmitRestore(${kCurrDoc}, ${versionNumber}, "${q_url}")'>restore</button>`);
 	}
-	static versionsDeleteSubmit( kCurrDoc, versionNumber, q_url )
+	static SubmitDelete( kCurrDoc, versionNumber, q_url )
 	/**
 	delete current version 
+	once version is deleted, it will not be shown, so there's not way to restore it
 	 */
 	{
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
 		let rQ = SEEDJXSync( q_url, {qcmd: 'dr--versionsDelete', kDoc: kCurrDoc, version: versionNumber} );
 		if(!rQ.bOk){
 			console.log('error delete version');
@@ -406,13 +679,13 @@ class myDocRepCtrlView extends DocRepCtrlView
 		}
 	}
 	
-	static versionsRestoreSubmit( kCurrDoc, versionNumber, q_url )
+	static SubmitRestore( kCurrDoc, versionNumber, q_url )
 	/**
 	restore current version 
+	not finished yet 
 	 */
 	{
 		console.log("clicked on restore");
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
 		let rQ = SEEDJXSync( q_url, {qcmd: 'dr--versionsRestore', kDoc: kCurrDoc, version: versionNumber} );
 		console.log('restore not implemented in database yet');
 		if(!rQ.bOk){
@@ -422,348 +695,6 @@ class myDocRepCtrlView extends DocRepCtrlView
 			
 		}
 	}
-    
-    drawFormSchedule( kCurrDoc )
-    {
-		let s = 'Schedule not available';	
-		let sName = '', sType = '', sSchedule = '', raChildren = '', kDocParent = '';
-		let sNameEmail = '', sTypeEmail = '', sScheduleEmail = '';
-        let oDoc = this.fnHandleEvent('getDocInfo', kCurrDoc);
-        
-        if( oDoc ) {
-            sName = oDoc['name'];
-            sType = oDoc['doctype'];
-            sSchedule = oDoc['schedule'];
-            raChildren = oDoc['children'];
-            kDocParent = oDoc['kParent'];
-        }
-		
-		if( sType == 'page' ){ // if selected is a file 
-		
-			let oDocParent = this.fnHandleEvent('getDocInfo', kDocParent);
-			if(oDocParent['name'].toLowerCase().includes('schedule')){
-				
-				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event, "${this.oConfigEnv.q_url}")'>
-						<div class='row'> 
-							<div class='col-md-3'>${sName}</div>
-							<div class='col-md-6'>
-								<input type='text' class='schedule-date'  value='${sSchedule}' style='width:100%'/>
-							</div>
-						</div>	
-						
-						<input type='hidden' class='drSchedule_kDoc' value='${kCurrDoc}'/>
-					    <input type='submit' value='update schedule'/>
-					</form>`
-			}
-		}
-		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
-			
-			if( this.folderContainsEmail( kCurrDoc ) ){
-				s = `<form onsubmit='myDocRepCtrlView.scheduleSubmit(event, "${this.oConfigEnv.q_url}")'>`;
-			}
-			else{
-				s = `No emails found under folder`;
-			}		
-			for( let kDocEmail of raChildren ){ // loop through all children 
-				let oDocEmail = this.fnHandleEvent('getDocInfo', kDocEmail);
-				
-				if( oDocEmail ) {
-		            sNameEmail = oDocEmail['name'];
-		            sTypeEmail = oDocEmail['doctype'];
-		            sScheduleEmail = oDocEmail['schedule'];
-        		}
-				if( sTypeEmail == 'page' ){ // if child is a file 
-			
-					s +=   `<div class='row'> 
-								<div class='col-md-3'>${sNameEmail}</div>
-								<div class='col-md-6'>
-									<input type='text' class='schedule-date'  value='${sScheduleEmail}' style='width:100%'/>
-								</div>
-							</div>	
-							
-							<input type='hidden' class='drSchedule_kDoc' value='${kDocEmail}'/>`
-				}
-			}
-			if( this.folderContainsEmail( kCurrDoc ) ){
-				s += `<input type='submit' value='update schedule'/></form>`;
-			}		
-		}
-		s = s.replaceAll("[label]", "class='col-md-3'");
-        s = s.replaceAll("[ctrl]",  "class='col-md-6'");
-		
-		return s;
-		
-	}
-	/**
-	check to see if a given folder contains emails
-	 */
-	folderContainsEmail( kDoc )
-	{
-		let oDoc = this.fnHandleEvent('getDocInfo', kDoc);
-		
-		if( oDoc['doctype'] == 'folder' && oDoc['name'].toLowerCase().includes('schedule') ){
-			for( let kDocEmail of oDoc['children'] ){
-				let oDocEmail = this.fnHandleEvent('getDocInfo', kDocEmail);			
-				if ( oDocEmail['doctype'] == 'page' ){
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	static addSubmit( e, q_url ) 
-	{
-		e.preventDefault();
-		var rQ;
-		let kDoc = $('#drAdd_kDoc').val();
-		let position = $('input[name=child-or-sibling]:checked').val()
-		let type = $('input[name=text-or-folder]:checked').val()
-		let name = $('#add-name').val();
-		let title = $('#add-title').val();
-		let permissions = $('#add-permissions').val();
-
-		if( !name || !permissions || !kDoc) {
-			return;
-		}
-	
-		if ( !position ) { // if no position is selected, or position does not exist, default sibling 
-			position == "sibling";
-		}
-
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
-		if ( position == "child" ) {
-			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
-		}
-		else {
-			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
-		}
-	
-		if (!rQ.bOk) {
-			console.log("error add");
-		}
-		else {
-			// update tree with new folder/file
-			this.addUpdateTree();
-		}
-	}
-	
-	static renameSubmit( e, q_url ) 
-	{
-		e.preventDefault();;
-		let kDoc = $('#drRename_kDoc').val();
-		let name = $('#formRename_name').val();
-		let title = $('#formRename_title').val();
-		let permissions = $('#formRename_perms').val();
-	
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
-		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
-	
-		if ( !rQ.bOk ) {
-			console.log("error rename");
-		}
-		else {
-			this.renameUpdateTree(kDoc, name);
-		}
-	}
-	
-	static scheduleSubmit( e, q_url )
-	{
-		e.preventDefault();
-		let allKDoc = $('.drSchedule_kDoc');
-		let allSchedule = $('.schedule-date');
-
-		for(let i = 0; i < allKDoc.length; i++){
-			
-			let kDoc = allKDoc[i].value;
-			let schedule = allSchedule[i].value;
-			
-// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
-			let rQ = SEEDJXSync( q_url, { qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
-		console.log(rQ);
-			if ( !rQ.bOk ) {
-				console.log("error schedule");
-			}
-			else {
-				// console.log("ok schedule")
-			}
-			
-		}
-	}
-	
-	/*
-	update tree after rename 
-	*/
-	static renameUpdateTree( kDoc, name ) 
-	{
-		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
-		let child = doc.children[1].nextSibling;
-		child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
-		
-		// TODO: redraw tree with update map instead 
-	}
-	
-	/*
-	update tree after adding new doc 
-	for now, just reload page 
-	*/
-	static addUpdateTree() 
-	{
-		location.reload();
-		// TODO: 
-		// call ajax to update map 
-		// redraw tree with updated map 
-	}
-}
-
-class myDocRepCtrlView_Preview
-/*****************************
-    Implement the Preview pane of the Ctrlview
- */
-{
-    static oCtrlView = null;    // the myDocRepCtrlView using this class
-    static kCurrDoc = 0;        // the current doc (you could also get this via oCtrlView)
-    
-    static Init( oCtrlView, kCurrDoc )
-    {
-        this.oCtrlView = oCtrlView;
-        this.kCurrDoc = kCurrDoc;
-    }
-    
-    static Reset()
-    {
-        this.#setMode('');  // force to default
-    }
-    
-    static #getMode()
-    {
-        // default is preview
-        return( this.#normalizeMode( sessionStorage.getItem('DocRepCtrlView_preview_mode') ) );
-    }
-
-    static #setMode( m )
-    {
-        m = this.#normalizeMode(m);    // mode can be preview, source, or edit
-        
-        sessionStorage.setItem( 'DocRepCtrlView_preview_mode', m );
-    }
-    
-    // modes can be preview (default), source, or edit
-    static #normalizeMode( m ) { return( (m == 'source' || m == 'edit') ? m : 'preview'); }
-    
-    static DrawTabBody()
-    {
-        let s = "";
-        let rQ = null;
-        let m = this.#getMode();
-        
-        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
-        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
-        
-        switch( m ) {
-            case 'preview':
-                if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
-                    s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
-                }
-                break;
-            case 'source':
-                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
-                if( rQ.bOk ) {
-                    s = "<div style='font-family:monospace'>" 
-                      + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') 
-                      + "</div>";
-                } else {
-                    s = `Cannot get preview for document ${this.kCurrDoc}`;
-                }
-                break;
-            case 'edit':
-                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
-                if( rQ.bOk ) {
-                    s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut);
-                        
-                }
-                break;
-        }
-        
-        s = `<div>
-             <select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
-                 <option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
-                 <option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
-                 <option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
-             </select>
-             <div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
-             </div>`;
-        
-        return( s );
-    }
-    
-    static Change( mode )
-    /********************
-        Called when the <select> changes
-     */
-    {
-        this.#setMode(mode);
-        this.oCtrlView.DrawCtrlView();
-    }
-}
-
-
-class myDocRepCtrlView_Edit
-/**************************
-    Implement the Edit control of the Ctrlview.
-    This is used within the Preview pane, and also in a full-screen mode.
- */
-{
-    static CKEditorInstance = null;
-    static oCtrlView = null;            // the ctrlview using this object
-
-    static InitEditor( oCtrlView )
-    /******************
-        Attach the CKEditor to the <textarea>
-     */
-    {
-        this.oCtrlView = oCtrlView;
-        
-    	CKEDITOR.replace( 'drEdit_text', {
-			//customConfig: '/seeds/wcore/seedapp/DocRep/ckeditor_config.js'
-		} );
-		
-		this.CKEditorInstance = CKEDITOR.instances.drEdit_text;
-	}
-
-    static DrawEditor( kCurrDoc, sContent )
-    {
-        let s = `<div id='drEdit_notice'></div>
-                 <form onsubmit='myDocRepCtrlView_Edit.SaveHandler(event)'>
-                 <textarea id='drEdit_text' style='width:100%'>${sContent}</textarea>
-                 <br/>
-                 <input type='hidden' id='drEdit_kDoc' value='${kCurrDoc}'/>
-                 <input type='submit' value='Save'/> <input type='checkbox' id='dr_Edit_newversion' value='1'/> Save New Version
-                 </form>`;
-        return( s );
-    }    
-    
-    static SaveHandler( e )
-    /**********************
-        Event handler for editor Save
-     */
-    {
-		
-        e.preventDefault();
-        //this.CKEditorInstance.updateSourceElement();
-        let text = this.CKEditorInstance.getData();
-
-        let kDoc = $('#drEdit_kDoc').val();
-        if( kDoc ) {
-            let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url,
-                                 {qcmd:'dr--update', kDoc:kDoc, p_src:'TEXT', p_text:text, 
-                                                     p_bNewVersion:$('#dr_Edit_newversion').is(':checked') ? 1 : 0
-                                 } );
-            // console.log(rQ);
-            $('#drEdit_notice').html( rQ.bOk ? "Update successful" : "Update failed" );
-        }
-        // console.log(kDoc + "kdoc");
-    }
 }
 
 class myDocRepCtrlView_Vars
@@ -780,8 +711,9 @@ class myDocRepCtrlView_Vars
         this.kCurrDoc = kCurrDoc;
     }
     
-    static DrawTabBody()
+    static DrawTabBody( parentID )
     {
+	
         let jForm = null;
         let rQ = null;
         
@@ -793,7 +725,7 @@ class myDocRepCtrlView_Vars
                        <div class='col-4'><input type='text' id='var_knew' style='width:100%'/></div>
                        <div class='col-8'><input type='text' id='var_vnew' style='width:100%'/></div>
                    </div>
-                   <input type='submit' value='Save'/>
+                   <input type='submit' value='Save'>
                    </form>`);
         let i = 0;
         for( const k in oDoc.docMetadata ) {
@@ -811,8 +743,9 @@ class myDocRepCtrlView_Vars
         }
         // append an empty pair of inputs so a new value can be entered, and a Save button
         jForm.append( $(``) );
+
+        $(`#${parentID}`).html(jForm);
         
-        return( jForm );
     }
     
     static Submit(e)
@@ -849,6 +782,137 @@ class myDocRepCtrlView_Vars
     }
 }
 
+class myDocRepCtrlView_Schedule
+{
+	static oCtrlView = null;
+    static kCurrDoc = 0;
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    static DrawTabBody( parentID )
+    /**
+    if CurrDoc is a file, list schedule of the file 
+    if CurrDoc is a folder, list schedule of all files under the folder (assume only 1 depth)
+     */
+    {
+		let s = 'Schedule not available';	
+		let sName = '', sType = '', sSchedule = '', raChildren = '', kDocParent = '';
+		let sNameEmail = '', sTypeEmail = '', sScheduleEmail = '';
+        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        
+        if( oDoc ) {
+            sName = oDoc['name'];
+            sType = oDoc['doctype'];
+            sSchedule = oDoc['schedule'];
+            raChildren = oDoc['children'];
+            kDocParent = oDoc['kParent'];
+        }
+		
+		if( sType == 'page' ){ // if selected is a file 
+		
+			let oDocParent = this.oCtrlView.fnHandleEvent('getDocInfo', kDocParent);
+			if(oDocParent['name'].toLowerCase().includes('schedule')){
+				
+				s = `<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+						<div class='row'> 
+							<div class='col-md-3'>${sName}</div>
+							<div class='col-md-6'>
+								<input type='text' class='schedule-date'  value='${sSchedule}' style='width:100%'/>
+							</div>
+						</div>	
+						
+						<input type='hidden' class='drSchedule_kDoc' value='${this.kCurrDoc}'/>
+					    <input type='submit' value='update schedule'/>
+					</form>`
+			}
+		}
+		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
+			
+			if( this.folderContainsEmail( this.kCurrDoc ) ){
+				s = `<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>`;
+			}
+			else{
+				s = `No emails found under folder`;
+			}		
+			for( let kDocEmail of raChildren ){ // loop through all children 
+				let oDocEmail = this.oCtrlView.fnHandleEvent('getDocInfo', kDocEmail);
+				
+				if( oDocEmail ) {
+		            sNameEmail = oDocEmail['name'];
+		            sTypeEmail = oDocEmail['doctype'];
+		            sScheduleEmail = oDocEmail['schedule'];
+        		}
+				if( sTypeEmail == 'page' ){ // if child is a file 
+			
+					s +=   `<div class='row'> 
+								<div class='col-md-3'>${sNameEmail}</div>
+								<div class='col-md-6'>
+									<input type='text' class='schedule-date'  value='${sScheduleEmail}' style='width:100%'/>
+								</div>
+							</div>	
+
+							<input type='hidden' class='drSchedule_kDoc' value='${kDocEmail}'/>`
+				}
+			}
+			if( this.folderContainsEmail( this.kCurrDoc ) ){
+				s += `<input type='submit' value='update schedule'/></form>`;
+			}		
+		}
+		s = s.replaceAll("[label]", "class='col-md-3'");
+        s = s.replaceAll("[ctrl]",  "class='col-md-6'");
+        
+        $(`#${parentID}`).html(s);
+		
+	}
+	
+
+	static folderContainsEmail( kDoc )
+	/**
+	check to see if a given folder contains emails
+	 */
+	{
+		let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', kDoc);
+		
+		if( oDoc['doctype'] == 'folder' && oDoc['name'].toLowerCase().includes('schedule') ){
+			for( let kDocEmail of oDoc['children'] ){
+				let oDocEmail = this.oCtrlView.fnHandleEvent('getDocInfo', kDocEmail);			
+				if ( oDocEmail['doctype'] == 'page' ){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	static Submit( e, q_url )
+	/**
+	update schedule with date information 
+	 */
+	{
+		e.preventDefault();
+		let allKDoc = $('.drSchedule_kDoc');
+		let allSchedule = $('.schedule-date');
+
+		for(let i = 0; i < allKDoc.length; i++){
+			
+			let kDoc = allKDoc[i].value;
+			let schedule = allSchedule[i].value;
+			
+			let rQ = SEEDJXSync( q_url, { qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
+		console.log(rQ);
+			if ( !rQ.bOk ) {
+				console.log("error schedule");
+			}
+			else {
+				// console.log("ok schedule")
+			}
+		}
+	}
+}
 
 class DocRepUI02
 /***************
