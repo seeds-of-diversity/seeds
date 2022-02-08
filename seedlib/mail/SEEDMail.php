@@ -4,7 +4,7 @@
  *
  * Manage sending email via SEEDMail
  *
- * Copyright (c) 2010-2021 Seeds of Diversity Canada
+ * Copyright (c) 2010-2022 Seeds of Diversity Canada
  */
 
 include_once( "SEEDMailDB.php" );
@@ -18,11 +18,13 @@ class SEEDMail
     public  $oApp;
     private $oDB;
     private $kfr;
+    private $raConfig;
 
-    function __construct( SEEDAppConsole $oApp, $keyOrName )
+    function __construct( SEEDAppConsole $oApp, $keyOrName, $raConfig = [] )
     {
         $this->oApp = $oApp;
-        $this->oDB = new SEEDMailDB( $oApp );
+        $this->raConfig = $raConfig;
+        $this->oDB = new SEEDMailDB( $oApp, $raConfig );
 
         if( is_numeric($keyOrName) ) {
             $this->kfr = $keyOrName ? $this->oDB->GetKFR('M',$keyOrName) : $this->oDB->KFRel('M')->CreateRecord();
@@ -127,7 +129,7 @@ class SEEDMail
             $e = trim($e);
             if( !$e ) continue;
 
-            $oMS = new SEEDMailStaged( $this );
+            $oMS = new SEEDMailStaged( $this, $this->raConfig );
             $oMS->Store( ['fk_SEEDMail'=>$this->kfr->Key(), 'eStageStatus'=>'READY', 'sTo'=>$e] );
         }
         $this->Store( ['eStatus'=>'READY','sAddresses'=>""] );
@@ -161,10 +163,10 @@ class SEEDMailStaged
     private $oDB;
     private $kfr;
 
-    function __construct( SEEDMail $oSMail )
+    function __construct( SEEDMail $oSMail, $raConfig = [] )
     {
         $this->oSMail = $oSMail;
-        $this->oDB = new SEEDMailDB( $oSMail->oApp );
+        $this->oDB = new SEEDMailDB( $oSMail->oApp, $raConfig );
     }
 
     function Store( $raParms )
@@ -190,12 +192,14 @@ class SEEDMailSend
     private $oApp;
     private $oDB;
     private $dbname;
+    private $raConfig;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
         $this->oApp = $oApp;
-        $this->oDB = new SEEDMailDB( $oApp );
-        $this->dbname = $oApp->GetDBName('seeds2');
+        $this->raConfig = $raConfig;
+        $this->oDB = new SEEDMailDB( $oApp, $raConfig );
+        $this->dbname = $oApp->GetDBName(@$raConfig['db'] ?: 'seeds2'); // this is in oDB so get it from there
     }
 
     function GetCountReadyToSend()
@@ -219,7 +223,7 @@ class SEEDMailSend
         }
 
         $kMail = $kfrStage->Value('fk_SEEDMail');   // master SEEDMail record for this email
-        $oMail = new SEEDMail( $this->oApp, $kMail );
+        $oMail = new SEEDMail( $this->oApp, $kMail, ['db'=>@$raConfig['db']] );
 
 
         /* sTo is either kMbr or email. Use Mbr_Contacts to try to get full contact info, otherwise just use email.

@@ -2,7 +2,7 @@
 
 /* mailsend.php
  *
- * Copyright 2010-2021 Seeds of Diversity Canada
+ * Copyright 2010-2022 Seeds of Diversity Canada
  *
  * Send email staged by mailsetup.
  *
@@ -46,7 +46,7 @@ if( !$nQuantity ) $nQuantity = 1;
 if( !$nDelay )    $nDelay = 20;     // there's no way to set zero delay, though that is tested below (could implement -1 = no delay)
 
 
-$oMailSend = new SEEDMailSend( $oApp );
+$oMailSend = new SEEDMailSend( $oApp, ['db'=>'seeds2'] );
 $nToSend = $oMailSend->GetCountReadyToSend();
 
 $sBody = "<h2>Seeds of Diversity Bulk Mailer</h2>"
