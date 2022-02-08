@@ -789,26 +789,28 @@ class myDocRepCtrlView_Vars
         if( !oDoc || oDoc.doctype != 'page' ) return( "" );
         
         jForm = $(`<form id='drVars_form' onsubmit='myDocRepCtrlView_Vars.Submit(event)'>
-                   
+                   <div class='row' id='drVars_rownew'>
+                       <div class='col-4'><input type='text' id='var_knew' style='width:100%'/></div>
+                       <div class='col-8'><input type='text' id='var_vnew' style='width:100%'/></div>
+                   </div>
+                   <input type='submit' value='Save'/>
                    </form>`);
         let i = 0;
         for( const k in oDoc.docMetadata ) {
-            // create a pair of input elements for the key and value of this variable, and append them to the form 
+            // Create a pair of input elements for the key and value of this variable, and append them to the form.
+            // N.B. It must be allowed for k={blank} to be stored, so a blank var can overwrite an ancestor's value.
+            //      k=={blank} must be allowed to delete a variable from the set.  
             let jInput = $(`<div class='row'>
-                            <div class='col-4'>${k}</div>
+                            <div class='col-4'><input type='text' id='var_k${i}' style='width:100%'/></div>
                             <div class='col-8'><input type='text' id='var_v${i}' style='width:100%'/></div>
                             </div>`);
-            jInput.find('input').val(oDoc.docMetadata[k]);
-            jForm.append(jInput);
-
+            jInput.find('input#var_k'+i).val(k);
+            jInput.find('input#var_v'+i).val(oDoc.docMetadata[k]);
+            jInput.insertBefore(jForm.find('#drVars_rownew'));
             ++i;
         }
         // append an empty pair of inputs so a new value can be entered, and a Save button
-        jForm.append( $(`<div class='row'>
-                         <div class='col-4'><input type='text' id='var_knew' style='width:100%'/></div>
-                         <div class='col-8'><input type='text' id='var_vnew' style='width:100%'/></div>
-                         </div>
-                         <input type='submit' value='Save'/>`) );
+        jForm.append( $(``) );
         
         return( jForm );
     }
@@ -819,16 +821,31 @@ class myDocRepCtrlView_Vars
         
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
         if( !oDoc || oDoc.doctype != 'page' ) return( "" );
-        
-        let i = 0;
-        for( const k in oDoc.docMetadata ) {
-            let p_k = $("#drVars_form input#var_k"+i).val();
-            let p_v = $("#drVars_form input#var_v"+i).val();
-            console.log( `${i}: ${p_k} = ${p_v}`)
-            
-            ++i    
+
+        let newVars = {};
+        // The form contains the same number of input pairs as the docMetedata        
+        for( let i = 0; i < Object.keys(oDoc.docMetadata).length; ++i ) {
+            let k = $("#drVars_form input#var_k"+i).val();
+            let v = $("#drVars_form input#var_v"+i).val();
+         
+            // if k is blank, the var is deleted
+            if( k ) {
+                newVars[k] = v;
+            }
         }
-        console.log( "new: "+$("#drVars_form input#var_knew").val()+" = "+$("#drVars_form input#var_vnew").val() );
+        let k = $("#drVars_form input#var_knew").val();
+        let v = $("#drVars_form input#var_vnew").val();
+        if( k ) {
+            newVars[k] = v;
+        }
+        
+        // save the new var set on the server
+        let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url,
+                             {qcmd:'dr--docMetadataStoreAll', kDoc:this.kCurrDoc, p_docMetadata:JSON.stringify(newVars) } );
+        // save the new var set on the client
+        oDoc.docMetadata = newVars;
+        
+        this.oCtrlView.fnHandleEvent('ctrlviewRedraw');
     }
 }
 

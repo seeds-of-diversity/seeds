@@ -802,14 +802,20 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
     {
         $ra = $this->GetValue('raDocMetadata', self::FLAG_INDEPENDENT);
         $ra[$k] = $v;
-        if( ($kfr = $this->getKfrDoc($this->kDoc, '')) ) {
-            $kfr->SetValue( 'docMetadata', SEEDCore_ParmsRA2URL($ra) );
-            $kfr->PutDBRow();
-        }
-
-        $this->clearCache();    // force a data refresh
+        $this->SetDocMetadata( $ra );
     }
 
+    function SetDocMetadata( $raDocMetadata )
+    /****************************************
+        Replace all docMetadata with the given array
+     */
+    {
+        if( ($kfr = $this->getKfrDoc($this->kDoc, '')) ) {
+            $kfr->SetValue( 'docMetadata', SEEDCore_ParmsRA2URL($raDocMetadata) );
+            $kfr->PutDBRow();
+        }
+        $this->clearCache();    // force a data refresh
+    }
 
     function Update( $parms )
     /************************
