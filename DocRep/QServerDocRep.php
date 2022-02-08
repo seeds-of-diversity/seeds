@@ -83,6 +83,10 @@ class QServerDocRep extends SEEDQ
                 list($rQ['bOk'],$rQ['sOut']) = $this->doSchedule($kDoc, $parms);
                 break;
 
+            case 'dr--docMetadataStoreAll':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doDocMetadataStoreAll($kDoc, $parms);
+                break;
         }
 
         done:
@@ -284,6 +288,23 @@ class QServerDocRep extends SEEDQ
 
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             $bOk = $oDoc->UpdateSchedule( $parms );
+        }
+        return( [$bOk, $s] );
+    }
+
+    private function doDocMetadataStoreAll( $kDoc, $parms )
+    /******************************************************
+        Replace this doc's docMetadata with the given key/values
+     */
+    {
+        $s = "";
+        $bOk = false;
+
+        if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
+            $p = @$parms['p_docMetadata'];
+            $ra = $p ? json_decode($p) : [];
+            $oDoc->SetDocMetadata( $ra );
+            $bOk = true;
         }
         return( [$bOk, $s] );
     }
