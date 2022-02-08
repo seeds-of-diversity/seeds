@@ -146,23 +146,24 @@ class KeyFrame_Relation
                 $t['Fields'][] = array( 'type'=>'I', 'col'=>'_status',     'default'=>0 );
             }
 
-            /* Make a lookup table of colalias->colname.
-             * Set a default alias for every column that doesn't have one.
-             * Default col aliases for base table are the column names.  Default col alias for other tables is tableAlias_col
+            /* Set a default alias for every column that doesn't have one.
+             * alias_full is always tableAlias_col, unless predefined.
+             * alias for base table is the column name.
+             * alias for non-base table is alias_full.
+             *
+             * Make a lookup table of colalias->colname for all alias and alias_full
              */
             foreach( $t['Fields'] as &$f ) {
-                $col = $a.".".$f['col'];    // col always has table prefix
                 // if alias is predefined, just use it. Otherwise create a default alias
-                if( empty($f['alias']) ) {
-                    $fullAlias = $a."_".$f['col'];
-                    if( $t['Type'] == 'Base' ) {
-                        $f['alias'] = $f['col'];                // store base alias in kfrdef and raColAlias
-                        $this->raColAlias[$fullAlias] = $col;   // store full alias in raColAlias
-                    } else {
-                        $f['alias'] = $fullAlias;               // store full alias in kfrdef and raColAlias
-                    }
+                if( @$f['alias'] ) {
+                    $f['alias_full'] = $f['alias'];
+                } else {
+                    $f['alias_full'] = $a."_".$f['col'];
+                    $f['alias'] = ($t['Type'] == 'Base') ? $f['col'] : $f['alias_full'];
                 }
+                $col = $a.".".$f['col'];    // col always has table prefix
                 $this->raColAlias[$f['alias']] = $col;
+                $this->raColAlias[$f['alias_full']] = $col;
             }
             unset($f);
         }
@@ -534,6 +535,12 @@ class KeyFrame_Relation
              */
             foreach( $t['Fields'] as $f ) {
                 $raFieldsClause[] = "$a.{$f['col']} as {$f['alias']}";
+
+                // Base table column aliases don't have a prefix. Also output alias_full which is a canonical alias format.
+                // This feature is disabled by default because legacy code might enumerate array_keys($kfr->ValuesRA()) expecting only non-prefixed cols.
+                if( @$this->kfrdef['bFetchFullBaseAliases'] && $f['alias'] != $f['alias_full'] ) {
+                    $raFieldsClause[] = "$a.{$f['col']} as {$f['alias_full']}";
+                }
             }
 
             /* Make the Tables clause
