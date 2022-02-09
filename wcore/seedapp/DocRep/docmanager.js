@@ -160,11 +160,6 @@ class myDocRepCtrlView extends DocRepCtrlView
 
     DrawCtrlView_Attach()
     {
-// move this into myDocRepCtrlView_Preview       
-        if( this.GetCtrlMode() == 'preview' && sessionStorage.getItem('DocRepCtrlView_preview_mode') == 'edit' ) {
-                // Now that there is a <textarea> for the editor, initialize CKEditor and attach it there
-            myDocRepCtrlView_Edit.InitEditor(this);
-        }
     }
 }
 
@@ -210,12 +205,28 @@ class myDocRepCtrlView_Preview
         let m = this.#getMode();
         
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
-        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
+        if( !oDoc || oDoc.doctype != 'page' ) {
+			$(`#${parentID}`).empty(); 
+			$(`#${parentID}`).html(`No preview info available`); 
+			return;
+		}
+		
+		$(`#${parentID}`).empty(); 
+        $(`#${parentID}`).html(`
+        	<div>
+             	<select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
+                 	<option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
+                 	<option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
+                 	<option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
+             	</select>
+            	<div id='drCtrlview-preview-body' style='border:1px solid #aaa;padding:20px;margin-top:10px'></div>
+            </div>`);
         
         switch( m ) {
             case 'preview':
                 if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
                     s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
+                    $(`#drCtrlview-preview-body`).append(s);
                 }
                 break;
             case 'source':
@@ -224,28 +235,21 @@ class myDocRepCtrlView_Preview
                     s = "<div style='font-family:monospace'>" 
                       + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') 
                       + "</div>";
+                    $(`#drCtrlview-preview-body`).append(s);
                 } else {
                     s = `Cannot get preview for document ${this.kCurrDoc}`;
+                    $(`#drCtrlview-preview-body`).append(s);
                 }
                 break;
             case 'edit':
                 rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
-                    s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut);
-                        
+                    s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut); // create textarea 
+                    $(`#drCtrlview-preview-body`).append(s);
+                    myDocRepCtrlView_Edit.InitEditor(this.oCtrlView); // attarch CKEditor to textarea 
                 }
                 break;
         }
-        $(`#${parentID}`).empty(); 
-        $(`#${parentID}`).html(`
-        	<div>
-             	<select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
-                 	<option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
-                 	<option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
-                 	<option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
-             	</select>
-            	<div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
-            </div>`);
     }
     
     static Change( mode )
@@ -515,7 +519,6 @@ class myDocRepCtrlView_Rename
 		let permissions = $('#formRename_perms').val();
 	
 		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
-	
 		if ( !rQ.bOk ) {
 			console.log("error rename");
 		}
@@ -554,6 +557,13 @@ class myDocRepCtrlView_Versions
     display a list of versions of a doc 
      */
     {
+		let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        if( !oDoc || oDoc.doctype != 'page' ) {
+			$(`#${parentID}`).empty(); 
+			$(`#${parentID}`).html(`No versions info available`); 
+			return;
+		}
+	
 		$(`#${parentID}`).empty();
 		$(`#${parentID}`).html('Version information not available');
 		let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-versions', kDoc: this.kCurrDoc} );
@@ -587,6 +597,11 @@ class myDocRepCtrlView_Versions
     form for previewing and modifying versions
      */
     {
+		let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        if( !oDoc || oDoc.doctype != 'page' ) {
+			return;
+		}
+	
 		if( versionNumber ){ // if version is selected 
 		}
 			
@@ -724,7 +739,11 @@ class myDocRepCtrlView_Vars
         let rQ = null;
         
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
-        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
+        if( !oDoc || oDoc.doctype != 'page' ) {
+			$(`#${parentID}`).empty(); 
+			$(`#${parentID}`).html(`No variables info available`); 
+			return;
+		}
         
         jForm = $(`<form id='drVars_form' onsubmit='myDocRepCtrlView_Vars.Submit(event)'>
                    <div class='row' id='drVars_rownew'>
