@@ -35,12 +35,12 @@ class QServerDocRep extends SEEDQ
         // check permissions
 
 
-        $kDoc = SEEDInput_Int('kDoc');
+        $kDoc = intval(@$parms['kDoc']);
 
         switch( $cmd ) {
             case 'dr-preview':
                 $rQ['bHandled'] = true;
-                list($rQ['bOk'],$rQ['sOut']) = $this->doPreview($kDoc);
+                list($rQ['bOk'],$rQ['sOut']) = $this->doPreview($kDoc, $parms);
                 break;
 
             case 'dr--add':
@@ -93,7 +93,7 @@ class QServerDocRep extends SEEDQ
         return( $rQ );
     }
 
-    private function doPreview( $kDoc )
+    private function doPreview( $kDoc, $parms )
     {
         $s = "Preview";
         $bOk = false;
@@ -109,6 +109,13 @@ class QServerDocRep extends SEEDQ
                 case 'TEXT':
                 case 'TEXTFRAGMENT':
                     $s = $oDoc->GetText('');
+                    if( @$parms['bExpand'] ) {
+                        include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
+                        $raMT2 = [];    // SoDMasterTemplate shouldn't need any setup parms, just variables
+                        $raVars = $oDoc->GetDocMetadataRA();
+                        $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT2 ))->GetTmpl();
+                        $s = $oTmpl->ExpandStr($s, $raVars);
+                    }
                     break;
                 case 'BIN':
                 case 'IMAGE':
@@ -303,7 +310,7 @@ class QServerDocRep extends SEEDQ
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
             $p = @$parms['p_docMetadata'];
             $ra = $p ? json_decode($p) : [];
-            $oDoc->SetDocMetadata( $ra );
+            $oDoc->SetDocMetadataRA( $ra );
             $bOk = true;
         }
         return( [$bOk, $s] );

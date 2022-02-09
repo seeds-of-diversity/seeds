@@ -662,7 +662,7 @@ class myDocRepCtrlView_Preview
         
         switch( m ) {
             case 'preview':
-                if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} )) ) {
+                if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc, bExpand: 1} )) ) {
                     s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
                 }
                 break;
