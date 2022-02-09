@@ -292,6 +292,7 @@ class DocRepCtrlView
         /* Bind the tabs to a function that changes the ctrlMode and redraws the CtrlView 
          */
         let saveThis = this;
+        let id = 'docrepctrlview_body';
         $('#docrepctrlview_tabs .tab').click( function() {
             // store the new tab and redraw tabs
             saveThis.SetCtrlMode( $(this).attr('data-tabname') );
@@ -316,15 +317,17 @@ class DocRepCtrlView
         Draw the ctrlview_body for the current tab & doc, and attach event listeners to controls as needed
      */
     {
-        let kCurrDoc = this.fnHandleEvent('getKDocCurr');
+        let kCurrDoc = this.fnHandleEvent('getKDocCurr'); 
+        let parentID = 'docrepctrlview_body';
 
         if( kCurrDoc ) {
-            $('#docrepctrlview_body').empty().append( this.DrawCtrlView_Render(kCurrDoc) );
+			$(`#${parentID}`).empty();
+            this.DrawCtrlView_Render(parentID, kCurrDoc );
             this.DrawCtrlView_Attach();
         }
     }
 
-    DrawCtrlView_Render( kCurrDoc )
+    DrawCtrlView_Render( kCurrDoc, parentID )
     /******************************
         Returns a jquery object containing the content of the ctrlview_body
      */
