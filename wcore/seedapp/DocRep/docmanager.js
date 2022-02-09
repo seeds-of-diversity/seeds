@@ -236,17 +236,16 @@ class myDocRepCtrlView_Preview
                 }
                 break;
         }
-        
-        s = `<div>
-             <select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
-                 <option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
-                 <option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
-                 <option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
-             </select>
-             <div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
-             </div>`;
-        
-        $(`#${parentID}`).html(s);
+        $(`#${parentID}`).empty(); 
+        $(`#${parentID}`).html(`
+        	<div>
+             	<select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
+                 	<option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
+                 	<option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
+                 	<option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
+             	</select>
+            	<div style='border:1px solid #aaa;padding:20px;margin-top:10px'>${s}</div>
+            </div>`);
     }
     
     static Change( mode )
@@ -340,68 +339,67 @@ class myDocRepCtrlView_Add
 		let sType = '';
         if( oDoc ) {
             sType = oDoc['doctype'];
-        }
+        }      
+        
+        const label = 'col-md-3';
+        const ctrl = 'col-md-6';
         
         $(`#${parentID}`).empty();
-
-        let s = `<form onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+        $(`#${parentID}`).html(`
+        		<form onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
 					<br>	
 					<div>Type: </div>
 					<div class='row'> 
-						<div [label]>File</div>
-						<div [ctrl]>
+						<div class=${label}>File</div>
+						<div class=${ctrl}>
 							<input type='radio' id='add-file'  name='text-or-folder' value='text' checked/>
 						</div>
 					</div>
 					<div class='row'> 
-						<div [label]>Folder</div>
-						<div [ctrl]>
+						<div class=${label}>Folder</div>
+						<div class=${ctrl}>
 							<input type='radio' id='add-folder'  name='text-or-folder' value='folder' />
 						</div>
 					</div>
-					<br>
-					`
+					<br>`);
 		if (sType == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
-			s += `	<div class='row'> 
-						<div [label]>Add under folder</div>
-						<div [ctrl]>
+			$(`#${parentID}`).append(`
+					<div class='row'> 
+						<div class=${label}>Add under folder</div>
+						<div class=${ctrl}>
 							<input type='radio' id='add-as-child'  name='child-or-sibling' value='child' checked/>
 						</div>
 					</div>
 					<div class='row'> 
-						<div [label]>Add beside folder</div>
-						<div [ctrl]>
+						<div class=${label}>Add beside folder</div>
+						<div class=${ctrl}>
 							<input type='radio' id='add-as-sibling'  name='child-or-sibling' value='sibling' />
 						</div>
 					</div>
-					<br>`
+					<br>`);
 		}
-		s += `		<div class='row'> 
-						<div [label]>Name</div>
-						<div [ctrl]>
+		$(`#${parentID}`).append(`
+					<div class='row'> 
+						<div class=${label}>Name</div>
+						<div class=${ctrl}>
 							<input type='text' id='add-name'  value='' style='width:100%'/>
 						</div>
 					</div>
 					<div class='row'> 
-						<div [label]>Title</div>
-						<div [ctrl]>
+						<div class=${label}>Title</div>
+						<div class=${ctrl}>
 							<input type='text' id='add-title'  value='' style='width:100%'/>
 						</div>
 					</div>
 					<div class='row'> 
-						<div [label]>Permissions</div>
-						<div [ctrl]>
+						<div class=${label}>Permissions</div>
+						<div class=${ctrl}>
 							<input type='text' id='add-permissions'  value='1' style='width:100%'/>
 						</div>
 					</div>										
 					<input type='hidden' id='drAdd_kDoc' value='${this.kCurrDoc}'/>
 				    <input type='submit' value='Add'/>
-				 <form>`
-
-		s = s.replaceAll("[label]", "class='col-md-3'");
-		s = s.replaceAll("[ctrl]", "class='col-md-6'");
-		
-		$(`#${parentID}`).html(s);
+				<form>`);
 	}
 	
 	static Submit( e, q_url ) 
@@ -475,19 +473,34 @@ class myDocRepCtrlView_Rename
             sTitle = oDoc['title'];
             sPerms = oDoc['perms'];
         }
+		const label = 'col-md-3';
+        const ctrl = 'col-md-6';
         
-        let s = `<form onsubmit='myDocRepCtrlView_Rename.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
-        		 <div class='row'> <div [label]>Name</div>        <div [ctrl]><input type='text' id='formRename_name'  value='${sName}' style='width:100%'/></div></div>
-                 <div class='row'> <div [label]>Title</div>       <div [ctrl]><input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/></div></div>
-                 <div class='row'> <div [label]>Permissions</div> <div [ctrl]><input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/></div></div>
-                 <input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
-                 <input type='submit' value='Change'/>
-                 </form>`;
-        s = s.replaceAll("[label]", "class='col-md-3'");
-        s = s.replaceAll("[ctrl]",  "class='col-md-6'");
+        $(`#${parentID}`).empty();
         
-        $(`#${parentID}`).html(s);
-        
+        $(`#${parentID}`).html(`
+        	<form onsubmit='myDocRepCtrlView_Rename.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+        		<div class='row'> 
+        		 	<div class=${label}>Name</div>        
+        		 	<div class=${ctrl}>
+        		 		<input type='text' id='formRename_name'  value='${sName}' style='width:100%'/>
+        		 	</div>
+        		</div>
+                <div class='row'> 
+                 	<div class=${label}>Title</div>       
+                 	<div class=${ctrl}>
+                 		<input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/>
+                 	</div>
+                </div>
+                <div class='row'> 
+                	<div class=${label}>Permissions</div> 
+                	<div class=${ctrl}>
+                		<input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/>
+                	</div>
+                </div>
+                <input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
+                <input type='submit' value='Change'/>
+			</form>`);
     }
     
    static Submit( e, q_url ) 
@@ -541,20 +554,21 @@ class myDocRepCtrlView_Versions
     display a list of versions of a doc 
      */
     {
-		let s = 'Version information not available';
+		$(`#${parentID}`).empty();
+		$(`#${parentID}`).html('Version information not available');
 		let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-versions', kDoc: this.kCurrDoc} );
 		
 		if(!rQ.bOk){
 			return s;
 		}
 		else{
-			s = '<div>versions: </div>'
+			$(`#${parentID}`).html('<div>versions: </div>');
 			let versions = rQ.sOut;
 			let index = Object.keys(versions).reverse();
 			
 			for( let i of index ){	
-				//console.log(versions[i]);
-				s += `
+				
+				$(`#${parentID}`).append(`
 					<div class='versions-file'onclick='
 						myDocRepCtrlView_Versions.UpdatePreview(${this.kCurrDoc}, ${i}, "${this.oCtrlView.oConfigEnv.q_url}"); 
 						myDocRepCtrlView_Versions.UpdateDiff(event, ${this.kCurrDoc}, ${i}, "${this.oCtrlView.oConfigEnv.q_url}"); 
@@ -562,15 +576,10 @@ class myDocRepCtrlView_Versions
 						
 						<span class='versions-number'>${versions[i].ver}</span>
 						<span class='versions-title'>${versions[i].title}</span>
-					</div>
-					`
+					</div>`);
 			}
 		}
-		
-		s += `<br>`;
-		
-		$(`#${parentID}`).html(s);
-		
+		$(`#${parentID}`).append(`<br>`);		
 	}
 	
     static DrawTabBody( parentID, versionNumber )
@@ -578,11 +587,10 @@ class myDocRepCtrlView_Versions
     form for previewing and modifying versions
      */
     {
-		let s = '';
 		if( versionNumber ){ // if version is selected 
 		}
 			
-		s += `
+		$(`#${parentID}`).append(`
 		<div>
 			<span >Preview: </span>
 			<div id='versions-preview'>Select a version to preview</div>
@@ -602,10 +610,8 @@ class myDocRepCtrlView_Versions
 		</div>
 		<div>
 		Note: delete, restore, flags not finished yet
-		</div>
-		
-		`
-		$(`#${parentID}`).append(s);
+		</div>`);
+
 	}
 	
 	static UpdatePreview( kCurrDoc, versionNumber, q_url )
@@ -799,7 +805,6 @@ class myDocRepCtrlView_Schedule
     if CurrDoc is a folder, list schedule of all files under the folder (assume only 1 depth)
      */
     {
-		let s = 'Schedule not available';	
 		let sName = '', sType = '', sSchedule = '', raChildren = '', kDocParent = '';
 		let sNameEmail = '', sTypeEmail = '', sScheduleEmail = '';
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
@@ -811,13 +816,17 @@ class myDocRepCtrlView_Schedule
             raChildren = oDoc['children'];
             kDocParent = oDoc['kParent'];
         }
+        
+        $(`#${parentID}`).empty();
+        $(`#${parentID}`).html('Schedule not available');	
 		
 		if( sType == 'page' ){ // if selected is a file 
 		
 			let oDocParent = this.oCtrlView.fnHandleEvent('getDocInfo', kDocParent);
 			if(oDocParent['name'].toLowerCase().includes('schedule')){
 				
-				s = `<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+				$(`#${parentID}`).html(`
+					<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
 						<div class='row'> 
 							<div class='col-md-3'>${sName}</div>
 							<div class='col-md-6'>
@@ -827,16 +836,16 @@ class myDocRepCtrlView_Schedule
 						
 						<input type='hidden' class='drSchedule_kDoc' value='${this.kCurrDoc}'/>
 					    <input type='submit' value='update schedule'/>
-					</form>`
+					</form>`)
 			}
 		}
 		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
 			
 			if( this.folderContainsEmail( this.kCurrDoc ) ){
-				s = `<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>`;
+				$(`#${parentID}`).html(`<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>`);
 			}
 			else{
-				s = `No emails found under folder`;
+				$(`#${parentID}`).html(`No emails found under folder`);
 			}		
 			for( let kDocEmail of raChildren ){ // loop through all children 
 				let oDocEmail = this.oCtrlView.fnHandleEvent('getDocInfo', kDocEmail);
@@ -848,28 +857,23 @@ class myDocRepCtrlView_Schedule
         		}
 				if( sTypeEmail == 'page' ){ // if child is a file 
 			
-					s +=   `<div class='row'> 
-								<div class='col-md-3'>${sNameEmail}</div>
-								<div class='col-md-6'>
-									<input type='text' class='schedule-date'  value='${sScheduleEmail}' style='width:100%'/>
-								</div>
-							</div>	
+					$(`#${parentID}`).append(`
+						<div class='row'> 
+							<div class='col-md-3'>${sNameEmail}</div>
+							<div class='col-md-6'>
+								<input type='text' class='schedule-date'  value='${sScheduleEmail}' style='width:100%'/>
+							</div>
+						</div>	
 
-							<input type='hidden' class='drSchedule_kDoc' value='${kDocEmail}'/>`
+						<input type='hidden' class='drSchedule_kDoc' value='${kDocEmail}'/>`);
 				}
 			}
 			if( this.folderContainsEmail( this.kCurrDoc ) ){
-				s += `<input type='submit' value='update schedule'/></form>`;
+				$(`#${parentID}`).append(`<input type='submit' value='update schedule'/></form>`);
 			}		
 		}
-		s = s.replaceAll("[label]", "class='col-md-3'");
-        s = s.replaceAll("[ctrl]",  "class='col-md-6'");
-        
-        $(`#${parentID}`).html(s);
-		
 	}
 	
-
 	static folderContainsEmail( kDoc )
 	/**
 	check to see if a given folder contains emails
@@ -900,8 +904,7 @@ class myDocRepCtrlView_Schedule
 		for(let i = 0; i < allKDoc.length; i++){
 			
 			let kDoc = allKDoc[i].value;
-			let schedule = allSchedule[i].value;
-			
+			let schedule = allSchedule[i].value;
 			let rQ = SEEDJXSync( q_url, { qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
 		console.log(rQ);
 			if ( !rQ.bOk ) {

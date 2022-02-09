@@ -321,11 +321,10 @@ class DocRepCtrlView
         let parentID = 'docrepctrlview_body';
 
         if( kCurrDoc ) {
-			$(`${parentID}`).empty();
+			$(`#${parentID}`).empty();
             this.DrawCtrlView_Render(parentID, kCurrDoc );
             this.DrawCtrlView_Attach();
         }
-
     }
 
     DrawCtrlView_Render( kCurrDoc, parentID )
