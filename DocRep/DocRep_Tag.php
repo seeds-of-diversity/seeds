@@ -34,14 +34,31 @@ class DocRep_TagHandler
         $s = "";
         $bHandled = true;
 
+
+// For debugging this, it's convenient to use a url like
+// localhost/cats/jx.php?qcmd=dr-preview&bExpand=1&kDoc=3
+// because it allows you to see var_dump
+
+//var_dump($raTag);
+// do this to see what it contains
+// [[docrep-whatever: A | B | C ]]
+// $raTag['tag'] is docrep-whatever
+// $raTag['target'] is A
+// $raTag['raParms'][0] is the same as 'target' (A)
+// $raTag['raParms'][1] B
+// $raTag['raParms'][1] C
+
+
         switch( strtolower($raTag['tag']) ) {
             case 'docrep-include':
+                /* Fetch and expand the document identified by 'target'.
+                 * Vars for an included file are its inherited vars overridden by the including doc's vars.
+                 * oDocReference is passed along so the "current" e.g. docrep-name can be found by included docs at all levels down
+                 */
                 if( ($oDoc = $this->oDocRepDB->GetDoc($raTag['target'])) ) {
                     $s = $oDoc->GetText('');
-                    // vars for an included file are its inherited vars overridden by the including file's provided vars
                     $raVars = array_merge( $oDoc->GetDocMetadataRA_Inherited(),
-                                           @$raParms['raVarsFromIncluder'] ?: [] );
-                    // oDocReference is the original doc in the include chain, so e.g. docrep-name can be found
+                                           @$raParms['raVarsFromIncluder'] ?: [] ); // including doc's vars override included doc's vars
                     $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$raParms['oDocReference'], 'raVarsFromIncluder'=>$raVars]];
                     $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
                     $s = $oTmpl->ExpandStr($s, $raVars);
@@ -49,37 +66,83 @@ class DocRep_TagHandler
                 $bHandled = true;
                 break;
 
-// For debugging this, it's convenient to use a url like
-// localhost/cats/jx.php?qcmd=dr-preview&bExpand=1&kDoc=3
-// because it allows you to see var_dump
-
             case 'docrep-name':
+                /* Get the full name of a doc.
+                 * [[docrep-name:]] name of the current document (oDocReference)
+                 * [[docrep-name:kDoc]] name of the document with _key=kDoc
+                 */
                 if( ($oDoc = @$raParms['oDocReference']) ) {
 //TODO: this only gets the base name, not the full name
 //      implement a DocRepDoc2::GetNameFull() function that uses GetAncestors() to create the full name, and use GetNamFull() below
                     $s = $oDoc->GetName();
                 }
-//TODO: amend the above so that's what happens if $ra['target'] is blank.
-//      [[docrep-name:]] gives the name of oDocReference
-//      [[docrep-name:FOO]] gives the name of the doc where fullname=FOO or _key=FOO -- just use GetDoc(FOO) either way
+//TODO: amend the above so it also supports getting a name of an arbitrary document if $raTag['target'] is not blank.
+//      use $this->oDocRepDB->GetDoc($ra['target']) to get that document
                 break;
             case 'docrep-title':
-                // get the title of the document
-// [[docrep-title:]] is the title of oDocReference
-// [[docrep-title:FOO]] is the title of the named or numbered doc FOO
+                /* Get the title of a doc.
+                 * [[docrep-title:]] title of the current document (oDocReference)
+                 * [[docrep-title:name-or-number]] title of the doc identified by full name or kDoc
+                 */
                 break;
             case 'docrep-parent':
-                // get the numeric key of the parent
-// use the same $ra['target'] format as docrep-name and docrep-title
+                /* Get the numeric key of a doc's parent or 0 if this is the root.
+                 * [[docrep-parent:]] parent kDoc of the current document (oDocReference)
+                 * [[docrep-parent:name-or-number]] parent kDoc of the doc identified by full name or kDoc
+                 */
                 break;
             case 'docrep-ancestor':
-                // get the numeric key of the nth ancestor
-// [[docrep-ancestor:1]] is the same as [[docrep-parent:]]
-// [[docrep-ancestor:1|FOO]] is the same as [[docrep-parent:FOO]]
-// [[docrep-ancestor:2]] is the same as [[docrep-parent: [[docrep-parent:]] ]]
+                /* Get the numeric key of the nth ancestor or 0 if that's above the root.
+                 * [[docrep-ancestor:n]] kDoc of nth ancestor of the current doc
+                 * [[docrep-ancestor:n | name-or-number]] kDoc of nth ancestor of the doc identified by full name or kDoc
+                 *
+                 * Note:
+                 * [[docrep-ancestor:1]] is the same as [[docrep-parent:]]
+                 * [[docrep-ancestor:1|FOO]] is the same as [[docrep-parent:FOO]]
+                 * [[docrep-ancestor:2]] is the same as [[docrep-parent: [[docrep-parent:]] ]]
+                 */
 // use GetAncestors() to implement this
                 break;
-
+            case 'docrep-sibling-prev':
+                /* Get the numeric key of the previous sibling or 0 if this is the first sibling.
+                 * [[docrep-sibling-prev:]] kDoc of the previous sibling of the current document
+                 * [[docrep-sibling-prev:n]] kDoc of the nth previous sibling of the current document (n==1 is the same as blank)
+                 * [[docrep-sibling-prev:n | name-or-number]] kDoc of the nth previous sibling of the doc identified
+                 */
+// implement DocRepDoc2::GetSiblingPrev() and use docrep2_docs.siborder field there
+                break;
+            case 'docrep-sibling-next':
+                /* Get the numeric key of the next sibling or 0 if this is the last sibling.
+                 * See docrep-sibling-prev for format.
+                 */
+                break;
+            case 'docrep-sibling-first':
+                /* Get the numeric key of the first sibling (could be this doc).
+                 * [[docrep-sibling-first:]] kDoc of the first sibling of the current document
+                 * [[docrep-sibling-first:name-or-number]] kDoc of the first sibling of the doc identified
+                 */
+                break;
+            case 'docrep-sibling-last':
+                /* Get the numeric key of the last sibling (could be this doc).
+                 * See docrep-sibling-first for format.
+                 */
+                break;
+            case 'docrep-child-first':
+                /* Get the numeric key of the first child or 0 if there are no children.
+                 * [[docrep-child-first:]] kDoc of the first child of the current document
+                 * [[docrep-child-first:name-or-number]] kDoc of the first child of the doc identified
+                 */
+                break;
+            case 'docrep-child-last':
+                /* Get the numeric key of the last child (i.e. the child with the greatest siborder) or 0 if there are no children.
+                 * See docrep-child-first for format.
+                 */
+                break;
+            case 'docrep-child-count':
+                /* Get the number of children
+                 * See docrep-child-first for format.
+                 */
+                break;
 
             default:
                 $bHandled = false;
