@@ -150,9 +150,17 @@ class DocRepDB2 extends DocRep_DB
         if( is_numeric($sDoc) ) {
             $kDoc = intval($sDoc);
         } else {
-            if( ($kfr = $this->oRel->GetKFRCond( "Doc", "name='".addslashes($sDoc)."'" )) ) {
-                $kDoc = $kfr->Key();
+            // split the name into its components, then follow them down the tree to find the doc
+            $raName = explode('/', $sDoc);
+            $k = 0;
+            foreach( $raName as $n ) {
+                if( ($kfr = $this->GetRel()->GetKFRCond('Doc', "kDoc_parent='$k' && name='".addslashes($n)."'")) ) {
+                    $k = $kfr->Key();
+                } else {
+                    goto done;
+                }
             }
+            $kDoc = $k;
         }
 
         if( $kDoc ) {
