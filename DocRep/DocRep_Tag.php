@@ -73,13 +73,12 @@ class DocRep_TagHandler
                  * [[docrep-name:kDoc]] name of the document with _key=kDoc
                  */
                 if( ! $raTag['target'] ) { // if no target
-
                     if( ($oDoc = @$raParms['oDocReference']) ) { // use current oDoc
                         $s = $oDoc->GetNameFull();
                     }
                 }
                 else { // if target is provided
-                    if( ($oDocTarget = $this->oDocRepDB->GetDoc($raTag['target'])) && is_numeric($raTag['target']) ) { // create new oDoc for target
+                    if( ($oDocTarget = @$this->oDocRepDB->GetDoc($raTag['target'])) && is_numeric($raTag['target']) ) { // create new oDoc for target
                         $s = $oDocTarget->GetNameFull();
                     }
                 }
@@ -91,15 +90,35 @@ class DocRep_TagHandler
                  * [[docrep-title:]] title of the current document (oDocReference)
                  * [[docrep-title:name-or-number]] title of the doc identified by full name or kDoc
                  */
-
-
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                if( $oDoc ) {
+                    $s = $oDoc->GetTitle(0);
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-parent':
                 /* Get the numeric key of a doc's parent or 0 if this is the root.
                  * [[docrep-parent:]] parent kDoc of the current document (oDocReference)
                  * [[docrep-parent:name-or-number]] parent kDoc of the doc identified by full name or kDoc
                  */
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                if( $oDoc ) {
+                    $s = $oDoc->GetParent();
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-ancestor':
                 /* Get the numeric key of the nth ancestor or 0 if that's above the root.
                  * [[docrep-ancestor:n]] kDoc of nth ancestor of the current doc
@@ -110,8 +129,27 @@ class DocRep_TagHandler
                  * [[docrep-ancestor:1|FOO]] is the same as [[docrep-parent:FOO]]
                  * [[docrep-ancestor:2]] is the same as [[docrep-parent: [[docrep-parent:]] ]]
                  */
-// use GetAncestors() to implement this
+                $raAncestors = [];
+
+                if( ! @$raTag['raParms'][1] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
+                }
+
+                if( $oDoc ){
+                    $raAncestors = $oDoc->GetAncestors();
+                    if( ($raTag['raParms'][0]) > (count($raAncestors)-1) ){ // if ancestor is above root
+                        $s = 0;
+                    }
+                    else {
+                        $s = $raAncestors[$raTag['target']];
+                    }
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-sibling-prev':
                 /* Get the numeric key of the previous sibling or 0 if this is the first sibling.
                  * [[docrep-sibling-prev:]] kDoc of the previous sibling of the current document
