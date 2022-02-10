@@ -425,6 +425,18 @@ class DocRepDoc2_ReadOnly
         return( $ra );
     }
 
+    function GetLatestVersion()
+    /**
+     * return integer value of latest version
+     */
+    {
+        /*
+        if( ($kfr = $this->oDocRepDB->GetRel()->GetKFRC('Data', "fk_docrep2_docs='{$this->kDoc}'", ['sSortCol'=>'ver','bSortDown'=>true])) ) {
+            var_dump($kfr);
+        }
+        */
+    }
+
     function GetValues( $flag )
     /**************************
         Return a complete array of standardized values for the given version flag
