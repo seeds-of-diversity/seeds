@@ -350,7 +350,7 @@ class myDocRepCtrlView_Add
         
         $(`#${parentID}`).empty();
         $(`#${parentID}`).html(`
-        		<form onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+        		<form id='drAdd_form' onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
 					<br>	
 					<div>Type: </div>
 					<div class='row'> 
@@ -365,9 +365,11 @@ class myDocRepCtrlView_Add
 							<input type='radio' id='add-folder'  name='text-or-folder' value='folder' />
 						</div>
 					</div>
-					<br>`);
+					<br>
+				</form>`);
+					
 		if (sType == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
-			$(`#${parentID}`).append(`
+			$(`#drAdd_form`).append(`
 					<div class='row'> 
 						<div class=${label}>Add under folder</div>
 						<div class=${ctrl}>
@@ -382,7 +384,7 @@ class myDocRepCtrlView_Add
 					</div>
 					<br>`);
 		}
-		$(`#${parentID}`).append(`
+		$(`#drAdd_form`).append(`
 					<div class='row'> 
 						<div class=${label}>Name</div>
 						<div class=${ctrl}>
@@ -404,10 +406,12 @@ class myDocRepCtrlView_Add
 					<input type='hidden' id='drAdd_kDoc' value='${this.kCurrDoc}'/>
 				    <input type='submit' value='Add'/>
 				<form>`);
+				
 	}
 	
 	static Submit( e, q_url ) 
 	{
+		console.log('clicked add');
 		e.preventDefault();
 		var rQ;
 		let kDoc = $('#drAdd_kDoc').val();
