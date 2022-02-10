@@ -348,6 +348,21 @@ class DocRepDoc2_ReadOnly
         return( @$this->GetDocMetadataRA()[$k] );
     }
 
+    function GetDocMetadataRA_Inherited()
+    /************************************
+        Return the superposition of all docMetadata from the current doc's ancestors.
+        Doc's metadata overrides parent's, which overrides grandparent's.
+     */
+    {
+        $raMD = [];
+        foreach( array_reverse($this->GetAncestors()) as $kDoc ) {  // [0] is root, [last] is current doc
+            if( ($oDoc = $this->oDocRepDB->GetDoc($kDoc)) ) {
+                $raMD = array_merge($raMD, $oDoc->GetDocMetadataRA());
+            }
+        }
+        return( $raMD );
+    }
+
     function GetMetadataValue( $k, $flag )
     /*************************************
         Return the value of Data_metadata[$k] for the 'flag' version
