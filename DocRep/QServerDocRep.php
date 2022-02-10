@@ -112,7 +112,8 @@ class QServerDocRep extends SEEDQ
                     if( @$parms['bExpand'] ) {
                         include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
                         $raVars = $oDoc->GetDocMetadataRA_Inherited();
-                        $raMT = ['EnableDocRep'=>true, 'oDocRepDB'=>$this->oDocRepDB, 'DocRepParms'=>['raVarsFromIncluder'=>$raVars]];
+                        //$raMT = ['EnableDocRep'=>true, 'oDocRepDB'=>$this->oDocRepDB, 'DocRepParms'=>['raVarsFromIncluder'=>$raVars]];
+                        $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'raVarsFromIncluder'=>$raVars]];
                         $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
                         $s = $oTmpl->ExpandStr($s, $raVars);
                     }

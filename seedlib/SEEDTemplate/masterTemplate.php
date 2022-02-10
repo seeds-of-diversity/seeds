@@ -59,11 +59,13 @@ class SoDMasterTemplate
 
         ];
 
-        // DocRepTagHandler
-        if( @$raConfig['EnableDocRep'] ) {
-            // do as oSessTag below to create oDocRepTag
-            $this->oDocRepDB = $raConfig['oDocRepDB'];
-            $raTmplParms['raResolvers'][] = ['fn'=>[$this,'ResolveTagDocRep'], 'raParms'=>(@$raConfig['DocRepParms'] ?: []) ];
+        // DocRepTag handler
+        if( @$raConfig['DocRepParms'] ) {
+            if( !($oDocRepTag = @$raConfig['oDocRepTag']) ) {
+                include_once( SEEDROOT."DocRep/DocRep_Tag.php" );
+                $oDocRepTag = new DocRep_TagHandler( $this->oApp, ['oDocRepDB'=>$raConfig['DocRepParms']['oDocRepDB']] );
+            }
+            $raTmplParms['raResolvers'][] = ['fn'=>[$oDocRepTag,'ResolveTagDocRep'], 'raParms'=>$raConfig['DocRepParms'] ];
         }
 
         // SEEDSessionAccountTag handler - give information about the current user (or other users)
@@ -184,36 +186,4 @@ class SoDMasterTemplate
         done:
         return( [$bHandled,$s] );
     }
-
-    function ResolveTagDocRep( $raTag, SEEDTagParser $oTagDummy_same_as_this_oTmpl_oSeedTag, $raParms = [] )
-    /*******************************************************************************************************
-        [[misc tags:]]
-     */
-    {
-        $s = "";
-        $bHandled = true;
-
-        switch( strtolower($raTag['tag']) ) {
-            case 'docrep-include':
-                if( ($oDoc = $this->oDocRepDB->GetDoc($raTag['target'])) ) {
-                    $s = $oDoc->GetText('');
-                    // vars for an included file are its inherited vars overridden by the including file's provided vars
-                    $raVars = array_merge( $oDoc->GetDocMetadataRA_Inherited(),
-                                           @$raParms['raVarsFromIncluder'] ?: [] );
-
-                    $raMT = ['EnableDocRep'=>true, 'oDocRepDB'=>$this->oDocRepDB, 'DocRepParms'=>['raVarsFromIncluder'=>$raVars]];
-                    $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
-                    $s = $oTmpl->ExpandStr($s, $raVars);
-                }
-                $bHandled = true;
-                break;
-
-            default:
-                $bHandled = false;
-        }
-
-        done:
-        return( [$bHandled,$s] );
-    }
-
 }
