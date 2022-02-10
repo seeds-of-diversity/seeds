@@ -40,6 +40,7 @@ class DocRep_TagHandler
 // because it allows you to see var_dump
 
 //var_dump($raTag);
+//var_dump($raParms);
 // do this to see what it contains
 // [[docrep-whatever: A | B | C ]]
 // $raTag['tag'] is docrep-whatever
@@ -71,19 +72,27 @@ class DocRep_TagHandler
                  * [[docrep-name:]] name of the current document (oDocReference)
                  * [[docrep-name:kDoc]] name of the document with _key=kDoc
                  */
-                if( ($oDoc = @$raParms['oDocReference']) ) {
-//TODO: this only gets the base name, not the full name
-//      implement a DocRepDoc2::GetNameFull() function that uses GetAncestors() to create the full name, and use GetNamFull() below
-                    $s = $oDoc->GetName();
+                if( ! $raTag['target'] ) { // if no target
+
+                    if( ($oDoc = @$raParms['oDocReference']) ) { // use current oDoc
+                        $s = $oDoc->GetNameFull();
+                    }
                 }
-//TODO: amend the above so it also supports getting a name of an arbitrary document if $raTag['target'] is not blank.
-//      use $this->oDocRepDB->GetDoc($ra['target']) to get that document
+                else { // if target is provided
+                    if( ($oDocTarget = $this->oDocRepDB->GetDoc($raTag['target'])) && is_numeric($raTag['target']) ) { // create new oDoc for target
+                        $s = $oDocTarget->GetNameFull();
+                    }
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-title':
                 /* Get the title of a doc.
                  * [[docrep-title:]] title of the current document (oDocReference)
                  * [[docrep-title:name-or-number]] title of the doc identified by full name or kDoc
                  */
+
+
                 break;
             case 'docrep-parent':
                 /* Get the numeric key of a doc's parent or 0 if this is the root.
