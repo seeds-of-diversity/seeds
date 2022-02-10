@@ -48,6 +48,13 @@ class DocRep_TagHandler
                 $bHandled = true;
                 break;
 
+            case 'docrep-name':
+                break;
+            case 'docrep-title':
+                break;
+            case 'docrep-parent':
+                break;
+
             default:
                 $bHandled = false;
         }
