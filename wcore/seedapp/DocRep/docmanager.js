@@ -739,12 +739,13 @@ class myDocRepCtrlView_Vars
         let rQ = null;
         
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+        /*
         if( !oDoc || oDoc.doctype != 'page' ) {
 			$(`#${parentID}`).empty(); 
 			$(`#${parentID}`).html(`No variables info available`); 
 			return;
 		}
-        
+        */
         jForm = $(`<form id='drVars_form' onsubmit='myDocRepCtrlView_Vars.Submit(event)'>
                    <div class='row' id='drVars_rownew'>
                        <div class='col-4'><input type='text' id='var_knew' style='width:100%'/></div>
