@@ -563,6 +563,24 @@ class DocRepDoc2_ReadOnly
         return( $sName );
     }
 
+    function GetNameFull()
+    /*
+     * return full path name starting from root
+     */
+    {
+        $sNameFull = "";
+        $raAncestors = $this->GetAncestors();
+
+        foreach( $raAncestors as $k ) { // add name of ancestors to path
+            $oDoc = new DocRepDoc2_ReadOnly($this->oDocRepDB, $k);
+            $name = $oDoc->GetName();
+            $sNameFull = $name . "/" .$sNameFull;
+        }
+        $sNameFull = substr($sNameFull, 0, -1); // remove last /
+
+        return $sNameFull;
+    }
+
     function GetFolderName( $kRoot = 0 )
     /***********************************
         This is actually the closest named ancestor's name, whether or not it is a folder.
