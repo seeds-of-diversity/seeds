@@ -158,7 +158,7 @@ class DocRep_TagHandler
                  */
                 // implement DocRepDoc2::GetSiblingPrev() and use docrep2_docs.siborder field there
 
-                $n = 1; // TODO: whenever there is a n, check if its a number?
+                $n = 1;
 
                 if( ! @$raTag['raParms'][1] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
@@ -167,8 +167,8 @@ class DocRep_TagHandler
                     $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
                 }
 
-                if( $oDoc ){
-                    if( (@$raTag['raParms'][0])){ // if n is provided
+                if( $oDoc ) {
+                    if( (@is_numeric($raTag['raParms'][0])) ) { // if n is provided
                         $n = $raTag['raParms'][0];
                     }
                     $s = $oDoc->GetSiblingPrev($n);
@@ -189,8 +189,8 @@ class DocRep_TagHandler
                     $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
                 }
 
-                if( $oDoc ){
-                    if( (@$raTag['raParms'][0])){ // if n is provided
+                if( $oDoc ) {
+                    if( (@is_numeric($raTag['raParms'][0])) ) { // if n is provided
                         $n = $raTag['raParms'][0];
                     }
                     $s = $oDoc->GetSiblingNext($n);
@@ -204,9 +204,6 @@ class DocRep_TagHandler
                  * [[docrep-sibling-first:]] kDoc of the first sibling of the current document
                  * [[docrep-sibling-first:name-or-number]] kDoc of the first sibling of the doc identified
                  */
-
-                // option 1 : use while to keep calling sibling until it reaches end
-                // option 2 : create function in docrepdoc to return key of first sib or last sib
                 if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
@@ -214,7 +211,6 @@ class DocRep_TagHandler
                     $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
                 }
                 while( $oDoc && $sib = @$oDoc->GetSiblingPrev() ) { // loop until first sibling is found
-
                     $oDoc = $this->oDocRepDB->GetDoc($sib);
                     $s = $oDoc->GetKey();
                 }
@@ -252,7 +248,7 @@ class DocRep_TagHandler
                 }
                 if( $oDoc ){
                     $raChildren = $oDoc->GetChildren();
-                    $s = $raChildren[0][0]; // first child's key
+                    $s = $raChildren[0]['_key']; // first child's key
                 }
                 $bHandled = true;
                 break;
@@ -269,7 +265,7 @@ class DocRep_TagHandler
                 }
                 if( $oDoc ){
                     $raChildren = $oDoc->GetChildren();
-                    $s = end($raChildren)[0]; // first child's key
+                    $s = end($raChildren)['_key']; // first child's key
                 }
                 $bHandled = true;
                 break;
