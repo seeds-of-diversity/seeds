@@ -244,16 +244,51 @@ class DocRep_TagHandler
                  * [[docrep-child-first:name-or-number]] kDoc of the first child of the doc identified
                  */
 
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                if( $oDoc ){
+                    $raChildren = $oDoc->GetChildren();
+                    $s = $raChildren[0][0]; // first child's key
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-child-last':
                 /* Get the numeric key of the last child (i.e. the child with the greatest siborder) or 0 if there are no children.
                  * See docrep-child-first for format.
                  */
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                if( $oDoc ){
+                    $raChildren = $oDoc->GetChildren();
+                    $s = end($raChildren)[0]; // first child's key
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-child-count':
                 /* Get the number of children
                  * See docrep-child-first for format.
                  */
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                if( $oDoc ){
+                    $raChildren = $oDoc->GetChildren();
+                    $s = count($raChildren);
+                }
+                $bHandled = true;
                 break;
 
             default:
