@@ -497,6 +497,18 @@ class DocRepDoc2_ReadOnly
         return $this->GetSiblingPrev(-$n);
     }
 
+    function GetChildren()
+    /**
+     * return array of children's kDoc
+     */
+    {
+        $kDoc = $this->GetKey();
+        //$kfr = $this->oDocRepDB->GetRel()->GetKFRCond('Doc', "kDoc_parent=$kDoc");
+        // TODO: use proper formatting for query
+        $raChildren = $this->oDocRepDB->kfdb->QueryRowsRA("SELECT _key FROM docrep2_docs WHERE kDoc_parent=$kDoc");
+        return $raChildren;
+    }
+
     function GetAncestors()
     /**********************
         Return a list of all ancestors of this doc, including kDoc but not 0.
