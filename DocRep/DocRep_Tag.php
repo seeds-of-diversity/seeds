@@ -138,7 +138,7 @@ class DocRep_TagHandler
                     $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
                 }
 
-                if( $oDoc && ctype_digit($raTag['raParms'][0]) ) {
+                if( $oDoc && (ctype_digit($raTag['raParms'][0])) && ($raTag['raParms'][0] > 0) ) {
                     $raAncestors = $oDoc->GetAncestors();
                     if( ($raTag['raParms'][0]) > (count($raAncestors)-1) ){ // if ancestor is above root
                         $s = 0;
@@ -168,7 +168,7 @@ class DocRep_TagHandler
                 }
 
                 if( $oDoc ) {
-                    if( (@ctype_digit($raTag['raParms'][0])) ) { // if n is provided
+                    if( (@ctype_digit($raTag['raParms'][0])) && ($raTag['raParms'][0] > 0) ) { // if n is provided
                         $n = $raTag['raParms'][0];
                     }
                     $s = $oDoc->GetSiblingPrev($n);
@@ -190,7 +190,7 @@ class DocRep_TagHandler
                 }
 
                 if( $oDoc ) {
-                    if( (@ctype_digit($raTag['raParms'][0])) ) { // if n is provided
+                    if( (@ctype_digit($raTag['raParms'][0])) && $raTag['raParms'][0] > 0 ) { // if n is provided
                         $n = $raTag['raParms'][0];
                     }
                     $s = $oDoc->GetSiblingNext($n);
