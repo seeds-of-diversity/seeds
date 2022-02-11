@@ -319,6 +319,7 @@ class DocRepDoc2_ReadOnly
     function GetType()         { return( $this->GetValue( 'type', self::FLAG_INDEPENDENT ) ); }
     function GetPermclass()    { return( $this->GetValue( 'permclass', self::FLAG_INDEPENDENT ) ); }
     function GetParent()       { return( $this->GetValue( 'parent', self::FLAG_INDEPENDENT ) ); }
+    function GetSibOrder()     { return( $this->GetValue( 'siborder', self::FLAG_INDEPENDENT ) ); }
     //function GetVerspec($flag) { return( $this->GetValue( 'dataspec', $flag ) ); }
 
     function GetValue( $k, $flag )   // return a doc property value; force caller to specify flag for safety
@@ -425,18 +426,6 @@ class DocRepDoc2_ReadOnly
         return( $ra );
     }
 
-    function GetLatestVersion()
-    /**
-     * return integer value of latest version
-     */
-    {
-        /*
-        if( ($kfr = $this->oDocRepDB->GetRel()->GetKFRC('Data', "fk_docrep2_docs='{$this->kDoc}'", ['sSortCol'=>'ver','bSortDown'=>true])) ) {
-            var_dump($kfr);
-        }
-        */
-    }
-
     function GetValues( $flag )
     /**************************
         Return a complete array of standardized values for the given version flag
@@ -461,6 +450,7 @@ class DocRepDoc2_ReadOnly
         $raV['kData_top']      = $kfr->Value('kData_top');
         $raV['permclass']      = $kfr->Value('permclass');
         $raV['parent']         = $kfr->Value('kDoc_parent');
+        $raV['siborder']       = $kfr->Value('siborder');
         $raV['ver']            = $kfr->Value('Data_ver');
         $raV['dataspec']       = $kfr->Value('Data_dataspec');
         $raV['title']          = $kfr->Value('Data_title');
@@ -484,6 +474,27 @@ class DocRepDoc2_ReadOnly
 
         done:
         return( $raV );
+    }
+
+    function GetSiblingPrev( $n = 1 )
+    /**
+     * return kDoc of nth previous sibling
+     * reutrn false if sibling does not exist
+     */
+    {
+        $sibOrder = $this->GetSibOrder();
+        $parent = $this->GetParent();
+        $sibOrder -= $n;
+
+        if ( $kfr = $this->oDocRepDB->GetRel()->GetKFRCond('Doc', "kDoc_parent=$parent AND siborder=$sibOrder") ) {
+            return $kfr->Key();
+        }
+        return false;
+    }
+
+    function GetSiblingNext( $n = 1 )
+    {
+        return $this->GetSiblingPrev(-$n);
     }
 
     function GetAncestors()

@@ -97,7 +97,7 @@ class DocRep_TagHandler
                     $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
                 }
                 if( $oDoc ) {
-                    $s = $oDoc->GetTitle(0);
+                    $s = $oDoc->GetTitle("");
                 }
                 $bHandled = true;
                 break;
@@ -156,29 +156,94 @@ class DocRep_TagHandler
                  * [[docrep-sibling-prev:n]] kDoc of the nth previous sibling of the current document (n==1 is the same as blank)
                  * [[docrep-sibling-prev:n | name-or-number]] kDoc of the nth previous sibling of the doc identified
                  */
-// implement DocRepDoc2::GetSiblingPrev() and use docrep2_docs.siborder field there
+                // implement DocRepDoc2::GetSiblingPrev() and use docrep2_docs.siborder field there
+
+                $n = 1; // TODO: whenever there is a n, check if its a number?
+
+                if( ! @$raTag['raParms'][1] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
+                }
+
+                if( $oDoc ){
+                    if( (@$raTag['raParms'][0])){ // if n is provided
+                        $n = $raTag['raParms'][0];
+                    }
+                    $s = $oDoc->GetSiblingPrev($n);
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-sibling-next':
                 /* Get the numeric key of the next sibling or 0 if this is the last sibling.
                  * See docrep-sibling-prev for format.
                  */
+                $n = 1;
+
+                if( ! @$raTag['raParms'][1] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
+                }
+
+                if( $oDoc ){
+                    if( (@$raTag['raParms'][0])){ // if n is provided
+                        $n = $raTag['raParms'][0];
+                    }
+                    $s = $oDoc->GetSiblingNext($n);
+
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-sibling-first':
                 /* Get the numeric key of the first sibling (could be this doc).
                  * [[docrep-sibling-first:]] kDoc of the first sibling of the current document
                  * [[docrep-sibling-first:name-or-number]] kDoc of the first sibling of the doc identified
                  */
+
+                // option 1 : use while to keep calling sibling until it reaches end
+                // option 2 : create function in docrepdoc to return key of first sib or last sib
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                while( $oDoc && $sib = @$oDoc->GetSiblingPrev() ) { // loop until first sibling is found
+
+                    $oDoc = $this->oDocRepDB->GetDoc($sib);
+                    $s = $oDoc->GetKey();
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-sibling-last':
                 /* Get the numeric key of the last sibling (could be this doc).
                  * See docrep-sibling-first for format.
                  */
+                if( ! $raTag['target'] ) {
+                    $oDoc = @$raParms['oDocReference']; // use current doc
+                }
+                else {
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
+                while( $oDoc && $sib = @$oDoc->GetSiblingNext() ) { // loop until last sibling is found
+                    $oDoc = $this->oDocRepDB->GetDoc($sib);
+                    $s = $oDoc->GetKey();
+                }
+                $bHandled = true;
                 break;
+
             case 'docrep-child-first':
                 /* Get the numeric key of the first child or 0 if there are no children.
                  * [[docrep-child-first:]] kDoc of the first child of the current document
                  * [[docrep-child-first:name-or-number]] kDoc of the first child of the doc identified
                  */
+
                 break;
             case 'docrep-child-last':
                 /* Get the numeric key of the last child (i.e. the child with the greatest siborder) or 0 if there are no children.
