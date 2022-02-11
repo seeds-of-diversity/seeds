@@ -138,7 +138,7 @@ class DocRep_TagHandler
                     $oDoc = @$this->oDocRepDB->GetDoc($raTag['raParms'][1]); // use new doc
                 }
 
-                if( $oDoc ){
+                if( $oDoc && is_numeric($raTag['raParms'][0]) ) {
                     $raAncestors = $oDoc->GetAncestors();
                     if( ($raTag['raParms'][0]) > (count($raAncestors)-1) ){ // if ancestor is above root
                         $s = 0;
