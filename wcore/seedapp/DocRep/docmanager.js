@@ -866,7 +866,7 @@ class myDocRepCtrlView_Schedule
 		else if( sType == 'folder' && sName.toLowerCase().includes('schedule') ) { // if slected is a folder and contains schedule in name 
 			
 			if( this.folderContainsEmail( this.kCurrDoc ) ){
-				$(`#${parentID}`).html(`<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>`);
+				$(`#${parentID}`).html(`<form id='drSchedule_form' onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'></form>`);
 			}
 			else{
 				$(`#${parentID}`).html(`No emails found under folder`);
@@ -881,7 +881,7 @@ class myDocRepCtrlView_Schedule
         		}
 				if( sTypeEmail == 'page' ){ // if child is a file 
 			
-					$(`#${parentID}`).append(`
+					$(`#drSchedule_form`).append(`
 						<div class='row'> 
 							<div class='col-md-3'>${sNameEmail}</div>
 							<div class='col-md-6'>
@@ -893,7 +893,7 @@ class myDocRepCtrlView_Schedule
 				}
 			}
 			if( this.folderContainsEmail( this.kCurrDoc ) ){
-				$(`#${parentID}`).append(`<input type='submit' value='update schedule'/></form>`);
+				$(`#drSchedule_form`).append(`<input type='submit' value='update schedule'/></form>`);
 			}		
 		}
 	}
@@ -921,6 +921,7 @@ class myDocRepCtrlView_Schedule
 	update schedule with date information 
 	 */
 	{
+		console.log("hi");
 		e.preventDefault();
 		let allKDoc = $('.drSchedule_kDoc');
 		let allSchedule = $('.schedule-date');
@@ -935,7 +936,7 @@ class myDocRepCtrlView_Schedule
 				console.log("error schedule");
 			}
 			else {
-				// console.log("ok schedule")
+				 console.log("ok schedule")
 			}
 		}
 	}
