@@ -377,7 +377,10 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                    </script>
                   ";
 
-            $sShow = $kfrLastDonation->Expand( "<a onclick='donSetCtrls()'>Fill: $cat<br/>$iss<br/>$rec</a>" );
+            // #337ab7 is bootstrap's link colour
+            $sShow = $kfrLastDonation->Expand(
+                "<div onclick='donSetCtrls()'
+                      style='border:1px solid #337ab7;color:#337ab7;padding:3px;cursor:pointer'>Fill: $cat<br/>$iss<br/>$rec</div>" );
         }
         return( [$sShow,$sScript] );
     }
