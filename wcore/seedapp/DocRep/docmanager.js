@@ -893,7 +893,7 @@ class myDocRepCtrlView_Schedule
 				}
 			}
 			if( this.folderContainsEmail( this.kCurrDoc ) ){
-				$(`#drSchedule_form`).append(`<input type='submit' value='update schedule'/></form>`);
+				$(`#drSchedule_form`).append(`<input type='submit' value='update schedule'/>`);
 			}		
 		}
 	}
