@@ -282,19 +282,23 @@ class SEEDBasket_Purchase_donation extends SEEDBasket_Purchase
 // Date paid is not necessarily the date the order was made.  We might enter cheque orders long after they are received.
 $dateReceived = $oB->GetDate();
 
+        $bIsAdoption = ($this->GetProductName() == 'seed-adoption');
+
         $oMbr = new Mbr_Contacts( $this->oSB->oApp );
         $kDonation = $oMbr->AddMbrDonation(
                         ['kMbr' => $oB->GetBuyer(),
                          'date_received' => $dateReceived,
                          'amount' => $this->GetF(),
-                         'receipt_num' => 0 ] );
+                         'receipt_num' => 0,
+                         'category' => ($bIsAdoption ? "SLAdopt" : "")
+                        ] );
 
         if( $kDonation ) {
             $this->SetValue( 'kRef', $kDonation );
             $this->SetWorkflowFlag( self::WORKFLOW_FLAG_RECORDED );
             $this->SaveRecord();
 
-            if( $this->GetProductName() == 'seed-adoption' ) {
+            if( $bIsAdoption ) {
                 // adoptions are recorded by creating an sl_adoption that refers to the mbr_donation._key
                 $oSLDB = new SLDBBase( $this->oSB->oApp );
                 $kfrD = $oSLDB->KFRel('D')->CreateRecord();

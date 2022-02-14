@@ -2,7 +2,7 @@
 
 /* SEEDMail database access
  *
- * Copyright (c) 2010-2021 Seeds of Diversity Canada
+ * Copyright (c) 2010-2022 Seeds of Diversity Canada
  */
 
 
@@ -12,9 +12,9 @@ class SEEDMailDB extends Keyframe_NamedRelations
 {
     private $dbname = "";
 
-    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
-        $this->dbname = $oApp->GetDBName(@$raConfig['db'] ?: $oApp->kfdb->GetDB()); // 'seeds2');
+        $this->dbname = 'seeds_2';// $oApp->GetDBName(@$raConfig['db'] ?: $oApp->kfdb->GetDB()); // 'seeds2');
         $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
     }

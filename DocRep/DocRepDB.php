@@ -332,13 +332,20 @@ class DocRepDoc2_ReadOnly
         //    ? $ra['data_text'] : "" );
     }
 
+    function GetDocMetadataRA()
+    /**************************
+        Return the whole docMetadata array
+     */
+    {
+        return( $this->GetValue('raDocMetadata', self::FLAG_INDEPENDENT) );
+    }
+
     function GetDocMetadataValue( $k )
     /*********************************
         Return the value of docMetadata[$k] (doc metadata is unversioned so there is no $flag to select a version)
      */
     {
-        $ra = $this->GetValue('raDocMetadata', self::FLAG_INDEPENDENT);
-        return( @$ra[$k] );
+        return( @$this->GetDocMetadataRA()[$k] );
     }
 
     function GetMetadataValue( $k, $flag )
@@ -800,16 +807,22 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         Change the value of docMetadata[$k] (doc metadata is unversioned so there is no $flag to select a version)
      */
     {
-        $ra = $this->GetValue('raDocMetadata', self::FLAG_INDEPENDENT);
+        $ra = $this->GetDocMetadataRA();
         $ra[$k] = $v;
-        if( ($kfr = $this->getKfrDoc($this->kDoc, '')) ) {
-            $kfr->SetValue( 'docMetadata', SEEDCore_ParmsRA2URL($ra) );
-            $kfr->PutDBRow();
-        }
-
-        $this->clearCache();    // force a data refresh
+        $this->SetDocMetadataRA( $ra );
     }
 
+    function SetDocMetadataRA( $raDocMetadata )
+    /******************************************
+        Replace all docMetadata with the given array
+     */
+    {
+        if( ($kfr = $this->getKfrDoc($this->kDoc, '')) ) {
+            $kfr->SetValue( 'docMetadata', SEEDCore_ParmsRA2URL($raDocMetadata) );
+            $kfr->PutDBRow();
+        }
+        $this->clearCache();    // force a data refresh
+    }
 
     function Update( $parms )
     /************************

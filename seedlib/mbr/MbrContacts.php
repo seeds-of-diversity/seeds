@@ -224,6 +224,7 @@ class Mbr_Contacts
             $kfr->SetValue( 'date_received',   $ra['date_received'] );
             $kfr->SetValue( 'amount',          $ra['amount'] );
             $kfr->SetValue( 'receipt_num',     $ra['receipt_num'] );
+            $kfr->SetValue( 'category',       @$ra['category'] );
             $kfr->SetNull( 'date_issued' );
             if( $kfr->PutDBRow() ) {
                 $kDonation = $kfr->Key();

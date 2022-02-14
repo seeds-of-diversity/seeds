@@ -280,6 +280,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                     ['label'=>'Last name',     'col'=>'M.lastname'],
                     ['label'=>'Company',       'col'=>'M.company'],
                     ['label'=>'Member #',      'col'=>'M._key'],
+                    ['label'=>'Donation key',  'col'=>'D._key'],
                     ['label'=>'Amount',        'col'=>'amount'],
                     ['label'=>'Category',      'col'=>'category'],
                     ['label'=>'Date received', 'col'=>'date_received'],
@@ -352,17 +353,20 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
 
     private function jsSetValues( SEEDCoreForm $oForm )
     /**************************************************
-        If there is no receipt_num, make a js-link that sets the category and date_issued the same as the most recent record, and receipt_num++
+        If there is no receipt_num, make a js-link that sets the date_issued the same as the most recent record, and receipt_num++
      */
     {
         $sShow = $sScript = "";
 
-        if( !$oForm->Value('receipt_num') && ($kfrLastDonation = $this->oMbrDB->GetKFRCond('D', "", ['sSortCol'=>'_updated','bSortDown'=>true])) ) {
-            $cat = $kfrLastDonation->Value('category');
+        if( !$oForm->Value('receipt_num') &&
+            ($kfrLastDonation = $this->oMbrDB->GetKFRCond('D', "", ['sSortCol'=>'_updated','bSortDown'=>true])) &&
+            $kfrLastDonation->Value('date_issued') )
+        {
+            //$cat = $kfrLastDonation->Value('category');
             $iss = $kfrLastDonation->Value('date_issued');
             $rec = $kfrLastDonation->ValueInt('receipt_num') + 1;
 
-            $ctrlCat = $oForm->Name('category');
+            //$ctrlCat = $oForm->Name('category');
             $ctrlIss = $oForm->Name('date_issued');
             $ctrlRec = $oForm->Name('receipt_num');
 
@@ -370,8 +374,8 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                     function donSetCtrls()
                     {
                         event.preventDefault();
-                        $('.donationFormTable #{$ctrlCat}').val('{$cat}');
-                        $('.donationFormTable #{$ctrlIss}').val('{$iss}');
+                    ".    //$('.donationFormTable #{$ctrlCat}').val('{$cat}');
+                    "    $('.donationFormTable #{$ctrlIss}').val('{$iss}');
                         $('.donationFormTable #{$ctrlRec}').val('{$rec}');
                     }
                    </script>
