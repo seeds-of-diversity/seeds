@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2021 Seeds of Diversity Canada
+ * Copyright 2020-2022 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -76,7 +76,8 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
             'donorReceiptNum' => $nReceipt,
             'donorAmount'  => $kfr->Value('amount'),
             'donorDateReceived' => $kfr->Value('date_received'),
-            'donorDateIssued' => $kfr->Value('date_issued')
+            'donorDateIssued' => $kfr->Value('date_issued'),
+            'taxYear' => substr($kfr->Value('date_received'), 0, 4)     // should be the year for which the donation applies
         ];
 
         $sBody .= $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', $vars );
