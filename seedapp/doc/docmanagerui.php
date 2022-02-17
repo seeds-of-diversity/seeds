@@ -80,6 +80,7 @@ class DocManagerUI_Documents
             if( !($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) )  goto done;
 
             $n = SEEDCore_HSC($oDoc->GetName());
+            $ti = $oDoc->GetTitle('');
             $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
             $p = $oDoc->GetParent();
             $schedule = SEEDCore_HSC($oDoc->GetDocMetadataValue('schedule'));
@@ -88,6 +89,7 @@ class DocManagerUI_Documents
         } else {
             $p = 0;
             $n = '';
+            $ti = '';
             $t = 'folder';
             $schedule = '';
             $perms = '';
@@ -100,7 +102,7 @@ class DocManagerUI_Documents
                   ."$k:'".SEEDCore_HSC($v)."'";
         }
 
-        $s .= "[$kDoc, { k:$kDoc, name:'$n', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', perms:'$perms', docMetadata:{ $md } }],";
+        $s .= "[$kDoc, { k:$kDoc, name:'$n', title:'$ti', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', perms:'$perms', docMetadata:{ $md } }],";
 
         foreach( $raChildren as $k => $ra ) {
             $s .= $this->outputTree( $oDocRepDB, $k, $ra['children'] );
