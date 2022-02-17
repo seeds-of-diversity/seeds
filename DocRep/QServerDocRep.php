@@ -173,7 +173,7 @@ class QServerDocRep extends SEEDQ
         $bOk = false;
 
         if( $kDoc && ($oDoc = $this->oDocRepDB->GetDocRepDoc( $kDoc )) ) {
-            $bOk = $oDoc->Rename( $parms );
+            $bOk = ($oDoc->Rename( $parms ) && $oDoc->UpdatePermClass( $parms ));
         }
 
         return( [$bOk,$s] );
