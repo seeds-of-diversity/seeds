@@ -981,7 +981,6 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
             $kfrDoc->SetValue( 'permclass', $parms['permclass'] );
             $ok = $kfrDoc->PutDBRow();
-            var_dump($ok);
         }
         return( $ok );
     }
