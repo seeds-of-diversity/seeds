@@ -972,6 +972,20 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         return( $ok );
     }
 
+    function UpdatePermClass( $parms )
+    /**
+     * update permclass
+     */
+    {
+        if( @$parms['permclass'] ) {
+            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
+            $kfrDoc->SetValue( 'permclass', $parms['permclass'] );
+            $ok = $kfrDoc->PutDBRow();
+            var_dump($ok);
+        }
+        return( $ok );
+    }
+
     function UpdateSchedule( $parms )
     /**
      * update schedule in docMetadata
