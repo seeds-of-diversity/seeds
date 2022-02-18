@@ -274,6 +274,125 @@ class DocRepDB2 extends DocRep_DB
         }
         return( $raRet );
     }
+
+    function ExportXML( $kDoc )
+    /**
+     * convert subtree under $k into a xml string
+     * return xml string
+     * will only export latest version of doc
+     */
+    {
+        var_dump("exporting xml here");
+
+        $xmlString = $this->buildXML($kDoc);
+
+        var_dump($xmlString);
+
+        $dom = new DOMDocument; // formats string to have indents
+        $dom->preserveWhiteSpace = FALSE;
+        $dom->loadXML($xmlString);
+        $dom->formatOutput = TRUE;
+        var_dump($dom->saveXML());
+
+        return($xmlString);
+
+    }
+
+    // not using simplexml
+    private function buildXML( $kDoc )
+    /**
+     * recursively add onto xml string
+     */
+    {
+        $s = "";
+
+        $oDoc = $this->GetDocRepDoc( $kDoc );
+
+        $sName = htmlentities($oDoc->GetName()); // get all columns from database
+        $sType = htmlentities($oDoc->GetType());
+        $sDocspec = htmlentities($oDoc->GetValue('docspec', ''));
+        $iPermclass = htmlentities($oDoc->GetPermclass());
+        $iSiborder = htmlentities($oDoc->GetSibOrder());
+        $sDocMetadata = htmlentities($oDoc->GetDocMetadata());
+        $sTitle = htmlentities($oDoc->GetTitle(''));
+        $sText = htmlentities($oDoc->GetText(''));
+
+        // store columns as attributes
+        $s = "<$sType status='' name='$sName' docspec='$sDocspec' permclass='$iPermclass' siborder='$iSiborder' docMetadata='$sDocMetadata' title='$sTitle' text='$sText'>";
+
+        $raChildren = $this->GetSubtree($kDoc); // find all children
+
+        foreach($raChildren as $k=>$v ){
+            $s .= $this->buildXML($k); // recursively call on children
+        }
+        $s .= "</$sType>";
+
+        return $s;
+
+
+    }
+
+    function ImportXML( $kParent, String $sXML )
+    /**
+     * takes a xml string and converts it into a DOMDocument object
+     * get root of DOMDocument object
+     * puts new entries under $kParent
+     */
+    {
+        $oXML = new DOMDocument();
+        $oXML->preserveWhiteSpace = FALSE;
+        $oXML->loadXML($sXML); // convert xml string to DOMDocument object
+        $oXML->formatOutput = TRUE;
+
+        $oRootNode = $oXML->documentElement; // root element
+
+        $this->breakXML($kParent, $oRootNode);
+    }
+
+    private function breakXML( $kParent, $oXML )
+    /**
+     * recursively deconstruct xml and convert it into database queries
+     * takes in a DOMNode object
+     */
+    {
+        $parms = [];
+
+        $parms['dr_name'] = $oXML->getAttribute('name'); // get all columns from database
+        $parms['type'] = $oXML->nodeName;
+        $parms['docspec'] = $oXML->getAttribute('docspec');
+        $parms['dr_permclass'] = $oXML->getAttribute('permclass');
+        $parms['siborder'] = $oXML->getAttribute('siborder');
+        $parms['metadata'] = $oXML->getAttribute('docMetadata');
+        $parms['title'] = $oXML->getAttribute('title');
+        $parms['data_text'] = $oXML->getAttribute('text');
+
+        $parms['dr_posUnder'] = $kParent;
+
+        // add current to database
+        var_dump("adding new document to db: {$parms['type']}, {$parms['dr_name']}, {$parms['title']}, {$parms['data_text']}");
+
+        $oDoc = new DocRepDoc2_Insert( $this );
+
+        switch( $parms['type'] ) {
+            case 'TEXT':
+                $oDoc->InsertText( "", $parms );
+                break;
+            case 'FILE':
+                $bOk = $oDoc->InsertFile( "", $parms );
+                break;
+            case 'FOLDER':
+                $bOk = $oDoc->InsertFolder($parms);
+                break;
+        }
+
+        $key = $oDoc->GetKey();
+        var_dump($parms['dr_permclass']);
+
+        foreach ($oXML->childNodes as $child){ // find all children and recursively call on children
+
+            $this->breakXML($key, $child);
+        }
+    }
 }
 
 class DocRepDoc2_ReadOnly
@@ -320,6 +439,7 @@ class DocRepDoc2_ReadOnly
     function GetPermclass()    { return( $this->GetValue( 'permclass', self::FLAG_INDEPENDENT ) ); }
     function GetParent()       { return( $this->GetValue( 'parent', self::FLAG_INDEPENDENT ) ); }
     function GetSibOrder()     { return( $this->GetValue( 'siborder', self::FLAG_INDEPENDENT ) ); }
+    function GetDocMetadata()  { return( $this->GetValue( 'docMetadata', self::FLAG_INDEPENDENT) ); }
     //function GetVerspec($flag) { return( $this->GetValue( 'dataspec', $flag ) ); }
 
     function GetValue( $k, $flag )   // return a doc property value; force caller to specify flag for safety
@@ -396,6 +516,7 @@ class DocRepDoc2_ReadOnly
             $ra['dataspec']       = $kfrData->Value('dataspec');
             $ra['title']          = $kfrData->Value('title');
             $ra['mimetype']       = $kfrData->Value('mimetype');
+            $ra['metadata']       = $kfrData->Value('metadata');
             $ra['raMetadata']     = SEEDCore_ParmsURL2RA( $kfrData->Value('metadata') );
             $ra['data_key']       = $kfrData->Value('_key');
             $ra['data_src']       = $kfrData->Value('src');
@@ -455,6 +576,8 @@ class DocRepDoc2_ReadOnly
         $raV['dataspec']       = $kfr->Value('Data_dataspec');
         $raV['title']          = $kfr->Value('Data_title');
         $raV['mimetype']       = $kfr->Value('Data_mimetype');
+        $raV['docMetadata']    = $kfr->Value('docMetadata');
+        $raV['metadata']       = $kfr->Value('metadata');
         $raV['raDocMetadata']  = SEEDCore_ParmsURL2RA( $kfr->Value('docMetadata') );
         $raV['raMetadata']     = SEEDCore_ParmsURL2RA( $kfr->Value('Data_metadata') );
 
