@@ -93,7 +93,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule" };
+        oConfig.defTabs = { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule", xml:"XML" };
 
         super(oConfig);
 
@@ -151,6 +151,11 @@ class myDocRepCtrlView extends DocRepCtrlView
             case 'schedule':
             	myDocRepCtrlView_Schedule.Init(this, kCurrDoc);
                 myDocRepCtrlView_Schedule.DrawTabBody(parentID);
+            	break;
+            	
+            case 'xml':
+            	myDocRepCtrlView_XML.Init(this, kCurrDoc);
+                myDocRepCtrlView_XML.DrawTabBody(parentID);
             	break;
 
             default:
@@ -221,6 +226,7 @@ class myDocRepCtrlView_Preview
              	</select>
             	<div id='drCtrlview-preview-body' style='border:1px solid #aaa;padding:20px;margin-top:10px'></div>
             </div>`);
+           
         
         switch( m ) {
             case 'preview':
@@ -251,6 +257,7 @@ class myDocRepCtrlView_Preview
                 break;
         }
     }
+    
     
     static Change( mode )
     /********************
@@ -411,7 +418,6 @@ class myDocRepCtrlView_Add
 	
 	static Submit( e, q_url ) 
 	{
-		console.log('clicked add');
 		e.preventDefault();
 		var rQ;
 		let kDoc = $('#drAdd_kDoc').val();
@@ -931,13 +937,69 @@ class myDocRepCtrlView_Schedule
 			let kDoc = allKDoc[i].value;
 			let schedule = allSchedule[i].value;
 			let rQ = SEEDJXSync( q_url, { qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
-		console.log(rQ);
+
 			if ( !rQ.bOk ) {
 				console.log("error schedule");
 			}
 			else {
 				 console.log("ok schedule")
 			}
+		}
+	}
+}
+
+class myDocRepCtrlView_XML
+{
+	static oCtrlView = null;
+    static kCurrDoc = 0;
+    
+    static Init( oCtrlView, kCurrDoc )
+    {
+        this.oCtrlView = oCtrlView;
+        this.kCurrDoc = kCurrDoc;
+    }
+    
+    static DrawTabBody( parentID )
+    {
+		$(`#${parentID}`).append(`<div><button type='button' onclick='myDocRepCtrlView_XML.export()'>export xml</button></div>`);
+		$(`#${parentID}`).append(`<div><button type='button' onclick='myDocRepCtrlView_XML.import()'>import xml</button></div>`);
+		$(`#${parentID}`).append(`<div id='drXML_export'></div>`);
+		$(`#${parentID}`).append(`<textarea id='drXML_import'></textarea>`);
+	}
+	
+	static export()
+    {
+		console.log("start xml export");
+		let kDoc = this.kCurrDoc;
+			
+		let rQ = SEEDJXSync(this.oCtrlView.oConfigEnv.q_url, { qcmd: 'dr-XMLExport', kDoc: kDoc });
+		if( !rQ.bOk ) {
+			console.log("error exporting xml");
+		}
+		else {
+			$(`#drXML_export`).html(rQ.sOut);
+		}
+		
+		console.log(rQ.sOut);
+		
+	}
+	
+	static import()
+	{
+		console.log("start xml import");
+		
+		let kDoc = this.kCurrDoc;
+		let xml = $(`#drXML_import`).val();
+		
+
+		let rQ = SEEDJXSync(this.oCtrlView.oConfigEnv.q_url, { qcmd: 'dr--XMLImport', kDoc: kDoc, xml:xml });
+
+			
+		if( !rQ.bOk ) {
+			console.log("error importing xml");
+		}
+		else {
+			location.reload();
 		}
 	}
 }
