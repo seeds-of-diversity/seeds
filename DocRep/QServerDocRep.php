@@ -328,6 +328,9 @@ class QServerDocRep extends SEEDQ
     }
 
     private function doXMLExport( $kDoc )
+    /**
+     * output xml string containing info of all files/folders under current kDoc
+     */
     {
         $s = "";
         $bOk = false;
@@ -335,12 +338,14 @@ class QServerDocRep extends SEEDQ
             $s = $this->oDocRepDB->ExportXML($kDoc);
             $bOk = true;
         }
-
         return( [$bOk, $s] );
-
     }
 
     private function doXMLImport( $kDoc, $parms )
+    /**
+     * takes in a xml string in parms
+     * deconstruct xml and add files/folders under kDoc
+     */
     {
         $s = "";
         $bOk = false;
