@@ -991,10 +991,14 @@ class myDocRepCtrlView_XML
 		let kDoc = this.kCurrDoc;
 		let xml = $(`#drXML_import`).val();
 		
+		//check to make sure field is inputted 
+		if( !xml ) {
+			console.log("xml input is missing")
+			return;
+		}
 
 		let rQ = SEEDJXSync(this.oCtrlView.oConfigEnv.q_url, { qcmd: 'dr--XMLImport', kDoc: kDoc, xml:xml });
 
-			
 		if( !rQ.bOk ) {
 			console.log("error importing xml");
 		}
