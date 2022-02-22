@@ -313,12 +313,12 @@ class DocRepDB2 extends DocRep_DB
         $sSrc = htmlentities($oDoc->GetValue('data_src', ''));
         $sText = htmlentities($oDoc->GetText(''));
         $sFileExt = htmlentities($oDoc->GetSFileExt());
-        //$sFileName = // cant find getters for these
-        //$sLinkDoc =
         $sTitle = htmlentities($oDoc->GetTitle(''));
         $sMimetype = htmlentities($oDoc->GetValue('mimetype', ''));
         $sDataspec = htmlentities($oDoc->GetValue('dataspec', ''));
         $sMetadata = htmlentities($oDoc->GetValue('metadata', ''));
+
+        // data_sfile_name and data_link_doc is not implemented yet
 
         $s = "<$sType name='$sName' docspec='$sDocspec' permclass='$iPermclass' docMetadata='$sDocMetadata'
              src='$sSrc' data_text='$sText' data_file_ext='$sFileExt' title='$sTitle' mimetype='$sMimetype'
@@ -371,25 +371,26 @@ class DocRepDB2 extends DocRep_DB
         $parms['dr_permclass'] = $oXML->getAttribute('permclass');
         $parms['dr_mimetype'] = $oXML->getAttribute('mimetype');
         $parms['dr_fileext'] = $oXML->getAttribute('data_file_ext');
+        $parms['dr_metadata'] = parse_url($oXML->getAttribute('metadata')); // metadata should be array, convert to array first
+        $parms['data_text'] = $oXML->getAttribute('data_text');
+        $parms['dr_flag'] = '';
 
-
-        //$parms['dr_metadata'] = $oXML->getAttribute('metadata'); // metadata should be array
-
-        // $parms['data_text'] = $oXML->getAttribute('data_text'); // insert does not take data_text
+        /* TODO:
+         * data_text is not working
+         * insert() does not take docMetadata as parameter
+         */
 
         $parms['dr_posUnder'] = $kParent;
 
         // add current to database
-        //var_dump("adding new document to db: {$parms['type']}, {$parms['dr_name']}, {$parms['title']}");
-
         $oDoc = new DocRepDoc2_Insert( $this );
 
         switch( $parms['type'] ) {
             case 'TEXT':
-                $oDoc->InsertText( "", $parms );
+                $oDoc->InsertText( $parms['data_text'], $parms ); //TODO: do i put data_text as param here?
                 break;
             case 'FILE':
-                $bOk = $oDoc->InsertFile( "", $parms );
+                $bOk = $oDoc->InsertFile( "", $parms ); //TODO: what's the first parameter for insertfile()?
                 break;
             case 'FOLDER':
                 $bOk = $oDoc->InsertFolder($parms);
