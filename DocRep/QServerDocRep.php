@@ -87,6 +87,16 @@ class QServerDocRep extends SEEDQ
                 $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doDocMetadataStoreAll($kDoc, $parms);
                 break;
+
+            case 'dr-XMLExport':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doXMLExport($kDoc);
+                break;
+
+            case 'dr--XMLImport':
+                $rQ['bHandled'] = true;
+                list($rQ['bOk'],$rQ['sOut']) = $this->doXMLImport($kDoc, $parms);
+                break;
         }
 
         done:
@@ -312,6 +322,30 @@ class QServerDocRep extends SEEDQ
             $p = @$parms['p_docMetadata'];
             $ra = $p ? json_decode($p) : [];
             $oDoc->SetDocMetadataRA( $ra );
+            $bOk = true;
+        }
+        return( [$bOk, $s] );
+    }
+
+    private function doXMLExport( $kDoc )
+    {
+        $s = "";
+        $bOk = false;
+        if( $kDoc ) {
+            $s = $this->oDocRepDB->ExportXML($kDoc);
+            $bOk = true;
+        }
+
+        return( [$bOk, $s] );
+
+    }
+
+    private function doXMLImport( $kDoc, $parms )
+    {
+        $s = "";
+        $bOk = false;
+        if( $kDoc && $parms['xml'] ) {
+            $this->oDocRepDB->ImportXML($parms['kDoc'], $parms['xml']);
             $bOk = true;
         }
         return( [$bOk, $s] );
