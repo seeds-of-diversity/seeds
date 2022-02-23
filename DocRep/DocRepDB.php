@@ -325,7 +325,6 @@ class DocRepDB2 extends DocRep_DB
              dataspec='$sDataspec' metadata='$sMetadata'>"; // store columns as attributes
 
         $raChildren = $this->GetSubtree($kDoc); // find all children
-
         foreach($raChildren as $k=>$v ){
             $s .= $this->buildXML($k); // recursively call on children
         }
@@ -364,7 +363,6 @@ class DocRepDB2 extends DocRep_DB
 
         $parms['dr_name'] = $oXML->getAttribute('name'); // get all attributes from xml, array key should match $parms for insertDoc()
         $parms['dr_title'] = $oXML->getAttribute('title');
-
         $parms['dr_docspec'] = $oXML->getAttribute('docspec');
         $parms['dr_dataspec'] = $oXML->getAttribute('dataspec');
         $parms['dr_permclass'] = $oXML->getAttribute('permclass');
@@ -374,11 +372,6 @@ class DocRepDB2 extends DocRep_DB
         $parms['dr_data_text'] = $oXML->getAttribute('data_text');
         $parms['dr_flag'] = '';
 
-        /* TODO:
-         * data_text is not working
-         * insert() does not take docMetadata as parameter
-         */
-
         $parms['dr_posUnder'] = $kParent;
 
         // add current to database
@@ -386,21 +379,18 @@ class DocRepDB2 extends DocRep_DB
 
         switch( $parms['type'] ) {
             case 'TEXT':
-                $oDoc->InsertText( $parms['dr_data_text'], $parms ); //TODO: do i put data_text as param here?
+                $oDoc->InsertText( $parms['dr_data_text'], $parms );
                 break;
             case 'FILE':
-                $bOk = $oDoc->InsertFile( "", $parms ); //TODO: what's the first parameter for insertfile()?
+                $oDoc->InsertFile( "", $parms ); //TODO: what's the first parameter for insertfile()?
                 break;
             case 'FOLDER':
-                $bOk = $oDoc->InsertFolder($parms);
+                $oDoc->InsertFolder($parms);
                 break;
         }
 
         $key = $oDoc->GetKey();
-        //var_dump($parms['dr_permclass']);
-
         foreach ($oXML->childNodes as $child){ // find all children and recursively call on children
-
             $this->breakXML($key, $child);
         }
     }

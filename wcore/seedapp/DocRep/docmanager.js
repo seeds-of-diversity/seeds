@@ -969,7 +969,6 @@ class myDocRepCtrlView_XML
 	
 	static export()
     {
-		console.log("start xml export");
 		let kDoc = this.kCurrDoc;
 			
 		let rQ = SEEDJXSync(this.oCtrlView.oConfigEnv.q_url, { qcmd: 'dr-XMLExport', kDoc: kDoc });
