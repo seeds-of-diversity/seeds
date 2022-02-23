@@ -763,7 +763,7 @@ class DocRepDoc2_ReadOnly
 
         $sName is the (new) base name of a document, either being inserted, updated or renamed.
         $bInsertInto == (inserting a doc && posUnder the current doc)  -- this was contracted from $bInsert and $bPosUnder
-        Return the full path name of the inserted/updated doc.
+        Return the base name of the inserted/updated doc.
 
         If updating/renaming, the folder name doesn't change
         If inserting after the current doc, the folder name is the same as the current doc's folder name.
@@ -773,34 +773,31 @@ class DocRepDoc2_ReadOnly
         if( !empty($sName) ) {
             $sName = str_replace( '/', '_', $sName );  // eliminate slashes so users can't insert weird name heirarchy
 
-            if( $bInsertInto ) {
-                // new name is this->docname/sName
-                // tricky bit: if !this->docname then use foldername instead
-                $sFolderName = $this->GetName();
-                if( !$sFolderName ) {
-                    $sFolderName = $this->GetFolderName();
-                }
-            } else {
-                // new name is this->foldername/sName
-                $sFolderName = $this->GetFolderName();
-            }
-            if( !empty($sFolderName) ) {
-                $sName = $sFolderName.'/'.$sName;
-            }
+            // convert sName into full path name
+            if( $bInsertInto ) { // if inserting new doc under current
+                $sName = $this->GetNameFull() ."/" .$sName;
 
-            //GetName - return base
-            //GetFullName - return full
-            //GetFolderName - return base
-            //GetNewDocName - takes base, return base
-            //makeuniqueName - return base
-            //either get full name in GetNewDocName or in makeUniqueName
+            } else { // if inserting new doc beside current
+                if( $parent = $this->oDocRepDB->GetDocRepDoc($this->GetParent())){ // find parent of current
+                    $sName = $parent->GetNameFull() ."/" .$sName;
+                }
+                else{ // if parent is root
+                    // $sName is already full path
+                }
+            }
 
             /* If there is another doc with this name, add a suffix.
              */
 // Have to check if this is an update of the same doc. Checking the return of GetDocFromName()==$this->GetKey() is not enough
 // unless we know this is an update, not an insert.
 // OR let the Insert function add the suffix
-            $sName = $this->makeUniqueName( $sName );
+
+            $sName = $this->makeUniqueName( $sName ); // return unique full name
+
+            // convert $sName back to base name
+            if( strpos($sName, "/") !== false ) { // if name contains "/"
+                $sName = substr($sName, strrpos($sName, "/")+1); // base name is after last "/"
+            }
         }
         return( $sName );
     }
@@ -825,7 +822,8 @@ class DocRepDoc2_ReadOnly
 
     protected function makeUniqueName( $sName )
     /******************************************
-        If the name already exists in the DocRep, add a suffix to make this name unique.
+     If the name already exists in the DocRep, add a suffix to make this name unique.
+     takes full name in parameter and returns full name
      */
     {
         if( $this->oDocRepDB->GetDocRepDoc( $sName ) ) {
