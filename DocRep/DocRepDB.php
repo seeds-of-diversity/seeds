@@ -312,13 +312,13 @@ class DocRepDB2 extends DocRep_DB
 
         $sSrc = htmlentities($oDoc->GetValue('data_src', ''));
         $sText = htmlentities($oDoc->GetText(''));
-        $sFileExt = htmlentities($oDoc->GetSFileExt());
+        $sFileExt = htmlentities($oDoc->GetSFileExt()); // only getter exist for this, no way to set value yet
         $sTitle = htmlentities($oDoc->GetTitle(''));
         $sMimetype = htmlentities($oDoc->GetValue('mimetype', ''));
         $sDataspec = htmlentities($oDoc->GetValue('dataspec', ''));
         $sMetadata = htmlentities($oDoc->GetValue('metadata', ''));
 
-        // data_sfile_name and data_link_doc is not implemented yet
+        // data_file_ext, data_sfile_name, data_link_doc are not implemented yet
 
         $s = "<$sType name='$sName' docspec='$sDocspec' permclass='$iPermclass' docMetadata='$sDocMetadata'
              src='$sSrc' data_text='$sText' data_file_ext='$sFileExt' title='$sTitle' mimetype='$sMimetype'
@@ -362,17 +362,16 @@ class DocRepDB2 extends DocRep_DB
 
         $parms['type'] = $oXML->nodeName;
 
-        $parms['dr_name'] = $oXML->getAttribute('name'); // get all attributes from xml
+        $parms['dr_name'] = $oXML->getAttribute('name'); // get all attributes from xml, array key should match $parms for insertDoc()
         $parms['dr_title'] = $oXML->getAttribute('title');
 
         $parms['dr_docspec'] = $oXML->getAttribute('docspec');
         $parms['dr_dataspec'] = $oXML->getAttribute('dataspec');
-        //$parms['dr_flag'] = // flag not implemented in buildxml
         $parms['dr_permclass'] = $oXML->getAttribute('permclass');
         $parms['dr_mimetype'] = $oXML->getAttribute('mimetype');
         $parms['dr_fileext'] = $oXML->getAttribute('data_file_ext');
         $parms['dr_metadata'] = parse_url($oXML->getAttribute('metadata')); // metadata should be array, convert to array first
-        $parms['data_text'] = $oXML->getAttribute('data_text');
+        $parms['dr_data_text'] = $oXML->getAttribute('data_text');
         $parms['dr_flag'] = '';
 
         /* TODO:
@@ -387,7 +386,7 @@ class DocRepDB2 extends DocRep_DB
 
         switch( $parms['type'] ) {
             case 'TEXT':
-                $oDoc->InsertText( $parms['data_text'], $parms ); //TODO: do i put data_text as param here?
+                $oDoc->InsertText( $parms['dr_data_text'], $parms ); //TODO: do i put data_text as param here?
                 break;
             case 'FILE':
                 $bOk = $oDoc->InsertFile( "", $parms ); //TODO: what's the first parameter for insertfile()?
@@ -721,14 +720,6 @@ class DocRepDoc2_ReadOnly
      */
 
 //    function GetDocName()   { return( $this->GetName() ); }  // same thing; we call it docname to differentiate from basename and foldername
-    function GetBaseName()
-    {
-        $sName = $this->GetName();
-        if( ($n = strrpos($sName,'/')) > 0 ) {    // 0-based position of rightmost '/' == # chars to left of that '/'
-            $sName = substr( $sName, $n + 1 );
-        }
-        return( $sName );
-    }
 
     function GetNameFull()
     /*
@@ -807,12 +798,19 @@ class DocRepDoc2_ReadOnly
                 $sName = $sFolderName.'/'.$sName;
             }
 
+            //GetName - return base
+            //GetFullName - return full
+            //GetFolderName - return base
+            //GetNewDocName - takes base, return base
+            //makeuniqueName - return base
+            //either get full name in GetNewDocName or in makeUniqueName
+
             /* If there is another doc with this name, add a suffix.
              */
 // Have to check if this is an update of the same doc. Checking the return of GetDocFromName()==$this->GetKey() is not enough
 // unless we know this is an update, not an insert.
 // OR let the Insert function add the suffix
-            if( false )     $sName = $this->makeUniqueName( $sName );
+            $sName = $this->makeUniqueName( $sName );
         }
         return( $sName );
     }
@@ -827,7 +825,7 @@ class DocRepDoc2_ReadOnly
     {
         $ext = "";
 
-        $sBaseName = $this->GetBaseName();
+        $sBaseName = $this->GetName();
         if( ($i = strrpos( $sBaseName, '.' )) !== false ) {
             $ext = substr( $sBaseName, $i + 1 );
         }
@@ -1267,7 +1265,12 @@ class DocRepDoc2_Insert extends DocRepDoc2
         if( $this->GetKey() )  return( false );                        // $this must be a blank DocRepDoc
 
         if( @$parms['dr_name'] ) {
-            $parms['dr_name'] = $this->makeUniqueName( $parms['dr_name'] );
+            if( @$parms['dr_posUnder'] ) {
+                $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posUnder'])->GetNewDocName( $parms['dr_name'], true );
+            }
+            else if( @$parms['dr_posAfter'] ) {
+                $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posAfter'])->GetNewDocName( $parms['dr_name'], false );
+            }
         }
 
         $kfrDoc = $this->oDocRepDB->GetRel()->GetKFRel('Doc')->CreateRecord() or die( "Can't create blank kfrDoc" );
@@ -1308,7 +1311,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
         /* No guarantee that everything here will work (e.g. move_uploaded_file fails), but the doc records have
          * referential integrity at this point.
          */
-        if( !$kfrDoc->Value('type') == 'FOLDER' ) {
+        if( $kfrDoc->Value('type') != 'FOLDER' ) {
             switch( $kfrData->Value('src') ) {
                 case "TEXT":  $kfrData->SetValue( "data_text", $src );                      break;
                 case "FILE":
