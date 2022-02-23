@@ -992,8 +992,8 @@ class myDocRepCtrlView_XML
 		let xml = $(`#drXML_import`).val();
 		
 		//check to make sure field is inputted 
-		if( !xml ) {
-			console.log("xml input is missing")
+		if( !xml || !kDoc ) {
+			console.log("xml input or kDoc is missing")
 			return;
 		}
 
