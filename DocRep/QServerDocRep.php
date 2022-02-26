@@ -45,7 +45,7 @@ class QServerDocRep extends SEEDQ
 
             case 'dr--add':
                 $rQ['bHandled'] = true;
-                list($rQ['bOk'],$rQ['sOut']) = $this->doAdd($kDoc, $parms);
+                list($rQ['bOk'],$rQ['sOut'],$rQ['raMeta']['kDocNew']) = $this->doAdd($kDoc, $parms);
                 break;
 
             case 'dr--update':
@@ -146,15 +146,15 @@ class QServerDocRep extends SEEDQ
 
     private function doAdd ( $kDoc, $parms ){
         $s = "";
-        $bOk = false;
+        $kDocNew = 0;
         $oDoc = new DocRepDoc2_Insert( $this->oDocRepDB );
 
-        switch( $parms['type'] ) {
-            case 'text':    $bOk = $oDoc->InsertText( "", $parms );   break;      // todo: allow optional text string to be input
-            case 'file':    $bOk = $oDoc->InsertFile( "", $parms );   break;      // todo: this needs a filename for the first argument
-            case 'folder':  $bOk = $oDoc->InsertFolder($parms);       break;
+        switch( @$parms['type'] ) {
+            case 'text':    $kDocNew = $oDoc->InsertText( "", $parms );   break;      // todo: allow optional text string to be input
+            case 'file':    $kDocNew = $oDoc->InsertFile( "", $parms );   break;      // todo: this needs a filename for the first argument
+            case 'folder':  $kDocNew = $oDoc->InsertFolder($parms);       break;
         }
-        return( [$bOk,$s] );
+        return( [($kDocNew != 0), $s, $kDocNew] );
     }
 
     private function doUpdate( $kDoc, $parms )
