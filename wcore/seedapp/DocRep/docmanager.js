@@ -523,32 +523,36 @@ class myDocRepCtrlView_Rename
     */
 	{
 		e.preventDefault();;
-		let kDoc = $('#drRename_kDoc').val();
+		let kDoc = parseInt($('#drRename_kDoc').val());
 		let name = $('#formRename_name').val();
 		let title = $('#formRename_title').val();
-		let permissions = $('#formRename_perms').val();
+		let permclass = $('#formRename_perms').val();
 	
-		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permissions });
+		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permclass });
 		if ( !rQ.bOk ) {
 			console.log("error rename");
 		}
 		else {
-			this.UpdateTree(kDoc, name);
+			this.UpdateTree(kDoc, name, title, permclass);
 		}
 	}
 	
 	/*
 	update tree after rename 
 	*/
-	static UpdateTree( kDoc, name ) 
+	static UpdateTree( kDoc, name, title, permclass ) 
 	{
+        // change the name in the tree
 		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
 		let child = doc.children[1].nextSibling;
 		child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
 		
-		// TODO: redraw tree with update map instead 
+		// change the values in the cache
+		let parms = {kDoc:kDoc, permclass:permclass};
+		parms.name = name;    // adding them this way means not having to escape quotes
+		parms.title = title;
+		this.oCtrlView.fnHandleEvent('updateDocInfo', parms);
 	}
-    
 }
 
 class myDocRepCtrlView_Versions
@@ -927,7 +931,6 @@ class myDocRepCtrlView_Schedule
 	update schedule with date information 
 	 */
 	{
-		console.log("hi");
 		e.preventDefault();
 		let allKDoc = $('.drSchedule_kDoc');
 		let allSchedule = $('.schedule-date');
@@ -1018,11 +1021,11 @@ class DocRepUI02
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
         this.oCache = new myDocRepCache( 
-                        { mapDocs: mymapDocs,
+                        { mapDocs: oConfig.docsPreloaded,
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
 
         this.oTree = new myDocRepTree(
-                        { mapDocs: mymapDocs,
+                        { mapDocs: oConfig.docsPreloaded,
                           dirIcons: oConfig.env.seedw_url+'img/icons/',
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
 
@@ -1065,6 +1068,9 @@ class DocRepUI02
             case 'getDocInfo':
                 return( this.oCache.GetDocInfo(p) );
                 
+            case 'updateDocInfo':
+                return( this.oCache.UpdateDocInfo(p) );
+
             case 'getDocInfoCurr':
                 let kDocCurr = this.oTree.GetCurrDoc();
                 return( kDocCurr ? this.oCache.GetDocInfo(kDocCurr) : null );
