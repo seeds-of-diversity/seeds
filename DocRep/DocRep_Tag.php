@@ -259,6 +259,8 @@ class DocRep_TagHandler
                 /* Get the numeric key of the first child or 0 if there are no children.
                  * [[docrep-child-first:]] kDoc of the first child of the current document
                  * [[docrep-child-first:name-or-number]] kDoc of the first child of the doc identified
+                 * note: this will return children based on order in database, not how it appears in UI
+                 * TODO: make order in database and UI consistant
                  */
                 if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
                     $s = "0";
