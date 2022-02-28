@@ -411,7 +411,7 @@ class DocRepDoc2_ReadOnly
     private   $raAncestors = null;
     private   $sFolderName = null;
 
-    private   $bDebug = true;
+    private   $bDebug = false;
 
     function __construct( DocRepDB2 $oDocRepDB, $kDoc )
     {
