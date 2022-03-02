@@ -33,6 +33,7 @@ class DocRep_TagHandler
     {
         $s = "";
         $bHandled = true;
+        $oDoc = null;
 
 
 // For debugging this, it's convenient to use a url like
@@ -72,13 +73,15 @@ class DocRep_TagHandler
                  * [[docrep-name:]] name of the current document (oDocReference)
                  * [[docrep-name:kDoc]] name of the document with _key=kDoc
                  */
-                if( ! $raTag['target'] ) { // if no target
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                }
+                else if( ! $raTag['target'] ) { // if no target
                     if( ($oDoc = @$raParms['oDocReference']) ) { // use current oDoc
                         $s = $oDoc->GetNameFull();
                     }
                 }
                 else { // if target is provided
-                    if( ($oDocTarget = @$this->oDocRepDB->GetDoc($raTag['target'])) && ctype_digit($raTag['target']) ) { // create new oDoc for target
+                    if( ctype_digit($raTag['target']) && $raTag['target'] > 0 && ($oDocTarget = @$this->oDocRepDB->GetDoc($raTag['target'])) ) { // create new oDoc for target
                         $s = $oDocTarget->GetNameFull();
                     }
                 }
@@ -90,7 +93,9 @@ class DocRep_TagHandler
                  * [[docrep-title:]] title of the current document (oDocReference)
                  * [[docrep-title:name-or-number]] title of the doc identified by full name or kDoc
                  */
-                if( ! $raTag['target'] ) {
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                }
+                else if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -103,11 +108,15 @@ class DocRep_TagHandler
                 break;
 
             case 'docrep-parent':
+
                 /* Get the numeric key of a doc's parent or 0 if this is the root.
                  * [[docrep-parent:]] parent kDoc of the current document (oDocReference)
                  * [[docrep-parent:name-or-number]] parent kDoc of the doc identified by full name or kDoc
                  */
-                if( ! $raTag['target'] ) {
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ){ // if target is root, anything above root is 0
+                    $s = "0";
+                }
+                else if( @$raTag['target'] === "" || ! @$raTag['target']) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -131,7 +140,10 @@ class DocRep_TagHandler
                  */
                 $raAncestors = [];
 
-                if( ! @$raTag['raParms'][1] ) {
+                if( @$raTag['raParms'][1] === "0" || @$raTag['raParms'][1] === 0 ) { // if target is root, anything above root is 0
+                    $s = "0";
+                }
+                else if( ! @$raTag['raParms'][1] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -156,11 +168,12 @@ class DocRep_TagHandler
                  * [[docrep-sibling-prev:n]] kDoc of the nth previous sibling of the current document (n==1 is the same as blank)
                  * [[docrep-sibling-prev:n | name-or-number]] kDoc of the nth previous sibling of the doc identified
                  */
-                // implement DocRepDoc2::GetSiblingPrev() and use docrep2_docs.siborder field there
 
                 $n = 1;
-
-                if( ! @$raTag['raParms'][1] ) {
+                if( @$raTag['raParms'][1] === "0" || @$raTag['raParms'][1] === 0 ) { // if target is root
+                    $s = "0";
+                }
+                else if( ! @$raTag['raParms'][1] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -181,8 +194,10 @@ class DocRep_TagHandler
                  * See docrep-sibling-prev for format.
                  */
                 $n = 1;
-
-                if( ! @$raTag['raParms'][1] ) {
+                if( @$raTag['raParms'][1] === "0" || @$raTag['raParms'][1] === 0 ) { // if target is root
+                    $s = "0";
+                }
+                else if( ! @$raTag['raParms'][1] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -204,7 +219,10 @@ class DocRep_TagHandler
                  * [[docrep-sibling-first:]] kDoc of the first sibling of the current document
                  * [[docrep-sibling-first:name-or-number]] kDoc of the first sibling of the doc identified
                  */
-                if( ! $raTag['target'] ) {
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                    $s = "0";
+                }
+                else if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -221,7 +239,10 @@ class DocRep_TagHandler
                 /* Get the numeric key of the last sibling (could be this doc).
                  * See docrep-sibling-first for format.
                  */
-                if( ! $raTag['target'] ) {
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                    $s = "0";
+                }
+                else if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -238,9 +259,13 @@ class DocRep_TagHandler
                 /* Get the numeric key of the first child or 0 if there are no children.
                  * [[docrep-child-first:]] kDoc of the first child of the current document
                  * [[docrep-child-first:name-or-number]] kDoc of the first child of the doc identified
+                 * note: this will return children based on order in database, not how it appears in UI
+                 * TODO: make order in database and UI consistant
                  */
-
-                if( ! $raTag['target'] ) {
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                    $s = "0";
+                }
+                else if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
                 else {
@@ -257,6 +282,9 @@ class DocRep_TagHandler
                 /* Get the numeric key of the last child (i.e. the child with the greatest siborder) or 0 if there are no children.
                  * See docrep-child-first for format.
                  */
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                $s = "0";
+                }
                 if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }
@@ -274,6 +302,9 @@ class DocRep_TagHandler
                 /* Get the number of children
                  * See docrep-child-first for format.
                  */
+                if( @$raTag['target'] === "0" || @$raTag['target'] === 0 ) { // if target is root
+                    $oDoc = @$this->oDocRepDB->GetDoc($raTag['target']); // use target doc
+                }
                 if( ! $raTag['target'] ) {
                     $oDoc = @$raParms['oDocReference']; // use current doc
                 }

@@ -64,9 +64,9 @@ class DocManagerUI_Documents
          * Set them here to reflect the actual application environment.
          * q_url='' means the current application must handle dr-* ajax commands via QServerDocRep
          */
-        $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
         $s .= "<script>oDocRepApp02_Config.env.seedw_url = '${seedw_url}';
                        oDocRepApp02_Config.env.q_url = '${q_url}';
+                       oDocRepApp02_Config.docsPreloaded = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );
                </script>";
 
         return( $s );
@@ -80,13 +80,14 @@ class DocManagerUI_Documents
             if( !($oDoc = $oDocRepDB->GetDocRepDoc( $kDoc )) )  goto done;
 
             $n = SEEDCore_HSC($oDoc->GetName());
-            $ti = $oDoc->GetTitle('');
+            $ti = SEEDCore_HSC($oDoc->GetTitle(''));
             $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
             $p = $oDoc->GetParent();
             $schedule = SEEDCore_HSC($oDoc->GetDocMetadataValue('schedule'));
             $perms = $oDoc->GetPermclass();
             $raDocMetadata = $oDoc->GetValue('raDocMetadata', DocRepDoc2::FLAG_INDEPENDENT);
         } else {
+            // kDoc is zero only at the root recursion when the fake "zero node" holds the root forest. The record has no metadata, just children.
             $p = 0;
             $n = '';
             $ti = '';

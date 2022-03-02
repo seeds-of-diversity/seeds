@@ -33,6 +33,22 @@ class DocRepCache
         return( oDoc );
     }
     
+    UpdateDocInfo( p )
+    {
+        let kDoc = parseInt(p.kDoc);    // map requires this to be integer type (uses strict key matching)
+        let ok = false;
+        
+        if( kDoc && this.mapDocs.has(kDoc) ) {
+            let oDoc = this.mapDocs.get(kDoc);
+            oDoc.name = p.name;
+            oDoc.title = p.title;
+            oDoc.permclass = p.permclass;
+            this.mapDocs.set(kDoc, oDoc);
+            ok = true;
+        }
+        return( ok );
+    }
+    
     FetchDoc( kDoc )
     {
         // override to add doc(s) to mapDocs

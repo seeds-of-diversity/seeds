@@ -73,7 +73,7 @@ class Mbr_Contacts
                                          ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
 
         // firstname(s)/lastname(s)
-        $name = self::FirstnameLastname( $raMbr, '' );
+        $s = self::FirstnameLastname( $ra, '' );
 
         // company
         if( !$s || $bShowCompanyWithName ) {

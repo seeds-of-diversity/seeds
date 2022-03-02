@@ -355,7 +355,8 @@ class SEEDMailTestHistory
         }
 
         $s .= "<style>
-               .SEEDMailTestHistory_ResultsTable { width:100%; font-family:monospace; }
+               .SEEDMailTestHistory_ResultsTable { width:100%; font-family:monospace; max-height:30vh; overflow-y:scroll; }
+               .SEEDMailTestHistory_FileView     { width:100%; font-family:monospace; max-height:30vh; overflow-y:scroll; }
                </style>";
 
         $tmplFile = "<td><a href='?f=[[vu]]'>[[v]]</a></td><td>&nbsp;</td><td><a href='?d=[[vu]]'>Delete</a></td>";
@@ -397,8 +398,8 @@ class SEEDMailTestHistory
             }
 
             $s .= "<div>$n {$ra['l']}:</div>"
-                 ."<div class='well'>"
-                     ."<table class='SEEDMailTestHistory_ResultsTable'>"
+                 ."<div class='well SEEDMailTestHistory_ResultsTable'>"
+                     ."<table style='width:100%'>"
                          .SEEDCore_ArrayExpandSeries( $this->raF[$ra['k']], "<tr>{$ra['t']}</tr>" )
                      ."</table>"
                      .$sFailManage
@@ -407,7 +408,7 @@ class SEEDMailTestHistory
 
         if( $sShowFileContents ) {
             $s .= "<div style='margin-top:30px'>$sShowFname</div>"
-                 ."<div class='well' style='font-family:monospace'>".nl2br(SEEDCore_HSC($sShowFileContents))."</div>";
+                 ."<div class='well SEEDMailTestHistory_FileView'>".nl2br(SEEDCore_HSC($sShowFileContents))."</div>";
         }
 
         done:

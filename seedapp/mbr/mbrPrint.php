@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2021 Seeds of Diversity Canada
+ * Copyright 2020-2022 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -76,7 +76,8 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
             'donorReceiptNum' => $nReceipt,
             'donorAmount'  => $kfr->Value('amount'),
             'donorDateReceived' => $kfr->Value('date_received'),
-            'donorDateIssued' => $kfr->Value('date_issued')
+            'donorDateIssued' => $kfr->Value('date_issued'),
+            'taxYear' => substr($kfr->Value('date_received'), 0, 4)     // should be the year for which the donation applies
         ];
 
         $sBody .= $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', $vars );
@@ -381,8 +382,10 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                    </script>
                   ";
 
-            //$sShow = $kfrLastDonation->Expand( "<a onclick='donSetCtrls()'>Fill: $cat<br/>$iss<br/>$rec</a>" );
-            $sShow = $kfrLastDonation->Expand( "<a onclick='donSetCtrls()'>Fill:<br/>$iss<br/>$rec</a>" );
+            // #337ab7 is bootstrap's link colour
+            $sShow = $kfrLastDonation->Expand(
+                "<div onclick='donSetCtrls()'
+                      style='border:1px solid #337ab7;color:#337ab7;padding:3px;cursor:pointer'>Fill:<br/>$iss<br/>$rec</div>" );
         }
         return( [$sShow,$sScript] );
     }

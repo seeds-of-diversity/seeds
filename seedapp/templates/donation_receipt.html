@@ -7,6 +7,7 @@
 #             'donorDateReceived'=>
 #             'donorDateIssued'=>    today's date
 #             'donorAmount'=>        string formatted with cents but no dollar sign
+#             'taxYear'=>            help the donor to know which year the receipt applies to - same as substr(donorDateReceived,0,4)
 #            ])
 
 %% donation_receipt_page
@@ -21,11 +22,12 @@
 
 
 {% block donrecblock_receiptData %}
-<div style='font-size:10.5pt; line-height:1.75; margin-bottom:15px'>
+<div style='font-size:10.25pt; line-height:1.5; margin-bottom:15px'>
+<span style='font-size:10.5pt'>For tax year / Pour l'ann&eacute;e : {{taxYear}}<br/>
+Amount / Montant : ${{donorAmount}}<br/></span>
 Receipt number / Num&eacute;ro de re&ccedil;u : {{donorReceiptNum}}<br/>
 Donation received / R&eacuteception : {{donorDateReceived}}<br/>
-Receipt issued / &Eacute;mission : {{donorDateIssued}} in Waterloo ON<br/>
-Amount / Montant : ${{donorAmount}}
+Receipt issued / &Eacute;mission : {{donorDateIssued}} in Waterloo ON
 </div>
 {% endblock %}
 
