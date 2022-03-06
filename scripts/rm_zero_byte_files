@@ -1,0 +1,3 @@
+/* rm all files of zero bytes within current folder
+ */
+ find -size 0b -exec rm {} \;
