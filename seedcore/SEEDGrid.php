@@ -2,8 +2,73 @@
 
 /* Bootstrap Grid helper
  *
- * Copyright (c) 2018 Seeds of Diversity Canada
+ * Copyright (c) 2018-2022 Seeds of Diversity Canada
  */
+
+class SEEDGrid
+/*************
+    raConfig:
+        'type'       =>  'bootstrap', 'table'
+        'styleRow'   =>  css applied to every row element unless override
+        'classRow'   =>  classes applied to every row element unless override
+        'attrsRow'   =>  attrs applied to every row element unless override
+
+        'styleCols   =>  ['css for col0', 'css for col1', ... ]
+        'classCols   =>  ['classes for col0', 'classes for col1', ... ]
+        'attrsCols   =>  ['attrs for col0', 'attrs for col1', ... ]
+ */
+{
+    private $raConfig;
+
+    function __construct( $raConfig = [] )
+    {
+        $this->SetConfig( $raConfig );
+    }
+
+    function SetConfig( $raConfig )
+    {
+        $this->raConfig = $raConfig;
+    }
+
+    function Row( $raValues, $raParms = [] )
+    /***************************************
+        raParms:
+            styleRow, classRow, attrsRow     => override raConfig
+            styleCols, classCols, attrsCols  => override raConfig
+            styleColN                        => override all styleCols for column N (0-based)
+            classColN                        => override all classCols for column N (0-based)
+            attrsColN                        => override all attrsCols for column N (0-based)
+     */
+    {
+        $styleRow = SEEDCore_ArraySmartVal1( $raParms, 'styleRow', @$this->raConfig['styleRow'], true );    // parms.styleRow overrides config.styleRow and can be empty
+        $classRow = SEEDCore_ArraySmartVal1( $raParms, 'classRow', @$this->raConfig['classRow'], true );
+        $attrsRow = SEEDCore_ArraySmartVal1( $raParms, 'attrsRow', @$this->raConfig['attrsRow'], true );
+
+        if( $this->raConfig['type'] == 'bootstrap' ) {
+            $s = "<div class='row $classRow' style='$styleRow' $attrsRow>";
+            $n = 0;
+            foreach( $raValues as $v ) {
+                $styleCol = isset($raParms['styleCol'.$n]) ? $raParms['styleCol'.$n] :
+                           (isset($raParms['styleCols'][$n]) ? $raParms['styleCols'][$n] : @$this->raConfig['styleCols'][$n]);
+                $classCol = isset($raParms['classCol'.$n]) ? $raParms['classCol'.$n] :
+                           (isset($raParms['classCols'][$n]) ? $raParms['classCols'][$n] : @$this->raConfig['classCols'][$n]);
+                $attrsCol = isset($raParms['attrsCol'.$n]) ? $raParms['attrsCol'.$n] :
+                           (isset($raParms['attrsCols'][$n]) ? $raParms['attrsCols'][$n] : @$this->raConfig['attrsCols'][$n]);
+
+                $s .= "<div class='$classCol' style='$styleCol' $attrsCol>$v</div>";
+                ++$n;
+            }
+            $s .= "</div>";
+        }
+
+        return( $s );
+    }
+
+}
+
+
+
+
 
 class SEEDBootstrapGrid
 {
