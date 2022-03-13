@@ -19,32 +19,26 @@ if( !defined( "SEEDROOT" ) ) {
     include_once( SEEDROOT."seedConfig.php" );
 }
 
+include_once( SEEDCORE."SEEDCoreFormSession.php" );
+include_once( SEEDCORE."SEEDXLSX.php" );
+include_once( SEEDLIB."google/GoogleSheets.php" );
 
-include("../../seedlib/google/GoogleSheets.php" );
 
 $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>'seeds2'] ); //, 'sessPermsRequired'=>["W events"]] );
+
+SEEDPRG();
 
 
 $oES = new EventsSheet($oApp);
 
 if( $oES->IsLoaded() ) {
-
-    /* Try to match up the columns
-     */
-
-
-
-
-
-    //$sheets->WriteValues( 'Sheet1!A23:B23', [['1','2']] );
-
-    //var_dump($oES->values());
 }
 
 $s = $oES->DrawForm()
     .$oES->DrawTable();
 
-echo $s;
+
+echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN', ['consoleSkin'=>'green'] );
 
 
 class EventsSheet
@@ -60,18 +54,16 @@ class EventsSheet
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
+        $this->oForm = new SEEDCoreFormSession($oApp->sess, 'eventSheets');
+        $this->oForm->Update();
 
-        $this->p_idSheet = SEEDInput_Str('idSheet');
+        if( ($idSpread = $this->oForm->Value('idSpread')) ) {
 
-        if( $this->p_idSheet ) {
-            $this->oSheets = new SEEDGoogleSheets(
-                                    ['appName' => 'My PHP App',
-                                     'authConfigFname' => SEEDCONFIG_DIR."/sod-public-outreach-info-e36071bac3b1.json",
-                                     'idSpreadsheet' => $this->p_idSheet,
-                                     //'idSheet' => "1npC38lFv84iG1YhfS9oBpiLXYjbrjiXqHQTaibonl5I"
-                                     //"1NkwvvyO71XcRlsGK9vEi2T2uB_b0fJ5-LdwFcCAeDQk"
-                                     //"1l1WuajTKtVqLTTR7vWCoDan-vD9WUS9li7ErA5BXThI"
-                                    ] );
+            $this->oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
+                                        ['appName' => 'My PHP App',
+                                         'authConfigFname' => SEEDCONFIG_DIR."/sod-public-outreach-info-e36071bac3b1.json",
+                                         'idSpreadsheet' => $idSpread
+                                        ] );
         }
     }
 
@@ -87,11 +79,10 @@ class EventsSheet
     function DrawForm()
     {
         $s = "<form method='post'>
-              <div><input type='text' name='idSheet' value='{$this->p_idSheet}' size='60'/>&nbsp;
-                   <input type='submit'/>
-              </div>
+              <div>{$this->oForm->Text('idSpread',  '', ['size'=>60])}&nbsp;Google sheet id</div>
+              <div>{$this->oForm->Text('nameSheet', '', ['size'=>60])}&nbsp;sheet name</div>
+              <div><input type='submit'/></div>
               </form>";
-
         return( $s );
     }
 
@@ -99,6 +90,16 @@ class EventsSheet
     {
         $s = "";
 
+        if( !$this->oGoogleSheet || !($nameSheet = $this->oForm->Value('nameSheet')) )  goto done;
+
+                // 0-based index of columns or false if not found in spreadsheet (array_search returns false if not found)
+        $raColNames = $this->oGoogleSheet->GetColumnNames($nameSheet);
+        var_dump($raColNames);
+
+        $raRows = $this->oGoogleSheet->GetRows($nameSheet);
+        var_dump($raRows);
+
+        done:
         return( $s );
     }
 }
