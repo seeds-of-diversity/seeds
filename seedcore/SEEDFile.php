@@ -221,7 +221,7 @@ MAYBE WANT TO RETURN THE SHORT od_file TOO, SINCE IT MIGHT BE USED IN A UI
     $eFetch = SEEDCore_ArraySmartVal( $raParms, 'eFetch', array("FILE", "DIR", "FILE_DIR") );
 
     $ra = array();
-    if( ($od = opendir($dirRoot)) ) {
+    if( ($od = @opendir($dirRoot)) ) {
         while( ($od_file = readdir($od)) !== false ) {
             if( substr($od_file, 0, 1) == "." )  continue;        // skip . and .. directories, and files starting with . (e.g. .svn)
             $realfile = $dirRoot.'/'.$od_file;

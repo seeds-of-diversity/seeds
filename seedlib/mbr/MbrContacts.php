@@ -176,6 +176,12 @@ class Mbr_Contacts
         return( $text );
     }
 
+    static function PostcodesEqual( String $pc1, String $pc2 ) : bool
+    {
+        // case-insensitive compare with whitespace removal
+        return( strtoupper(preg_replace("/\s+/", '', $pc1)) == strtoupper(preg_replace("/\s+/", '', $pc2)) );
+    }
+
     function GetAllValues( $mbrid )   // mbrid can be _key or email
     {
         if( !$mbrid ) return( [] ); // blank input would be interpreted as the first member with no email address

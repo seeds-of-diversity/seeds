@@ -3,7 +3,9 @@
 
 echo ***Removing these
 find -type f -name *.jpg.xml
+find -type f -name *.jpeg.xml
 find -type d -name .comments
 echo ***End
 find -type f -name *.jpg.xml -exec rm {} \;
+find -type f -name *.jpeg.xml -exec rm {} \;
 find -type d -name .comments -exec rmdir {} \;
