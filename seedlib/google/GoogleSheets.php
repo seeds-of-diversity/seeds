@@ -150,7 +150,8 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
      */
     function GetColumnNames( String $nameSheet ) : array
     {
-
+        $ra = $this->oGoogleSheet->GetValues($nameSheet);   // returns a 2D array of all rows in the sheet
+        return( @$ra[0][0] ? $ra[0] : [] );
     }
 
     /**
