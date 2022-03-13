@@ -94,7 +94,7 @@ class MbrContactsSheetUI
 
         if( $kEmail === false ) {
             $s = "Choose Email column";
-            $s .= "<br/>".SEEDCore_ArrayExpandSeries($raCols, " [[]]," );
+            $s .= "<br/>".SEEDCore_ArrayExpandSeries($this->oMCS->GetColNames($nameSheet), " [[]]," );
             goto done;
         }
 
@@ -152,7 +152,7 @@ class MbrContactsSheet
     function __construct( SEEDAppConsole $oApp, $idSpreadsheet )
     {
         $this->oApp = $oApp;
-        $this->oGoogleSheet = new SEEDGoogleSheets(
+        $this->oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
                                     ['appName' => 'My PHP App',
                                      'authConfigFname' => SEEDCONFIG_DIR."/sod-public-outreach-info-e36071bac3b1.json",
                                      'idSpreadsheet' => $idSpreadsheet
