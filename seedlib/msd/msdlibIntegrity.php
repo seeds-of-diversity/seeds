@@ -2,7 +2,7 @@
 
 /* MSDLibIntegrity
  *
- * Copyright (c) 2009-2021 Seeds of Diversity
+ * Copyright (c) 2009-2022 Seeds of Diversity
  *
  * Office-Admin integrity tests.
  */
@@ -67,6 +67,31 @@ class MSDLibIntegrity
         return( [
             /* Hard structural integrity tests
              */
+            'integ_gmbr_in_contacts' =>
+                array( 'title' => "Check that growers are known in mbr_contacts",
+                       'testType' => 'rows0',
+                       'failLabel' => "Growers are not in mbr_contacts",
+                       'failShowRow' => "mbr_id=[[mbr_id]]",
+                       'testSql' =>
+                           "SELECT G.mbr_id as mbr_id FROM {$this->dbname1}.sed_curr_growers G LEFT JOIN {$this->dbname2}.mbr_contacts M "
+                          ."ON (G.mbr_id=M._key) WHERE M._key IS NULL OR G.mbr_id=0 OR M._status<>0",
+                     ),
+
+            'integ_seeds_orphaned' =>
+                array( 'title' => "Check for orphaned seeds",
+                       'testType' => 'rows0',
+                       'failLabel' => "Seeds offered but Grower record is missing",
+                       'failShowRow' => "kSeed [[kS]] : mbr_id=[[mbr_id]]",
+                       'testSql' =>
+/*                           "SELECT S._key as kS, S.mbr_id as mbr_id, S.category as cat, S.type as type, S.variety as var "
+                          ."FROM {$this->dbname1}.sed_curr_seeds S LEFT JOIN {$this->dbname1}.sed_curr_growers G ON (S.mbr_id=G.mbr_id) "
+                          ."WHERE S._status=0 AND (G.mbr_id IS NULL OR G._status<>0)",
+*/
+                           "SELECT P._key as kS,P.uid_seller as mbr_id "
+                          ."FROM {$this->dbname1}.SEEDBasket_Products P LEFT JOIN {$this->dbname1}.sed_curr_growers G ON (P.uid_seller=G.mbr_id) "
+                          ."WHERE P.product_type='seeds' AND P._status='0' AND (G.mbr_id IS NULL OR G._status<>0)",
+                     ),
+
             'integ_gmbr_id_unique' =>
                 array( 'title' => "Check for duplicate grower ids in sed_curr_growers",
                        'testType' => 'rows0',
@@ -124,31 +149,6 @@ class MSDLibIntegrity
                           ."SELECT G.mbr_code as mc, G.mbr_id as mid1, G2.mbr_id as mid2, 'current' as y1, 'current' as y2, M1.firstname as fn1,M1.lastname as ln1,M2.firstname as fn2,M2.lastname as ln2 "
                               ."FROM {$this->dbname1}.sed_curr_growers G, {$this->dbname1}.sed_curr_growers G2, {$this->dbname2}.mbr_contacts M1, {$this->dbname2}.mbr_contacts M2 "
                               ."WHERE G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id ORDER BY 1",
-                     ),
-
-            'integ_gmbr_in_contacts' =>
-                array( 'title' => "Check that growers are known in mbr_contacts",
-                       'testType' => 'rows0',
-                       'failLabel' => "Growers are not in mbr_contacts",
-                       'failShowRow' => "mbr_id=[[mbr_id]]",
-                       'testSql' =>
-                           "SELECT G.mbr_id as mbr_id FROM {$this->dbname1}.sed_curr_growers G LEFT JOIN {$this->dbname2}.mbr_contacts M "
-                          ."ON (G.mbr_id=M._key) WHERE M._key IS NULL OR G.mbr_id=0 OR M._status<>0",
-                     ),
-
-            'integ_seeds_orphaned' =>
-                array( 'title' => "Check for orphaned seeds",
-                       'testType' => 'rows0',
-                       'failLabel' => "Seeds have no grower",
-                       'failShowRow' => "kSeed [[kS]] : mbr_id=[[mbr_id]], [[cat]] - [[type]] - [[var]]",
-                       'testSql' =>
-/*                           "SELECT S._key as kS, S.mbr_id as mbr_id, S.category as cat, S.type as type, S.variety as var "
-                          ."FROM {$this->dbname1}.sed_curr_seeds S LEFT JOIN {$this->dbname1}.sed_curr_growers G ON (S.mbr_id=G.mbr_id) "
-                          ."WHERE S._status=0 AND (G.mbr_id IS NULL OR G._status<>0)",
-*/
-                           "SELECT P._key as kS,P.uid_seller as mbr_id "
-                          ."FROM {$this->dbname1}.SEEDBasket_Products P LEFT JOIN {$this->dbname1}.sed_curr_growers G ON (P.uid_seller=G.mbr_id) "
-                          ."WHERE P.product_type='seeds' AND P._status='0' AND (G.mbr_id IS NULL OR G._status<>0)",
                      ),
 
             /* Soft content integrity tests

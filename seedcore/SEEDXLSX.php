@@ -2,7 +2,7 @@
 
 /* SEEDXLSX
  *
- * Copyright (c) 2014-2019 Seeds of Diversity Canada
+ * Copyright (c) 2014-2022 Seeds of Diversity Canada
  *
  * Read and write spreadsheet files.
  *
@@ -11,6 +11,43 @@
  */
 
 require_once SEEDROOT.'/vendor/autoload.php';   // PhpOffice/PhpSpreadsheet
+
+class SEEDXls
+{
+    /**
+     * Convert a 0-based column index to an alphabetical column name
+     * @param int - 0-based index
+     * @return String - alphabetic column name
+     */
+    static function Index2ColumnName( int $index ) : String
+    {
+        $cols = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+        if($index >= count($cols)){
+            return self::IndexToColumnName(intdiv($index,count($cols))-1) . self::IndexToColumnName($index % count($cols));
+        }
+        return $cols[$index];
+    }
+
+    /**
+     * Convert an alphabetical column name to a 0-based column index
+     * @param String - alphabetic column name
+     * @return int - 0-based index
+     */
+    static function ColumnName2Index( String $colname ) : int
+    {
+        $i = 0;
+        $colname = strtoupper($colname);
+
+        if( strlen($colname) == 2 ) {
+            $i = (ord($colname[0]) - ord('A') + 1) * 26;
+            $colname = $colname[1];
+        }
+        $i += ord($colname[0]) - ord('A');
+
+        return( $i );
+    }
+}
+
 
 class SEEDXlsRead
 {

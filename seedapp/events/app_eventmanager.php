@@ -2,7 +2,7 @@
 
 /* app_eventmanager.php
  *
- * Copyright 2010-2021 Seeds of Diversity Canada
+ * Copyright 2010-2022 Seeds of Diversity Canada
  *
  * Manage event lists
  */
@@ -19,31 +19,87 @@ if( !defined( "SEEDROOT" ) ) {
     include_once( SEEDROOT."seedConfig.php" );
 }
 
-
-include("../../seedlib/google/GoogleSheets.php" );
-
-$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2', 'sessPermsRequired'=>["W events"]] );
-
+include_once( SEEDCORE."SEEDCoreFormSession.php" );
+include_once( SEEDCORE."SEEDXLSX.php" );
+include_once( SEEDLIB."google/GoogleSheets.php" );
 
 
-$sheets = new SEEDGoogleSheets( ['appName' => 'My PHP App',
-                                 'authConfigFname' => SEEDCONFIG_DIR."/sod-public-outreach-info-e36071bac3b1.json",
-                                 'idSheet' => "1npC38lFv84iG1YhfS9oBpiLXYjbrjiXqHQTaibonl5I" //"1NkwvvyO71XcRlsGK9vEi2T2uB_b0fJ5-LdwFcCAeDQk"
-                                ] );
+$oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>'seeds2'] ); //, 'sessPermsRequired'=>["W events"]] );
 
-$spreadsheetId = "1l1WuajTKtVqLTTR7vWCoDan-vD9WUS9li7ErA5BXThI";
-$spreadsheetId = "";
-$range = 'A2:H';
-list($values,$range) = $sheets->GetValues( $range );
-
-$sheets->WriteValues( 'Sheet1!A23:B23', [['1','2']] );
-
-var_dump($values);
+SEEDPRG();
 
 
+$oES = new EventsSheet($oApp);
+
+if( $oES->IsLoaded() ) {
+}
+
+$s = $oES->DrawForm()
+    .$oES->DrawTable();
 
 
+echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN', ['consoleSkin'=>'green'] );
 
 
+class EventsSheet
+/****************
+    Connect events with a Google sheet
+ */
+{
+    private $oApp;
 
+    private $oSheets = null;
+    private $p_idSheet;
 
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oForm = new SEEDCoreFormSession($oApp->sess, 'eventSheets');
+        $this->oForm->Update();
+
+        if( ($idSpread = $this->oForm->Value('idSpread')) ) {
+
+            $this->oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
+                                        ['appName' => 'My PHP App',
+                                         'authConfigFname' => SEEDCONFIG_DIR."/sod-public-outreach-info-e36071bac3b1.json",
+                                         'idSpreadsheet' => $idSpread
+                                        ] );
+        }
+    }
+
+    function IsLoaded()  { return( $this->oSheets ); }
+
+    function values()
+    {
+        $range = 'A1:Z1';
+        list($values,$range) = $this->oSheets->GetValues( $range );
+        return( $values );
+    }
+
+    function DrawForm()
+    {
+        $s = "<form method='post'>
+              <div>{$this->oForm->Text('idSpread',  '', ['size'=>60])}&nbsp;Google sheet id</div>
+              <div>{$this->oForm->Text('nameSheet', '', ['size'=>60])}&nbsp;sheet name</div>
+              <div><input type='submit'/></div>
+              </form>";
+        return( $s );
+    }
+
+    function DrawTable()
+    {
+        $s = "";
+
+        if( !$this->oGoogleSheet || !($nameSheet = $this->oForm->Value('nameSheet')) )  goto done;
+
+                // 0-based index of columns or false if not found in spreadsheet (array_search returns false if not found)
+        $raColNames = $this->oGoogleSheet->GetColumnNames($nameSheet);
+        var_dump($raColNames);
+
+        $raRows = $this->oGoogleSheet->GetRows($nameSheet);
+        var_dump($raRows);
+
+        done:
+        return( $s );
+    }
+}

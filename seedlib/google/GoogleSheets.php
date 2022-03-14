@@ -2,7 +2,7 @@
 
 /* GoogleSheets.php
  *
- * Copyright (c) 2020-2021 Seeds of Diversity
+ * Copyright (c) 2020-2022 Seeds of Diversity
  *
  * Author: Eric Wildfong
  *
@@ -20,14 +20,16 @@
 
 class SEEDGoogleSheets
 {
-    public $oService;
-    private $idSheet;
+    public  $oService;
+    private $idSpreadsheet;
+    private $raValuesCache = null;      // it's also not a bad assumption that Google_Service_Sheets class caches this, so maybe don't bother
+    private $raRangeCache = null;
 
     function __construct( $raConfig )
     /********************************
         appName         = application name (appears in some REST http headers but not used in service access)
         authConfigFname = filename of the secret auth file that google gives you when you create a service account
-        idSheet         = the id of the Google Sheet to open https://docs.google.com/spreadsheets/d/{ ***this part*** }/edit
+        idSpreadsheet   = the id of the Google Sheet to open https://docs.google.com/spreadsheets/d/{ ***this part*** }/edit
      */
     {
         $oClient = new \Google_Client();
@@ -37,7 +39,7 @@ class SEEDGoogleSheets
         $oClient->setAuthConfig($raConfig['authConfigFname']);
         //$oClient->setSubject( getenv( 'GOOGLE_SERVICE_ACCOUNT_NAME' ) );
         $this->oService = new Google_Service_Sheets( $oClient );
-        $this->idSheet = $raConfig['idSheet'];
+        $this->idSpreadsheet = $raConfig['idSpreadsheet'];
     }
 
     /**
@@ -63,12 +65,15 @@ class SEEDGoogleSheets
         $requestBody->values = $values;
 
         //$response = $service->spreadsheets_values->append($spreadsheetId, $range, $requestBody);
-        $response = $this->oService->spreadsheets_values->update($this->idSheet, $range, $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+        $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, $range, $requestBody, ['valueInputOption' => 'USER_ENTERED']);
 
     //  $response = $this->googleSheets->updateSheet( $values, $range,$spreadsheetId );
 
+        // we are not smart enough to update our cache
+        $this->raValuesCache = $this->raRangeCache = null;
+
         //TODO Process response body and return neccesary information
-    	return $response;
+        return $response;
     }
 
     /**
@@ -79,20 +84,85 @@ class SEEDGoogleSheets
      * @return array of values retrieved from spreadsheet.
      * @throws Exception - If the underlying call to the google API throws an error
      */
-    function GetValues( String $range )
+    function GetValues( String $range ) : array
     {
-        $response = $this->oService->spreadsheets_values->get($this->idSheet, $range, ['majorDimension' => 'ROWS']);
+        if( !$this->raValuesCache ) {
+            $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, $range, ['majorDimension' => 'ROWS']);
+            $this->raValuesCache = $response->values;
+            $this->raRangeCache = $response->range;
+            // what else is in the response?
+        }
 
-        return( [$response->values, $response->range] );
+        return( $this->raValuesCache ); // [$response->values, $response->range] );
     }
 
-    // May be useful in the future to convert an index in an array to the corresponding A1 notation column name
-    function indexToColumnName(int $index)
+    /**
+     * Get properties about a range
+     * @param String - A1 notation containing the area in the spreadsheet to read the properties from (ex. A1:B3, A:A, Sheetname!A1:Z100, Sheetname)
+     * @return array of properties retrieved from spreadsheet.
+     * @throws Exception - If the underlying call to the google API throws an error
+     */
+    function GetProperties( String $range, array $raParms = [] ) : array
     {
-        $COLUMNS = array("A","B","C","D","E",'F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
-        if($index >= count($COLUMNS)){
-            return indexToColumnName(intdiv($index,count($COLUMNS))-1) . indexToColumnName($index % count($COLUMNS));
+        $raOut = ['rowsGrid' => 0,  // current size of spreadsheet incl unused cells
+                  'colsGrid' => 0,
+                  'rowsUsed' => 0,  // current size of spreadsheet not incl unused cells
+                  'colsUsed' => 0
+                 ];
+
+        /* These might be cached in Google_Service_Sheets but not sure, so make them optional
+         *
+         * Could also parse these values out of the $this->raRangeCache string
+         */
+        if( @$raParms['bGetGridProperties'] ) {
+            $response = $this->oService->spreadsheets->get($this->idSpreadsheet, ["ranges" => [$range], "fields" => "sheets(properties(gridProperties(columnCount,rowCount)))"]);
+            $gridProperties = $response[0]->getProperties()->getGridProperties();
+            $raOut['rowsGrid'] = $gridProperties->getRowCount();
+            $raOut['colsGrid'] = $gridProperties -> getColumnCount();
         }
-        return $COLUMNS[$index];
+
+        /* Get the values in the range and count their extent
+         */
+        $raRows = $this->GetValues($range);
+        $raOut['rowsUsed'] = count($raRows);
+        foreach( $raRows as $raCols ) {
+            $raOut['colsUsed'] = max($raOut['colsUsed'], count($raCols));
+        }
+
+        return( $raOut );
+    }
+}
+
+
+/* Manage Google Sheets that have named columns
+ */
+class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
+{
+    function __construct( $raConfig )
+    {
+        parent::__construct($raConfig);
+    }
+
+    /**
+     * Get array of the first row, which should be names of the columns
+     * @param String $nameSheet - name of the sheet to read
+     * @return array of column names
+     */
+    function GetColumnNames( String $nameSheet ) : array
+    {
+        $ra = $this->GetValues($nameSheet);   // returns a 2D array of all rows in the sheet
+        return( @$ra[0][0] ? $ra[0] : [] );
+    }
+
+    /**
+     * Get 2D array of the rows (not including the column names) starting at row 2
+     * @param String $nameSheet - name of the sheet to read
+     * @return array of rows
+     */
+    function GetRows( String $nameSheet ) : array
+    {
+        $ra = $this->GetValues($nameSheet);   // returns a 2D array of all rows in the sheet
+        array_shift($ra);
+        return( $ra );
     }
 }
