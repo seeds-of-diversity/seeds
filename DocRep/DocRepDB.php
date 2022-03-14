@@ -372,7 +372,7 @@ class DocRepDB2 extends DocRep_DB
         $parms['dr_data_text'] = $oXML->getAttribute('data_text');
         $parms['dr_flag'] = '';
 
-        $parms['dr_posUnder'] = $kParent;
+        $parms['dr_posUnderLastChild'] = $kParent;
 
         // add current to database
         $oDoc = new DocRepDoc2_Insert( $this );
@@ -1124,7 +1124,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         return( $ok );
     }
 
-    function deleteVersion( $iVer )
+    function DeleteVersion( $iVer )
     /**
      * delete a version of the doc
      * set status to -1
@@ -1139,7 +1139,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         return( $ok );
     }
 
-    function restoreVersion( $iVer )
+    function RestoreVersion( $iVer )
     /**
      * restore a version of the doc
      * set status to 0
@@ -1152,6 +1152,36 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $ok = $kfrData->PutDBRow();
         }
         return( $ok );
+    }
+
+    function MoveUp( $steps = 1 ){
+
+        if( $steps <= 0 ){ // not moving
+            return false;
+        }
+        $sibOrder = $this->GetSibOrder(); // siborder of current
+
+        while( $sibOrder > 1 && $steps > 0 ){ // swap current and previous
+            $this->oDocRepDB->kfdb->Execute("UPDATE docrep2_docs SET siborder=siborder+1 WHERE kDoc_parent =" .$this->GetParent() ." AND siborder=" .($sibOrder-1)); // move sibling down
+            $this->oDocRepDB->kfdb->Execute("UPDATE docrep2_docs SET siborder=siborder-1 WHERE _key=" .$this->GetKey()); // move current up
+            $steps -= 1;
+            $sibOrder -= 1;
+        }
+    }
+
+    function MoveDown( $steps = 1 ){
+        if( $steps <= 0 ){ // not moving
+            return false;
+        }
+        $sibOrder = $this->GetSibOrder(); // siborder of current
+        $maxSibOrder = $this->oDocRepDB->kfdb->Query1( "SELECT MAX(siborder) FROM docrep2_docs WHERE kDoc_parent=" .$this->GetParent() );
+
+        while( $sibOrder < $maxSibOrder && $steps > 0 ){ // swap current and next
+            $this->oDocRepDB->kfdb->Execute("UPDATE docrep2_docs SET siborder=siborder-1 WHERE kDoc_parent =" .$this->GetParent() ." AND siborder=" .($sibOrder+1)); // move sibling up
+            $this->oDocRepDB->kfdb->Execute("UPDATE docrep2_docs SET siborder=siborder+1 WHERE _key=" .$this->GetKey()); // move current up
+            $steps -= 1;
+            $sibOrder += 1;
+        }
     }
 }
 
@@ -1253,8 +1283,11 @@ class DocRepDoc2_Insert extends DocRepDoc2
         if( $this->GetKey() )  return( false );                        // $this must be a blank DocRepDoc
 
         if( @$parms['dr_name'] ) {
-            if( @$parms['dr_posUnder'] ) {
+            if( @$parms['dr_posUnder']) {
                 $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posUnder'])->GetNewDocName( $parms['dr_name'], true );
+            }
+            else if ( @$parms['dr_posUnderLastChild'] ) {
+                $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posUnderLastChild'])->GetNewDocName( $parms['dr_name'], true );
             }
             else if( @$parms['dr_posAfter'] ) {
                 $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posAfter'])->GetNewDocName( $parms['dr_name'], false );
@@ -1289,7 +1322,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
             $kfrDoc->SetValue( 'kDoc_parent', DocRepDB2::DOCREP_PARENT_SFILE );
             $kfrDoc->SetValue( 'siborder', 0 );
         } else {
-            $this->insert_ParentSiborder( $kfrDoc, intval(@$parms['dr_posUnder']), intval(@$parms['dr_posAfter']) );
+            $this->insert_ParentSiborder( $kfrDoc, intval(@$parms['dr_posUnder']), intval(@$parms['dr_posUnderLastChild']), intval(@$parms['dr_posAfter']) );
         }
 
         /* Set the dr_parms into the records
@@ -1321,10 +1354,11 @@ class DocRepDoc2_Insert extends DocRepDoc2
         return( $this->kDoc );
     }
 
-    private function insert_ParentSiborder( $kfrDoc, $posUnderParent, $posAfterSibling )
+    private function insert_ParentSiborder( $kfrDoc, $posUnderParent, $posUnderParentLast, $posAfterSibling )
     /***********************************************************************************
      */
     {
+
 // There is no way to insert at (0,1) - the first root position
 // Haven't decided whether to allow uncontained documents (0,0)
         if( $posUnderParent ) {
@@ -1337,7 +1371,21 @@ class DocRepDoc2_Insert extends DocRepDoc2
             $kfrDoc->SetValue( "kDoc_parent", $posUnderParent );
             $kfrDoc->SetValue( "siborder", 1 );
 
-        } else if( $posAfterSibling ) {
+        }
+        else if( $posUnderParentLast ){
+            // insert doc as last child of parent
+            $i = intval( $this->oDocRepDB->kfdb->Query1( "SELECT MAX(siborder) FROM docrep2_docs WHERE kDoc_parent='$posUnderParentLast'" ) );
+
+            if( $i ) { // if there are other siblings
+                $kfrDoc->SetValue( "kDoc_parent", $posUnderParentLast );
+                $kfrDoc->SetValue( "siborder", $i+1 );
+            }
+            else { // if no other siblings
+                $kfrDoc->SetValue( "kDoc_parent", $posUnderParentLast );
+                $kfrDoc->SetValue( "siborder", 1 );
+            }
+        }
+        else if( $posAfterSibling ) {
             /* Insert the new document as the next sibling after the given sibling
              */
             $ra = $this->oDocRepDB->kfdb->QueryRA( "SELECT kDoc_parent as parent,siborder FROM docrep2_docs WHERE _key='$posAfterSibling'" );
