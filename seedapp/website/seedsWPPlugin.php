@@ -36,6 +36,28 @@ function seedsWPStart()
 
     // add our css and js files to the <head>
     add_action( 'wp_enqueue_scripts', 'seedsWPPlugin_EnqueueStylesAndScripts' );
+
+    // add an Event Control item to the wp-admin menu
+    add_action( 'admin_menu', 'seedsWPPlugin_addEventControlMenu' );
+}
+
+function seedsWPPlugin_addEventControlMenu()
+{
+    add_menu_page( "Event Control", "Event Control", 'manage_options', 'eventctrl', 'seedsWPEventControlMenu', '', null );
+}
+
+function seedsWPEventControlMenu()
+{
+    if( SEEDInput_Str('test') ) {
+
+        if( function_exists( 'save_event' ) ) {
+            save_event();
+        } else {
+            echo "<p>There is no save_event function</p>";
+        }
+    }
+
+    echo "<p>Click this button to test save_events() <form method='post' action='admin.php?page=eventctrl'><input type='submit' name='test' value='Test'/></form></p>";
 }
 
 
