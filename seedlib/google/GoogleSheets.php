@@ -97,6 +97,58 @@ class SEEDGoogleSheets
     }
 
     /**
+     * @param $range - row number
+     * @return 1D array of row
+     */
+    function GetRow( $range ) : array
+    {
+        if( is_int($range) || ctype_digit($range) ) {
+            $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "$range:$range");
+            $values = $response->getValues()[0];
+            return $values;
+        }
+        return [];
+    }
+
+    /**
+     *
+     * @param $range - column letter
+     * @return 1D array of column
+     */
+    function GetColumn( $range ) : array
+    {
+        if( ctype_alpha($range) ) {
+            $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "$range:$range");
+            $values = $response->getValues();
+            for($i = 0; $i < count($values); $i++){
+                $values[$i] = $values[$i][0];
+            }
+            return $values;
+        }
+        return [];
+    }
+    /**
+     * set row in spreadsheet
+     * @param row number
+     * @param array of values to set
+     * @return response
+     */
+    function setRow( $range, $values )
+    {
+        $end = $this->NumberToColumnLetter(count($values)); // find last column index
+
+        // for now, $values needs to be array with values
+        // TODO: allow values to be associative array with keys and values (keys being first row)
+
+        $values = array($values);
+        $requestBody = new Google_Service_Sheets_ValueRange();
+        $requestBody->values = $values;
+        $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, "A$range:$end$range", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+
+        return $response;
+    }
+
+    /**
      * Get properties about a range
      * @param String - A1 notation containing the area in the spreadsheet to read the properties from (ex. A1:B3, A:A, Sheetname!A1:Z100, Sheetname)
      * @return array of properties retrieved from spreadsheet.
@@ -130,6 +182,24 @@ class SEEDGoogleSheets
         }
 
         return( $raOut );
+    }
+
+    /**
+     * converts integer to column letter
+     * eg. 1 = A, 2 = B, 27 = AA
+     * @param int $columnNumber
+     * @return string column letter
+     */
+    function NumberToColumnLetter( int $columnNumber )
+    {
+        $columnName = "";
+
+        while ($columnNumber > 0) {
+            $modulo = ($columnNumber - 1) % 26; // get current letter
+            $columnName = (chr(65 + $modulo)) . $columnName; // convert current letter to ascii
+            $columnNumber = intdiv(($columnNumber - $modulo), 26);
+        }
+        return $columnName;
     }
 }
 
@@ -165,4 +235,15 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
         array_shift($ra);
         return( $ra );
     }
+
+    function setRowKeys( $range, $values ){
+
+        // loop through each index in values
+            // find letter of the column
+            // if letter exist
+                // add value at specific box
+            // if letter not exist
+                // create new column or ignore
+    }
+
 }
