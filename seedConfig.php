@@ -55,10 +55,14 @@ define("SEED_isCLI", php_sapi_name() == 'cli' );
 define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"],0,9) == "localhost") ? true : false));
 
 
-/* Activate full error reporting in development environments, not in production
- * You can define SEED_display_errors = true to turn on error reporting when you have weird production problems
+/* Activate full error reporting in development environments, not in production  (SEED_isLocal)
+ * Use SEED_display_errors=true  when you have weird problems on production server
+ * Use SEED_display_errors=false when on local server and third-party code generates annoying warnings (this turns off all error reporting for all code)
  */
-if( SEED_isLocal || defined("SEED_display_errors") ) {
+if( !defined("SEED_display_errors") ) {
+    define( "SEED_display_errors", SEED_isLocal );
+}
+if( SEED_display_errors ) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', 1);
     ini_set('html_errors', 1);
