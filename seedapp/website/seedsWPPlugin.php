@@ -1,8 +1,23 @@
 <?php
 
+/*
+ * Seeds plugin for Wordpress
+ *
+ * Copyright 2021-2022 Seeds of Diversity Canada
+ *
+ * Customization for the Seeds of Diversity web sites.
+ *
+ * 1. Copy the seeds.php file to into wp-content/plugins
+ * 2. Configure the includes in seeds.php so it can find this file.
+ * 3. Don't put any code in seeds.php. Put it here so you don't have to keep copying seeds.php
+ */
+
+
 include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
 
-include_once( SITEROOT."drupalmod/lib/d8_seedbreeze.php" );
+if( defined("SITEROOT") ) {
+    include_once( SITEROOT."drupalmod/lib/d8_seedbreeze.php" );
+}
 
 
 function seedsWPStart()
@@ -38,6 +53,8 @@ function seedsWPPlugin_EnqueueStylesAndScripts()
 
 function seedsWPPlugin_Filter( $content )
 {
+    if( !function_exists("Drupal8Template") )  goto done;   // old code might not be installed, just ignore
+
     $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( [] );
 
     $oTmpl = new Drupal8Template( $oApp, [] );
@@ -49,6 +66,7 @@ function seedsWPPlugin_Filter( $content )
 //    $content = SEEDROOT." ".SEEDW." ".SEEDW_URL
 //              ."<br/><br/>".$content;
 
+    done:
     return( $content );
 }
 
