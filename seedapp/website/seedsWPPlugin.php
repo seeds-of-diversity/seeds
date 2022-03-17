@@ -37,42 +37,50 @@ function seedsWPStart()
     // add our css and js files to the <head>
     add_action( 'wp_enqueue_scripts', 'seedsWPPlugin_EnqueueStylesAndScripts' );
 
-    // add an Event Control item to the wp-admin menu
-    add_action( 'admin_menu', 'seedsWPPlugin_addEventControlMenu' );
+    // add Event Control item to the wp-admin menu.
+    seedsWPPlugin_EventControl::init();
 }
 
-function seedsWPPlugin_addEventControlMenu()
+class seedsWPPlugin_EventControl
 {
-    add_menu_page( "Event Control", "Event Control", 'manage_options', 'eventctrl', 'seedsWPEventControlMenu', '', null );
-}
-
-function seedsWPEventControlMenu()
-{
-    if( SEEDInput_Str('test') ) {
-        /* find the MEC code, include its initialization, and make sure we can access class MEC_main
-         */
-        $f = "../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php";
-        if( !file_exists($f) ) {
-            echo "Can't include $f"; return;
-        }
-        include($f);
-        if( !class_exists( 'MEC_main' ) ) {
-            echo "<p>There is no MEC_main class</p>"; return;
-        }
-
-        /* Save an event
-         */
-        $o = new MEC_main();
-        echo "Saving event ".$o->save_event([]);    // add test parameters here!
+    /* Add Event Control item to the wp-admin menu.
+     * WP wants an admin_menu action to trigger an add_menu_page(), which specifies a function to draw the menu page
+     */
+    static function init()
+    {
+        add_action( 'admin_menu', ['seedsWPPlugin_EventControl', 'addMenu'] );
     }
+    static function addMenu()
+    {
+        add_menu_page( "Event Control", "Event Control", 'manage_options', 'eventctrl', ['seedsWPPlugin_EventControl', 'drawMenu'], '', null );
+    }
+    static function drawMenu()
+    {
+        if( SEEDInput_Str('test') ) {
+            /* find the MEC code, include its initialization, and make sure we can access class MEC_main
+             */
+            $f = "../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php";
+            if( !file_exists($f) ) {
+                echo "Can't include $f"; return;
+            }
+            include($f);
+            if( !class_exists( 'MEC_main' ) ) {
+                echo "<p>There is no MEC_main class</p>"; return;
+            }
 
-    echo "<p>Click this button to test save_events()
-          <form method='get' action='?page=eventctrl'>
-          <input type='hidden' name='page' value='eventctrl'/>
-          <input type='submit' name='test' value='Test'/>
-          </form></p>";
+            /* Save an event
+             */
+            $o = new MEC_main();
+            echo "Saving event ".$o->save_event([]);    // add test parameters here!
+        }
+
+        echo "<p>Click this button to test save_events()
+              <form method='get' action='?page=eventctrl'>
+              <input type='hidden' name='page' value='eventctrl'/>
+              <input type='submit' name='test' value='Test'/>
+              </form></p>";
+    }
 }
-
 
 function seedsWPPlugin_EnqueueStylesAndScripts()
 {
