@@ -15,10 +15,22 @@
 define("SEED_display_errors",0);    // the evolve theme throws so many warnings so turn off error reporting on local server
 
 if( !defined( "SEEDROOT" ) ) {
-    define( "SEEDROOT", "../seeds/");   // expecting seeds/ to be a sibling folder with wordpress/
     define( "SEED_APP_BOOT_REQUIRED", true );
+
+    /* if seeds/ is a sibling folder with wordpress/
+     * then the regular wordpress site will find seeds one level up
+     * and the wp-admin site will find seeds two levels up.
+     * Otherwise you have to change this so SEEDROOT points to seeds/
+     */
+    if( !file_exists( ($d = "../seeds/")."seedConfig.php" ) &&
+        !file_exists( ($d = "../../seeds/")."seedConfig.php" ) )
+    {
+        die("wp-content/plugins/seeds.php : cannot find seedConfig.php");
+    }
+    define( "SEEDROOT", $d );
     include_once( SEEDROOT."seedConfig.php" );
 }
+
 include_once( SEEDAPP."website/seedsWPPlugin.php" );
 
 if( function_exists('seedsWPStart') ) {
