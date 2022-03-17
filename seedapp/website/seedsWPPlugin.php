@@ -49,15 +49,28 @@ function seedsWPPlugin_addEventControlMenu()
 function seedsWPEventControlMenu()
 {
     if( SEEDInput_Str('test') ) {
-
-        if( function_exists( 'save_event' ) ) {
-            save_event();
-        } else {
-            echo "<p>There is no save_event function</p>";
+        /* find the MEC code, include its initialization, and make sure we can access class MEC_main
+         */
+        $f = "../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php";
+        if( !file_exists($f) ) {
+            echo "Can't include $f"; return;
         }
+        include($f);
+        if( !class_exists( 'MEC_main' ) ) {
+            echo "<p>There is no MEC_main class</p>"; return;
+        }
+
+        /* Save an event
+         */
+        $o = new MEC_main();
+        echo "Saving event ".$o->save_event([]);    // add test parameters here!
     }
 
-    echo "<p>Click this button to test save_events() <form method='post' action='admin.php?page=eventctrl'><input type='submit' name='test' value='Test'/></form></p>";
+    echo "<p>Click this button to test save_events()
+          <form method='get' action='?page=eventctrl'>
+          <input type='hidden' name='page' value='eventctrl'/>
+          <input type='submit' name='test' value='Test'/>
+          </form></p>";
 }
 
 
