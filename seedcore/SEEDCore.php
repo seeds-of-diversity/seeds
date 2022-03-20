@@ -178,7 +178,7 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
                      a function with args (k,v,parms) that returns a potentially different version of the template for each array element
                                 e.g. function ($k,$v,$parms) { return( $v==1 ? "[[v]] seed" : "[[v]] seeds" ); }
 
-    raParms: sTemplateFirst : use this template on the first element (if main template is a string)
+    raParms: sTemplateFirst : use this template on the first element (if main template is a string) - N.B. this overrides Last if count()==1, so it's safe to use "and [[v]]" for Last
              sTemplateLast  : use this template on the last element (if main template is a string)
  */
 {
