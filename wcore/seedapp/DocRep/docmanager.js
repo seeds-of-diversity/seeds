@@ -93,7 +93,7 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule", xml:"XML" };
+        oConfig.defTabs = { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule", xml:"Advanced" };
 
         super(oConfig);
 
@@ -506,7 +506,7 @@ class myDocRepCtrlView_Rename
                  		<input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/>
                  	</div>
                 </div>`
-               +(DocRepCtrlView.oStaticConfig.ui.eUILevel >= 2 ?
+               +(this.oCtrlView.oConfig.ui.eUILevel >= 2 ?
                `<div class='row'> 
                 	<div class=${label}>Permissions</div> 
                 	<div class=${ctrl}>
@@ -970,7 +970,27 @@ class myDocRepCtrlView_XML
 		$(`#${parentID}`).append(`<div><button type='button' onclick='myDocRepCtrlView_XML.import()'>import xml</button></div>`);
 		$(`#${parentID}`).append(`<div id='drXML_export'></div>`);
 		$(`#${parentID}`).append(`<textarea id='drXML_import'></textarea>`);
+        
+        if( this.oCtrlView.oConfig.ui.eUILevel_devctrl ) {
+            // show a dev control that lets us switch the eUILevel
+            $('#docrepctrlview_eUILevelForm').remove();
+            let l = this.oCtrlView.oConfig.ui.eUILevel;
+            $(`#${parentID}`).append(`<div id='docrepctrlview_eUILevelForm' style=''>
+                                        Choose UI Level:<br/>
+                                        <select id='docrepctrlview_eUILevelSelect' onchange='myDocRepCtrlView_XML.eUILevelSelect()'>
+                                        <option value='0' `+(l==0 ? 'selected' : '') +` >Readonly</option>
+                                        <option value='1' `+(l==1 ? 'selected' : '') +` >Author</option>
+                                        <option value='2' `+(l==2 ? 'selected' : '') +` >Admin</option>
+                                        <option value='3' `+(l==3 ? 'selected' : '') +` >Advanced</option>  
+                                     </div>`);
+        }
 	}
+
+    static eUILevelSelect()
+    {
+        this.oCtrlView.oConfig.ui.eUILevel = $('#docrepctrlview_eUILevelSelect').val();
+        this.oCtrlView.fnHandleEvent('ctrlviewRedraw');
+    }
 	
 	static export()
     {
