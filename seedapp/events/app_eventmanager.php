@@ -42,14 +42,14 @@ echo Console02Static::HTMLPage( utf8_encode($s), "", 'EN', ['consoleSkin'=>'gree
 // testing code
 
 $testEvent = array(
-    'id' => 1,
-    'title' => 'Oakville Seedy Saturday',
-    'city' => 'Oakville',
-    'address' => '123 Some street',
+    'id' => 8,
+    'title' => 'Oakville Seedy Saturday12345',
+    'city' => 'Oakville12345',
+    'address' => '123 Some street12345',
     'date' => '2022-03-26',
     'time_start' => '10:00',
     'time_end' => '15:00',
-    'contact' => 'somebody@someemail.ca'
+    'contact' => 'somebody@someemail.ca12345'
 );
 
 $testEvent2 = array(
@@ -73,7 +73,7 @@ foreach( $raRows as $k=>$v ){
 }
 */
 
-$oES->AddEventToSpreadSheet($testEvent2);
+$oES->AddEventToSpreadSheet($testEvent);
 
 class EventsSheet
 /****************
@@ -260,59 +260,40 @@ class EventsSheet
      * update or add event to spreadsheet
      * @param $parms array of parameters for an event
      */
-    // NOTE: $parms must be a 1d array in same order as spreadsheet
-    // $parms can only have values
-    // TODO: add new funciton in NamedColumns that can accept unordered associative array `````````````````````````
     function AddEventToSpreadSheet( $parms )
     {
-        // check if id exist
-        $exist = false;
+        $exist = false; // if event already exist on spreadsheet
         $spreadSheetRow = 0; // row in spreadsheet if event already exists in spreadsheet
 
         $raId = $this->oGoogleSheet->GetColumn("A"); // get all row's id
+
         foreach( $raId as $k=>$v ) { // check if id in spreadsheet matches with id in $parms
-            if( $v == $parms[0] ) {
+
+            if(isset($parms['id'])) { // if $parms is associative array with string index
+                $id = $parms['id'];
+            }
+            else{ // if $parms is array with integer index
+                $id = $parms[0];
+            }
+
+            if( $v == $id ) { //if id in spreadsheet matches with id in $parms
                 $exist = true;
                 $spreadSheetRow = $k+1; // row of current event
             }
         }
 
-        if( $exist ) { // if id exist, update
-            var_dump("entry already exist");
-            var_dump($spreadSheetRow);
-            $this->oGoogleSheet->setRow($spreadSheetRow, $parms);
+        if( !$exist ) { // if event does not exist in spreadsheet
+            $spreadSheetRow = count($raId) + 1; // add to next available row
         }
-        else { // if not exist, add new
-            var_dump("create new entry");
-            $spreadSheetRow = count($raId) + 1; // next available row
-            $this->oGoogleSheet->setRow($spreadSheetRow, $parms);
+
+        if(isset($parms['id'])){ // if $parms is associative array with string index
+            $this->oGoogleSheet->SetRowWithAssociativeArray($spreadSheetRow, $parms);
         }
+        else{// if $parms is array with integer index
+            $this->oGoogleSheet->SetRow($spreadSheetRow, $parms);
+        }
+
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
