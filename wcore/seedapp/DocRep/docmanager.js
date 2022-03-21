@@ -491,7 +491,7 @@ class myDocRepCtrlView_Rename
         const ctrl = 'col-md-6';
         
         $(`#${parentID}`).empty();
-        
+   
         $(`#${parentID}`).html(`
         	<form onsubmit='myDocRepCtrlView_Rename.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
         		<div class='row'> 
@@ -505,14 +505,16 @@ class myDocRepCtrlView_Rename
                  	<div class=${ctrl}>
                  		<input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/>
                  	</div>
-                </div>
-                <div class='row'> 
+                </div>`
+               +(DocRepCtrlView.oStaticConfig.ui.eUILevel >= 2 ?
+               `<div class='row'> 
                 	<div class=${label}>Permissions</div> 
                 	<div class=${ctrl}>
                 		<input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/>
                 	</div>
-                </div>
-                <input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
+                </div>`
+               : "" )
+              +`<input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
                 <input type='submit' value='Change'/>
 			</form>`);
     }
@@ -1031,7 +1033,8 @@ class DocRepUI02
 
         this.oCtrlView = new myDocRepCtrlView(
                         { fnHandleEvent: this.HandleRequest.bind(this),        // tell the object how to send events here
-                          env: oConfig.env                                     // tell the ctrlview how to interact with the application environment 
+                          env: oConfig.env,                                    // tell the ctrlview how to interact with the application environment 
+                          ui: oConfig.ui                                       // tell the ctrlview our preferences about the ui (e.g. which controls to make available to the current user)
                         } );
 
         this.kCurrDoc = 0;
@@ -1116,6 +1119,10 @@ var oDocRepApp02_Config = {
     env: { 
         seedw_url:    '../../wcore/',         // url to seeds wcore directory
         q_url:        ''                      // url to server that handles QServerDocRep commands
+    },
+    ui: {
+        eUILevel: 0,                          // 0=readonly, 1=author, 2=admin, 3=advanced
+        eUILevel_devctrl: false,              // true: show a control to switch eUILevel
     },
     docsPreloaded: null                       // array of docs pre-loaded for DocRepTree
 };

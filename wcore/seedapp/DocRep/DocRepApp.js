@@ -272,12 +272,23 @@ class DocRepTree
 
 
 /* TODO: this is a generic tabbed CtrlView widget if you rename the ids. Put it in a generic Console class or derive this from one.
- */ 
+ */
+
 class DocRepCtrlView
 {
+    // Store configuration statically so it can be accessed by static methods, which are called by html controls
+    static oStaticConfig = {
+        ui: {
+            eUILevel: 0,                          // 0=readonly, 1=author, 2=admin, 3=advanced
+            eUILevel_devctrl: false               // true: show a control to switch eUILevel
+        },
+        oCtrlView: null
+    };
     constructor( oConfig )
     {
         this.fnHandleEvent = oConfig.fnHandleEvent;     // use this to communicate with widgets/app
+        DocRepCtrlView.oStaticConfig.ui = oConfig.ui;
+        DocRepCtrlView.oStaticConfig.oCtrlView = this;
         
         // initialize ctrlMode then use derived method (or base method if no subclass)
         this.ctrlMode = "";
@@ -340,7 +351,26 @@ class DocRepCtrlView
 			$(`#${parentID}`).empty();
             this.DrawCtrlView_Render(parentID, kCurrDoc );
             this.DrawCtrlView_Attach();
+
+            if( DocRepCtrlView.oStaticConfig.ui.eUILevel_devctrl ) {
+                // show a dev control that lets us switch the eUILevel
+                $('#docrepctrlview_eUILevelForm').remove();
+                let l = DocRepCtrlView.oStaticConfig.ui.eUILevel;
+                $(`#${parentID}`).after(`<div id='docrepctrlview_eUILevelForm' style='border:1px solid #aaa'>
+                                            <select id='docrepctrlview_eUILevelSelect' onchange='DocRepCtrlView.eUILevelSelect()'>
+                                            <option value='0' `+(l==0 ? 'selected' : '') +` >Readonly</option>
+                                            <option value='1' `+(l==1 ? 'selected' : '') +` >Author</option>
+                                            <option value='2' `+(l==2 ? 'selected' : '') +` >Admin</option>
+                                            <option value='3' `+(l==3 ? 'selected' : '') +` >Advanced</option>  
+                                         </div>`);
+            }
         }
+    }
+
+    static eUILevelSelect()
+    {
+        DocRepCtrlView.oStaticConfig.ui.eUILevel = $('#docrepctrlview_eUILevelSelect').val();
+        DocRepCtrlView.oStaticConfig.oCtrlView.fnHandleEvent('ctrlviewRedraw');
     }
 
     DrawCtrlView_Render( kCurrDoc, parentID )
