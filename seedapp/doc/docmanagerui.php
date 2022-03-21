@@ -97,11 +97,7 @@ class DocManagerUI_Documents
             $raDocMetadata = [];
         }
         $c = implode(',', array_keys($raChildren));
-        $md = "";
-        foreach( $raDocMetadata as $k => $v ) {
-            $md .= ($md ? ", " : "")
-                  ."$k:'".SEEDCore_HSC($v)."'";
-        }
+        $md = SEEDCore_ArrayExpandSeries( $raDocMetadata, "'[[k]]':'[[v]]'", true, ['delimiter'=>","] );
 
         $s .= "[$kDoc, { k:$kDoc, name:'$n', title:'$ti', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', perms:'$perms', docMetadata:{ $md } }],";
 
