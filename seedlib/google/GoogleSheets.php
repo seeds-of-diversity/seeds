@@ -21,7 +21,7 @@
 class SEEDGoogleSheets
 {
     public  $oService;
-    private $idSpreadsheet;
+    protected $idSpreadsheet;
     private $raValuesCache = null;      // it's also not a bad assumption that Google_Service_Sheets class caches this, so maybe don't bother
     private $raRangeCache = null;
 
@@ -40,6 +40,7 @@ class SEEDGoogleSheets
         //$oClient->setSubject( getenv( 'GOOGLE_SERVICE_ACCOUNT_NAME' ) );
         $this->oService = new Google_Service_Sheets( $oClient );
         $this->idSpreadsheet = $raConfig['idSpreadsheet'];
+        var_dump($this->idSpreadsheet);
     }
 
     /**
@@ -133,13 +134,9 @@ class SEEDGoogleSheets
      * @param array of values to set
      * @return response
      */
-    function setRow( $range, $values )
+    function SetRow( $range, $values )
     {
         $end = $this->NumberToColumnLetter(count($values)); // find last column index
-
-        // for now, $values needs to be array with values
-        // TODO: allow values to be associative array with keys and values (keys being first row)
-
         $values = array($values);
         $requestBody = new Google_Service_Sheets_ValueRange();
         $requestBody->values = $values;
@@ -236,14 +233,25 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
         return( $ra );
     }
 
-    function setRowKeys( $range, $values ){
+    /**
+     * set row in spreadsheet
+     * @param $range row number
+     * @param $values associative array where the key matches column names
+     */
+    function SetRowWithAssociativeArray( $range, $values )
+    {
+        $requestBody = new Google_Service_Sheets_ValueRange();
+        $columns = $this->GetColumnNames($range);
 
-        // loop through each index in values
-            // find letter of the column
-            // if letter exist
-                // add value at specific box
-            // if letter not exist
-                // create new column or ignore
+        foreach( $values as $k=>$v ) {
+            foreach( $columns as $k2=>$v2 ) { // compare each column to $values key
+
+                if( $k == $v2 ){ // if $values key matches column name
+                    $column = $this->NumberToColumnLetter($k2 + 1); // column to change in spreadsheet
+                    $requestBody->values = array(array($v)); // input needs to be 2d array
+                    $this->oService->spreadsheets_values->update($this->idSpreadsheet, "$column$range:$column$range", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+                }
+            }
+        }
     }
-
 }
