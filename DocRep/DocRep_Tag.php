@@ -59,8 +59,28 @@ class DocRep_TagHandler
                  */
                 if( ($oDoc = $this->oDocRepDB->GetDoc($raTag['target'])) ) {
                     $s = $oDoc->GetText('');
+                    // including doc's vars override included doc's vars
                     $raVars = array_merge( $oDoc->GetDocMetadataRA_Inherited(),
-                                           @$raParms['raVarsFromIncluder'] ?: [] ); // including doc's vars override included doc's vars
+                                           @$raParms['raVarsFromIncluder'] ?: [] );
+                    $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$raParms['oDocReference'], 'raVarsFromIncluder'=>$raVars]];
+                    $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
+                    $s = $oTmpl->ExpandStr($s, $raVars);
+                }
+                $bHandled = true;
+                break;
+
+            case 'docrep-template-body':
+                /* In a template, include the main referring doc (oDocReference)
+                 * The template's text is being expanded with its vars overridden by main-doc vars, and oDocReference is the main-doc.
+                 * That means there is no need to re-override or re-scope vars, and all metadata (name, title, etc) is coming from the main-doc.
+                 */
+                if( @$raParms['bKlugeInTemplate'] &&    // Only do this if expanding a docrep-template because if oDocReference is the template this makes an infinite loop
+                                                        // Another way would be to provide the actual current doc in addition to oDocReference and see if they are the same.
+                    ($oDoc = $raParms['oDocReference']) )
+                {
+                    $s = $oDoc->GetText('');
+                    // the template is already using its vars overridden by oDocReference's vars
+                    $raVars = @$raParms['raVarsFromIncluder'] ?: [];
                     $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$raParms['oDocReference'], 'raVarsFromIncluder'=>$raVars]];
                     $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
                     $s = $oTmpl->ExpandStr($s, $raVars);

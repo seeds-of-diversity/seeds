@@ -122,10 +122,26 @@ class QServerDocRep extends SEEDQ
                     if( @$parms['bExpand'] ) {
                         include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
                         $raVars = $oDoc->GetDocMetadataRA_Inherited();
-                        //$raMT = ['EnableDocRep'=>true, 'oDocRepDB'=>$this->oDocRepDB, 'DocRepParms'=>['raVarsFromIncluder'=>$raVars]];
-                        $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars]];
-                        $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
-                        $s = $oTmpl->ExpandStr($s, $raVars);
+                        if( ($drTemplate = @$raVars['docrep-template']) ) {
+                            // expand the doc within a template
+                            if( ($oDocTemplate = $this->oDocRepDB->GetDoc($drTemplate)) ) {
+                                /* Template text is expanded with the template's vars overridden by the main doc's vars
+                                 * and oDocReference set to the main doc so metadata (name, title, parent, etc) come from there.
+                                 */
+                                $sTemplate = $oDocTemplate->GetText('');
+                                $raVars = array_merge( $oDocTemplate->GetDocMetadataRA_Inherited(), $raVars );
+                                $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars, 'bKlugeInTemplate'=>true]];
+                                $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
+                                $s = $oTmpl->ExpandStr($sTemplate, $raVars);
+                            } else {
+                                $s = "Cannot find template '$drTemplate'";
+                            }
+                        } else {
+                            // expand the doc directly
+                            $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars]];
+                            $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
+                            $s = $oTmpl->ExpandStr($s, $raVars);
+                        }
                     }
                     break;
                 case 'BIN':
