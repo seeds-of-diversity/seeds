@@ -230,13 +230,13 @@ class myDocRepCtrlView_Preview
         
         switch( m ) {
             case 'preview':
-                if( (rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc, bExpand: 1} )) ) {
+                if( (rQ = SEEDJXSync( this.oCtrlView.oConfig.env.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc, bExpand: 1} )) ) {
                     s = rQ.bOk ? rQ.sOut : `Cannot get preview for document ${this.kCurrDoc}`;
                     $(`#drCtrlview-preview-body`).append(s);
                 }
                 break;
             case 'source':
-                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                rQ = SEEDJXSync( this.oCtrlView.oConfig.env.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
                     s = "<div style='font-family:monospace'>" 
                       + rQ.sOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') 
@@ -248,11 +248,11 @@ class myDocRepCtrlView_Preview
                 }
                 break;
             case 'edit':
-                rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
+                rQ = SEEDJXSync( this.oCtrlView.oConfig.env.q_url, {qcmd: 'dr-preview', kDoc: this.kCurrDoc} );
                 if( rQ.bOk ) {
                     s = myDocRepCtrlView_Edit.DrawEditor(this.kCurrDoc, rQ.sOut); // create textarea 
                     $(`#drCtrlview-preview-body`).append(s);
-                    myDocRepCtrlView_Edit.InitEditor(this.oCtrlView); // attarch CKEditor to textarea 
+                    myDocRepCtrlView_Edit.InitEditor(this.oCtrlView); // attach CKEditor to textarea 
                 }
                 break;
         }
@@ -493,7 +493,7 @@ class myDocRepCtrlView_Rename
         $(`#${parentID}`).empty();
    
         $(`#${parentID}`).html(`
-        	<form onsubmit='myDocRepCtrlView_Rename.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+        	<form onsubmit='myDocRepCtrlView_Rename.Submit(event)'>
         		<div class='row'> 
         		 	<div class=${label}>Name</div>        
         		 	<div class=${ctrl}>
@@ -519,7 +519,7 @@ class myDocRepCtrlView_Rename
 			</form>`);
     }
     
-   static Submit( e, q_url ) 
+   static Submit( e ) 
    /**
    change name 
     */
@@ -529,8 +529,8 @@ class myDocRepCtrlView_Rename
 		let name = $('#formRename_name').val();
 		let title = $('#formRename_title').val();
 		let permclass = $('#formRename_perms').val();
-	
-		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permclass });
+		
+		let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permclass });
 		if ( !rQ.bOk ) {
 			console.log("error rename");
 		}

@@ -278,8 +278,9 @@ class DocRepCtrlView
 {
     constructor( oConfig )
     {
+        this.oConfig = oConfig;
+        
         this.fnHandleEvent = oConfig.fnHandleEvent;     // use this to communicate with widgets/app
-        this.oConfig = { ui: oConfig.ui };
         
         // initialize ctrlMode then use derived method (or base method if no subclass)
         this.ctrlMode = "";
