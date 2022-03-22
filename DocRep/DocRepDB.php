@@ -1097,6 +1097,8 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
      * update permclass
      */
     {
+        $ok = false;
+
         if( @$parms['permclass'] ) {
             $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
             $kfrDoc->SetValue( 'permclass', $parms['permclass'] );
