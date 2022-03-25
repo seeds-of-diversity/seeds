@@ -240,8 +240,9 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
      */
     function SetRowWithAssociativeArray( $range, $values )
     {
+
         $requestBody = new Google_Service_Sheets_ValueRange();
-        $columns = $this->GetColumnNames($range);
+        $columns = $this->GetColumnNames("Sheet1"); // TODO: dont hard code this 
 
         foreach( $values as $k=>$v ) {
             foreach( $columns as $k2=>$v2 ) { // compare each column to $values key
