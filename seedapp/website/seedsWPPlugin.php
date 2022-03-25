@@ -13,7 +13,40 @@
  */
 
 
+define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', true );
+define( 'WP_DEBUG_DISPLAY', true );
+@ini_set( 'display_errors', 1 );
+
+error_reporting(E_ALL | E_STRICT);
+ini_set('display_errors', 1);
+ini_set('html_errors', 1);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+
+/*******************
+ *
+ *
+ *
+ *
+ * NOTE TO SELF
+ *
+ *
+ * https://wordpress.stackexchange.com/questions/365737/ftp-nlist-and-ftp-pwd-warnings
+ *
+ * define('FS_METHOD', 'direct');
+ * is added to wp-config.php
+ *
+ *
+ *
+ *
+ */
+
+
+
+
 include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
+
 
 if( defined("SITEROOT") ) {
     include_once( SITEROOT."drupalmod/lib/d8_seedbreeze.php" );
@@ -43,12 +76,33 @@ function seedsWPStart()
 
 class seedsWPPlugin_EventControl
 {
+    private static $oES;
+    private static $oMEC;
+
+
     /* Add Event Control item to the wp-admin menu.
      * WP wants an admin_menu action to trigger an add_menu_page(), which specifies a function to draw the menu page
      */
     static function init()
     {
         add_action( 'admin_menu', ['seedsWPPlugin_EventControl', 'addMenu'] );
+
+        $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>'wordpress'] ); //, 'sessPermsRequired'=>["W events"]] )
+
+        include_once( SEEDAPP."website/eventmanager.php" );
+        self::$oES = new EventsSheet($oApp);
+
+        $f = "../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php";
+        if( !file_exists($f) ) {
+            echo "Can't include $f"; return;
+        }
+        include($f);
+        if( !class_exists( 'MEC_main' ) ) {
+            echo "<p>There is no MEC_main class</p>"; return;
+        }
+        self::$oMEC = new MEC_main();
+
+
     }
     static function addMenu()
     {
@@ -56,6 +110,28 @@ class seedsWPPlugin_EventControl
     }
     static function drawMenu()
     {
+
+        $s = self::$oES->DrawForm();
+        echo $s;
+
+        echo "<p>Click this button to test save_events()
+              <form method='get' action='?page=eventctrl'>
+              <input type='hidden' name='page' value='eventctrl'/>
+              <input type='submit' name='test' value='Test'/>
+              </form></p>";
+
+        echo "<p>Export events to spreadsheet</p>
+              <form method='get' action='?page=eventctrl'>
+              <input type='hidden' name='page' value='eventctrl'/>
+              <input type='submit' name='export' value='export'/>
+              </form>";
+
+        echo "<p>Import events from spreadsheet</p>
+              <form method='get' action='?page=eventctrl'>
+              <input type='hidden' name='page' value='eventctrl'/>
+              <input type='submit' name='import' value='import'/>
+              </form>";
+
         if( SEEDInput_Str('test') ) {
             /* find the MEC code, include its initialization, and make sure we can access class MEC_main
              */
@@ -70,15 +146,29 @@ class seedsWPPlugin_EventControl
 
             /* Save an event
              */
-            $o = new MEC_main();
-            echo "Saving event ".$o->save_event([]);    // add test parameters here!
+            //$o = new MEC_main();
+            //echo "Saving event ".$o->save_event([]);    // add test parameters here!
         }
 
-        echo "<p>Click this button to test save_events()
-              <form method='get' action='?page=eventctrl'>
-              <input type='hidden' name='page' value='eventctrl'/>
-              <input type='submit' name='test' value='Test'/>
-              </form></p>";
+        if( SEEDInput_Str('export') ) {
+            var_dump("export button clicked");
+
+            $raEvents = self::$oES->GetEventsFromDB(); // return organized list of events
+
+            foreach($raEvents as $k=>$v){
+                self::$oES->AddEventToSpreadSheet($v); // add each event to spreadsheet
+            }
+
+        }
+        if( SEEDInput_Str('import') ) {
+            var_dump("import button clicked");
+
+            $events = self::$oES->GetEventsFromSheets();
+
+            foreach($events as $k=>$v){
+                self::$oMEC->save_event($v);
+            }
+        }
     }
 }
 
