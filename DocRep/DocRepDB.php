@@ -1078,32 +1078,39 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
     {
         $ok = true;
 
-        if( $ok && @$parms['title'] ) {
+        // change title if it is given and different
+        if( @$parms['title'] && $this->GetTitle('') != $parms['title'] ) {
             $kfrData = $this->getKfrData( $this->kDoc, '' );
             $kfrData->SetValue( 'title', $parms['title'] );
             $ok = $kfrData->PutDBRow();
         }
 
-        if( @$parms['name'] ) {
-
-            if($this->GetName() == $parms['name']){
-                return $ok;
-            }
+        // change name if it is given and different
+        if( $ok && @$parms['name'] && $this->GetName() != $parms['name'] ) {
+            // if there is a sibling with the same name, don't rename
 
             $parent = $this->GetParentObj();
+
+// The sibling check can't be done this way on top-level folders because there is no "zero" object.
+// Instead, do the check using SELECT count(*) FROM docrep2_docs WHERE name='$name' AND kDoc_parent="$this->GetParent" AND _key<>'$this->GetKey'
+if( $parent ) {
+// for now skip the check if there is no parent object (the current doc is a top-level folder)
             $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
 
             foreach( $siblings as $k => $ra ){
                 $name = $this->oDocRepDB->GetDoc($k)->GetName();
                 if( $name == $parms['name'] ){ // if sibling has same name
-                    return false; // dont change name
+                    $ok = false;    // dont change name
+                    goto done;
                 }
             }
+}
             $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name
             $kfrDoc->SetValue( 'name', $parms['name'] );
             $ok = $kfrDoc->PutDBRow();
         }
 
+        done:
         return( $ok );
     }
 
