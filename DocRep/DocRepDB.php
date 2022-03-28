@@ -1075,15 +1075,14 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                 return $ok;
             }
 
-            $parent = $this->GetParentObj();
-            $siblings = $this->oDocRepDB->GetSubTree($parent->GetKey());
+            $parent = $this->GetParent();
+            $raSibNames = $this->oDocRepDB->kfdb->QueryRowsRA1("SELECT name FROM docrep2_docs WHERE kDoc_parent=$parent"); // find all sibling's names
 
-            foreach( $siblings as $k => $ra ){
-                $name = $this->oDocRepDB->GetDoc($k)->GetName();
-                if( $name == $parms['name'] ){ // if sibling has same name
-                    return false; // dont change name
-                }
+            if( in_array($parms['name'], $raSibNames) ) { // if sibling has same name
+                $ok = false; // dont change name
+                return $ok;
             }
+
             $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name
             $kfrDoc->SetValue( 'name', $parms['name'] );
             $ok = $kfrDoc->PutDBRow();
