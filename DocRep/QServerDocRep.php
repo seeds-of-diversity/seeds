@@ -349,7 +349,7 @@ class QServerDocRep extends SEEDQ
     {
         $s = "";
         $bOk = false;
-        if( $kDoc && $parms['xml'] ) {
+        if( isset($kDoc) && $parms['xml'] ) {
             $this->oDocRepDB->ImportXML($parms['kDoc'], $parms['xml']);
             $bOk = true;
         }

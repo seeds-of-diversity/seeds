@@ -412,7 +412,16 @@ class myDocRepCtrlView_Add
 					</div>										
 					<input type='hidden' id='drAdd_kDoc' value='${this.kCurrDoc}'/>
 				    <input type='submit' value='Add'/>
-				<form>`);
+				</form>
+				<br>
+				<br>`);
+				
+				
+		$(`#drAdd_form`).append(`
+				<form id='drAdd_duplicate' onsubmit='myDocRepCtrlView_Add.Duplicate(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+					<input type='submit' value='Duplicate' />
+				</form>
+		`)
 				
 	}
 	
@@ -448,6 +457,43 @@ class myDocRepCtrlView_Add
 		else {
 			// update tree with new folder/file
 			this.UpdateTree();
+		}
+	}
+	
+	static Duplicate( e, q_url )
+	/**
+	make a copy of currently selected folder beside 
+	use export and import xml 
+	 */
+	{
+		e.preventDefault();
+		let kDoc = this.kCurrDoc;	
+		let rQ = SEEDJXSync(q_url, { qcmd: 'dr-XMLExport', kDoc: kDoc }); // export xml of selected folder/file
+		
+		if( !rQ.bOk ) {
+			console.log("error duplicating");
+		}
+		else {
+			$(`#drXML_export`).html(rQ.sOut);
+		}
+		
+		function decode(s){ // decode html entities, eg. &lt; becomes <
+			var t = document.createElement('textarea');
+			t.innerHTML = s;
+			return t.value;
+		}
+		
+		let xml = decode(rQ.sOut);
+		
+		let kParent = $(`.DocRepTree_doc[data-kdoc='${kDoc}']`).parent().data('under-kdoc'); // find parent of current doc
+		
+		rQ = SEEDJXSync(q_url, { qcmd: 'dr--XMLImport', kDoc: kParent, xml:xml }); // import xml of selected folder/file
+
+		if( !rQ.bOk ) {
+			console.log("error duplicating");
+		}
+		else {
+			location.reload();
 		}
 	}
 		
