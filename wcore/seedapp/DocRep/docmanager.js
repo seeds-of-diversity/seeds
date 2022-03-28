@@ -212,7 +212,7 @@ class myDocRepCtrlView_Preview
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
         if( !oDoc || oDoc.doctype != 'page' ) {
 			$(`#${parentID}`).empty(); 
-			$(`#${parentID}`).html(`No preview info available`); 
+			$(`#${parentID}`).html(`Click on a page to see its content`); 
 			return;
 		}
 		
@@ -864,8 +864,8 @@ class myDocRepCtrlView_Schedule
 				$(`#${parentID}`).html(`
 					<form onsubmit='myDocRepCtrlView_Schedule.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
 						<div class='row'> 
-							<div class='col-md-3'>${sName}</div>
-							<div class='col-md-6'>
+							<div class='col-md-9'>${sName}</div>
+							<div class='col-md-3'>
 								<input type='text' class='schedule-date'  value='${sSchedule}' style='width:100%'/>
 							</div>
 						</div>	
@@ -895,8 +895,8 @@ class myDocRepCtrlView_Schedule
 			
 					$(`#drSchedule_form`).append(`
 						<div class='row'> 
-							<div class='col-md-3'>${sNameEmail}</div>
-							<div class='col-md-6'>
+							<div class='col-md-9'>${sNameEmail}</div>
+							<div class='col-md-3'>
 								<input type='text' class='schedule-date'  value='${sScheduleEmail}' style='width:100%'/>
 							</div>
 						</div>	
