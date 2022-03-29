@@ -713,7 +713,8 @@ class myDocRepCtrlView_Versions
 		}
 
 		if(target.nextElementSibling.className == 'versions-file'){ // find next available version
-			let versionNumber2 = target.nextElementSibling.firstElementChild.innerHTML;
+			let versionNumber2 = target.nextElementSibling.firstElementChild.innerHTML;
+
 			let rQ = SEEDJXSync( q_url, {qcmd: 'dr-versionsDiff', kDoc1: kCurrDoc, kDoc2: kCurrDoc, ver1: versionNumber, ver2:versionNumber2} );
 			
 			if(!rQ.bOk){
@@ -982,7 +983,8 @@ class myDocRepCtrlView_Schedule
 		for(let i = 0; i < allKDoc.length; i++){
 			
 			let kDoc = allKDoc[i].value;
-			let schedule = allSchedule[i].value;
+			let schedule = allSchedule[i].value;
+
 			let rQ = SEEDJXSync( q_url, { qcmd: 'dr--schedule', kDoc: kDoc, schedule: schedule });
 
 			if ( !rQ.bOk ) {

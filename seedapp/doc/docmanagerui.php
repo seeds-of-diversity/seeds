@@ -67,6 +67,8 @@ class DocManagerUI_Documents
         $s .= "<script>oDocRepApp02_Config.env.seedw_url = '${seedw_url}';
                        oDocRepApp02_Config.env.q_url = '${q_url}';
                        oDocRepApp02_Config.docsPreloaded = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );
+                       oDocRepApp02_Config.ui.eUILevel = 3;
+                       oDocRepApp02_Config.ui.eUILevel_devctrl = true;
                </script>";
 
         return( $s );
@@ -97,11 +99,7 @@ class DocManagerUI_Documents
             $raDocMetadata = [];
         }
         $c = implode(',', array_keys($raChildren));
-        $md = "";
-        foreach( $raDocMetadata as $k => $v ) {
-            $md .= ($md ? ", " : "")
-                  ."$k:'".SEEDCore_HSC($v)."'";
-        }
+        $md = SEEDCore_ArrayExpandSeries( $raDocMetadata, "'[[k]]':'[[v]]'", true, ['delimiter'=>","] );
 
         $s .= "[$kDoc, { k:$kDoc, name:'$n', title:'$ti', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', perms:'$perms', docMetadata:{ $md } }],";
 
