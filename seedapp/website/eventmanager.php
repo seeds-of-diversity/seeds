@@ -144,21 +144,33 @@ class EventsSheet
                 //var_dump($k2);
                 //var_dump($v2);
                 //var_dump($v2->data->time);
-                //var_dump($v2->data->post);
+                //var_dump($v2->data->tickets);
 
                 $event = array(
                     'id'=>$v2->ID,
                     'title'=>$v2->data->title,
-                    'city'=>reset($v2->data->locations)['id'],
-                    'address'=>reset($v2->data->locations)['name'],
-                    'date'=>$v2->date['start']['date'],
+                    'date_start'=>$v2->date['start']['date'],
+                    'date_end'=>$v2->date['end']['date'],
                     'time_start'=>$v2->data->time['start'],
                     'time_end'=>$v2->data->time['end'],
-                    'contact'=>'contact is in post_content'
-                    // not sure where to find exact address
+                    'location_name'=>reset($v2->data->locations)['name'],
+                    'location_address'=>reset($v2->data->locations)['address'],
+                    // address is in first line of content
+                    'latitude'=>reset($v2->data->locations)['latitude'],
+                    'longitude'=>reset($v2->data->locations)['longitude'],
+                    'link_event'=>'last line of content',
+                    'link_more_info'=>'last line of content',
+                    'organizer_name'=>'convert id to name',
+                    'organizer_id'=>$v2->data->meta['mec_organizer_id'],
+                    'volunteer_id'=>'not in db?',
+                    'materials_needed'=>'not in db',
+                    'materials_sent'=>'not in db',
+                    'attendance'=>'not in db?',
+
                 );
 
                 array_push($events, $event);
+
             }
         }
 
