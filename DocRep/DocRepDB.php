@@ -333,11 +333,11 @@ class DocRepDB2 extends DocRep_DB
         return $s;
     }
 
-    function ImportXML( $kParent, String $sXML )
+    function ImportXML( $kDoc, String $sXML )
     /**
      * takes a xml string and converts it into a DOMDocument object
      * get root of DOMDocument object
-     * puts new entries under $kParent
+     * puts new entries beside kDoc
      */
     {
         $oXML = new DOMDocument();
@@ -347,10 +347,10 @@ class DocRepDB2 extends DocRep_DB
 
         $oRootNode = $oXML->documentElement; // root element
 
-        $this->breakXML($kParent, $oRootNode); // recursively break xml starting form root
+        $this->breakXML($kDoc, $oRootNode, false); // recursively break xml starting form root
     }
 
-    private function breakXML( $kParent, $oXML )
+    private function breakXML( $kParent, $oXML, $bInsertInto = true )
     /**
      * takes in a DOMNode object
      * recursively deconstruct xml and convert it into array of parameters
@@ -371,12 +371,18 @@ class DocRepDB2 extends DocRep_DB
         $parms['dr_metadata'] = parse_url($oXML->getAttribute('metadata')); // metadata should be array, convert to array first
         $parms['dr_data_text'] = $oXML->getAttribute('data_text');
         $parms['dr_flag'] = '';
+        $parms['kDoc'] = $kParent;
 
-        $parms['dr_posUnderLastChild'] = $kParent;
+        if( $bInsertInto ) { // insert all other under parent
+            $parms['dr_posUnderLastChild'] = $kParent;
+        }
+        else { // insert first doc beside parent
+            $parms['dr_posAfter'] = $kParent;
+        }
 
         // add current to database
         $oDoc = new DocRepDoc2_Insert( $this );
-
+        
         switch( $parms['type'] ) {
             case 'TEXT':
                 $oDoc->InsertText( $parms['dr_data_text'], $parms );

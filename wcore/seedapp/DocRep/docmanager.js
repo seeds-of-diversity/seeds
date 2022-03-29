@@ -419,7 +419,7 @@ class myDocRepCtrlView_Add
 				
 		$(`#drAdd_form`).append(`
 				<form id='drAdd_duplicate' onsubmit='myDocRepCtrlView_Add.Duplicate(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
-					<input type='submit' value='Duplicate' />
+					<input type='submit' value='Duplicate Folder/File' />
 				</form>
 		`)
 				
@@ -485,9 +485,7 @@ class myDocRepCtrlView_Add
 		
 		let xml = decode(rQ.sOut);
 		
-		let kParent = $(`.DocRepTree_doc[data-kdoc='${kDoc}']`).parent().data('under-kdoc'); // find parent of current doc
-		
-		rQ = SEEDJXSync(q_url, { qcmd: 'dr--XMLImport', kDoc: kParent, xml:xml }); // import xml of selected folder/file
+		rQ = SEEDJXSync(q_url, { qcmd: 'dr--XMLImport', kDoc: kDoc, xml:xml }); // import xml of selected folder/file
 
 		if( !rQ.bOk ) {
 			console.log("error duplicating");
