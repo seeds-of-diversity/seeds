@@ -78,14 +78,14 @@ class EventsSheet
 
         $raId = $this->oGoogleSheet->GetColumn("A"); // get all row's id
 
-        foreach( $raId as $k=>$v ) { // check if id in spreadsheet matches with id in $parms
+        if(isset($parms['id'])) { // if $parms is associative array with string index
+            $id = $parms['id'];
+        }
+        else{ // if $parms is array with integer index
+            $id = $parms[0];
+        }
 
-            if(isset($parms['id'])) { // if $parms is associative array with string index
-                $id = $parms['id'];
-            }
-            else{ // if $parms is array with integer index
-                $id = $parms[0];
-            }
+        foreach( $raId as $k=>$v ) { // check if id in spreadsheet matches with id in $parms
 
             if( $v == $id ) { //if id in spreadsheet matches with id in $parms
                 $exist = true;
@@ -132,7 +132,7 @@ class EventsSheet
 
         //trigger_error('there should be erro here ', E_USER_ERROR);
 
-        $arr = $oMEC->get_upcoming_events(); // get list of events from MEC
+        $arr = $oMEC->get_upcoming_events(); // get list of events from MEC, will only return 12 events by default
 
         echo "<p></p>";
 

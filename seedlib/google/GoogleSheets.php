@@ -234,25 +234,28 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
     }
 
     /**
-     * set row in spreadsheet
+     * takes in an associative array of values
+     * match value with column
+     * this function makes sure if values is not ordered the same way as spreadsheet columns, it will still work
      * @param $range row number
      * @param $values associative array where the key matches column names
      */
     function SetRowWithAssociativeArray( $range, $values )
     {
 
-        $requestBody = new Google_Service_Sheets_ValueRange();
-        $columns = $this->GetColumnNames("Sheet1"); // TODO: dont hard code this 
+        $columns = $this->GetColumnNames("Sheet1"); // TODO: dont hard code this
+        $ra = [];
 
         foreach( $values as $k=>$v ) {
             foreach( $columns as $k2=>$v2 ) { // compare each column to $values key
 
-                if( $k == $v2 ){ // if $values key matches column name
-                    $column = $this->NumberToColumnLetter($k2 + 1); // column to change in spreadsheet
-                    $requestBody->values = array(array($v)); // input needs to be 2d array
-                    $this->oService->spreadsheets_values->update($this->idSpreadsheet, "$column$range:$column$range", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+                if( $k == $v2 ) {
+                    $ra[$v2] = $v; //fill $ra with correctly ordered values
                 }
             }
         }
+
+        $ra = array_values($ra); // convert associative array into normal array
+        $this->SetRow($range, $ra); // set rows
     }
 }
