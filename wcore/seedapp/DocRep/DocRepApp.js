@@ -272,11 +272,14 @@ class DocRepTree
 
 
 /* TODO: this is a generic tabbed CtrlView widget if you rename the ids. Put it in a generic Console class or derive this from one.
- */ 
+ */
+
 class DocRepCtrlView
 {
     constructor( oConfig )
     {
+        this.oConfig = oConfig;
+        
         this.fnHandleEvent = oConfig.fnHandleEvent;     // use this to communicate with widgets/app
         
         // initialize ctrlMode then use derived method (or base method if no subclass)

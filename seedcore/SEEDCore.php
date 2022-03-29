@@ -178,8 +178,9 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
                      a function with args (k,v,parms) that returns a potentially different version of the template for each array element
                                 e.g. function ($k,$v,$parms) { return( $v==1 ? "[[v]] seed" : "[[v]] seeds" ); }
 
-    raParms: sTemplateFirst : use this template on the first element (if main template is a string)
+    raParms: sTemplateFirst : use this template on the first element (if main template is a string) - N.B. this overrides Last if count()==1, so it's safe to use "and [[v]]" for Last
              sTemplateLast  : use this template on the last element (if main template is a string)
+             delimiter      : string to put between templates (e.g. "," as a simpler way than using sTemplateLast for the special case)
  */
 {
     $s = "";
@@ -220,10 +221,15 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
             $s .= $tmpl;
         } else {
             // [[v]] is just a scalar substitution
-            if( $bEnt ) { $k = SEEDCore_HSC($k); $v = SEEDCore_HSC($v); }
+            if( $bEnt ) { $v = SEEDCore_HSC($v); }
             $s .= str_replace( ['[[]]', '[[v]]', '[[vu]]'],
                                [$v,     $v,      urlencode($v)],
                                $tmpl );
+        }
+
+        // insert optional delimiter between templates
+        if( ($d = @$raParms['delimiter']) && $i < $iLast ) {
+            $s .= $d;
         }
 
         ++$i;
@@ -287,6 +293,8 @@ function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms =
         } else {
             $s .= SEEDCore_ArrayExpand( $ra, $sTemplate, $bEnt );
         }
+
+// implement $raParms['delimiter'] like in ArrayExpandSeries
         ++$i;
     }
 
