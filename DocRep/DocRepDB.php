@@ -303,26 +303,33 @@ class DocRepDB2 extends DocRep_DB
 
         $oDoc = $this->GetDocRepDoc($kDoc);
 
-        $sName = htmlentities($oDoc->GetName()); // get all columns from database
-        $sType = htmlentities($oDoc->GetType());
-        $sDocspec = htmlentities($oDoc->GetValue('docspec', ''));
-        $iPermclass = htmlentities($oDoc->GetPermclass());
-        // $iKDataTop = htmlentities($oDoc->GetValue('kData_top', '')); // should this be added to xml?
-        $sDocMetadata = htmlentities($oDoc->GetValue('docMetadata', ''));
+        // docrep2_docs fields
+        $sType = SEEDCore_HSC($oDoc->GetType());
+        if( !in_array($sType, ['FOLDER','TEXT']) )  goto done;  // skip other types, not implemented
+        $sName = SEEDCore_HSC($oDoc->GetName());
+        $sDocMetadata = SEEDCore_HSC($oDoc->GetValue('docMetadata', ''));
+        $sDocspec = SEEDCore_HSC($oDoc->GetValue('docspec', ''));
 
-        $sSrc = htmlentities($oDoc->GetValue('data_src', ''));
-        $sText = htmlentities($oDoc->GetText(''));
-        $sFileExt = htmlentities($oDoc->GetSFileExt()); // only getter exist for this, no way to set value yet
-        $sTitle = htmlentities($oDoc->GetTitle(''));
-        $sMimetype = htmlentities($oDoc->GetValue('mimetype', ''));
-        $sDataspec = htmlentities($oDoc->GetValue('dataspec', ''));
-        $sMetadata = htmlentities($oDoc->GetValue('metadata', ''));
+        // can't assume that the permclass number will match on other installations so import will use the insertion point's permclass
+        //$iPermclass = SEEDCore_HSC($oDoc->GetPermclass());
+        // assuming that this is a text type (currently don't support import of FILE,TEXTFRAGMENT,etc
+        //$sType = SEEDCore_HSC($oDoc->GetType());
 
-        // data_file_ext, data_sfile_name, data_link_doc are not implemented yet
+        // docrep2_data fields of top version
+        $sText = SEEDCore_HSC($oDoc->GetText(''));
+        $sTitle = SEEDCore_HSC($oDoc->GetTitle(''));
+        $sDataspec = SEEDCore_HSC($oDoc->GetValue('dataspec', ''));
+        $sMetadata = SEEDCore_HSC($oDoc->GetValue('metadata', ''));
 
-        $s = "<$sType name='$sName' docspec='$sDocspec' permclass='$iPermclass' docMetadata='$sDocMetadata'
-             src='$sSrc' data_text='$sText' data_file_ext='$sFileExt' title='$sTitle' mimetype='$sMimetype'
-             dataspec='$sDataspec' metadata='$sMetadata'>"; // store columns as attributes
+        // assuming this is TEXT
+        //$sSrc = htmlentities($oDoc->GetValue('data_src', ''));
+        //$sFileExt = htmlentities($oDoc->GetSFileExt()); // only getter exist for this, no way to set value yet
+        //$sMimetype = htmlentities($oDoc->GetValue('mimetype', ''));
+
+        $s = "<$sType name='$sName' title='$sTitle'
+                      docspec='$sDocspec' docMetadata='$sDocMetadata'
+                      dataspec='$sDataspec' metadata='$sMetadata'
+                      data_text='$sText'>";
 
         $raChildren = $this->GetSubtree($kDoc); // find all children
         foreach($raChildren as $k=>$v ){
@@ -330,6 +337,7 @@ class DocRepDB2 extends DocRep_DB
         }
         $s .= "</$sType>";
 
+        done:
         return $s;
     }
 
@@ -360,15 +368,16 @@ class DocRepDB2 extends DocRep_DB
         $parms = [];
 
         $parms['type'] = $oXML->nodeName;
+        if( !in_array($parms['type'], ['FOLDER','TEXT']) )  goto done;  // skip other types, not implemented
 
         $parms['dr_name'] = $oXML->getAttribute('name'); // get all attributes from xml, array key should match $parms for insertDoc()
         $parms['dr_title'] = $oXML->getAttribute('title');
         $parms['dr_docspec'] = $oXML->getAttribute('docspec');
+        $parms['dr_docMetadata'] = parse_url($oXML->getAttribute('docMetadata')); // metadata should be array, convert to array first
         $parms['dr_dataspec'] = $oXML->getAttribute('dataspec');
-        $parms['dr_permclass'] = $oXML->getAttribute('permclass');
-        $parms['dr_mimetype'] = $oXML->getAttribute('mimetype');
-        $parms['dr_fileext'] = $oXML->getAttribute('data_file_ext');
         $parms['dr_metadata'] = parse_url($oXML->getAttribute('metadata')); // metadata should be array, convert to array first
+        //$parms['dr_mimetype'] = $oXML->getAttribute('mimetype');
+
         $parms['dr_data_text'] = $oXML->getAttribute('data_text');
         $parms['dr_flag'] = '';
         $parms['kDoc'] = $kParent;
@@ -380,9 +389,13 @@ class DocRepDB2 extends DocRep_DB
             $parms['dr_posAfter'] = $kParent;
         }
 
+        // set permclass the same as the insertion point's permclass
+        $oDocParent = $this->GetDocRepDoc($kParent);
+        $parms['dr_permclass'] = $oDocParent->GetPermclass();
+
         // add current to database
         $oDoc = new DocRepDoc2_Insert( $this );
-        
+
         switch( $parms['type'] ) {
             case 'TEXT':
                 $oDoc->InsertText( $parms['dr_data_text'], $parms );
@@ -399,6 +412,8 @@ class DocRepDB2 extends DocRep_DB
         foreach ($oXML->childNodes as $child){ // find all children and recursively call on children
             $this->breakXML($key, $child);
         }
+
+        done:;
     }
 }
 
@@ -1069,17 +1084,16 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
     {
         $ok = true;
 
-        if( $ok && @$parms['title'] ) {
+        // change title if it is given and different
+        if( @$parms['title'] && $this->GetTitle('') != $parms['title'] ) {
             $kfrData = $this->getKfrData( $this->kDoc, '' );
             $kfrData->SetValue( 'title', $parms['title'] );
             $ok = $kfrData->PutDBRow();
         }
 
-        if( @$parms['name'] ) {
-
-            if($this->GetName() == $parms['name']){
-                return $ok;
-            }
+        // change name if it is given and different
+        if( $ok && @$parms['name'] && $this->GetName() != $parms['name'] ) {
+            // if there is a sibling with the same name, don't rename
 
             $parent = $this->GetParent();
             $raSibNames = $this->oDocRepDB->kfdb->QueryRowsRA1("SELECT name FROM docrep2_docs WHERE kDoc_parent=$parent"); // find all sibling's names
@@ -1087,6 +1101,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             if( in_array($parms['name'], $raSibNames) ) { // if sibling has same name
                 $ok = false; // dont change name
                 return $ok;
+
             }
 
             $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name
@@ -1094,6 +1109,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $ok = $kfrDoc->PutDBRow();
         }
 
+        done:
         return( $ok );
     }
 
@@ -1102,6 +1118,8 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
      * update permclass
      */
     {
+        $ok = false;
+
         if( @$parms['permclass'] ) {
             $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
             $kfrDoc->SetValue( 'permclass', $parms['permclass'] );
