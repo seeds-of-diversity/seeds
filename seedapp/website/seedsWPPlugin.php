@@ -166,7 +166,7 @@ class seedsWPPlugin_EventControl
             $events = self::$oES->GetEventsFromSheets();
 
             foreach($events as $k=>$v){
-                self::$oMEC->save_event($v);
+                self::$oES->AddEventToDB($v);
             }
         }
     }
