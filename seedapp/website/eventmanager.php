@@ -196,7 +196,8 @@ class EventsSheet
      */
     function GetSEEDEventMeta( $id )
     {
-        $ra = $this->oApp->kfdb->QueryRA("SELECT volunteer_id, materials_needed, materials_sent, attendance from SEED_eventmeta where id=$id");
+        $dbName = $this->oApp->GetDBName('wordpress');
+        $ra = $this->oApp->kfdb->QueryRA("SELECT volunteer_id, materials_needed, materials_sent, attendance from $dbName.SEED_eventmeta where id=$id");
         var_dump($ra);
         return $ra;
     }
@@ -206,14 +207,15 @@ class EventsSheet
      */
     function setEventMeta( $parms, $id )
     {
-        $exist = $this->oApp->kfdb->Query1("SELECT id FROM SEED_eventmeta where id=$id");
+        $dbName = $this->oApp->GetDBName('wordpress');
+        $exist = $this->oApp->kfdb->Query1("SELECT id FROM $dbName.SEED_eventmeta where id=$id");
         if( $exist ) { // if there is already a database entry
             var_dump("exist");
-            $this->oApp->kfdb->Execute("UPDATE SEED_eventmeta SET volunteer_id={$parms['volunteer_id']}, materials_needed={$parms['materials_needed']},
+            $this->oApp->kfdb->Execute("UPDATE $dbName.SEED_eventmeta SET volunteer_id={$parms['volunteer_id']}, materials_needed={$parms['materials_needed']},
             materials_sent={$parms['materials_sent']}, attendance={$parms['attendance']} WHERE id=$id");
         }
         else { // create new row
-            $this->oApp->kfdb->Execute("INSERT INTO SEED_eventmeta (id, volunteer_id, materials_needed, materials_sent, attendance) VALUES
+            $this->oApp->kfdb->Execute("INSERT INTO $dbName.SEED_eventmeta (id, volunteer_id, materials_needed, materials_sent, attendance) VALUES
             ($id, {$parms['volunteer_id']}, {$parms['materials_needed']}, {$parms['materials_sent']}, {$parms['attendance']})");
         }
     }
