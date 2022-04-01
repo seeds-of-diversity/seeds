@@ -149,8 +149,10 @@ class EventsSheet
                 $id = $v2->ID;
 
                 //NOTE: sometimes the location object will not exist, reset($v2->data->locations) will give warning
+                $loc = @$v2->data->locations && ($l = @reset($v2->data->locations)) ? $l : null;
 
                 $seedMeta = $this->GetSEEDEventMeta($id);
+
 
                 $event = array(
                     'id'=>isset($v2->ID) ? $v2->ID : 'id not found',
@@ -159,11 +161,11 @@ class EventsSheet
                     'date_end'=>isset($v2->date['end']['date']) ? $v2->date['end']['date'] : 'date_end not found',
                     'time_start'=>isset($v2->data->time['start']) ? $v2->data->time['start'] : 'time_start not found',
                     'time_end'=>isset($v2->data->time['end']) ? $v2->data->time['end'] : 'time_end not found',
-                    'location_name'=>@isset(reset($v2->data->locations)['name']) ? reset($v2->data->locations)['name'] : 'location_name not found',
-                    'location_address'=>@isset(reset($v2->data->locations)['address']) ? reset($v2->data->locations)['address'] : 'location_address not found',
+                    'location_name'=> @$loc['name'] ?: 'location_name not found',
+                    'location_address'=> @$loc['address'] ?: 'location_address not found',
                     // address is in first line of content
-                    'latitude'=>@isset(reset($v2->data->locations)['latitude']) ? reset($v2->data->locations)['latitude'] : 'latitude not found',
-                    'longitude'=>@isset(reset($v2->data->locations)['longitude']) ? reset($v2->data->locations)['longitude'] : 'longitude not found',
+                    'latitude'=>@$loc['latitude'] ?: 'latitude not found',
+                    'longitude'=>@$loc['longitude'] ?: 'longitude not found',
                     'link_event'=>isset($v2->data->meta['mec_read_more']) ? $v2->data->meta['mec_read_more'] : 'link_event not found',
                     'link_more_info'=>isset($v2->data->meta['mec_more_info']) ? $v2->data->meta['mec_more_info'] : 'link_more_info not found',
                     'organizer_name'=>'convert id to name',
@@ -188,7 +190,6 @@ class EventsSheet
             }
         }
         return $events;
-
     }
 
     /**
@@ -272,6 +273,13 @@ class EventsSheet
 
     }
 
+    const SqlCreate_EventMeta = "
+        CREATE TABLE SEED_eventmeta (
+            id                  INTEGER NOT NULL DEFAULT 0,     # MEC event id
+            volunteer_id        INTEGER NOT NULL DEFAULT 0,     # SoD's contact id
+            materials_needed    TEXT,
+            materials_sent      TEXT,                           # date when materials were sent  YYYY-MM-DD
+            attendance          INTEGER                         # follow-up record of how many people attended this event
+        );
+        ";
 }
-
-
