@@ -12,17 +12,17 @@
  * 3. Don't put any code in seeds.php. Put it here so you don't have to keep copying seeds.php
  */
 
+if( SEED_isLocal ) {
+    define( 'WP_DEBUG', true );
+    define( 'WP_DEBUG_LOG', true );
+    define( 'WP_DEBUG_DISPLAY', true );
+    @ini_set( 'display_errors', 1 );
 
-define( 'WP_DEBUG', true );
-define( 'WP_DEBUG_LOG', true );
-define( 'WP_DEBUG_DISPLAY', true );
-@ini_set( 'display_errors', 1 );
-
-error_reporting(E_ALL | E_STRICT);
-ini_set('display_errors', 1);
-ini_set('html_errors', 1);
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_errors', 1);
+    ini_set('html_errors', 1);
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+}
 
 /*******************
  *
