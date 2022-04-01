@@ -89,7 +89,8 @@ class SEEDGoogleSheets
     {
         if( !$this->raValuesCache ) {
             $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, $range, ['majorDimension' => 'ROWS']);
-            $this->raValuesCache = $response->values;
+            // If the range is empty in the spreadsheet, google returns null for ->values. We want that to be an empty array.
+            $this->raValuesCache = $response->values ?: [];
             $this->raRangeCache = $response->range;
             // what else is in the response?
         }
@@ -130,17 +131,18 @@ class SEEDGoogleSheets
     }
     /**
      * set row in spreadsheet
+     * @param String $nameSheet - name of the sheet to read
      * @param row number
      * @param array of values to set
      * @return response
      */
-    function SetRow( $range, $values )
+    function SetRow( String $nameSheet, $range, $values )
     {
         $end = $this->NumberToColumnLetter(count($values)); // find last column index
         $values = array($values);
         $requestBody = new Google_Service_Sheets_ValueRange();
         $requestBody->values = $values;
-        $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, "A$range:$end$range", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+        $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, "{$nameSheet}!A$range:$end$range", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
 
         return $response;
     }
@@ -234,16 +236,43 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
     }
 
     /**
+     * Get array of the values in the named column starting at row 2.
+     *     i.e. $ret[0] is spreadsheet row 2 of the column that has $colname in row 1
+     *
+     * @param String $nameSheet - name of the sheet to read
+     * @return array of column values or null if colname not found in top row
+     */
+    function GetColumnByName( String $nameSheet, $colname ) : ?array
+    {
+        $ret = null;
+
+        $raColnames = $this->GetColumnNames( $nameSheet );
+        if( ($iCol = array_search($colname, $raColnames, false)) !== false ) {    // $i is the index of colname in the column names
+            $range = $this->NumberToColumnLetter( $iCol + 1 );
+            // Get one column. Returns 2D array so reduce to 1D array and remove the top row.
+            $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "$nameSheet!$range:$range");
+            $values = $response->getValues();
+
+            $ret = [];
+            for($i = 1; $i < count($values); $i++) {
+                $ret[$i-1] = $values[$i][0];
+            }
+        }
+        return $ret;
+    }
+
+    /**
      * takes in an associative array of values
      * match value with column
      * this function makes sure if values is not ordered the same way as spreadsheet columns, it will still work
+     * @param String $nameSheet - name of the sheet to read/write
      * @param $range row number
      * @param $values associative array where the key matches column names
      */
-    function SetRowWithAssociativeArray( $range, $values )
+    function SetRowWithAssociativeArray( String $nameSheet, $range, $values )
     {
 
-        $columns = $this->GetColumnNames("Sheet1"); // TODO: dont hard code this
+        $columns = $this->GetColumnNames($nameSheet);
         $ra = [];
 
         foreach( $values as $k=>$v ) {
@@ -256,6 +285,6 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
         }
 
         $ra = array_values($ra); // convert associative array into normal array
-        $this->SetRow($range, $ra); // set rows
+        $this->SetRow($nameSheet, $range, $ra); // set rows
     }
 }

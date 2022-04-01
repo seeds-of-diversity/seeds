@@ -12,7 +12,7 @@ class EventsSheet
     private $oApp;
 
     private $oSheets = null;
-    private $p_idSheet;
+    private $nameSheet = 'Sheet1';
 
     function __construct( SEEDAppDB $oApp )
     {
@@ -21,6 +21,7 @@ class EventsSheet
         $this->oForm->Update();
 
         if( ($idSpread = $this->oForm->Value('idSpread')) ) {
+            $this->nameSheet = $this->oForm->Value('nameSheet');
 
             $this->oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
                 ['appName' => 'My PHP App',
@@ -76,7 +77,8 @@ class EventsSheet
         $exist = false; // if event already exist on spreadsheet
         $spreadSheetRow = 0; // row in spreadsheet if event already exists in spreadsheet
 
-        $raId = $this->oGoogleSheet->GetColumn("A"); // get all row's id
+        // Get all ids from the id column starting at row 2. $raId[0] is the id value of row 2
+        $raId = $this->oGoogleSheet->GetColumnByName( $this->nameSheet, 'id' );
 
         if(isset($parms['id'])) { // if $parms is associative array with string index
             $id = $parms['id'];
@@ -89,19 +91,20 @@ class EventsSheet
 
             if( $v == $id ) { //if id in spreadsheet matches with id in $parms
                 $exist = true;
-                $spreadSheetRow = $k+1; // row of current event
+                $spreadSheetRow = $k+2; // $raId[0] is the id value of row 2 so the indexes are different by 2
             }
         }
 
         if( !$exist ) { // if event does not exist in spreadsheet
-            $spreadSheetRow = count($raId) + 1; // add to next available row
+            $spreadSheetRow = count($raId) + 2; // add to next available row
         }
 
         if(isset($parms['id'])){ // if $parms is associative array with string index
-            $this->oGoogleSheet->SetRowWithAssociativeArray($spreadSheetRow, $parms);
+            //var_dump("Adding {$parms['id']} at $spreadSheetRow");
+            $this->oGoogleSheet->SetRowWithAssociativeArray($this->nameSheet, $spreadSheetRow, $parms);
         }
         else{// if $parms is array with integer index
-            $this->oGoogleSheet->SetRow($spreadSheetRow, $parms);
+            $this->oGoogleSheet->SetRow($this->nameSheet, $spreadSheetRow, $parms);
         }
 
     }
