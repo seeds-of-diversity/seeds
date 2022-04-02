@@ -527,9 +527,9 @@ class SEEDSessionAccount extends SEEDSession
         $this->kfrSession->SetValue( "email",      $email );
 
         if( empty($raSessParms["permsR"]) && empty($raSessParms["permsW"]) && empty($raSessParms["permsA"]) ) {
-//TODO: use SEEDSessionAuthDB if the same format is useful elsewhere like the UGP admin
             $permsR = $permsW = $permsA = " ";
 
+/* this doesn't use gid_inherited
             $dbcPerms = $this->kfdb->CursorOpen(
                                 // Get perms explicitly set for this uid
                                 "SELECT perm,modes FROM SEEDSession_Perms WHERE _status='0' AND uid='$kUser' "
@@ -551,6 +551,14 @@ class SEEDSessionAccount extends SEEDSession
                 if( strchr($ra['modes'],'A') && !strstr($permsA, " ".$ra['perm']." ") )  $permsA .= $ra['perm']." ";
             }
             $this->kfdb->CursorClose( $dbcPerms );
+
+            var_dump($permsR,$permsW,$permsA);exit;
+*/
+            $raP = (new SEEDSessionAccountDBRead2($this->kfdb))->GetPermsFromUser($kUser);
+            $permsR = ' '.implode(' ',$raP['mode2perms']['R']).' ';
+            $permsW = ' '.implode(' ',$raP['mode2perms']['W']).' ';
+            $permsA = ' '.implode(' ',$raP['mode2perms']['A']).' ';
+//            var_dump($permsR,$permsW,$permsA);exit;
 
             $this->kfrSession->SetValue( "permsR", $permsR );
             $this->kfrSession->SetValue( "permsW", $permsW );
