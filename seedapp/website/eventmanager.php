@@ -12,7 +12,7 @@ class EventsSheet
     private $oApp;
 
     private $oSheets = null;
-    private $nameSheet = 'Sheet1';
+    private $nameSheet = '';
 
     function __construct( SEEDAppDB $oApp )
     {
@@ -130,7 +130,7 @@ class EventsSheet
      */
     function GetEventsFromDB()
     {
-        include("../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php");
+//        include("../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php");
         $oMEC = new MEC_main();
 
         //trigger_error('there should be erro here ', E_USER_ERROR);
@@ -153,6 +153,7 @@ class EventsSheet
 
                 //NOTE: sometimes the location object will not exist, reset($v2->data->locations) will give warning
                 $loc = @$v2->data->locations && ($l = @reset($v2->data->locations)) ? $l : null;
+                //get_location_data($location_id)
 
                 $seedMeta = $this->GetSEEDEventMeta($id);
 
@@ -202,25 +203,32 @@ class EventsSheet
     {
         $dbName = $this->oApp->GetDBName('wordpress');
         $ra = $this->oApp->kfdb->QueryRA("SELECT volunteer_id, materials_needed, materials_sent, attendance from $dbName.SEED_eventmeta where id=$id");
-        var_dump($ra);
+        //var_dump($ra);
         return $ra;
     }
 
     /**
      * set SEED_eventmeta table based on array
      */
-    function setEventMeta( $parms, $id )
+    private function setEventMeta( $parms, $id )
     {
-        $dbName = $this->oApp->GetDBName('wordpress');
+        $dbName = $this->oApp->DBName('wordpress');
+
+        $kVolunteer= intval(@$parms['volunteer_id']);
+        $dbMaterialsNeeded = addslashes(@$parms['materials_needed']);
+        $dbMaterialsSent   = addslashes(@$parms['materials_sent']);
+        $nAttendance = intval(@$parms['attendance']);
+
         $exist = $this->oApp->kfdb->Query1("SELECT id FROM $dbName.SEED_eventmeta where id=$id");
         if( $exist ) { // if there is already a database entry
             var_dump("exist");
-            $this->oApp->kfdb->Execute("UPDATE $dbName.SEED_eventmeta SET volunteer_id={$parms['volunteer_id']}, materials_needed={$parms['materials_needed']},
-            materials_sent={$parms['materials_sent']}, attendance={$parms['attendance']} WHERE id=$id");
+            $this->oApp->kfdb->Execute("UPDATE $dbName.SEED_eventmeta
+                                        SET volunteer_id=$kVolunteer, materials_needed='$dbMaterialsNeeded', materials_sent='$dbMaterialsSent', attendance=$nAttendance
+                                        WHERE id=$id");
         }
         else { // create new row
             $this->oApp->kfdb->Execute("INSERT INTO $dbName.SEED_eventmeta (id, volunteer_id, materials_needed, materials_sent, attendance) VALUES
-            ($id, {$parms['volunteer_id']}, {$parms['materials_needed']}, {$parms['materials_sent']}, {$parms['attendance']})");
+                                        ($id, $kVolunteer, '$dbMaterialsNeeded', '$dbMaterialsSent', $nAttendance)");
         }
     }
 
@@ -231,7 +239,7 @@ class EventsSheet
      */
     function AddEventToDB( $parms ) {
 
-        include("../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php");
+//        include("../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php");
         $oMEC = new MEC_main();
 
 
@@ -266,7 +274,12 @@ class EventsSheet
         $raEvent['meta']['mec_read_more'] = isset($parms['link_event']) ? $parms['link_event'] : 'mec_read_more not found';
         $raEvent['meta']['mec_more_info'] = isset($parms['link_more_info']) ? $parms['link_more_info'] : 'mec_more_info not found';
         $raEvent['meta']['mec_organizer_id'] = isset($parms['organizer_id']) ? $parms['organizer_id'] : 'mec_organizer_id not found';
-        // location is inside meta
+
+        // location is stored separately from events
+        // This looks up the location name, or adds it, or returns false if something fails
+        if( ($loc_id = $oMEC->save_location(['name'=>@$parms['location_name']])) !== false ) {
+            $raEvent['location_id'] = $loc_id;
+        }
 
         $id = $oMEC->save_event($raEvent, $id);
 

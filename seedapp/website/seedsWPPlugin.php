@@ -77,7 +77,7 @@ function seedsWPStart()
 class seedsWPPlugin_EventControl
 {
     private static $oES;
-    private static $oMEC;
+//    private static $oMEC;
 
 
     /* Add Event Control item to the wp-admin menu.
@@ -100,7 +100,7 @@ class seedsWPPlugin_EventControl
         if( !class_exists( 'MEC_main' ) ) {
             echo "<p>There is no MEC_main class</p>"; return;
         }
-        self::$oMEC = new MEC_main();
+//        self::$oMEC = new MEC_main();
 
 
     }
