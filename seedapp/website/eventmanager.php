@@ -10,15 +10,19 @@ class EventsSheet
  */
 {
     private $oApp;
+    private $oForm;     // SVASession to specify the google spreadsheet
+    private $oMEC;      // MEC_main class - mec should already be included
 
     private $oSheets = null;
     private $nameSheet = '';
 
-    function __construct( SEEDAppDB $oApp )
+    function __construct()
     {
-        $this->oApp = $oApp;
-        $this->oForm = new SEEDCoreFormSession($oApp->sess, 'eventSheets');
+        $this->oApp = SEEDConfig_NewAppConsole_LoginNotRequired( ['db'=>'wordpress'] );
+        $this->oForm = new SEEDCoreFormSession($this->oApp->sess, 'eventSheets');
         $this->oForm->Update();
+
+        $this->oMEC = new MEC_main();   // MEC plugin should already be included by our WP plugin
 
         if( ($idSpread = $this->oForm->Value('idSpread')) ) {
             $this->nameSheet = $this->oForm->Value('nameSheet');
@@ -40,13 +44,41 @@ class EventsSheet
         return( $values );
     }
 
-    function DrawForm()
+    function DrawEventControlPanel()
     {
         $s = "<form method='post'>
               <div>{$this->oForm->Text('idSpread',  '', ['size'=>60])}&nbsp;Google sheet id</div>
               <div>{$this->oForm->Text('nameSheet', '', ['size'=>60])}&nbsp;sheet name</div>
-              <div><input type='submit'/></div>
+              <div><input type='submit' value='Show events'/></div>
               </form>";
+
+        $s .= "<p>Export events to spreadsheet</p>
+              <form method='get' action='?page=eventctrl'>
+              <input type='hidden' name='page' value='eventctrl'/>
+              <input type='submit' name='export' value='export'/>
+              </form>";
+
+        $s .=  "<p>Import events from spreadsheet</p>
+              <form method='get' action='?page=eventctrl'>
+              <input type='hidden' name='page' value='eventctrl'/>
+              <input type='submit' name='import' value='import'/>
+              </form>";
+
+
+        if( SEEDInput_Str('export') ) {
+            $raEvents = $this->GetEventsFromDB(); // return organized list of events from db
+            foreach($raEvents as $k=>$v){
+                $this->AddEventToSpreadSheet($v); // add each event to spreadsheet
+            }
+        }
+
+        if( SEEDInput_Str('import') ) {
+            $events = $this->GetEventsFromSheets();    // return list of events from spreadsheet
+            foreach($events as $k=>$v){
+                $this->AddEventToDB($v);               // add each event to db
+            }
+        }
+
         return( $s );
     }
 
@@ -130,7 +162,6 @@ class EventsSheet
      */
     function GetEventsFromDB()
     {
-//        include("../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php");
         $oMEC = new MEC_main();
 
         //trigger_error('there should be erro here ', E_USER_ERROR);
