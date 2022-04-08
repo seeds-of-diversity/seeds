@@ -46,6 +46,8 @@ class EventsSheet
 
     function DrawEventControlPanel()
     {
+        $sResult = "";
+
         $s = "<form method='post'>
               <div>{$this->oForm->Text('idSpread',  '', ['size'=>60])}&nbsp;Google sheet id</div>
               <div>{$this->oForm->Text('nameSheet', '', ['size'=>60])}&nbsp;sheet name</div>
@@ -66,17 +68,24 @@ class EventsSheet
 
 
         if( SEEDInput_Str('export') ) {
-            $raEvents = $this->GetEventsFromDB(); // return organized list of events from db
+            list($raEvents,$sErr) = $this->getEventsFromDB(); // return organized list of events from db
+            $sResult .= "<p>Exported ".count($raEvents)." events to Google sheet</p>"
+                       .$sErr;
             foreach($raEvents as $k=>$v){
                 $this->AddEventToSpreadSheet($v); // add each event to spreadsheet
             }
         }
 
         if( SEEDInput_Str('import') ) {
-            $events = $this->GetEventsFromSheets();    // return list of events from spreadsheet
-            foreach($events as $k=>$v){
+            $raEvents = $this->GetEventsFromSheets();    // return list of events from spreadsheet
+            $sResult .= "<p>Imported ".count($raEvents)." events from Google sheet</p>";
+            foreach($raEvents as $k=>$v){
                 $this->AddEventToDB($v);               // add each event to db
             }
+        }
+
+        if( $sResult ) {
+            $s .= "<div style='border:1px solid #aaa;margin-top:10px;padding:5px;border-radius:5px'>$sResult</div>";
         }
 
         return( $s );
@@ -151,6 +160,8 @@ class EventsSheet
         $raEvents = $this->oGoogleSheet->GetRows($nameSheet);
 
         foreach($raEvents as $k=>$v){
+            // pad the end of $v (if right-hand cells are blank the sheet will not return values for them)
+            while( count($raColumns) > count($v) ) $v[] = '';
             $raEvents[$k] = array_combine($raColumns, $v);
         }
         return $raEvents;
@@ -160,17 +171,15 @@ class EventsSheet
      * get list of events using MEC
      * @return array of organized events with properties
      */
-    function GetEventsFromDB()
+    private function getEventsFromDB()
     {
-        $oMEC = new MEC_main();
-
-        //trigger_error('there should be erro here ', E_USER_ERROR);
-
-        $arr = $oMEC->get_upcoming_events(); // get list of events from MEC, will only return 12 events by default
-
-        echo "<p></p>";
-
         $events = array(); // 2d array of events
+        $sErr = "";
+
+        //trigger_error('there should be error here ', E_USER_ERROR);
+
+        //$arr = $this->oMEC->get_upcoming_events(); // get list of events from MEC, will only return 12 events by default
+        $arr = $this->getEventsFromMEC();   // this is our variation on get_upcoming_events()
 
         foreach($arr as $k=>$v){
 
@@ -180,7 +189,9 @@ class EventsSheet
                 //var_dump($v2->data->locations);
                 //var_dump($v2->data->tickets);
 
-                $id = $v2->ID;
+                if( !($id = $v2->ID) ) {
+                    $sErr .= "<p style='color:red'>An event returned a blank id.</p>";
+                }
 
                 //NOTE: sometimes the location object will not exist, reset($v2->data->locations) will give warning
                 $loc = @$v2->data->locations && ($l = @reset($v2->data->locations)) ? $l : null;
@@ -188,44 +199,55 @@ class EventsSheet
 
                 $seedMeta = $this->GetSEEDEventMeta($id);
 
-
+                // These have to have string defaults (not null defaults) because the Google sheets library will put them in json
                 $event = array(
-                    'id'=>isset($v2->ID) ? $v2->ID : 'id not found',
-                    'title'=>isset($v2->data->title) ? $v2->data->title : 'title not found',
-                    'date_start'=>isset($v2->date['start']['date']) ? $v2->date['start']['date'] : 'date_start not found',
-                    'date_end'=>isset($v2->date['end']['date']) ? $v2->date['end']['date'] : 'date_end not found',
-                    'time_start'=>isset($v2->data->time['start']) ? $v2->data->time['start'] : 'time_start not found',
-                    'time_end'=>isset($v2->data->time['end']) ? $v2->data->time['end'] : 'time_end not found',
-                    'location_name'=> @$loc['name'] ?: 'location_name not found',
-                    'location_address'=> @$loc['address'] ?: 'location_address not found',
+                    'id'=>$id,
+                    'title'=>@$v2->data->title ?: '',
+                    'date_start'=>@$v2->date['start']['date'] ?: '',
+                    'date_end'=>@$v2->date['end']['date'] ?: '',
+                    'time_start'=>@$v2->data->time['start'] ?: '',
+                    'time_end'=>@$v2->data->time['end'] ?: '',
+                    'location_name'=> @$loc['name'] ?: '',
+                    'location_address'=> @$loc['address'] ?: '',
                     // address is in first line of content
-                    'latitude'=>@$loc['latitude'] ?: 'latitude not found',
-                    'longitude'=>@$loc['longitude'] ?: 'longitude not found',
-                    'link_event'=>isset($v2->data->meta['mec_read_more']) ? $v2->data->meta['mec_read_more'] : 'link_event not found',
-                    'link_more_info'=>isset($v2->data->meta['mec_more_info']) ? $v2->data->meta['mec_more_info'] : 'link_more_info not found',
-                    'organizer_name'=>'convert id to name',
-                    'organizer_id'=>isset($v2->data->meta['mec_organizer_id']) ? $v2->data->meta['mec_organizer_id'] : 'organizer_id not found',
-                    'volunteer_id'=>'not in db?',
-                    'materials_needed'=>'not in db',
-                    'materials_sent'=>'not in db',
-                    'attendance'=>'not in db?',
-                    'volunteer_id'=>isset($seedMeta['volunteer_id']) ? $seedMeta['volunteer_id'] : 'volunteer_id not found',
-                    'materials_needed'=>isset($seedMeta['materials_needed']) ? $seedMeta['materials_needed'] : 'materials_needed not found',
-                    'materials_sent'=>isset($seedMeta['materials_sent']) ? $seedMeta['materials_sent'] : 'materials_sent not found',
-                    'attendance'=>isset($seedMeta['attendance']) ? $seedMeta['attendance'] : 'attendance not found',
-
-                    // convert organizer id into name
-                    // convert location id into name
-
+                    'latitude'=>@$loc['latitude'] ?: '',
+                    'longitude'=>@$loc['longitude'] ?: '',
+                    'link_event'=>@$v2->data->meta['mec_read_more'] ?: '',
+                    'link_more_info'=>@$v2->data->meta['mec_more_info'] ?: '',
+                    'organizer_id'=>@$v2->data->meta['mec_organizer_id'] ?: '',
+                    'organizer_name'=>'',
+                    'volunteer_id'=>@$seedMeta['volunteer_id'] ?: '',
+                    'volunteer_name'=>'',
+                    'materials_needed'=>@$seedMeta['materials_needed'] ?: '',
+                    'materials_sent'=>@$seedMeta['materials_sent'] ?: '',
+                    'attendance'=>@$seedMeta['attendance'] ?: '',
                 );
-
-
 
                 array_push($events, $event);
             }
         }
-        return $events;
+        return([$events,$sErr]);
     }
+
+    private function getEventsFromMEC()
+    {
+        // This is a copy of MEC_main::get_upcoming_events() but the limit is removed so all upcoming events are returned.
+        // Note how the original code doesn't use the method's limit parameter at all, so we can't use it!
+
+        MEC::import('app.skins.list', true);
+        $list = new MEC_skin_list();
+        $atts = array(
+            'show_past_events'=>1,
+            'start_date_type'=>'today',
+            'sk-options'=> array(
+                'list' => array()            //  this is removed    'limit'=>20)
+            ),
+        );
+        $list->initialize($atts);
+        $list->fetch();
+        return $list->events;
+    }
+
 
     /**
      * return metadata of a event from SEED_eventmeta
