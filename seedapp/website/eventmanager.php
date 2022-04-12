@@ -176,8 +176,6 @@ class EventsSheet
         $events = array(); // 2d array of events
         $sErr = "";
 
-        //trigger_error('there should be error here ', E_USER_ERROR);
-
         //$arr = $this->oMEC->get_upcoming_events(); // get list of events from MEC, will only return 12 events by default
         $arr = $this->getEventsFromMEC();   // this is our variation on get_upcoming_events()
 
@@ -254,6 +252,7 @@ class EventsSheet
      */
     function GetSEEDEventMeta( $id )
     {
+        $id = intval($id);
         $dbName = $this->oApp->GetDBName('wordpress');
         $ra = $this->oApp->kfdb->QueryRA("SELECT volunteer_id, materials_needed, materials_sent, attendance from $dbName.SEED_eventmeta where id=$id");
         //var_dump($ra);
@@ -265,6 +264,7 @@ class EventsSheet
      */
     private function setEventMeta( $parms, $id )
     {
+        $id = intval($id);
         $dbName = $this->oApp->DBName('wordpress');
 
         $kVolunteer= intval(@$parms['volunteer_id']);
@@ -292,9 +292,7 @@ class EventsSheet
      */
     function AddEventToDB( $parms ) {
 
-//        include("../wp-content/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php");
         $oMEC = new MEC_main();
-
 
         $raEvent = []; // array to give to MEC
 
