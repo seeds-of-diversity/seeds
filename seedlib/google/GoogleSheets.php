@@ -40,7 +40,6 @@ class SEEDGoogleSheets
         //$oClient->setSubject( getenv( 'GOOGLE_SERVICE_ACCOUNT_NAME' ) );
         $this->oService = new Google_Service_Sheets( $oClient );
         $this->idSpreadsheet = $raConfig['idSpreadsheet'];
-        var_dump($this->idSpreadsheet);
     }
 
     /**
