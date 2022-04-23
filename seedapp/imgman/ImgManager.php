@@ -209,7 +209,8 @@ class SEEDAppImgManager
                       $('#backbutton').click( function(e) {
                           e.preventDefault();
                           let v = $('#imgman_currSubdir').val();
-                          v = v.match( /^(.*)\/.*\/$/ );
+                          // remove last segment by taking everything up to the last / that precedes at least one char (i.e. not a trailing slash)
+                          v = v.match( /^(.*)\/.+$/ );
                           $('#imgman_currSubdir').val( v == null ? '' : (v[1]+'/') );
                       });
               });
