@@ -437,8 +437,8 @@ function SEEDPerms_Setup( $oSetup, &$sReport, $bCreate = false )
  */
 {
     $sReport = "";
-    $bRet = $oSetup->SetupTable( "SEEDPerms",         SEEDPERMS_DB_TABLE_SEEDPERMS,         $bCreate, $sReport ) &&
-            $oSetup->SetupTable( "SEEDPerms_Classes", SEEDPERMS_DB_TABLE_SEEDPERMS_CLASSES, $bCreate, $sReport );
+    $bRet = $oSetup->SetupTable( "SEEDPerms",         SEEDPerms_SQL::CREATE_TABLE_SEEDPERMS,         $bCreate, $sReport ) &&
+            $oSetup->SetupTable( "SEEDPerms_Classes", SEEDPerms_SQL::CREATE_TABLE_SEEDPERMS_CLASSES, $bCreate, $sReport );
 
     /* Initialize users (dev, friend, guest) with typical permclasses
      */
@@ -471,8 +471,9 @@ function SEEDPerms_Setup( $oSetup, &$sReport, $bCreate = false )
     return( $bRet );
 }
 
-
-define("SEEDPERMS_DB_TABLE_SEEDPERMS_CLASSES",
+class SEEDPerms_SQL
+{
+const CREATE_TABLE_SEEDPERMS_CLASSES =
 "
 CREATE TABLE SEEDPerms_Classes (
     # Every element of your application has a permclass, either named or identified by _key
@@ -491,9 +492,9 @@ CREATE TABLE SEEDPerms_Classes (
 
     INDEX (application(20))
 );
-");
+";
 
-define("SEEDPERMS_DB_TABLE_SEEDPERMS",
+const CREATE_TABLE_SEEDPERMS =
 "
 CREATE TABLE SEEDPerms (
     # Map users, user groups, modes, to permclasses
@@ -514,6 +515,5 @@ CREATE TABLE SEEDPerms (
     INDEX (user_id),
     INDEX (user_group)
 );
-");
-
-?>
+";
+}
