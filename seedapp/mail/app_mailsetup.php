@@ -56,6 +56,7 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
+// not needed if SEEDS_DB_DEFAULT is set to this value
 $db = 'seeds2';
 
 $oApp = SEEDConfig_NewAppConsole( ['db'=>$db,
@@ -115,14 +116,7 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_right_text_ContentDraw()
     {
-        $sMessageText = "";
-
-        if( $this->oMailUI->CurrKMail() ) {
-            $oM = new SEEDMail( $this->oMailUI->oApp, $this->oMailUI->CurrKMail() );
-            $sMessageText = $oM->GetMessageText();
-        }
-
-
+        $sMessageText = ($oM = $this->oMailUI->CurrMessageObj()) ? $oM->GetMessageText() : "";
 
         return( "<div style='padding:20px'>$sMessageText</div>" );
     }
@@ -150,14 +144,6 @@ class MyConsole02TabSet extends Console02TabSet
                 $s .= $oChild->GetName()."<br/>";
             }
         }
-
-
-        // this is how you get random info from the current mail record
-        $oMailCurr = new SEEDMail( $this->oMailUI->oApp, $this->oMailUI->CurrKMail() );
-        $extra = $oMailCurr->GetKFR()->Value('sExtra');
-
-        // this is how you store random info in the current mail record
-        $oMailCurr->Store( ['sExtra' => "FOO"] );
 */
 
         return( $s );

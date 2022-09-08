@@ -15,6 +15,7 @@ class SEEDMailUI
     public  $oApp;
     private $oMailCore;
     private $oDB;
+// substitute this with oMsgCurr because we look up SEEDMailMessage(..., $this->kMail) all the time
     private $kMail = 0;
     private $oMailItemForm;
 
@@ -26,6 +27,10 @@ class SEEDMailUI
     }
 
     function CurrKMail()  { return( $this->kMail ); }
+    function CurrMessageObj()
+    {
+        return( $this->kMail ? new SEEDMailMessage( $this->oMailCore, $this->kMail ) : null );
+    }
 
     function Init()
     {
@@ -42,7 +47,7 @@ class SEEDMailUI
         $cmd = SEEDInput_Str('cmd');
         if( $cmd == 'CreateMail' ) {
             // store an empty mail record and make it current
-            $oM = new SEEDMail( $this->oApp, 0 );
+            $oM = new SEEDMailMessage( $this->oMailCore, 0 );
             $this->kMail = $oM->Store( ['sSubject'=>'New'] );
             $this->oMailItemForm->SetKFR( $oM->GetKFR() );
         } else {
@@ -95,8 +100,6 @@ class SEEDMailUI
             $sClass = $bCurr ? "maillist-item-selected" : "";
 
             $bSticky = SEEDCore_ParmsURLGet($ra['sExtra'], 'bSticky');
-
-            $oMail = new SEEDMail( $this->oApp, $ra['_key'] );
 
             $kfrMessage = $this->oMailCore->GetKFRMessage( $ra['_key'] );
             $oMessage = new SEEDMailMessage( $this->oMailCore, $ra['_key'] );

@@ -129,8 +129,9 @@ extends SEEDMailDB
 }
 
 class SEEDMailMessage
-// unextend when SEEDMail is obsolete
-extends SEEDMail
+/*******************
+    Class for a SEEDMail record
+ */
 {
     private $oCore;
     private $raConfig;
@@ -138,13 +139,25 @@ extends SEEDMail
 
     function __construct( SEEDMailCore $oCore, $keyOrName, $raConfig = [] )
     {
-        parent::__construct( $oCore->oApp, $keyOrName, $raConfig );
         $this->oCore = $oCore;
         $this->raConfig = $raConfig;
         $this->kfrMsg = $oCore->GetKFRMessage($keyOrName);
     }
 
     function GetKFR() { return( $this->kfrMsg ); }
+
+    function GetMessageText( $raParms = [] )    // blank is the default behaviour
+    {
+        $s = "";
+
+        if( $this->kfrMsg ) {
+            $s = $this->kfrMsg->Value('sBody');
+            $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
+            list($okDummy,$s) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
+        }
+
+        return( $s );
+    }
 
     function AddRecipient( $e )     // e can be email or kMbr
     /**************************
@@ -219,68 +232,6 @@ extends SEEDMail
             $this->kfrMsg->SetValue( $k, $v );
         }
         return( $this->kfrMsg->PutDBRow() ? $this->kfrMsg->Key() : 0 );
-    }
-
-}
-
-
-// deprecate for SEEDMailCore and SEEDMailMessage
-class SEEDMail
-/*************
-    Class for a SEEDMail record
- */
-{
-    public  $oApp;
-    private $oDB;
-    private $kfr;
-    private $raConfig;
-
-    function __construct( SEEDAppConsole $oApp, $keyOrName, $raConfig = [] )
-    {
-        $this->oApp = $oApp;
-        $this->raConfig = $raConfig;
-// pass this through constructor
-        $this->oDB = new SEEDMailCore( $oApp, $raConfig );
-
-        if( is_numeric($keyOrName) ) {
-            $this->kfr = $keyOrName ? $this->oDB->GetKFR('M',$keyOrName) : $this->oDB->KFRel('M')->CreateRecord();
-        } else {
-            $this->kfr = $this->oDB->GetKFRCond('M',"sName='{$this->oApp->kfdb->EscapeString($keyOrName)}'")
-                         ?: $this->oDB->KFRel('M')->CreateRecord();
-        }
-    }
-
-    function Key()  { return( $this->kfr->Key() ); }
-
-    function GetKFR()  { return($this->kfr); }
-
-    function GetMessageText( $raParms = [] )    // blank is the default behaviour
-    {
-        $s = "";
-
-        if( $this->kfr ) {
-            $s = $this->kfr->Value('sBody');
-            $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
-            list($okDummy,$s) = SEEDMailCore::ExpandMessage( $this->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
-        }
-
-        return( $s );
-    }
-
-
-    function Store( $raParms )
-    /*************************
-        Copy the given parms to the current SEEDMail record and store it in the db
-     */
-    {
-        if( !$this->kfr->Key() ) {
-            // make sure defaults are set for new record
-            $this->kfr->SetValue( 'eStatus', 'NEW' );
-        }
-        foreach( $raParms as $k=>$v ) {
-            $this->kfr->SetValue( $k, $v );
-        }
-        return( $this->kfr->PutDBRow() ? $this->kfr->Key() : 0 );
     }
 
     function DeleteMail( $kMail )
