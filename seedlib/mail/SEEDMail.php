@@ -5,66 +5,88 @@
  * Manage sending email via SEEDMail
  *
  * Copyright (c) 2010-2022 Seeds of Diversity Canada
+ *
+ * SEEDMailCore     - core class implements SEEDMailDB and methods non-specific to a particular mail item
+ * SEEDMailMessage  - implement a SEEDMail record (an email message that can be staged any number of times)
+ * SEEDMailStaged   - implement a SEEDMail_Staged record (an instance of a message ready to be sent to someone)
+ * SEEDMailSend     - class for sending staged messages
  */
 
 include_once( "SEEDMailDB.php" );
 include_once( SEEDROOT."DocRep/DocRep.php" );
 
-class SEEDMail
-/*************
-    Class for a SEEDMail record
- */
+class SEEDMailCore
+//unextend when everything uses a method that encapsulates SEEDMailDB
+extends SEEDMailDB
 {
-    public  $oApp;
+    public $oApp;
     private $oDB;
-    private $kfr;
-    private $raConfig;
 
-    function __construct( SEEDAppConsole $oApp, $keyOrName, $raConfig = [] )
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
+        parent::__construct( $oApp, $raConfig );
         $this->oApp = $oApp;
-        $this->raConfig = $raConfig;
-        $this->oDB = new SEEDMailDB( $oApp, $raConfig );
+        $this->oDB = new SEEDMailDB($oApp, $raConfig);
+    }
 
+
+    function KFRelMessage() :KeyFrame_Relation   { return( $this->oDB->KFRel('M') ); }
+    function KFRelStaged()  :KeyFrame_Relation   { return( $this->oDB->KFRel('MS') ); }
+
+    function GetKFRMessage( $keyOrName )
+    {
         if( is_numeric($keyOrName) ) {
-            $this->kfr = $keyOrName ? $this->oDB->GetKFR('M',$keyOrName) : $this->oDB->KFRel('M')->CreateRecord();
+            $kfr = $keyOrName ? $this->oDB->GetKFR('M',$keyOrName) : $this->oDB->KFRel('M')->CreateRecord();
         } else {
-            $this->kfr = $this->oDB->GetKFRCond('M',"sName='{$this->oApp->kfdb->EscapeString($keyOrName)}'")
+            $kfr = $this->oDB->GetKFRCond('M',"sName='{$this->oApp->kfdb->EscapeString($keyOrName)}'")
                          ?: $this->oDB->KFRel('M')->CreateRecord();
         }
+        return( $kfr );
     }
 
-    function Key()  { return( $this->kfr->Key() ); }
-
-    function GetKFR()  { return($this->kfr); }
-
-    function GetMessageText( $raParms = [] )    // blank is the default behaviour
+    function GetKFRStagedReady()
+    /***************************
+        Get one READY email from the staging table.
+     */
     {
-        $s = "";
-
-        if( $this->kfr ) {
-            $s = $this->kfr->Value('sBody');
-            $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
-            list($okDummy,$s) = self::ExpandMessage( $this->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
-        }
-
-        return( $s );
+        return( $this->oDB->GetKFRCond( 'MS', "eStageStatus='READY'" ) );
     }
 
-    function AddRecipient( $e )     // e can be email or kMbr
+    function GetKFRStaged( $kStaged )
+    /********************************
+        Get the given email from the staging table
+     */
     {
-        if( $this->kfr ) {
-            $this->Store(['sAddresses'=>$this->kfr->Value('sAddresses')."\n$e"]);
-        }
+        return( $kStaged ?  : $this->oDB->KFRel('MS')->CreateRecord() );
+    }
+
+    function GetStagedList( $sCond )
+    /*******************************
+        Return array of staged emails that match the condition
+     */
+    {
+        return( $this->oDB->GetList('MS',$sCond) );
+    }
+
+    function GetStagedCount( $sCond )
+    /********************************
+        Return the number of staged emails that match the condition
+     */
+    {
+        return( $this->oDB->GetCount( 'MS', $sCond ) );
+    }
+
+    function SetTSSent( $kStaged )  // this can be done via KFR once kfr->SetVerbatim() is implemented
+    {
+        $this->oApp->kfdb->Execute( "UPDATE {$this->dbname}.SEEDMail_Staged SET tsSent=NOW() WHERE _key='$kStaged'" );
     }
 
     static function ExpandMessage( SEEDAppSessionAccount $oApp, $sMsg, $raParms )
     /****************************************************************************
-        If the given string is a docrep code, fetch it.
-        Expand SEEDTags in the message.
+        Expand the given email message using SEEDTags.
+        If the string is a docrep code, fetch the doc and expand it.
 
-        N.B. This is used by SEEDMail and SEEDMailStaged, or whereever message texts are retrieved so it cannot depend on
-             any local state (e.g. the local kfr)
+        N.B. This is intended to be independent of any local mailer state so that it can probably be ported to a more generic place.
      */
     {
         $ok = true;
@@ -83,7 +105,7 @@ class SEEDMail
                 if( ($oDoc = $oDocRepDB->GetDoc($docid)) ) { // new DocRepDoc2( $oDocRepDB, $docid );
                     $sMsg = $oDoc->GetText('');
                 } else {
-                    $this->oApp->Log("mailsend.log", "*** Failed to expand mail message - '$docid' not found in DocRep - a blank email was probably sent anyway" );
+                    $oApp->Log("mailsend.log", "*** Failed to expand mail message - '$docid' not found in DocRep - a blank email was probably sent anyway" );
                     $sMsg = "";
                     $ok = false;
                 }
@@ -104,6 +126,147 @@ class SEEDMail
 
         return( [$ok,$sMsg] );
     }
+}
+
+class SEEDMailMessage
+// unextend when SEEDMail is obsolete
+extends SEEDMail
+{
+    private $oCore;
+    private $raConfig;
+    private $kfrMsg;
+
+    function __construct( SEEDMailCore $oCore, $keyOrName, $raConfig = [] )
+    {
+        parent::__construct( $oCore->oApp, $keyOrName, $raConfig );
+        $this->oCore = $oCore;
+        $this->raConfig = $raConfig;
+        $this->kfrMsg = $oCore->GetKFRMessage($keyOrName);
+    }
+
+    function GetKFR() { return( $this->kfrMsg ); }
+
+    function AddRecipient( $e )     // e can be email or kMbr
+    /**************************
+     */
+    {
+        if( $this->kfrMsg && ($e = trim( str_replace("\n", "", $e) )) ) {
+            $this->Store(['sAddresses'=>$this->kfrMsg->Value('sAddresses')."\n$e"]);
+        }
+    }
+
+    function StageMail()
+    /*******************
+        Create a SEEDMail_Staged record for each recipient address listed, then clear the recipient addresses,
+        and set status to READY
+     */
+    {
+        if( !$this->kfrMsg )  goto done;
+
+        foreach( $this->GetRAUnstagedRecipients() as $e ) {
+            if( !($e = trim($e)) ) continue;
+
+            $oMS = new SEEDMailStaged( $this->oCore, 0 );   // create a new record
+            $oMS->Store( ['fk_SEEDMail'=>$this->kfrMsg->Key(), 'eStageStatus'=>'READY', 'sTo'=>$e] );
+        }
+
+        // clear the unstaged recipient addresses, and mark this message as READY
+// the message should not be READY; instead the message staging status should be based simply on the number of READY staged recipients
+        $this->Store( ['eStatus'=>'READY', 'sAddresses'=>""] );
+
+        done:
+        return;
+    }
+
+    function GetRAUnstagedRecipients()
+    /*********************************
+        Array of email/kMbr of recipients not yet staged, on this message
+     */
+    {
+        return( $this->kfrMsg && ($sAddr = $this->kfrMsg->Value('sAddresses')) ? explode("\n", $sAddr) : [] );
+    }
+
+    function GetRAStagedRecipients( $eStageStatus = '' )
+    /***************************************************
+        Array of email/kMbr of staged recipients on this message, optionally filtered by eStageStatus
+     */
+    {
+        $raOut = [];
+
+        $cond = $eStageStatus ? " AND eStageStatus='$eStageStatus'" : "";
+        foreach( $this->oCore->GetStagedList( "fk_SEEDMail='{$this->kfrMsg->Key()}' $cond" ) as $ra ) {
+            $raOut[] = $ra['sTo'];
+        }
+        return( $raOut );
+    }
+
+    // probably quicker to count the number of delimiters in the string, but this is easier.
+    function GetCountUnstagedRecipients()               { return( count($this->GetRAUnstagedRecipients()) ); }
+    // quicker to use SEEDMailDB->GetCount(), but this is easier.
+    function GetCountStagedRecipients( $eStageStatus )  { return( count($this->GetRAStagedRecipients($eStageStatus)) ); }
+
+
+    function Store( $raParms )
+    /*************************
+        Copy the given parms to the current SEEDMail record and store it in the db
+     */
+    {
+        if( !$this->kfrMsg->Key() ) {
+            // make sure defaults are set for new record
+            $this->kfrMsg->SetValue( 'eStatus', 'NEW' );
+        }
+        foreach( $raParms as $k=>$v ) {
+            $this->kfrMsg->SetValue( $k, $v );
+        }
+        return( $this->kfrMsg->PutDBRow() ? $this->kfrMsg->Key() : 0 );
+    }
+
+}
+
+
+// deprecate for SEEDMailCore and SEEDMailMessage
+class SEEDMail
+/*************
+    Class for a SEEDMail record
+ */
+{
+    public  $oApp;
+    private $oDB;
+    private $kfr;
+    private $raConfig;
+
+    function __construct( SEEDAppConsole $oApp, $keyOrName, $raConfig = [] )
+    {
+        $this->oApp = $oApp;
+        $this->raConfig = $raConfig;
+// pass this through constructor
+        $this->oDB = new SEEDMailCore( $oApp, $raConfig );
+
+        if( is_numeric($keyOrName) ) {
+            $this->kfr = $keyOrName ? $this->oDB->GetKFR('M',$keyOrName) : $this->oDB->KFRel('M')->CreateRecord();
+        } else {
+            $this->kfr = $this->oDB->GetKFRCond('M',"sName='{$this->oApp->kfdb->EscapeString($keyOrName)}'")
+                         ?: $this->oDB->KFRel('M')->CreateRecord();
+        }
+    }
+
+    function Key()  { return( $this->kfr->Key() ); }
+
+    function GetKFR()  { return($this->kfr); }
+
+    function GetMessageText( $raParms = [] )    // blank is the default behaviour
+    {
+        $s = "";
+
+        if( $this->kfr ) {
+            $s = $this->kfr->Value('sBody');
+            $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
+            list($okDummy,$s) = SEEDMailCore::ExpandMessage( $this->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
+        }
+
+        return( $s );
+    }
+
 
     function Store( $raParms )
     /*************************
@@ -120,33 +283,6 @@ class SEEDMail
         return( $this->kfr->PutDBRow() ? $this->kfr->Key() : 0 );
     }
 
-    function StageMail()
-    {
-        if( !$this->kfr )  goto done;
-
-        $raAddr = explode( "\n", $this->kfr->Value('sAddresses') );
-        foreach( $raAddr as $e ) {
-            $e = trim($e);
-            if( !$e ) continue;
-
-            $oMS = new SEEDMailStaged( $this, $this->raConfig );
-            $oMS->Store( ['fk_SEEDMail'=>$this->kfr->Key(), 'eStageStatus'=>'READY', 'sTo'=>$e] );
-        }
-        $this->Store( ['eStatus'=>'READY','sAddresses'=>""] );
-
-        done:
-        return;
-    }
-
-    function GetCountStaged( $eStageStatus = 'READY' )
-    /*************************************************
-        Return the number of staged recipients for this message, optionally filtered by eStatusStaged
-     */
-    {
-        $cond = $eStageStatus ? " AND eStageStatus='$eStageStatus'" : "";
-        return( $this->oDB->GetCount( 'MS', "fk_SEEDMail='{$this->kfr->Key()}' $cond" ) );
-    }
-
     function DeleteMail( $kMail )
     {
 
@@ -159,14 +295,13 @@ class SEEDMailStaged
     Class for a SEEDMail_Staged record
  */
 {
-    private $oSMail;
-    private $oDB;
+    private $oCore;
     private $kfr;
 
-    function __construct( SEEDMail $oSMail, $raConfig = [] )
+    function __construct( SEEDMailCore $oCore, $kStaged = 0 )
     {
-        $this->oSMail = $oSMail;
-        $this->oDB = new SEEDMailDB( $oSMail->oApp, $raConfig );
+        $this->oCore = $oCore;
+        $this->kfr = $oCore->GetKFRStaged($kStaged);
     }
 
     function Store( $raParms )
@@ -174,13 +309,14 @@ class SEEDMailStaged
         Copy the given parms into the SEEDMail_Staged record and store it in the db
      */
     {
-        $this->kfr = $this->oDB->KFRel('MS')->CreateRecord();
-        foreach( $raParms as $k=>$v ) {
-            $this->kfr->SetValue( $k, $v );
+        if( $this->kfr ) {
+            foreach( $raParms as $k=>$v ) {
+                $this->kfr->SetValue( $k, $v );
+            }
+
+            if( !$this->kfr->Value('tsSent') ) $this->kfr->SetNull('tsSent');   // force NULL for db
+            $this->kfr->PutDBRow();
         }
-        $this->kfr->SetValue('fk_SEEDMail', $this->oSMail->Key() );
-        if( !$this->kfr->Value('tsSent') ) $this->kfr->SetNull('tsSent');   // force NULL for db
-        $this->kfr->PutDBRow();
     }
 }
 
@@ -189,22 +325,19 @@ include_once( SEEDCORE."SEEDEmail.php" );
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 class SEEDMailSend
 {
-    private $oApp;
-    private $oDB;
-    private $dbname;
-    private $raConfig;
+    private $oCore;
 
-    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
+    function __construct( SEEDMailCore $oCore )
     {
-        $this->oApp = $oApp;
-        $this->raConfig = $raConfig;
-        $this->oDB = new SEEDMailDB( $oApp, $raConfig );
-        $this->dbname = $oApp->GetDBName(@$raConfig['db'] ?: 'seeds2'); // this is in oDB so get it from there
+        $this->oCore = $oCore;
     }
 
     function GetCountReadyToSend()
+    /*****************************
+        Return the total number of READY emails in the staging table
+     */
     {
-        return( $this->oDB->GetCount('MS', "eStageStatus='READY'") );
+        return( $this->oCore->GetStagedCount("eStageStatus='READY'") );
     }
 
     function SendOne()
@@ -216,44 +349,51 @@ class SEEDMailSend
         $sMsg = "";
         $ok = false;
 
-        $kfrStage = $this->oDB->GetKFRCond( 'MS', "eStageStatus='READY'" );
+        // Get one random READY email from the staging table
+        $kfrStage = $this->oCore->GetKFRStagedReady();
         if( !$kfrStage || !$kfrStage->Key() ) {
             $sMsg = "No emails are ready to send";
             goto done;
         }
 
         $kMail = $kfrStage->Value('fk_SEEDMail');   // master SEEDMail record for this email
-        $oMail = new SEEDMail( $this->oApp, $kMail, ['db'=>@$raConfig['db']] );
-
+//        $oMessage = new SEEDMailMessage( $this->oCore, $kMail );
 
         /* sTo is either kMbr or email. Use Mbr_Contacts to try to get full contact info, otherwise just use email.
          */
-        $oMbrContacts = new Mbr_Contacts( $this->oApp );
-        $raMbr = $oMbrContacts->GetBasicValues( $kfrStage->Value('sTo') );
-
         $sTo = @$raMbr['email'] ?: $kfrStage->Value('sTo');
+
+        $oMbrContacts = new Mbr_Contacts( $this->oCore->oApp );
+        $raMbr = $oMbrContacts->GetBasicValues( $kfrStage->Value('sTo') );
+        if( @$raMbr['_key'] ) {
+// make and use GetContactNameFromMbrRA()
+$sContact = $oMbrContacts->GetContactName($raMbr['_key']);
+$sContact = str_replace( ['<','>'], ['',''], $sContact );   // don't let the arbitrary contact name to disrupt the <email> delimiters
+            if( $sContact ) $sTo = $sContact." <$sTo>";
+        }
+
         $kMbrTo = intval(@$raMbr['_key']);
         $sFrom = $kfrStage->Value("M_sFrom");
         $sSubject = $kfrStage->Value("M_sSubject");
 
         if( !$sTo || !$sFrom || !$sSubject ) {
-            $sMsg = $kfrStage->Key()." cannot send. To='$sTo', From='$sFrom', Subject='$sSubject'";
+            $sLog = $kfrStage->Key()." cannot send. To='$sTo', From='$sFrom', Subject='$sSubject'";
             $kfrStage->SetValue( "eStageStatus", "FAILED" );
             $kfrStage->PutDBRow();
-            $this->oApp->Log("mailsend.log", $sMsg);
+            $this->oApp->Log("mailsend.log", $sLog);
             goto done;
         }
 
 
         $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );
         $raVars['kMbrTo'] = $kMbrTo;
-$raVars['lang'] = $this->oApp->lang;
+$raVars['lang'] = $this->oCore->oApp->lang;
 
         //$oDocRepWiki->AddVars( $raDRVars );
         //$oDocRepWiki->AddVar( 'kMbrTo', $kMbr );
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
         //$oDocRepWiki->AddVar( 'sEmailSubject', $sEmailSubject );
-        list($ok,$sBody) = SEEDMail::ExpandMessage( $this->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
+        list($ok,$sBody) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
 
         // if ExpandMessage failed, don't send the message (sBody probably blank) - SEEDMail should have logged the problem (e.g. DocRep doc not found)
         if( $ok ) {
@@ -264,23 +404,26 @@ $raVars['lang'] = $this->oApp->lang;
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()
         $kfrStage->SetValue( "eStageStatus", $ok ? "SENT" : "FAILED");
         $kfrStage->PutDBRow();
-        $this->oApp->kfdb->Execute( "UPDATE {$this->dbname}.SEEDMail_Staged SET tsSent=NOW() WHERE _key='{$kfrStage->Key()}'" );
-        $this->oApp->Log( "mailsend.log", $kfrStage->Expand( "[[_key]] [[fk_SEEDMail]] [[eStageStatus]] [[sTo]] [[tsSent]]" ) );
+
+// the staging record should be removed, not updated. Get NOW() from kfdb and log everything that's known.
+$this->oCore->SetTSSent( $kfrStage->Key() );
+$this->oCore->oApp->Log( "mailsend.log", $kfrStage->Expand( "[[_key]] [[fk_SEEDMail]] [[eStageStatus]] [[sTo]] [[tsSent]]" ) );
 
         /* If this is the first message of a mail batch, update the SEEDMail record status
          */
-        if( $kfrStage->Value('M_eStatus') == 'READY' ) {
-            $oMail->Store( ['eStatus'=>'SENDING'] );
-        }
+// don't think the message should have sending/staging state
+//        if( $kfrStage->Value('M_eStatus') == 'READY' ) {
+//            $oMessage->Store( ['eStatus'=>'SENDING'] );
+//        }
 
         /* If there are no more READY emails for this mail doc, record that SENDING is finished.
          * Clear SEEDMail.sAddresses and the SEEDMail_Staged records because the relevant information has been logged and
          * these take a lot of space in the db.
          */
-        if( !$oMail->GetCountStaged() ) {
-            $oMail->Store( ['eStatus'=>'DONE'] );
-            //$this->oApp->kfdb->Execute( "DELETE FROM {$this->dbname}.SEEDMail_Staged WHERE fk_SEEDMail='$kMail'" );
-        }
+//        if( !$oMail->GetCountStaged() ) {
+//            $oMail->Store( ['eStatus'=>'DONE'] );
+//            //$this->oApp->kfdb->Execute( "DELETE FROM {$this->dbname}.SEEDMail_Staged WHERE fk_SEEDMail='$kMail'" );
+//        }
 
         done:
         return( [$ok ? $kfrStage->Key() : 0, $sMsg] );

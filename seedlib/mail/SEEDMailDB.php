@@ -10,11 +10,14 @@ class SEEDMailDB extends Keyframe_NamedRelations
 /***************
  */
 {
-    private $dbname = "";
+    protected $dbname = "";   // actual db name for SEEDMail tables
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
-        $this->dbname = 'seeds_2'; //$oApp->DBName(@$raConfig['db']) ?: $oApp->kfdb->GetDB();
+        /* raConfig['db']       a logical db for the SEEDMail tables; default to the current db
+         * raConfig['logdir']   a logdir for mail logging; default to oApp
+         */
+        $this->dbname = @$raConfig['db'] ? $oApp->DBName($raConfig['db']) : $oApp->kfdb->GetDB();
         $logdir = @$raConfig['logdir'] ?: $oApp->logdir;
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $logdir );
     }
@@ -70,7 +73,10 @@ CREATE TABLE SEEDMail (
     sBody           TEXT,              # Message body can be text or a DocRep doc id/name
     sFrom           VARCHAR(100),      # From:
     sSubject        VARCHAR(200),      # Subject:  (can contain SEEDTags expanded per-recipient)
+
+-- the message should have no sending or staging status other than that given by the eStageStatus of its _Staged records; it could have NEW, APPROVE, READY as an authoring workflow
     eStatus         enum('NEW','APPROVE','READY','SENDING','DONE') DEFAULT 'NEW',
+
     sName           VARCHAR(200),      # optional name for the message for reference by programs that set up email
     sExtra          TEXT,              # urlencoded extensions e.g. cc, bcc (which can be comma-separated lists)
     sAddresses      TEXT,              # list of addresses/keys while mail is being set up

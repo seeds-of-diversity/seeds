@@ -46,7 +46,8 @@ if( !$nQuantity ) $nQuantity = 1;
 if( !$nDelay )    $nDelay = 20;     // there's no way to set zero delay, though that is tested below (could implement -1 = no delay)
 
 
-$oMailSend = new SEEDMailSend( $oApp, ['db'=>'seeds2'] );
+$oMailCore = new SEEDMailCore( $oApp, ['db'=>'seeds2'] );
+$oMailSend = new SEEDMailSend( $oMailCore );
 $nToSend = $oMailSend->GetCountReadyToSend();
 
 $sBody = "<h2>Seeds of Diversity Bulk Mailer</h2>"

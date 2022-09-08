@@ -37,15 +37,15 @@ $consoleConfig = [
                   'right'=>['tabs' => [ 'mailitem' => ['label'=>'Mail Item'],
                                         'text'     => ['label'=>'Text'],
                                         'controls' => ['label'=>'Controls'],
-                                        'schedule' => ['label'=>'Schedule'],
+                                        'staged'   => ['label'=>'Staged'],
                                         'delete'   => ['label'=>'Delete'],
-                                        'ghost'   =>  ['label'=>'Ghost']
+                                        'ghost'    => ['label'=>'Ghost']
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' =>[ 'mailitem' => [],
                                         'text'     => ['PUBLIC'],
                                         'controls' => [],
-                                        'schedule' => [],
+                                        'staged'   => [],
                                         'delete'   => ['A MBRMAIL'],
                                         'ghost'    => ['A notyou'],
                                       ]
@@ -127,10 +127,16 @@ class MyConsole02TabSet extends Console02TabSet
         return( "<div style='padding:20px'>$sMessageText</div>" );
     }
 
-    function TabSet_right_schedule_ContentDraw()
+    function TabSet_right_staged_ContentDraw()
     {
         $s = "";
 
+
+        $s .= "<p>Show the staged mails here and allow READY mails to be edited</p>";
+
+        $s .= "<p>Implement email scheduling</p>";
+
+/*
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oMailUI->oApp );
 
         // this is how you get the information about a named folder
@@ -152,6 +158,7 @@ class MyConsole02TabSet extends Console02TabSet
 
         // this is how you store random info in the current mail record
         $oMailCurr->Store( ['sExtra' => "FOO"] );
+*/
 
         return( $s );
     }
