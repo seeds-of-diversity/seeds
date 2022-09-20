@@ -93,11 +93,13 @@ class myDocRepCtrlView extends DocRepCtrlView
 {
     constructor( oConfig )
     {
-        oConfig.defTabs = { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule", xml:"XML" };
+        oConfig.defTabs = oConfig.ui.eUILevel == 3 ? { preview:"Preview", add:"Add", rename:"Rename", versions:"Versions", vars:"Variables", schedule:"Schedule", xml:"XML" }
+                                                   : { preview:"Preview", add:"Add", rename:"Rename", schedule:"Schedule" };
 
         super(oConfig);
 
         this.oConfigEnv = oConfig.env;      // save the application environment config
+        this.oConfigUI = oConfig.ui;        // save the ui config
         myDocRepCtrlView_Preview.Reset();   // so the Preview tab starts in Preview mode
     }
 
@@ -215,14 +217,14 @@ class myDocRepCtrlView_Preview
 			$(`#${parentID}`).html(`Click on a page to see its content`); 
 			return;
 		}
-		
+
 		$(`#${parentID}`).empty(); 
         $(`#${parentID}`).html(`
         	<div>
              	<select id='drCtrlview-preview-state-select' onchange='myDocRepCtrlView_Preview.Change(this.value)'>
-                 	<option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>
-                 	<option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>
-                 	<option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
+                    <option value='preview'` +(m=='preview' ? ' selected' :'')+ `>Preview</option>`
+                  +(this.oCtrlView.oConfigUI.eUILevel==3 ? (`<option value='source'`  +(m=='source'  ? ' selected' :'')+ `>Source</option>`) : '')
+                  +`<option value='edit'`    +(m=='edit'    ? ' selected' :'')+ `>Edit</option>
              	</select>
             	<div id='drCtrlview-preview-body' style='border:1px solid #aaa;padding:20px;margin-top:10px'></div>
             </div>`);
@@ -374,7 +376,7 @@ class myDocRepCtrlView_Add
 					</div>
 					<br>
 				</form>`);
-					
+
 		if (sType == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
 			$(`#drAdd_form`).append(`
 					<div class='row'> 
@@ -403,28 +405,28 @@ class myDocRepCtrlView_Add
 						<div class=${ctrl}>
 							<input type='text' id='add-title'  value='' style='width:100%'/>
 						</div>
-					</div>
-					<div class='row'> 
+					</div>`
+                  +(this.oCtrlView.oConfigUI.eUILevel>=2 ?
+                    `<div class='row'> 
 						<div class=${label}>Permissions</div>
 						<div class=${ctrl}>
 							<input type='text' id='add-permissions'  value='1' style='width:100%'/>
 						</div>
-					</div>										
-					<input type='hidden' id='drAdd_kDoc' value='${this.kCurrDoc}'/>
+					</div>` : '')
+                  +`<br/><input type='hidden' id='drAdd_kDoc' value='${this.kCurrDoc}'/>
 				    <input type='submit' value='Add'/>
 				</form>
 				<br>
 				<br>`);
 				
-				
-		$(`#drAdd_form`).append(`
-				<form id='drAdd_duplicate' onsubmit='myDocRepCtrlView_Add.Duplicate(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
-					<input type='submit' value='Duplicate Folder/File' />
-				</form>
-		`)
-				
-	}
-	
+        if( this.oCtrlView.oConfigUI.eUILevel>=2 ) {
+            $(`#drAdd_form`).append(`
+                <form id='drAdd_duplicate' onsubmit='myDocRepCtrlView_Add.Duplicate(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
+                <input type='submit' value='Duplicate Folder/File' />
+                </form>`);
+        }
+    }
+
 	static Submit( e, q_url ) 
 	{
 		e.preventDefault();
@@ -549,14 +551,15 @@ class myDocRepCtrlView_Rename
                  	<div class=${ctrl}>
                  		<input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/>
                  	</div>
-                </div>
-                <div class='row'> 
-                	<div class=${label}>Permissions</div> 
-                	<div class=${ctrl}>
-                		<input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/>
-                	</div>
-                </div>
-                <input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
+                </div>`
+              +(this.oCtrlView.oConfigUI.eUILevel>=2 ?
+                    `<div class='row'> 
+                        <div class=${label}>Permissions</div>
+                        <div class=${ctrl}>
+                            <input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/>
+                        </div>
+                    </div>` : '')
+              +`<br/><input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
                 <input type='submit' value='Change'/>
 			</form>`);
     }
@@ -1077,10 +1080,13 @@ class DocRepUI02
 
         this.oCtrlView = new myDocRepCtrlView(
                         { fnHandleEvent: this.HandleRequest.bind(this),        // tell the object how to send events here
-                          env: oConfig.env                                     // tell the ctrlview how to interact with the application environment 
+                          env: oConfig.env,                                     // tell the ctrlview how to interact with the application environment
+                          ui:  oConfig.ui 
                         } );
 
         this.kCurrDoc = 0;
+        
+        console.log("DocRepUI at level "+oConfig.ui.eUILevel);
     }
 
     DrawTree()
@@ -1164,7 +1170,9 @@ var oDocRepApp02_Config = {
         q_url:        ''                      // url to server that handles QServerDocRep commands
     },
     docsPreloaded: new Map([]),               // replace this with Map() of docs pre-loaded for DocRepTree
-    ui: {}
+    ui: {
+        eUILevel:     1                       // 1=basic UI, 2=more advanced, 3=full UI
+    }
 };
 
 $(document).ready( function () {

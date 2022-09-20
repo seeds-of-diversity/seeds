@@ -44,9 +44,6 @@ class DocManagerUI_Documents
 
     function DrawDocumentsUI( $raConfig )
     {
-        $seedw_url = @$raConfig['seedw_url'] ?: SEEDW_URL;      // url to seeds/wcore/
-        $q_url     = @$raConfig['q_url']     ?: '';             // url to QServerDocRep ajax handler
-
         $s = "<div class='docman_doctree'>"
              ."<div class='container-fluid'>"
                  ."<div class='row'>"
@@ -57,18 +54,25 @@ class DocManagerUI_Documents
 
 //        $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
 
+        /* oDocRepApp02_Config is defined in docmanager.js with default config values.
+         * Set them here to reflect the actual application environment.
+         *     q_url='' means the current application must handle dr-* ajax commands via QServerDocRep
+         *     eUILevel = 1 for basic UI; 2 for more advanced UI; 3 for full UI
+         *     docsPreloaded allows docs to be provided at construction instead of fetched on demand
+         */
+        $seedw_url = @$raConfig['seedw_url'] ?: SEEDW_URL;      // url to seeds/wcore/
+        $q_url     = @$raConfig['q_url']     ?: '';             // url to QServerDocRep ajax handler
+
+        $eUILevel = $this->oApp->sess->CanRead('DocRepMgr3') ? 3 :
+                   ($this->oApp->sess->CanRead('DocRepMgr2') ? 2 : 1);
+
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
         $raTree = $oDocRepDB->GetSubTree( 0, -1 );
 
-        /* oDocRepApp02_Config is defined in docmanager.js with default config values.
-         * Set them here to reflect the actual application environment.
-         * q_url='' means the current application must handle dr-* ajax commands via QServerDocRep
-         */
         $s .= "<script>oDocRepApp02_Config.env.seedw_url = '${seedw_url}';
                        oDocRepApp02_Config.env.q_url = '${q_url}';
                        oDocRepApp02_Config.docsPreloaded = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );
-                       oDocRepApp02_Config.ui.eUILevel = 3;
-                       oDocRepApp02_Config.ui.eUILevel_devctrl = true;
+                       oDocRepApp02_Config.ui.eUILevel = ${eUILevel};
                </script>";
 
         return( $s );
