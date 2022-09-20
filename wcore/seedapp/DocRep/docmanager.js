@@ -1163,7 +1163,8 @@ var oDocRepApp02_Config = {
         seedw_url:    '../../wcore/',         // url to seeds wcore directory
         q_url:        ''                      // url to server that handles QServerDocRep commands
     },
-    docsPreloaded: null                       // array of docs pre-loaded for DocRepTree
+    docsPreloaded: new Map([]),               // replace this with Map() of docs pre-loaded for DocRepTree
+    ui: {}
 };
 
 $(document).ready( function () {
