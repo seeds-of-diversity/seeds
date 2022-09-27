@@ -145,6 +145,7 @@ class SEEDMailMessage
     }
 
     function GetKFR() { return( $this->kfrMsg ); }
+    function Key()    { return( $this->kfrMsg ? $this->kfrMsg->Key() : 0 ); }
 
     function GetMessageText( $raParms = [] )    // blank is the default behaviour
     {
