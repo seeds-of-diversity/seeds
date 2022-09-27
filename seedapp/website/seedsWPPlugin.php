@@ -112,7 +112,7 @@ function seedsWPPlugin_EnqueueStylesAndScripts()
 
 function seedsWPPlugin_Filter( $content )
 {
-    if( !function_exists("Drupal8Template") )  goto done;   // old code might not be installed, just ignore
+    if( !class_exists("Drupal8Template") )  goto done;   // old code might not be installed, just ignore
 
     $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( [] );
 
