@@ -79,8 +79,10 @@ class KeyFrame_Relation
     private $baseTableAlias = "";
     private $raTableN2A = [];        // store all table names and aliases for reference ( array of tableName => tableAlias )
     private $raColN2A = [];          // map all column names to their aliases [tableAlias.col => full_alias]
+    private $raColN2ABase = [];      // map base column names to their aliases [col => alias]
     private $raColA2N = [];          // map all alias names to their column names [full_alias and base_alias => tableAlias.col]
-// deprecate for raColA2N which is identical
+    private $raColA2NBase = [];      // map base alias names to their column names [alias => col]
+    // deprecate for raColA2N which is identical
 private $raColAlias = [];        // store all field names for reference ( array of colAlias => tableAlias.col )
 
     private $qSelect = null;            // cache the constant part of the SELECT query (with the fields clause substitutable)
@@ -167,12 +169,18 @@ private $raColAlias = [];        // store all field names for reference ( array 
                 $col = $a.".".$f['col'];    // col always has table prefix
 
                 // index col -> alias
-                $this->raColN2A[$col] = $f['alias_full'];
-                if( $t['Type'] == 'Base' ) { $this->raColN2A[$f['col']] = $f['alias']; }
+                $this->raColN2A[$col] = $f['alias_full'];           // full col, full alias
+                if( $t['Type'] == 'Base' ) {
+                    $this->raColN2A[$f['col']] = $f['alias'];       // base col, full alias
+                    $this->raColN2ABase[$f['col']] = $f['alias'];   // base col, base alias
+                }
 
                 // index alias -> col
-                $this->raColA2N[$f['alias']] = $col;
-                $this->raColA2N[$f['alias_full']] = $col;
+                $this->raColA2N[$f['alias_full']] = $col;           // full alias, full col
+                if( $t['Type'] == 'Base' ) {
+                    $this->raColA2N[$f['alias']] = $col;            // base alias (unless pre-defined), full col
+                    $this->raColA2NBase[$f['alias']] = $f['col'];   // base alias, base col
+                }
                 // deprecate raColAlias for raColA2N
                 $this->raColAlias[$f['alias']] = $col;
                 $this->raColAlias[$f['alias_full']] = $col;
@@ -757,9 +765,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         }
 
 
-
         done:
-        if( $b ) echo $q;
         return( $q );
     }
 }
