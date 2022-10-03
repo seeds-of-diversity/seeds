@@ -200,6 +200,21 @@ private $raColAlias = [];        // store all field names for reference ( array 
         //var_dump($this->raColAlias);
     }
 
+    function IsBaseColumn($col)
+    /**************************
+        Return true if $col is a col name in the base table
+     */
+    {
+        return( @$this->raColN2ABase[$col] ? true : false );
+    }
+    function IsBaseAlias($a)
+    /***********************
+        Return true if $a is a col alias in the base table
+     */
+    {
+        return( @$this->raColA2NBase[$a] ? true : false );
+    }
+// deprecate for above
     function IsBaseField( $q )
     /*************************
         return true if $q is a field name of the base table
@@ -217,14 +232,17 @@ private $raColAlias = [];        // store all field names for reference ( array 
 
     function GetListColAliases( $bBaseOnly = true )
     /**********************************************
+        Return an array of all col aliases in the current Relation
      */
     {
         $ra = array();
         if( $bBaseOnly ) {
+// use array_Keys($this->raColA2NBase)
             foreach( $this->baseTable['Fields'] as $f ) {
                 $ra[] = $f['alias'];
             }
         } else {
+// use array_Keys($this->raColA2N)
             foreach( $this->raColAlias as $a => $col ) {
                 $ra[] = $a;
             }
@@ -232,6 +250,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         return( $ra );
     }
 
+// deprecate for GetColNameFromColAlias()
     function GetRealColName( $alias )
     /********************************
         Given a column alias, return the column name that is used in a SELECT query.
@@ -242,6 +261,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         return( @$this->raColAlias[$alias] );
     }
 
+// deprecate: the caller should use GetDBTableAlias() and append the col themselves
     function GetDBColName( $table, $col )
     /************************************
         Return the name that is used for the given column in SELECT queries.  (e.g. T2.foo)
@@ -251,6 +271,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         return( $this->raTableN2A[$table].".$col" );  // the value of the array is the tableAlias
     }
 
+// rename to GetTableAlias
     function GetDBTableAlias( $table )
     /*********************************
         Return the alias that is used for the given table.
@@ -262,32 +283,43 @@ private $raColAlias = [];        // store all field names for reference ( array 
         return( isset($this->raTableN2A[$table]) ? $this->raTableN2A[$table] : null );
     }
 
+    function GetColNameFromColAlias( $alias, $bBaseIfPossible = false )
+    /******************************************************************
+        Return the column name of the given column alias. e.g. Users_realname converts to Users.realname
+     */
+    {
+        if( $bBaseIfPossible && ($col = @$this->raColA2NBase[$alias]) ) {
+            // found the base col name
+        } else {
+            $col = @$this->raColA2N[$alias];
+        }
+        return( $col );
+    }
+
     function GetColAliasFromColName( $col )
     /**************************************
-        Return the column alias of the given column name. e.g. User.name converts to U_name
+        Return the column alias of the given column name. e.g. Users.realname converts to Users_realname
 
         Column name can be of many forms:
             col
             tableAlias.col
-            tableName.col       (not implemented)
+            tableName.col
             db.tableName.col    (not implemented)
      */
     {
-        if( strpos($col, '.') === false ) {
-            // col is a base column name
-            foreach( $this->baseTable['Fields'] as $f ) {
-                if( $f['col'] == $col ) {
-                    $alias = $f['alias'];
-                    break;
+        if( !($alias = @$this->raColN2A[$col]) ) {  // finds (col) and (tableAlias.col) formats
+            // maybe it's a (tableName.col) format
+            if( strpos($col, '.') !== false ) {
+                list($table,$colBase) = explode( '.', $col );
+                if( ($tableAlias = $this->GetDBTableAlias($table)) ) {
+                    $alias = @$this->raColN2A["{$tableAlias}.{$colBase}"];
                 }
             }
-        } else {
-            // assume the part preceding '.' is a table alias
         }
         return( $alias );
     }
 
-// deprecate in favour of GetAliasFromCol()
+// deprecate in favour of GetColAliasFromColName()
     function GetDBColAlias( $table, $col )
     /*************************************
         Return the alias that is used for the given column in SELECT queries.  (e.g. T2_foo)
@@ -717,6 +749,9 @@ private $raColAlias = [];        // store all field names for reference ( array 
         {{ca|foo}}      required to be a column or alias named foo. Check for column first, and if it is actually a column, convert to the corresponding alias.
      */
     {
+//$b = strpos($q,'{{') !== false;
+//if( $b ) echo $q;
+
         /* Look for {{c|foo}} and ensure that foo is an existing column name
          */
         $matches = [];
@@ -764,8 +799,8 @@ private $raColAlias = [];        // store all field names for reference ( array 
             $q = str_replace( $fullTag, $col, $q );   // replace the tagged alias with the column name
         }
 
-
         done:
+//if( $b ) echo $q;
         return( $q );
     }
 }
