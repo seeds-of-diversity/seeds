@@ -168,7 +168,10 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             if( $op == 'blank' ) {
                 // process this separately because the text value is irrelevant
                 if( $fld ) {  // 'Any'=blank is not allowed
-                    $raCond[] = "($fld='' OR $fld IS NULL)";
+                    // Use KF {{ca|foo}} tags to prevent SQL injection. This validates that foo is an actual column.
+                    // If foo is actually a  col alias, "ca" also converts alias to column for convenience.
+                    $sqlCol = "{{ca|$fld}}";
+                    $raCond[] = "($sqlCol = '' OR $sqlCol IS NULL)";
                 }
             } else if( $val ) {
                 if( $fld ) {
@@ -208,18 +211,22 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
         blank    : handled by SearchControlDBCond()
      */
     {
+        // Use KF {{ca|foo}} tags to prevent SQL injection. This validates that foo is an actual column.
+        // If foo is actually a  col alias, "ca" also converts alias to column for convenience.
+        $sqlCol = "{{ca|$col}}";
+
         $val = addslashes($val);
 
         switch( $op ) {
-            case 'like':    $s = "$col LIKE '%$val%'";  break;
-            case 'start':   $s = "$col LIKE '$val%'";   break;
-            case 'end':     $s = "$col LIKE '%$val'";   break;
+            case 'like':    $s = "$sqlCol LIKE '%$val%'";  break;
+            case 'start':   $s = "$sqlCol LIKE '$val%'";   break;
+            case 'end':     $s = "$sqlCol LIKE '%$val'";   break;
 
-            case 'less':    $s = "($col < '$val' AND $col <> '')";    break;    // a < '1' is true if a is blank
-            case 'greater': $s = "($col > '$val' AND $col <> '')";    break;
+            case 'less':    $s = "($sqlCol < '$val' AND $sqlCol <> '')";    break;    // a < '1' is true if a is blank
+            case 'greater': $s = "($sqlCol > '$val' AND $sqlCol <> '')";    break;
 
             case 'eq':
-            default:        $s = "$col = '$val'";       break;
+            default:        $s = "$sqlCol = '$val'";       break;
         }
 
         return( $s );
@@ -300,7 +307,10 @@ class SEEDUIWidget_SearchDropdown extends SEEDUIWidget_Base
         foreach( $raConfig['controls'] as $fld => $ra ) {
             if( $ra[0] == 'select' ) {
                 if( ($currVal = $this->CtrlGlobal('srchctl_'.$fld)) ) {
-                    $raCond[] = "$fld='".addslashes($currVal)."'";
+                    // Use KF {{ca|foo}} tags to prevent SQL injection. This validates that foo is an actual column.
+                    // If foo is actually a  col alias, "ca" also converts alias to column for convenience.
+                    $sqlCol = "{{ca|$fld}}";
+                    $raCond[] = "$sqlCol='".addslashes($currVal)."'";
                 }
             }
         }
