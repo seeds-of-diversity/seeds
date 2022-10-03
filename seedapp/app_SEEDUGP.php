@@ -17,13 +17,17 @@ $consoleConfig = [
     'HEADER' => "Users, Groups, Permissions on ".APP_SEEDUGP_DB,
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'users'        => ['label'=>'Users'],
-                                        'groups'       => ['label'=>'Groups'],
-                                        'permissions'  => ['label'=>'Permissions'],
+    'TABSETS' => ['main'=> ['tabs' => [ 'users'            => ['label'=>'Users'],
+                                        'groups'           => ['label'=>'Groups'],
+                                        'permissions'      => ['label'=>'Permissions'],
+                                        'seedpermsclasses' => ['label'=>'SeedPermsClasses'],
+                                        'seedperms'        => ['label'=>'SeedPerms'],
                                       ],
-                            'perms' =>[ 'users'        => [ "A SEEDSessionUGP" ],
-                                        'groups'       => [ "A SEEDSessionUGP" ],
-                                        'permissions'  => [ "A SEEDSessionUGP" ],
+                            'perms' =>[ 'users'            => [ "A SEEDSessionUGP" ],
+                                        'groups'           => [ "A SEEDSessionUGP" ],
+                                        'permissions'      => [ "A SEEDSessionUGP" ],
+                                        'seedpermsclasses' => [ "A SEEDSessionUGP" ],
+                                        'seedperms'        => [ "A SEEDSessionUGP" ],
                                         '|'  // allows screen-login even if some tabs are ghosted
                                       ],
                            ],
@@ -67,6 +71,14 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_permissions_Init()          { $this->oW = new UGPListForm( $this->oApp, 'perms' ); $this->oW->Init(); }
     function TabSet_main_permissions_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_permissions_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_seedpermsclasses_Init()          { $this->oW = new UGPListForm( $this->oApp, 'seedpermsclasses' ); $this->oW->Init(); }
+    function TabSet_main_seedpermsclasses_ControlDraw()   { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_seedpermsclasses_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_seedperms_Init()                 { $this->oW = new UGPListForm( $this->oApp, 'seedperms' ); $this->oW->Init(); }
+    function TabSet_main_seedperms_ControlDraw()          { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_seedperms_ContentDraw()         { return( $this->oW->ContentDraw() ); }
 }
 
 
@@ -92,9 +104,11 @@ class UGPListForm extends KeyframeUI_ListFormUI
         $sInfo = "";
         if( $this->oComp->oForm->GetKey() ) {     // only show extra info for existing items, not when the New form is open
             switch( $this->mode ) {
-                case 'users':   $sInfo = $this->oUGPUI->drawUsersInfo( $this->oComp );   break;
-                case 'groups':  $sInfo = $this->oUGPUI->drawGroupsInfo( $this->oComp );  break;
-                case 'perms':   $sInfo = $this->oUGPUI->drawPermsInfo( $this->oComp );   break;
+                case 'users':            $sInfo = $this->oUGPUI->drawUsersInfo( $this->oComp );   break;
+                case 'groups':           $sInfo = $this->oUGPUI->drawGroupsInfo( $this->oComp );  break;
+                case 'perms':            $sInfo = $this->oUGPUI->drawPermsInfo( $this->oComp );   break;
+                case 'seedpermsclasses': $sInfo = $this->oUGPUI->drawSeedPermsClassesInfo( $this->oComp );   break;
+                case 'seedperms':        $sInfo = $this->oUGPUI->drawSeedPermsInfo( $this->oComp );   break;
             }
         }
 
@@ -125,5 +139,5 @@ $s .= $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
+                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
 
