@@ -175,3 +175,44 @@ class KeyFrameUI_ListFormUI
         return( "<div style='padding:15px'>".$this->oSrch->Draw()."</div>" );   // put this padding in the search control css (see DrawStyle method)
     }
 }
+
+class KeyFrameUI_ListFormUI_Config
+/*********************************
+    Interface for creating the raConfig for a KeyframeUI_ListFormUI
+
+    This is always extended by a derived class that provides specific config.
+ */
+{
+    protected $raConfig;
+
+    protected function __construct()
+    {
+        $this->raConfig = [
+                // derived class must provide these
+                'sessNamespace' => 'replaceMe',
+                'cid'           => 'A',
+                'kfrel'         => null,
+
+                // derived class must provide list cols, may optionally override ListRowTranslate
+                'raListConfig' => [
+                    'cols' => [['label'=>'_replace_', 'col'=>'_me_']],
+                    'fnRowTranslate' => [$this,'ListRowTranslate'],
+                    'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                ],
+
+                // derived class must provide search control filters, which sometimes can be simply a copy of the list cols array
+                'raSrchConfig' => ['filters'=>[['label'=>'_replace_', 'col'=>'_me_']]],
+
+                // derived class may optionally override these methods
+                'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore']]]],
+                'raFormConfig' => ['fnExpandTemplate'=>[$this,'FormTemplate']],
+        ];
+    }
+    function GetConfig()   { return( $this->raConfig ); }
+
+    /* These are not called directly, but referenced in raConfig
+     */
+    function ListRowTranslate( $raRow )             { return( $raRow ); }    // override to alter list values (only affects display)
+    function PreStore( Keyframe_DataStore $oDS )    { return( true ); }      // override to validate/alter values before save; return false to cancel save
+    function FormTemplate()                         { return( "" ); }        // override to draw the Form
+}

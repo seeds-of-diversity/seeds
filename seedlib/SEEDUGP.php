@@ -1,6 +1,114 @@
 <?php
 
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
+include_once( SEEDCORE."SEEDPerms.php" );
+
+
+class SEEDPerm_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
+/*********************************
+    Get the configuration for a KeyframeUI_ListFormUI on the SEEDPerms tables
+        $c = seedpermsclasses | seedperms
+ */
+{
+    private $oApp;
+    private $c;
+    private $oSEEDPerms;
+
+    function __construct( SEEDAppDB $oApp, $c )
+    {
+        $this->oApp = $oApp;
+        $this->c = $c;
+        $this->oSEEDPerms = new SEEDPermsRead( $this->oApp, ['dbname'=>$this->oApp->kfdb->GetDB()] );       // uses the same db as the kfdb
+
+        parent::__construct();  // sets the default raConfig
+        $this->raConfig['sessNamespace'] = ($c=='seedpermsclasses' ? 'SEEDPermsClasses' : 'SEEDPerms');
+        $this->raConfig['cid']           = ($c=='seedpermsclasses' ? 'SC' : 'SP');
+        $this->raConfig['kfrel']         = $this->oSEEDPerms->GetKfrel($c == 'seedpermsclasses' ? 'C' : 'PxC');
+        $this->raConfig['raListConfig']['cols'] =
+                ($c=='seedpermsclasses'
+                    // SEEDPermsClasses list cols
+                    ? [ ['label'=>'k',          'col'=>'_key'],
+                        ['label'=>'App',        'col'=>'application'],
+                        ['label'=>'Class name', 'col'=>'name'] ]
+                    // SEEDPerms list cols
+                    : [ [ 'label'=>'App',        'col'=>'C_application' ],
+                        [ 'label'=>'Class Name', 'col'=>'C_name' ],
+                        [ 'label'=>'User',       'col'=>'user_id' ],
+                        [ 'label'=>'Group',      'col'=>'user_group' ],
+                        [ 'label'=>'Modes',      'col'=>'modes' ] ]);
+        // conveniently, we can use the same format for search filters as for the cols
+        $this->raConfig['raSrchConfig']['filters'] = $this->raConfig['raListConfig']['cols'];
+    }
+
+    /* These are not called directly, but referenced in raConfig
+     */
+    function FormTemplate()
+    {
+        if( $this->c == 'seedpermsclasses' ) {
+            $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+                ."||| App  || [[Text:application]]\n"
+                ."||| Class name  || [[Text:name]]\n"
+                ."||| <input type='submit'>  [[HiddenKey:]]";
+        } else {
+            $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+                ."||| Class name  || [[Text:C_name]] should be a select\n"
+                ."||| Mode  || [[Text:modes]]\n"
+                ."||| User  || ".$this->makeUserSelect( 'sfSPp_user_id', 'user_id' )
+                ."||| Group || ".$this->makeGroupSelect( 'sfSPp_user_group', 'user_group' )
+                ."||| <input type='submit'>  [[HiddenKey:]]";
+        }
+        return( $s );
+    }
+
+
+    private function makeUserSelect( $name_sf, $name )
+    {
+        $raOpts = $this->getOptsFromTableCol( $this->oApp->kfdb, 'SEEDSession_Users', 'realname', '-- No User --' );
+        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
+    }
+    private function makeGroupSelect( $name_sf, $name )
+    {
+        $raOpts = $this->getOptsFromTableCol( $this->oApp->kfdb, 'SEEDSession_Groups', 'groupname', '-- No Group --' );
+        return( $this->getSelectTemplateFromArray( $name_sf, $name, $raOpts ) );
+    }
+
+    private function getSelectTemplateFromArray( $name_sf, $name, $raOpts )
+    /**********************************************************************
+        Make a <select> template from a given array of options
+     */
+    {
+        $s = "<select name='$name_sf'>";
+        foreach( $raOpts as $label => $val ) {
+            $s .= "<option value='$val' [[ifeq:[[value:$name]]|$val|selected| ]]>$label</option>";
+        }
+        $s .= "</select>";
+
+        return( $s );
+    }
+// this could be a general method in SEEDForm or KeyframeForm
+    private function getOptsFromTableCol( KeyframeDatabase $kfdb, $table, $tableCol, $emptyLabel = false )
+    /*****************************************************************************************************
+        Make an array of <options> from the contents of a table column and its _key.
+
+        emptyLabel is the label of a '' option : omitted if false
+     */
+    {
+        $raOpts = array();
+        if( $emptyLabel !== false ) {
+            $raOpts[$emptyLabel] = "";
+        }
+        $raVals = $kfdb->QueryRowsRA( "SELECT _key as val,$tableCol as label FROM $table" );
+        foreach( $raVals as $ra ) {
+            $raOpts[$ra['label']] = $ra['val'];
+        }
+
+        return( $raOpts );
+    }
+
+
+
+
+}
 
 
 class UsersGroupsPermsUI
@@ -12,6 +120,7 @@ class UsersGroupsPermsUI
     {
         $this->oApp = $oApp;
         $this->oAcctDB = new SEEDSessionAccountDB2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), ['logdir'=>$this->oApp->logdir] );
+        $this->oSEEDPermsDB = new SEEDPermsRead( $this->oApp, ['dbname'=>$this->oApp->kfdb->GetDB()] );
     }
 
 
@@ -91,12 +200,26 @@ class UsersGroupsPermsUI
         ];
         $raConfigPerms['raSrchConfig']['filters'] = $raConfigPerms['raListConfig']['cols'];     // conveniently the same format
 
+
+
         switch( $sMode ) {
             default:
-            case 'users':  $raConfig = $raConfigUsers;  break;
-            case 'groups': $raConfig = $raConfigGroups; break;
-            case 'perms':  $raConfig = $raConfigPerms;  break;
+            case 'users':            $raConfig = $raConfigUsers;             break;
+            case 'groups':           $raConfig = $raConfigGroups;            break;
+            case 'perms':            $raConfig = $raConfigPerms;             break;
         }
+
+        if( $sMode == 'seedpermsclasses' ) {
+            $oConf = new SEEDPerm_KFUIListForm_Config($this->oApp, 'seedpermsclasses');
+            $raConfig = $oConf->GetConfig();
+        }
+
+        if( $sMode == 'seedperms' ) {
+            $oConf = new SEEDPerm_KFUIListForm_Config($this->oApp, 'seedperms');
+            $raConfig = $oConf->GetConfig();
+        }
+
+
 
         return( $raConfig );
     }
@@ -124,6 +247,10 @@ class UsersGroupsPermsUI
         return( $raRow );
     }
     function permsListRowTranslate( $raRow )
+    {
+        return( $raRow );
+    }
+    function seedpermsListRowTranslate( $raRow )
     {
         return( $raRow );
     }
@@ -403,6 +530,22 @@ class UsersGroupsPermsUI
     }
 
     function drawPermsInfo( KeyframeUIComponent $oComp )
+    {
+        $s = "";
+
+        return( $s );
+
+    }
+
+    function drawSeedPermsClassesInfo( KeyframeUIComponent $oComp )
+    {
+        $s = "";
+
+        return( $s );
+
+    }
+
+    function drawSeedPermsInfo( KeyframeUIComponent $oComp )
     {
         $s = "";
 
