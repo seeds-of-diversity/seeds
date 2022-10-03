@@ -234,7 +234,7 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 
     function Draw()
     {
-        $s = @$raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]]";
+        $s = @$raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input type='reset'>";
 
         if( !@$this->raConfig['filters'] )  goto done;
 

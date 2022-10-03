@@ -44,7 +44,7 @@ class SEEDPermsRead extends Keyframe_NamedRelations
 
     function __construct( SEEDAppDB $oApp, $raConfig = array() )
     /***********************************************************
-        raConfig:   dbname      optional database name
+        raConfig:   dbname      optional database name (actual, not logical)
                     raUserid    array( uid1, uid2, ... )    the user(s) for the SEEDPerms lookup
                     raUserGroup array( gid1, gid2, ... )    the group(s) for the SEEDPerms lookup
                     uidOwner    credited with _created_by and/or _updated_by
