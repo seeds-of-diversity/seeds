@@ -78,7 +78,10 @@ class KeyFrame_Relation
     private $baseTable = null;  // ref to the base table definition in $this->kfrdef
     private $baseTableAlias = "";
     private $raTableN2A = [];        // store all table names and aliases for reference ( array of tableName => tableAlias )
-    private $raColAlias = [];        // store all field names for reference ( array of colAlias => tableAlias.col )
+    private $raColN2A = [];          // map all column names to their aliases [tableAlias.col => full_alias]
+    private $raColA2N = [];          // map all alias names to their column names [full_alias and base_alias => tableAlias.col]
+// deprecate for raColA2N which is identical
+private $raColAlias = [];        // store all field names for reference ( array of colAlias => tableAlias.col )
 
     private $qSelect = null;            // cache the constant part of the SELECT query (with the fields clause substitutable)
     private $qSelectFieldsClause = "";  // cache the default fields clause (caller can override)
@@ -162,6 +165,15 @@ class KeyFrame_Relation
                     $f['alias'] = ($t['Type'] == 'Base') ? $f['col'] : $f['alias_full'];
                 }
                 $col = $a.".".$f['col'];    // col always has table prefix
+
+                // index col -> alias
+                $this->raColN2A[$col] = $f['alias_full'];
+                if( $t['Type'] == 'Base' ) { $this->raColN2A[$f['col']] = $f['alias']; }
+
+                // index alias -> col
+                $this->raColA2N[$f['alias']] = $col;
+                $this->raColA2N[$f['alias_full']] = $col;
+                // deprecate raColAlias for raColA2N
                 $this->raColAlias[$f['alias']] = $col;
                 $this->raColAlias[$f['alias_full']] = $col;
             }
@@ -219,7 +231,7 @@ class KeyFrame_Relation
         e.g. Alias=Users_realname, return Users.realname
      */
     {
-        return( $this->raColAlias[$alias] );
+        return( @$this->raColAlias[$alias] );
     }
 
     function GetDBColName( $table, $col )
@@ -242,6 +254,32 @@ class KeyFrame_Relation
         return( isset($this->raTableN2A[$table]) ? $this->raTableN2A[$table] : null );
     }
 
+    function GetColAliasFromColName( $col )
+    /**************************************
+        Return the column alias of the given column name. e.g. User.name converts to U_name
+
+        Column name can be of many forms:
+            col
+            tableAlias.col
+            tableName.col       (not implemented)
+            db.tableName.col    (not implemented)
+     */
+    {
+        if( strpos($col, '.') === false ) {
+            // col is a base column name
+            foreach( $this->baseTable['Fields'] as $f ) {
+                if( $f['col'] == $col ) {
+                    $alias = $f['alias'];
+                    break;
+                }
+            }
+        } else {
+            // assume the part preceding '.' is a table alias
+        }
+        return( $alias );
+    }
+
+// deprecate in favour of GetAliasFromCol()
     function GetDBColAlias( $table, $col )
     /*************************************
         Return the alias that is used for the given column in SELECT queries.  (e.g. T2_foo)
@@ -651,6 +689,77 @@ class KeyFrame_Relation
             $q .= " LIMIT ".($iOffset>0 ? "$iOffset," : "").$iLimit;
         }
 
+        $q = $this->makeSelect_validate($q);
+
+        return( $q );
+    }
+
+    private function makeSelect_validate( $q )
+    /*****************************************
+        Strings fed into makeSelect, such as the arbitrary $cond, can contain tagged substrings to be validated, converted, or escaped.
+
+        {{e|foo}}       escaped using kfdb->EscapeString("foo")
+
+        These are safe ways to use user-inputted col/alias names without sql injection. e.g. a search control might refer to a column by name
+        {{c|foo}}       required to be an existing column named foo. Otherwise  an error is logged and function returns blank string.
+        {{a|foo}}       required to be an existing alias named foo.
+
+        These are safe ways to use user-inputted col/alias names without sql injection. Substitution is allowed so high-level code doesn't have to know which is which.
+        {{ac|foo}}      required to be an alias or column named foo. Check for alias first, and if it is actually a column, converted to the corresponding alias.
+        {{ca|foo}}      required to be a column or alias named foo. Check for column first, and if it is actually a column, convert to the corresponding alias.
+     */
+    {
+        /* Look for {{c|foo}} and ensure that foo is an existing column name
+         */
+        $matches = [];
+        preg_match_all( '/\{\{c\|([^\}]*)\}\}/', $q, $matches, PREG_SET_ORDER );
+        foreach( $matches as $ra ) {
+            $fullTag = $ra[0];
+            $col = $ra[1];
+
+            // maybe: if there is a . split into table/tableAlias and colname then verify
+            //        if there is no . just check if it's a base field
+        }
+
+        /* Look for {{a|foo}} and ensure that foo is an existing alias name
+         */
+        $matches = [];
+        preg_match_all( '/\{\{a\|([^\}]*)\}\}/', $q, $matches, PREG_SET_ORDER );
+        foreach( $matches as $ra ) {
+            $fullTag = $ra[0];
+            $a = $ra[1];
+            if( $this->GetRealColName($a) ) {
+                $q = str_replace( $fullTag, $a, $q );   // replace the tagged alias with the simple alias
+            } else {
+                $q = "";
+                goto done;
+            }
+        }
+
+        /* Look for {{ca|foo}} and ensure that foo is an existing col/alias name, and replace with col name
+         */
+        $matches = [];
+        preg_match_all( '/\{\{ca\|([^\}]*)\}\}/', $q, $matches, PREG_SET_ORDER );
+        foreach( $matches as $ra ) {
+            $fullTag = $ra[0];
+            $p = $ra[1];
+
+            if( false /* is col name */ ) {
+                $col = $p;
+            } else
+            // test if it's an alias
+            if( ($col = $this->GetRealColName($p)) ) {
+            } else {
+                $q = "";
+                goto done;
+            }
+            $q = str_replace( $fullTag, $col, $q );   // replace the tagged alias with the column name
+        }
+
+
+
+        done:
+        if( $b ) echo $q;
         return( $q );
     }
 }
