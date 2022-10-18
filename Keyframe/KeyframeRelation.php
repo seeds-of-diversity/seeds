@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2021 Seeds of Diversity Canada
+ * Copyright (c) 2006-2022 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
@@ -787,11 +787,13 @@ private $raColAlias = [];        // store all field names for reference ( array 
             $fullTag = $ra[0];
             $p = $ra[1];
 
-            if( false /* is col name */ ) {
+            // test if it's a col name
+            if( $this->GetColAliasFromColName($p) ) {
                 $col = $p;
             } else
             // test if it's an alias
             if( ($col = $this->GetRealColName($p)) ) {
+                // good, use $col below
             } else {
                 $q = "";
                 goto done;
