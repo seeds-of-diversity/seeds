@@ -2,7 +2,7 @@
 
 /* SEEDSessionAccountDB
  *
- * Copyright 2006-2018 Seeds of Diversity Canada
+ * Copyright 2006-2022 Seeds of Diversity Canada
  *
  * DB layer for SEEDSession Users, Groups, Perms, Metadata
  */
@@ -751,6 +751,13 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( array($k, $raUser, $raMetadata) );
     }
 
+    function GetAllUsers( $cond, $raParms = [] )
+    /*******************************************
+     */
+    {
+        return( $this->getUsers( "SELECT [[cols]] FROM {$this->sDB}SEEDSession_Users U WHERE [[statusCond]]".($cond ? " AND ($cond)" : ""), $raParms ) );
+    }
+
     function GetUsersFromGroup( $kGroup, $raParms = array() )
     /********************************************************
         Return the list of users that belong to kGroup: gid1 + UsersXGroups ; also users that belong to descendant groups of kGroup
@@ -829,41 +836,67 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( $raRet );
     }
 
-    function GetGroupsFromUser( $kUser, $raParms = array() )
-    /*******************************************************
-        Return the list of groups in which kUser is a member: gid1 + UsersXGroups + their inherited groups
+    function GetAllGroups( $cond, $raParms = [] )
+    /********************************************
+        Return the list of all groups that meet the conditions
+     */
+    {
+        return( $this->getGroups( $cond, $raParms, "ALL" ) );
+    }
 
+    function GetGroupsFromUser( $kUser, $raParms = [] )
+    /**************************************************
+        Return the list of groups in which kUser is a member: gid1 + UsersXGroups + their inherited groups
+     */
+    {
+        return( $this->getGroups( "", $raParms, $kUser ) );
+    }
+
+    private function getGroups( $cond, $raParms, $userOrAll )
+    /********************************************************
         raParms:
-            _status = kf status (-1 means all)
+            _status = default 0 (-1 means all)
             bNames  = Return array of kGroup=>groupname
            !bNames  = Return array of kGroup  (default)
      */
     {
-        $raRet = array();
+        $raRet = [];
 
-        $st = SEEDCore_ArraySmartVal1( $raParms, '_status', 0 );           // empty is not a valid value
-        $sCondStatus = ($st == -1 ? "" : " AND _status='$st'");
+        $st = SEEDCore_ArraySmartVal1( $raParms, '_status', 0 );           // default 0, empty is not a valid value
+        $cond = "(".($cond ?: "1=1").")"
+               .($st != -1 ? " AND _status='$st'" : "");
 
         $bNames = intval(@$raParms['bNames']);
 
-        $raGroups = $this->KFDB()->QueryRowsRA1(
-        // Get the user's primary group
-               "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' AND gid1<>0 $sCondStatus "
-               ."UNION "
-        // And the groups mapped to the user
-               ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' $sCondStatus" );
-        // And their inherited groups
-        $raGroups = $this->getGroupAncestors( $raGroups );
-
-        if( $bNames ) {
-            foreach( $raGroups as $gid ) {
-                $raRet[$gid] = $this->KFDB()->Query1( "SELECT groupname FROM {$this->sDB}SEEDSession_Groups WHERE _key='$gid'" );
+        if( $userOrAll == "ALL" ) {
+            if( $bNames ) {
+                $raGroups = $this->KFDB()->QueryRowsRA( "SELECT _key,groupname FROM {$this->sDB}SEEDSession_Groups WHERE $cond" );
+                foreach( $raGroups as $ra ) {
+                    $raRet[$ra['_key']] = $ra['groupname'];
+                }
+            } else {
+                $raRet = $this->KFDB()->QueryRowsRA1( "SELECT _key FROM {$this->sDB}SEEDSession_Groups WHERE $cond" );
             }
-        } else {
-            $raRet = $raGroups;
-        }
-        asort( $raRet );  // sort by array value, maintaining key association if bNames
+        } else if( ($kUser = intval($userOrAll)) ) {
+            $raGroups = $this->KFDB()->QueryRowsRA1(
+            // Get the user's primary group
+                   "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' AND gid1<>0 AND $cond "
+                   ."UNION "
+            // And the groups mapped to the user
+                   ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' AND $cond" );
+            // And their inherited groups
+            $raGroups = $this->getGroupAncestors( $raGroups );
 
+            if( $bNames ) {
+                foreach( $raGroups as $gid ) {
+                    $raRet[$gid] = $this->KFDB()->Query1( "SELECT groupname FROM {$this->sDB}SEEDSession_Groups WHERE _key='$gid'" );
+                }
+            } else {
+                $raRet = $raGroups;
+            }
+        }
+
+        asort( $raRet );  // sort by array value, maintaining key association if bNames
         return( $raRet );
     }
 

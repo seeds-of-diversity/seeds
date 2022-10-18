@@ -2,7 +2,7 @@
 
 /* SEEDSessionAccountUI
  *
- * Copyright 2015-2019 Seeds of Diversity Canada
+ * Copyright 2015-2022 Seeds of Diversity Canada
  *
  * Extensible and templatable UI for user accounts and login
  */
@@ -679,4 +679,43 @@ class SEEDSessionAuthUI_Local2
     }
 }
 
-?>
+include_once( "SEEDCoreForm.php" );
+class SEEDSessionAccount_AdminUI
+{
+    static function MakeUserSelectCtrl( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )
+    {
+        $raOpts = self::GetUserSelectOptsArray( $oAcctDB, $name_sf, $name, $cond, $raParms);
+        return( SEEDFormBasic::DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts ) );
+    }
+    static function MakeGroupSelectCtrl( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )
+    {
+        $raOpts = self::GetGroupSelectOptsArray( $oAcctDB, $name_sf, $name, $cond, $raParms);
+        return( SEEDFormBasic::DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts ) );
+    }
+
+    static function GetUserSelectOptsArray( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )
+    {
+        if( !isset($raParms['bDetail']) )  $raParms['bDetail'] = true;          // tell GetAllUsers to return all user info, not just uid
+        if( !isset($raParms['eStatus']) )  $raParms['eStatus'] = "'ACTIVE'";    // only get ACTIVE users
+        $raUsers = $oAcctDB->GetAllUsers( $cond, $raParms );
+
+        $raOpts = ['-- No User --' => 0];
+        foreach( $raUsers as $kUser => $ra ) {
+            $raOpts["{$ra['realname']} ($kUser)"] = $kUser;
+        }
+        return( $raOpts );
+    }
+    static function GetGroupSelectOptsArray( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )
+    {
+        if( !isset($raParms['bNames']) )  $raParms['bNames'] = true;          // tell GetAllGroups to return [gid->groupname, ...]
+        $raGroups = $oAcctDB->GetAllGroups( $cond, $raParms );
+
+        $raOpts = ['-- No Group --' => 0];
+        foreach( $raGroups as $kGroup => $groupname ) {
+            $raOpts["$groupname ($kGroup)"] = $kGroup;
+        }
+        return( $raOpts );
+    }
+
+
+}

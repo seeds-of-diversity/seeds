@@ -2,7 +2,7 @@
 
 /* SEEDForm.php
  *
- * Copyright (c) 2008-2019 Seeds of Diversity Canada
+ * Copyright (c) 2008-2022 Seeds of Diversity Canada
  *
  * Simplify the development of forms by connecting auto-marshalled parameters, smart form drawing methods, and a virtualized data store.
  * This module provides a base class that can create and manage forms with an array for data storage. It can be extended to work with any storage.
@@ -1000,6 +1000,29 @@ class SEEDCoreFormElements
         return( [ $p['name'], $p['value'], $p['valueEnt'], $p['attrs'], $p ] );
     }
 }
+
+
+class SEEDFormBasic
+/******************
+    Non-intelligent form element helpers
+ */
+{
+    static function DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts )
+    /**********************************************************************
+        Make a <select> SEEDTemplate string from a given array of options
+     */
+    {
+        $s = "<select name='$name_sf'>";
+        foreach( $raOpts as $label => $val ) {
+            $s .= "<option value='$val' [[ifeq:[[value:$name]]|$val|selected| ]]>$label</option>";
+        }
+        $s .= "</select>";
+
+        return( $s );
+    }
+
+}
+
 
 
 class SEEDFormExpand
