@@ -64,8 +64,89 @@ function seedsWPStart()
     // add our css and js files to the <head>
     add_action( 'wp_enqueue_scripts', 'seedsWPPlugin_EnqueueStylesAndScripts' );
 
+    // add Seeds item to the wp-admin menu.
+    seedsWPPlugin_AdminPage::init();
+
     // add Event Control item to the wp-admin menu.
     seedsWPPlugin_EventControl::init();
+}
+
+class seedsWPPlugin_AdminPage
+{
+    /* Add Seeds page to the wp-admin menu.
+     * WP wants an admin_menu action to trigger an add_menu_page(), which specifies a function to draw the menu page
+     */
+    static function init()
+    {
+        add_action( 'admin_menu', ['seedsWPPlugin_AdminPage', 'addMenu'] );
+    }
+    static function addMenu()
+    {
+        add_menu_page( "Seeds Config", "Seeds Config", 'manage_options', 'seedsadmin', ['seedsWPPlugin_AdminPage', 'drawPanel'], '', null );
+    }
+    static function drawPanel()
+    {
+        $homeTop = ['imgA'=>"", 'captionA'=>"", 'linkA'=>"",
+                    'imgB'=>"", 'captionB'=>"", 'linkB'=>"",
+                    'imgC'=>"", 'captionC'=>"", 'linkC'=>"",
+                    'imgD'=>"", 'captionD'=>"", 'linkD'=>"",
+                    'imgE'=>"", 'captionE'=>"", 'linkE'=>"" ];
+
+        $oApp = SEEDConfig_NewAppConsole_LoginNotRequired([]);
+        $oSB = new SEEDMetaTable_StringBucket( $oApp->kfdb, 0 );
+        foreach( array_keys($homeTop) as $k ) {
+            $homeTop[$k] = $oSB->GetStr( 'SeedsWPHomeTop', $k );
+        }
+
+        if( SEEDInput_Str('homeTop') ) {
+            foreach( $homeTop as $k => $v ) {
+                $homeTop[$k] = SEEDInput_Str($k);
+                $oSB->PutStr( 'SeedsWPHomeTop', $k, $homeTop[$k] );
+            }
+        }
+
+
+        $s = "<style>
+              #homeTop .tdA { width:400px;height:400px; padding:10px }
+              #homeTop .tdB { width:200px;height:200px }
+              #homeTop .tdA input, #homeTop .tdA textarea, #homeTop .tdB input, #homeTop .tdB textarea { width:100% }
+              </style>
+
+              <h3>Home Page Top Links</h3>
+              <form>
+              <table border='1' id='homeTop'>
+              <tr>
+                <td colspan='2' rowspan='2' class='tdA'>
+                    <div style='margin:auto'>
+                    Image<br/> <input name='imgA' value='{$homeTop['imgA']}'/><br/>
+                    Caption<br/><textarea name='captionA'>{$homeTop['captionA']}</textarea><br/>
+                    Link<br/> <input name='linkA' value='{$homeTop['linkA']}'/><br/></div></td>
+                <td class='tdB'>
+                    Image<br/> <input name='imgB' value='{$homeTop['imgB']}'/><br/>
+                    Caption<br/><textarea name='captionB'>{$homeTop['captionB']}</textarea><br/>
+                    Link<br/> <input name='linkB' value='{$homeTop['linkB']}'/><br/></div></td>
+                <td class='tdB'>
+                    Image<br/> <input name='imgC' value='{$homeTop['imgC']}'/><br/>
+                    Caption<br/><textarea name='captionC'>{$homeTop['captionC']}</textarea><br/>
+                    Link<br/> <input name='linkC' value='{$homeTop['linkC']}'/><br/></div></td>
+              </tr>
+              <tr>
+                <td class='tdB'>
+                    Image<br/> <input name='imgD' value='{$homeTop['imgD']}'/><br/>
+                    Caption<br/><textarea name='captionD'>{$homeTop['captionD']}</textarea><br/>
+                    Link<br/> <input name='linkD' value='{$homeTop['linkD']}'/><br/></div></td>
+                <td class='tdB'>
+                    Image<br/> <input name='imgE' value='{$homeTop['imgE']}'/><br/>
+                    Caption<br/><textarea name='captionE'>{$homeTop['captionE']}</textarea><br/>
+                    Link<br/> <input name='linkE' value='{$homeTop['linkE']}'/><br/></div></td>
+              </tr>
+              </table>
+              <input type='submit' name='homeTop' value='Save'/>
+              <input type='hidden' name='page' value='seedsadmin'/>
+              </form>";
+
+        echo $s;
+    }
 }
 
 class seedsWPPlugin_EventControl
