@@ -1034,7 +1034,7 @@ class SEEDFormExpand
         $sTemplate = $this->oTag->ProcessTags( $sTemplate );
 
         // if the template has structural codes e.g. table structure, expand those after the controls so we don't get the | chars mixed up
-        list($ok,$s) = SEEDTagParseTable( $sTemplate, $raTableParmsDummy = array() );
+        list($ok,$s) = SEEDTagParseTables( $sTemplate, $raTableParmsDummy = array() );
         if( !$ok ) $s = $sTemplate;
 
         return( $s );
