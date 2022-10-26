@@ -52,7 +52,7 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oContacts = new Mbr_Contacts( $oApp );
     }
 
-    function TabSet_main_contacts_Init()          { $this->oW = new MbrContactsTabContacts( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_contacts_Init()          { $this->oW = new MbrContactsTabContacts( $this->oApp, $this->oContacts ); $this->oW->Init(); }
     function TabSet_main_contacts_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_contacts_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 

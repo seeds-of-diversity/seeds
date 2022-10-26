@@ -621,8 +621,8 @@ case 'image2': // until not using DocRepWiki
 }
 
 
-function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
-/****************************************************************
+function _seedTagParseTable1( $sTemplate, $raParmsTable = [] )
+/*************************************************************
     A table is formatted like this:
 
     |||table-type(col attrs | col attrs |... || table attrs)
@@ -712,3 +712,61 @@ function SEEDTagParseTable( $sTemplate, $raParmsTable = array() )
     done:
     return( array($ok,$s) );
 }
+
+
+function SEEDTagParseTables( $sTemplate, $raParmsTable = [] )
+/************************************************************
+    Expand |||table tags, allowing multiple tables per template.
+    This isolates each table and uses _seedTagParseTable1 to expand each one.
+    Nested tables are not implemented.
+
+    {before text}
+
+    |||table-type(attrs)
+    ||| rows
+    |||ENDTABLE
+
+    {more text}
+
+    |||table-type(attrs)
+    ||| rows
+    |||ENDTABLE     -- this one is optional if there is no following text
+
+    {after text}
+ */
+{
+    $s = "";
+    $ok = false;
+
+    for(;;) {
+        (($iStart = strpos($sTemplate, "|||TABLE(")) !== false) or ($iStart = strpos($sTemplate, "|||BOOTSTRAP_TABLE("));
+        if( $iStart === false ) {
+            // no tables left
+            $s = $sTemplate;
+            $ok = true;
+            goto done;
+        }
+        $iEnd = strpos($sTemplate, "|||ENDTABLE", $iStart);
+        if( $iEnd !== false ) $iEnd += strlen("|||ENDTABLE");   // put iEnd after the ENDTABLE so that is included in sTable instead of sAfter
+
+        // Split the table out. If no ENDTABLE, assume the table goes to the end of the string
+        $sBefore = substr($sTemplate, 0, $iStart);
+        $sTable = ($iEnd !== false) ? substr($sTemplate, $iStart, $iEnd-$iStart) : substr($sTemplate, $iStart);
+        $sAfter = ($iEnd !== false) ? substr($sTemplate, $iEnd) : "";
+
+        // expand the isolated table
+        list($ok,$sTable) = _seedTagParseTable1( $sTable, $raParmsTable );
+        if( !$ok ) {
+            // return an empty string and ok==false
+            goto done;
+        }
+
+        // put the parts back together, and process the template again
+        $sTemplate = $sBefore.$sTable.$sAfter;
+
+    }
+
+    done:
+    return([$ok, $s]);
+}
+
