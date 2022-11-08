@@ -2,7 +2,7 @@
 /*
  * MasterTemplate
  *
- * Copyright 2016-2020 Seeds of Diversity Canada
+ * Copyright 2016-2022 Seeds of Diversity Canada
  *
  * Handle our advanced template functions.
  *
@@ -17,10 +17,17 @@ class SoDMasterTemplate
     private $oTmpl;
 
     private $oDesc = null;
+    private $bUTF8;
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig )
+    /*************************************************************
+        raConfig:   config_bUTF8 = the charset of the template and therefore the charset to substitute into the template
+                                    Unfortunately for historical reasons this is false by default.
+     */
     {
         $this->oApp = $oApp;
+
+        $this->bUTF8 = @$raConfig['config_bUTF8'] ?: false;
 
         /* OLD COMMENT FROM seedsx
          *
@@ -169,8 +176,8 @@ class SoDMasterTemplate
                     if( !($sSeedListStyle = $this->oTmpl->GetVar('sSeedListStyle')) ) {
                         $sSeedListStyle="font-family:verdana,arial,helvetica,sans serif;margin-bottom:15px";
                     }
-                    $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( [] );   // seeds1 and no perms required
-                    $o = new MSDQ( $oApp, ['config_bUTF8'=>false, 'config_bAllowCanSeedRead'=>true] );
+                    // could specify 'config_sbdb'=>'seeds1' here but that is MSDCore's default if blank
+                    $o = new MSDQ( $this->oApp, ['config_bUTF8'=>$this->bUTF8, 'config_bAllowCanSeedRead'=>true] );
                     $rQ = $o->Cmd( 'msdSeedList-Draw', ['kUidSeller'=>$kMbr, 'eStatus'=>'ALL'] );
                     $s =
                     "<style>.sed_seed_skip {background-color:#ccc} .sed_seed {margin:10px}</style>"
