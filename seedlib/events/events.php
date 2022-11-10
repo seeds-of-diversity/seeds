@@ -151,7 +151,7 @@ class Events_event
                 $location = "";
         }
 
-        $s = "<div class='EV_Event'>".SEEDCore_ArrayExpandSeries($this->kfr->ValuesRA(), "[[k]]=>[[v]]<br/>").$this->kfr->Key()
+        $s = "<div class='EV_Event'>"//.SEEDCore_ArrayExpandSeries($this->kfr->ValuesRA(), "[[k]]=>[[v]]<br/>").$this->kfr->Key()
                 ."<h3>$title</h3>"
                 ."<p><strong>"
                     .$date.SEEDCore_NBSP("",6).$this->kfr->value("time")."<br/>"
