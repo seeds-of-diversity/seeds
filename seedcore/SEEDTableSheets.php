@@ -366,21 +366,31 @@ class SEEDTableSheetsFile
                 goto done;
             }
             $sSheetName = "Sheet1";
-            $ok = true;
+
+            list($ok,$sErr) = SEEDTableSheets::ValidateBeforeLoad( $data, $raParms );
+            if( $ok ) {
+                $oSheets->LoadSheet( $sSheetName, $data, $raParms + ['charset-input'=>'utf-8'] );
+            }
         } else {
             $oXLS = new SEEDXlsRead();
             if( !$oXLS->LoadFile( $filename ) ) {
                 $sErr = "Could not load file $filename";
                 goto done;
             }
-            $data = $oXLS->GetSheetData( 0, $raParms );
-            $sSheetName = $oXLS->GetSheetName( 0 );
-            $ok = true;
-        }
 
-        list($ok,$sErr) = SEEDTableSheets::ValidateBeforeLoad( $data, $raParms );
-        if( $ok ) {
-            $oSheets->LoadSheet( $sSheetName, $data, $raParms + ['charset-input'=>'utf-8'] );
+            for( $i = 0; $i < $oXLS->GetSheetCount(); ++$i ) {
+                $data = $oXLS->GetSheetData( $i, $raParms );
+                $sSheetName = $oXLS->GetSheetName( $i );
+                if( $i == 0 ) {
+                    // validation is only defined in raParms for the first sheet -- extend this
+                    list($ok,$sErr) = SEEDTableSheets::ValidateBeforeLoad( $data, $raParms );
+                    if( !$ok ) goto done;
+                }
+
+                $oSheets->LoadSheet( $sSheetName, $data, $raParms + ['charset-input'=>'utf-8'] );
+            }
+
+            $ok = true;
         }
 
         done:
