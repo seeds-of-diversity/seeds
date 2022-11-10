@@ -17,6 +17,7 @@ class SEEDMailUI
     private $oDB;
 // substitute this with oMsgCurr because we look up SEEDMailMessage(..., $this->kMail) all the time
     private $kMail = 0;
+    private $oMsgCurr = null;   // the currently selected SEEDMailMessage object
     private $oMailItemForm;
 
     function __construct( SEEDAppConsole $oApp, $raConfig = [] )
@@ -26,9 +27,13 @@ class SEEDMailUI
         $this->oDB = new SEEDMailDB( $oApp, $raConfig );
     }
 
-    function CurrKMail()  { return( $this->kMail ); }
+    function CurrMessageKey()  { return( $this->oMsgCurr ? $this->oMsgCurr->Key() : 0 ); }
+// deprecate for CurrMessageKey()
+function CurrKMail()  { return( $this->kMail ); }
     function CurrMessageObj()
     {
+        if( $this->oMsgCurr ) return( $this->oMsgCurr );
+        // deprecate kMail
         return( $this->kMail ? new SEEDMailMessage( $this->oMailCore, $this->kMail ) : null );
     }
 
@@ -39,6 +44,7 @@ class SEEDMailUI
          * else allow Update of current message.
          */
         $this->kMail = $this->oApp->oC->oSVA->SmartGPC('kMail');
+        $this->oMsgCurr = $this->kMail ? new SEEDMailMessage($this->oMailCore, $this->kMail) : null;
 
         $this->oMailItemForm = new KeyframeForm( $this->oMailCore->KFRelMessage(), 'M',
                                                  ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreMailItem'],
