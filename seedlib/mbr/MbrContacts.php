@@ -69,6 +69,7 @@ class Mbr_Contacts
         $bShowProvince          = @$raParms['SHOW_PROVINCE'];
         $bShowCityProvince      = @$raParms['SHOW_CITY_PROVINCE'];
 
+// put everything except this in another method GetContactNameFromMbrRA($raOutputFromGetBasicValues)
         $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province "
                                          ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
 

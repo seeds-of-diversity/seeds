@@ -150,6 +150,8 @@ class DocRepDB2 extends DocRep_DB
         if( is_numeric($sDoc) ) {
             $kDoc = intval($sDoc);
         } else {
+// this does not work if any ancestors have blank names
+// instead use full path names everywhere
             // split the name into its components, then follow them down the tree to find the doc
             $raName = explode('/', $sDoc);
             $k = 0;

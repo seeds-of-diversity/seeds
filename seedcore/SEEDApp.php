@@ -65,7 +65,8 @@ class SEEDAppDB extends SEEDAppBase
     function GetDBName( $logicalName ) { return( $this->DBName($logicalName) ); }   // deprecate
     function DBName( $logicalName )
     {
-        // kluge to make sure db code can prefix tables with the correct database name
+        // kluge to make sure db code can prefix tables with the correct database name.
+        // This is not necessarily the right place to put this since SEEDAppDB is otherwise agnostic of logical names (maybe it should know about them though).
         global $config_KFDB;
 
         return( $config_KFDB[$logicalName]['kfdbDatabase'] );
