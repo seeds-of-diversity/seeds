@@ -371,16 +371,17 @@ class MSDQ extends SEEDQ
          *     EDIT                 drawn in the editor
          *     PRINT                printed directory
          */
-        $eView = "VIEW";
+//view modes REVIEW_EMAIL and REVIEW_PRINT
+        $eView = $eViewKluge = "VIEW";
         foreach( array('VIEW_REQUESTABLE','REVIEW','EDIT','PRINT') as $e ) {
-            if( strpos( $eDrawMode, $e ) !== false ) { $eView = $e; break; }
+            if( strpos( $eDrawMode, $e ) !== false ) { $eView = $eViewKluge = $e; break; }
         }
         // except the VIEW_REQUESTABLE mode is only allowed if the current user is allowed to request the seed
         if( $eView == 'VIEW_REQUESTABLE' ) {
             $eView = $this->oMSDCore->IsRequestableByUser( $kfrS )==MSDCore::REQUESTABLE_YES ? 'VIEW_REQUESTABLE' : 'VIEW';
         }
-        // and REVIEW is currently identical to EDIT so they coded as EDIT below
-        if( $eView == 'REVIEW' )  $eView = 'EDIT';
+        // and REVIEW is currently almost identical to EDIT so it's coded as EDIT below
+        if( $eView == 'REVIEW' ) { $eView = 'EDIT'; $eViewKluge = 'REVIEW'; }
 
         $mbrCode = $this->oApp->kfdb->Query1( "SELECT mbr_code FROM {$this->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".addslashes($kfrS->value('uid_seller'))."'" );
 
@@ -442,12 +443,19 @@ class MSDQ extends SEEDQ
         if( $eView=='EDIT' && $kfrS->value('eStatus')=='ACTIVE' ) {
             switch( $kfrS->Value('eOffer') ) {
                 default:
-                case 'member':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
-                case 'grower-member': $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_growermember'>Offered to Members who also offer seeds here</div>";  break;
-                case 'public':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_public'>Offered to the General Public</div>"; break;
+                case 'member':        $sOfferToWhom = "<div class='sed_seed_offer sed_seed_offer_member'>Offered to All Members</div>";  break;
+                case 'grower-member': $sOfferToWhom = "<div class='sed_seed_offer sed_seed_offer_growermember'>Offered to Members who also offer seeds here</div>";  break;
+//                  case 'public':        $sFloatRight .= "<div class='sed_seed_offer sed_seed_offer_public'>Offered to the General Public</div>"; break;
             }
-            $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>"
-                           ."<div style='text-align:right'>First listed: ".$kfrS->Value('year_1st_listed')."</div>";
+            if( $eViewKluge=='EDIT' ) {
+                $sFloatRight .= $sOfferToWhom
+                               ."<div class='sed_seed_mc'>$mbrCode</div>"
+                               ."<div style='text-align:right'>First listed: ".$kfrS->Value('year_1st_listed')."</div>";
+            } else if( $eViewKluge=='REVIEW' ) {
+                if($kfrS->Value('eOffer')=='grower-member') {
+                    $sOut .= "<p><em>Offered to members who also offer seeds here</em></p>";
+                }
+            }
         } else if( $eView =='VIEW_REQUESTABLE' ) {
             $sFloatRight .= "<div class='sed_seed_mc'>$mbrCode</div>";
         }
