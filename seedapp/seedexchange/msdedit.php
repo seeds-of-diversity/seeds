@@ -2,7 +2,7 @@
 
 /* msdedit
  *
- * Copyright (c) 2018-2021 Seeds of Diversity
+ * Copyright (c) 2018-2022 Seeds of Diversity
  *
  * App to edit Member Seed Directory, built on top of SEEDBasket
  */
@@ -22,6 +22,7 @@ update seeds_1.SEEDBasket_ProdExtra set v='misc' where v='MISC' and k='category'
 // for the most part, msd apps try to access seedlib/msd via MSDQ()
 include_once( SEEDLIB."msd/msdq.php" );
 include_once( SEEDAPP."seedexchange/msdCommon.php" );   // DrawMSDList() should be a seedlib thing
+include_once( SEEDCORE."SEEDLocal.php" );
 
 class MSDAppSeedEdit
 /*******************
@@ -161,8 +162,8 @@ $msdSeedEditForm = <<<msdSeedEditForm
     </tr><tr>
         <td><select id='msdSeedEdit_eOffer' name='eOffer'>
                 <option value='member'>All Members</option>
-                <option value='grower-member'>Only members who also list seeds</option> 
-                <!-- <option value='public'>General public</option> --> 
+                <option value='grower-member'>Only members who also list seeds</option>
+                <!-- <option value='public'>General public</option> -->
             </select></td>
         <td><p class='msdSeedEdit_instruction'><b>Who may request these seeds from you</b>: <span id='msdSeedEdit_eOffer_instructions'></span></p></td>
     </tr><tr>
@@ -494,6 +495,9 @@ class MSDAppGrowerForm extends KeyframeForm
         $this->bOffice = $bOffice;
         $this->yCurrent = $yCurrent;
 
+        $this->oL = new SEED_Local( $this->seedlocalStrs(), $this->oMSDLib->oApp->lang, 'msdGrowerForm' );
+        $this->oL->AddStrs( $oMSDLib->SLocalStrs() );
+
         // do the right thing when these checkboxes are unchecked (http parms are absent, stored value is 1, so change stored value to 0)
         $fields = ['unlisted_phone' => ['control'=>'checkbox'],
                    'unlisted_email' => ['control'=>'checkbox'],
@@ -589,11 +593,9 @@ class MSDAppGrowerForm extends KeyframeForm
 
         $s .= "<div class='msd_grower_edit_form'>"
              ."<h3>".($bNew ? "Add a New Grower"
-                            : $this->GetKFR()->Expand( "Edit Grower [[mbr_code]] : [[M_firstname]] [[M_lastname]] [[M_company]]" ))."</h3>"
+                            : $this->GetKFR()->Expand( "{$this->oL->S('Edit Grower')} [[mbr_code]] : [[M_firstname]] [[M_lastname]] [[M_company]]" ))."</h3>"
 
-             .(!$bNew ? ("<div style='background-color:#ddd; margin-bottom:1em; padding:1em; font-size:9pt;'>"
-                        ."If your name, address, phone number, or email have changed, please notify our office"
-                        ."</div>") : "")
+             .(!$bNew ? ("<div style='background-color:#ddd; margin-bottom:1em; padding:1em; font-size:9pt;'>{$this->oL->S('inform_office')}</div>") : "")
 
              ."<form method='post'>
                <div class='container-fluid'>
@@ -601,61 +603,47 @@ class MSDAppGrowerForm extends KeyframeForm
                        <div class='col-md-6'>"
                          .$oFE->ExpandForm(
                              "|||BOOTSTRAP_TABLE(class='col-md-4' | class='col-md-8')
-                              ||| <input type='submit' value='Save'/><br/><br/> || [[HiddenKey:]]
-                              ||| *Member&nbsp;#*        || ".($this->bOffice && $bNew ? "[[mbr_id]]" : "[[mbr_id | readonly]]" )."
-                              ||| *Member&nbsp;Code*     || ".($this->bOffice ? "[[mbr_code]]" : "[[mbr_code | readonly]]")."<span class='help SEEDPopover SPop_mbr_code'>?</span>
-                              ||| *Email&nbsp;unlisted*  || [[Checkbox:unlisted_email]]&nbsp;&nbsp; do not publish <span class='help SEEDPopover SPop_unlisted'>?</span>
-                              ||| *Phone&nbsp;unlisted*  || [[Checkbox:unlisted_phone]]&nbsp;&nbsp; do not publish
-                              ||| *Frost&nbsp;free*      || [[frostfree | size:5]]&nbsp;&nbsp; days <span class='help SEEDPopover SPop_frost_free'>?</span>
-                              ||| *Organic*              || [[Checkbox: organic]]&nbsp;&nbsp; are your seeds organically grown?  <span class='help SEEDPopover SPop_organic'>?</span>
+                              ||| <input type='submit' value='{$this->oL->S('Save')}'/><br/><br/> || [[HiddenKey:]]
+                              ||| *{$this->oL->S('Member #')}*        || ".($this->bOffice && $bNew ? "[[mbr_id]]" : "[[mbr_id | readonly]]" )."
+                              ||| *{$this->oL->S('Member Code')}*     || ".($this->bOffice ? "[[mbr_code]]" : "[[mbr_code | readonly]]")."<span class='help SEEDPopover SPop_mbr_code'>?</span>
+                              ||| *{$this->oL->S('Email unlisted')}*  || [[Checkbox:unlisted_email]]&nbsp;&nbsp; {$this->oL->S('do not publish')} <span class='help SEEDPopover SPop_unlisted'>?</span>
+                              ||| *{$this->oL->S('Phone unlisted')}*  || [[Checkbox:unlisted_phone]]&nbsp;&nbsp; {$this->oL->S('do not publish')}
+                              ||| *{$this->oL->S('Frost free days')}* || [[frostfree | size:5]]&nbsp;&nbsp; <span class='help SEEDPopover SPop_frost_free'>?</span>
+                              ||| *{$this->oL->S('Organic')}*         || [[Checkbox: organic]]&nbsp;&nbsp; {$this->oL->S('organic_question')}  <span class='help SEEDPopover SPop_organic'>?</span>
                               ||| *Notes*                || &nbsp;
                               ||| {replaceWith class='col-md-12'} [[TextArea: notes | width:100% rows:10]]
                              " )
                      ."<div style='margin-top:10px;border:1px solid #aaa; padding:10px'>
-                         <p><strong>I accept seed requests:</strong></p>
-                         <p>".$this->Radio('eDateRange', 'use_range')."&nbsp;&nbsp;Between these dates</p>
-                         <p style='margin-left:20px'>Members will not be able to make online requests outside of this period. Our default is January 1 to May 31.</p>
+                         <p><strong>{$this->oL->S('I accept seed requests')}:</strong></p>
+                         <p>".$this->Radio('eDateRange', 'use_range')."&nbsp;&nbsp;{$this->oL->S('Between these dates')}</p>
+                         <p style='margin-left:20px'>{$this->oL->S('dateRange_between_explain')}</p>
                          <p style='margin-left:20px'>".$this->Date('dDateRangeStart')."</p>
                          <p style='margin-left:20px'>".$this->Date('dDateRangeEnd')."</p>
                          <p>&nbsp;</p>
-                         <p>".$this->Radio('eDateRange', 'all_year')."&nbsp;&nbsp;All year round</p>
-                         <p style='margin-left:20px'>Members will be able to request your seeds at any time of year.</p>
+                         <p>".$this->Radio('eDateRange', 'all_year')."&nbsp;&nbsp;{$this->oL->S('All year round')}</p>
+                         <p style='margin-left:20px'>{$this->oL->S('dateRange_allyear_explain')}</p>
                        </div>
                        </div>
                        <div class='col-md-6'>
                          <div style='border:1px solid #aaa; padding:10px'>
-                         <p><strong>I accept seed requests and payment:</strong></p>
+                         <p><strong>{$this->oL->S('I accept seed requests and payment')}:</strong></p>
 
-                         <p>".$this->Radio('eReqClass', 'mail_email')."&nbsp;&nbsp;By mail or email</p>
-                         <ul>
-                         <li>Members will see your mailing address and email address.</li>
-                         <li>You will receive seed requests in the mail and by email.</li>
-                         <li>Members will be prompted to send payment as you specify below.</li>
-                         </ul>
+                         <p>".$this->Radio('eReqClass', 'mail_email')."&nbsp;&nbsp;{$this->oL->S('By mail or email')}</p>
+                         <ul>{$this->oL->S('payment_both_explain')}</ul>
+                         <p>".$this->Radio('eReqClass', 'mail')."&nbsp;{$this->oL->S('By mail only')}</p>
+                         <ul>{$this->oL->S('payment_mailonly_explain')}</ul>
+                         <p>".$this->Radio('eReqClass', 'email')."&nbsp;{$this->oL->S('By email only')}</p>
+                         <ul>{$this->oL->S('payment_emailonly_explain')}</ul>
 
-                         <p>".$this->Radio('eReqClass', 'mail')."&nbsp;By mail only</p>
-                         <ul>
-                         <li>Members will see your mailing address.</li>
-                         <li>You will receive seed requests by mail only.</li>
-                         <li>Members will be prompted to send payment as you specify below.</li>
-                         </ul>
-
-                         <p>".$this->Radio('eReqClass', 'email')."&nbsp;By email only</p>
-                         <ul>
-                         <li>Members will not see your mailing address.</li>
-                         <li>You will receive seed requests by email only.</li>
-                         <li>Members will be prompted to send payment as you specify below (e-transfer and/or Paypal only).</li>
-                         </ul>
-
-                         <p><strong>Payment Types Accepted</strong></p>
-                         <p>".$this->Checkbox( 'pay_cash',      "Cash" ).SEEDCore_NBSP("",4)
-                             .$this->Checkbox( 'pay_cheque',    "Cheque" ).SEEDCore_NBSP("",4)
-                             .$this->Checkbox( 'pay_stamps',    "Stamps" )."<br/>"
-                             .$this->Checkbox( 'pay_ct',        "Canadian Tire money" ).SEEDCore_NBSP("",4)
-                             .$this->Checkbox( 'pay_mo',        "Money Order" )."<br/>"
-                             .$this->Checkbox( 'pay_etransfer', "e-transfer" ).SEEDCore_NBSP("",4)
-                             .$this->Checkbox( 'pay_paypal',    "Paypal" )."<br/>"
-                             .$this->Text( 'pay_other', "Other ", ['size'=> 30] )
+                         <p><strong>{$this->oL->S('Payment Types Accepted')}</strong></p>
+                         <p>".$this->Checkbox( 'pay_cash',      $this->oL->S('pay_cash',      [], 'msd') ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_cheque',    $this->oL->S('pay_cheque',    [], 'msd') ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_stamps',    $this->oL->S('pay_stamps',    [], 'msd') )."<br/>"
+                             .$this->Checkbox( 'pay_ct',        $this->oL->S('pay_ct',        [], 'msd') ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_mo',        $this->oL->S('pay_mo',        [], 'msd') )."<br/>"
+                             .$this->Checkbox( 'pay_etransfer', $this->oL->S('pay_etransfer', [], 'msd') ).SEEDCore_NBSP("",4)
+                             .$this->Checkbox( 'pay_paypal',    $this->oL->S('pay_paypal',    [], 'msd') )."<br/>"
+                             .$this->Text( 'pay_other', $this->oL->S('pay_other', [], 'msd')." ", ['size'=> 30] )
                        ."</p>
                          </div>
                        </div>
@@ -695,4 +683,59 @@ class MSDAppGrowerForm extends KeyframeForm
         return( $s );
     }
 
+
+    private function seedlocalStrs()
+    {
+        $raStrs = [ 'ns'=>'msdGrowerForm', 'strs'=> [
+            'Edit Grower'               => ['EN'=>"[[]]", 'FR'=>"Modifier producteur"],
+            'Member #'                  => ['EN'=>"[[]]", 'FR'=>"<nobr>No de membre</nobr>"],
+            'Member Code'               => ['EN'=>"[[]]", 'FR'=>"<nobr>Code de membre</nobr>"],
+            'Email unlisted'            => ['EN'=>"[[]]", 'FR'=>"Courriel confidentiel"],
+            'Phone unlisted'            => ['EN'=>"[[]]", 'FR'=>"T&eacute;l&eacute;phone confidentiel"],
+            'do not publish'            => ['EN'=>"[[]]", 'FR'=>"ne pas publier"],
+            'Frost free days'           => ['EN'=>"[[]]", 'FR'=>"Jours sans gel"],
+            'Organic'                   => ['EN'=>"[[]]", 'FR'=>"Biologique"],
+            'organic_question'          => ['EN'=>"are your seeds organically grown?", 'FR'=>"Vos semences sont-elles de culture biologique?"],
+
+            'I accept seed requests'    => ['EN'=>"[[]]", 'FR'=>"J'accepte les demandes"],
+            'Between these dates'       => ['EN'=>"[[]]", 'FR'=>"Entre ces dates"],
+            'dateRange_between_explain' => ['EN'=>"Members will not be able to make online requests outside of this period. Our default is January 1 to May 31.",
+                                            'FR'=>"Les demandes en ligne peuvent se faire seulement dans cette p&eacute;riode (par d&eacute;faut: 1 janvier-31 mai)."],
+            'All year round'            => ['EN'=>"[[]]", 'FR'=>"Toute l'ann&eacute;e"],
+            'dateRange_allyear_explain' => ['EN'=>"Members will be able to request your seeds at any time of year.",
+                                            'FR'=>"Les demandes peuvent se faire en tout temps."],
+
+            'I accept seed requests and payment'
+                                        => ['EN'=>"[[]]", 'FR'=>"J'accepte les demandes de semences et le paiement"],
+            'By mail or email'          => ['EN'=>"[[]]", 'FR'=>"Par la poste ou par courriel"],
+            'payment_both_explain'      => ['EN'=>"<li>Members will see your mailing address and email address.</li>
+                                                   <li>You will receive seed requests in the mail and by email.</li>
+                                                   <li>Members will be prompted to send payment as you specify below.</li>",
+                                            'FR'=>"<li>Les membres verront votre adresse postale et votre courriel.</li>
+                                                   <li>Vous recevrez les demandes par la poste et par courriel.</li>
+                                                   <li>On demandera aux membres de payer selon le mode que vous indiquerez ci-dessous.</li>"],
+            'By mail only'              => ['EN'=>"[[]]", 'FR'=>"Par la poste seulement"],
+            'payment_mailonly_explain'  => ['EN'=>"<li>Members will see your mailing address.</li>
+                                                   <li>You will receive seed requests by mail only.</li>
+                                                   <li>Members will be prompted to send payment as you specify below.</li>",
+                                            'FR'=>"<li>Les membres verront votre adresse postale.</li>
+                                                   <li>Vous recevrez les demandes par la poste seulement.</li>
+                                                   <li>On demandera aux membres de payer selon le mode que vous indiquerez ci-dessous.</li>"],
+            'By email only'             => ['EN'=>"[[]]", 'FR'=>"Par courriel seulement"],
+            'payment_emailonly_explain' => ['EN'=>"<li>Members will not see your mailing address.</li>
+                                                   <li>You will receive seed requests by email only.</li>
+                                                   <li>Members will be prompted to send payment as you specify below (e-transfer and/or Paypal only).</li>",
+                                            'FR'=>"<li>Les membres ne verront pas votre adresse postale.</li>
+                                                   <li>Vous recevrez les demandes par courriel seulement.</li>
+                                                   <li>On demandera aux membres de payer selon le mode que vous indiquerez ci-dessous (t&eacute;l&eacute;virement ou PayPal seulement)</li>."],
+
+            'Payment Types Accepted'    => ['EN'=>"[[]]", 'FR'=>"Modes de paiement accept&eacute;s"],
+
+            'Save'                      => ['EN'=>"[[]]", 'FR'=>"Enregistrer"],
+            'inform_office'             => ['EN'=>"If your name, address, phone number, or email have changed, please notify our office",
+                                            'FR'=>"Veuillez nous informer de tout changement &agrave; vos nom, adresse, num&eacute;ro de t&eacute;l&eacute;phone ou courriel"],
+        ]];
+
+        return( $raStrs );
+    }
 }

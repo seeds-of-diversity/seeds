@@ -2,7 +2,7 @@
 
 /* msdlib
  *
- * Copyright (c) 2009-2021 Seeds of Diversity
+ * Copyright (c) 2009-2022 Seeds of Diversity
  *
  * Support for MSD app-level code that shouldn't know about MSDCore but can't get what it needs from MSDQ.
  *
@@ -253,6 +253,30 @@ class MSDLib
         return( $sTranslate );
     }
 
+    function SLocalStrs()
+    {
+        $raStrs = [ 'ns'=>'msd', 'strs'=> [
+            'Organic'               => ['EN'=>"[[]]", 'FR'=>"Biologique"],
+
+            'pay_cash'              => ['EN'=>"Cash",                'FR'=>"Comptant"],
+            'pay_cheque'            => ['EN'=>"Cheque",              'FR'=>"Ch&eacute;que"],
+            'pay_stamps'            => ['EN'=>"Stamps",              'FR'=>"Timbres"],
+            'pay_ct'                => ['EN'=>"Canadian Tire money", 'FR'=>"Argent Canadian Tire"],
+            'pay_mo'                => ['EN'=>"Money order",         'FR'=>"Mandat postale"],
+            'pay_etransfer'         => ['EN'=>"E-transfer",          'FR'=>"T&eacute;l&eacute;virement"],
+            'pay_paypal'            => ['EN'=>"Paypal",              'FR'=>"Paypal"],
+            'pay_other'             => ['EN'=>"Other",               'FR'=>"Autre"],    // used in UI but not in payment methods string (pay_other is appended verbatim)
+
+        ]];
+
+        return( $raStrs );
+    }
+
+
+
+
+/* This was moved to seedapp/msdedit.php so it's no longer used???
+ */
     function DrawGrowerForm( KeyframeRecord $kfrGxM, $bOffice = false )
     {
         $s = "";
