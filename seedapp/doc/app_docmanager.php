@@ -18,11 +18,13 @@ include_once( SEEDROOT."DocRep/DocRepUI.php" );
 
 $tabConfig = [ 'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
                                      'files'     => ['label'=>'Files'],
+                                     'perms'     => ['label'=>'Permissions'],
                                      //'ghost'     => ['label'=>'Ghost']
                                    ],
                          // this doubles as sessPermsRequired and console::TabSetPermissions
                          'perms' =>[ 'documents' => ['W DocRepMgr'],
                                      'files'     => ['W DocRepMgr'],
+                                     'perms'     => ['A DocRepMgr'],
                                      //'ghost'     => ['A notyou'],
                                                     '|'  // allows screen-login even if some tabs are ghosted
                                    ],
@@ -51,6 +53,9 @@ class DocManagerTabSet extends Console02TabSet
     function TabSet_main_documents_Init()          { $this->oW = new DocManagerTabDocuments( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_documents_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_documents_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_files_ContentDraw()   { return("File management here"); }//return( $this->oW->ContentDraw() ); }
+    function TabSet_main_perms_ContentDraw()   { return("SEEDPerms for ns=DocRep"); }   //return( $this->oW->ContentDraw() ); }
 }
 
 
@@ -87,6 +92,8 @@ $s = "";
 $kSelectedDoc = SEEDInput_Int('k');
 
 $oDocTS = new DocManagerTabSet( $oApp, $kSelectedDoc );
+
+$oApp->oC->SetConfig( ['HEADER'=>"Documents on {$oApp->kfdb->GetDB()}" ] );
 
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
