@@ -677,7 +677,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
          *
          * raFieldsOverride takes precedence over all computed select fields.
          *     [ alias=>fld, ... ] generates {fld as alias},...
-         *     [ 'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'"] generates {1,'foo'}  keys start with VERBATIM but should have different arbitrary suffixes because they're keys
+         *     [ 'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'", 'VERBATIM3'=>"COUNT(*) as c"] generates {1,'foo',COUNT(*) as c}  keys start with VERBATIM but should have different arbitrary suffixes because they're keys
          *
          * If sGroupAliases is defined (and not raFieldsOverride), use it to create the select fields.
          *     [ alias1,alias2 ] uses {col1,col2} as grouping cols and {col1 as alias1,col2 as alias2} as select fields
