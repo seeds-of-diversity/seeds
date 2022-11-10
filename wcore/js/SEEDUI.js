@@ -42,3 +42,15 @@ function SEEDUI_BoxExpandInit( lang, urlWCore )
         });
     });
 }
+
+
+/* Hack to replace video gallery figcaption>h3 with our font and our green background
+ */
+jQuery(document).ready( function($) {
+    let j = $('figcaption');
+    j.css('background-color', '#4e7722');
+
+    j = $('figcaption h3');
+    //j.css('font-family', 'Roboto');
+    j.each(function () { this.style.setProperty( 'font-family', 'Roboto', 'important' ); });  // this allows priority to be set
+});
