@@ -118,14 +118,16 @@ class Console02TabSet
         }
         $s .= "</div>";     // console02-tabset-tabs
 
-        $sControl = $sContent = "";
+        $sStyle = $sControl = $sContent = "";
         if( $this->TabSetPermission( $tsid, $sTabCurr ) == self::PERM_SHOW ) {
+            $sStyle   = $this->TabSetStyleDraw( $tsid, $sTabCurr );
             $sControl = $this->TabSetControlDraw( $tsid, $sTabCurr );
             $sContent = $this->TabSetContentDraw( $tsid, $sTabCurr );
         }
 
         // Control and Content areas
-        $s .= "<div class='console02-tabset-controlarea'>$sControl</div>"
+        $s .= $sStyle
+             ."<div class='console02-tabset-controlarea'>$sControl</div>"
              ."<div class='console02-tabset-contentarea'>$sContent</div>"
              ."</div>";   // console02-tabset-frame
 
@@ -217,6 +219,23 @@ class Console02TabSet
         }
 
         return( $ret );
+    }
+
+
+    function TabSetStyleDraw( $tsid, $tabname )
+    /******************************************
+        <style> tags that apply to the control/content block.
+        Anything can be placed here (e.g. script) that should be placed in the html between the tabs and the control area, after Init()
+     */
+    {
+        /* Override this method or define another that findMethod will find
+         */
+        $s = "";
+
+        if( ($m = $this->findmethod( $tsid, $tabname, "StyleDraw" )) ) {
+            $s = call_user_func( $m, $tsid, $tabname );
+        }
+        return( $s );
     }
 
     function TabSetControlDraw( $tsid, $tabname )
