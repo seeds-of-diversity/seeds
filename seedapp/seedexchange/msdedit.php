@@ -30,10 +30,315 @@ class MSEEditApp
  */
 {
     public $oApp;
+    public $oMSDLib;
 
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
+        $this->oMSDLib = new MSDLib($oApp, ['sbdb'=>'seeds1']);
+    }
+
+    function NormalizeParms( int $kCurrGrower )
+    /******************************************
+        Init() methods use this to normalize the current grower and office perm status
+     */
+    {
+        $bOffice = $this->oMSDLib->PermOfficeW();
+        if( !$kCurrGrower || !$bOffice ) {
+            $kCurrGrower = $this->oApp->sess->GetUID();
+        }
+        return( [$bOffice, $kCurrGrower] );
+    }
+
+    function GetGrowerName( $kGrower )
+    {
+        $oMbr = new Mbr_Contacts($this->oApp);
+        return( $oMbr->GetContactName($kGrower) );
+    }
+
+    function MakeSelectGrowerNames( int $kCurrGrower, bool $klugeEncodeUTF8 )
+    {
+//use GxM to make this more efficient
+        $raG = $this->oApp->kfdb->QueryRowsRA( "SELECT mbr_id,bSkip,bDelete,bDone FROM {$this->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE _status='0'" );
+        $raG2 = array( '-- All Growers --' => 0 );
+        foreach( $raG as $ra ) {
+            $kMbr = $ra['mbr_id'];
+            $bSkip = $ra['bSkip'];
+            $bDelete = $ra['bDelete'];
+            $bDone = $ra['bDone'];
+
+            $name = $this->GetGrowerName( $kMbr )
+                   ." ($kMbr)"
+                   .($bDone ? " - Done" : "")
+                   .($bSkip ? " - Skipped" : "")
+                   .($bDelete ? " - Deleted" : "");
+            if( $klugeEncodeUTF8 )  $name = SEEDCore_utf8_encode(trim($name));    // Seeds is utf8 but Growers isn't
+            $raG2[$name] = $kMbr;
+        }
+        ksort($raG2);
+        $oForm = new SEEDCoreForm( 'Plain' );
+        return( "<form method='post'>".$oForm->Select( 'selectGrower', $raG2, "", ['selected'=>$kCurrGrower, 'attrs'=>"onChange='submit();'"] )."</form>" );
+    }
+}
+
+
+class MSEEditAppTabGrower
+/************************
+    Tabset handler for MSE Edit Grower tab
+ */
+{
+    protected $oApp;
+    private   $oMEApp;
+    protected $oMSDLib;
+    protected $kfrGxM = null;
+
+    private   $kGrower = 0;         // the current grower
+    private   $bOffice = false;     // activate office features
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oMEApp = new MSEEditApp($oApp);
+        $this->oMSDLib = new MSDLib($oApp, ['sbdb'=>'seeds1']);     // should be given by caller?
+        $this->oMSDLib->oL->AddStrs($this->sLocalStrs());
+    }
+
+    function Init_Grower( int $kGrower )
+    {
+        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kGrower);
+        $kGrower = $this->kGrower;  // be sure not to use the old value below
+
+// Activate your seed list -- Done! should be Active (summary of seeds active, skipped, deleted)
+
+        /* First execute a generic update so new http values are saved in the db.
+         * Then look up GxM and place that into the form so the G_* and M_* values can be drawn.
+         */
+        $this->oGrowerForm = new MSDAppGrowerForm( $this->oMSDLib );
+        $this->oGrowerForm->Update();
+
+        if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
+            // create the Grower Record
+            $tmpkfr = $this->oMSDLib->KFRelG()->CreateRecord();
+            $tmpkfr->SetValue( 'mbr_id', $kGrower );
+            $tmpkfr->PutDBRow();
+            // now fetch with with the Member data joined
+// this is not going to work if mbr_contacts record is not there.
+// G_M would work although with blank M_*, but kfrGxM will be null
+            if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
+                $this->oApp->Log( 'MSEEdit.log', "create grower $kGrower failed, probably mbr_contacts row doesn't exist" );
+            }
+        }
+        $this->oGrowerForm->SetKFR( $this->kfrGxM );
+
+        $eOp = '';
+        if( ($k = SEEDInput_Int( 'gdone' )) && $k == $this->kGrower ) {
+            $this->kfrGxM->SetValue( 'bDone', !$this->kfrGxM->value('bDone') );
+            $this->kfrGxM->SetValue( 'bDoneMbr', $this->kfrGxM->value('bDone') );  // make this match bDone
+            $eOp = 'gdone';
+        }
+        if( ($k = SEEDInput_Int( 'gskip' )) && $k == $this->kGrower ) {
+            $this->kfrGxM->SetValue( 'bSkip', !$this->kfrGxM->value('bSkip') );
+            $eOp = 'gskip';
+        }
+        if( ($k = SEEDInput_Int( 'gdelete' )) && $k == $this->kGrower ) {
+            $this->kfrGxM->SetValue( 'bDelete', !$this->kfrGxM->value('bDelete') );
+            $eOp = 'gdelete';
+        }
+        if( $eOp ) {
+            if( !$this->kfrGxM->PutDBRow() ) {
+                $this->oApp->Log( 'MSEEdit.log', "$eOp {$this->kGrower} by user {$this->oApp->sess->GetUID()} failed: ".$this->kfrGxM->KFRel()->KFDB()->GetErrMsg() );
+            }
+        }
+    }
+
+    function ControlDraw_Grower()
+    {
+        $s = "";
+
+        // move this to StyleDraw_Grower() when this is drawn by Console02
+        $s .= "
+            <style>
+            .mse-edit-grower-block      { border:1px solid #aaa; padding:5px; }
+            .mse-edit-grower-block-done { color:green; background:#cdc; }
+            </style>
+        ";
+
+        if( $this->oMSDLib->PermOfficeW() ) {
+            $s .= $this->oMEApp->MakeSelectGrowerNames( $this->kGrower, false );    // kluge to convert names to utf8, required for seeds tab but not growers tab
+        }
+
+        return( $s );
+    }
+
+    function ContentDraw_Grower()
+    {
+        $sLeft = $sRight = "";
+
+        if( !$this->kfrGxM ) goto done;
+
+        if( !($this->kfrGxM->Value('M__key')) ) {
+// also show this if zero seeds have been entered and this is their first year
+            $sLeft .=
+                  "<h4>Hello {$this->oApp->sess->GetName()}</h4>"
+                 ."<p>This is your first time listing seeds in our Member Seed Exchange. "
+                 ."Please fill in this form to register as a seed grower. <br/>"
+                 ."After that, you will be able to enter the seeds that you want to offer to other Seeds of Diversity members.</p>"
+                 ."<p>Thanks for sharing your seeds!</p>";
+        }
+
+        $sLeft .= "<h3>{$this->kfrGxM->Value('mbr_code')} : ".Mbr_Contacts::GetContactNameFromMbrRA($this->kfrGxM->ValuesRA(), ['fldPrefix'=>'M_'])."</h3>"
+                ."<p>{$this->oMSDLib->oL->S('Grower block heading', [], 'mse-edit-app')}</p>"
+                ."<div class='mse-edit-grower-block".($this->kfrGxM->Value('bDone') ? ' mse-edit-grower-block-done' : '')."'>"
+                .$this->oMSDLib->DrawGrowerBlock( $this->kfrGxM, true )
+                ."</div>"
+                .($this->kfrGxM->Value('bDone') ? "<p style='font-size:16pt;margin-top:20px;'>Done! Thank you!</p>" : "")
+                ."<p><a href='{$this->oApp->PathToSelf()}?gdone={$this->kGrower}'>"
+                    .($this->kfrGxM->Value('bDone')
+                        ? "Click here if you're not really done"
+                        : "<div class='alert alert-warning'><h3>Your seed listings are not active yet</h3> Click here when you are ready (you can undo this)</div>")
+                ."</a></p>"
+                .($this->bOffice ? $this->drawGrowerOfficeSummary() : "");
+
+        $sRight = "<div style='border:1px solid black; margin:10px; padding:10px'>"
+                 .$this->oGrowerForm->DrawGrowerForm()
+                 ."</div>";
+
+        done:
+
+        $s = "<div class='container-fluid><div class='row'>"
+            ."<div class='col-lg-6'>$sLeft</div>"
+            ."<div class='col-lg-6'>$sRight</div>"
+            ."</div></div>";
+
+        return( $s );
+    }
+
+    private function drawGrowerOfficeSummary()
+    {
+        $kfrG = $this->kfrGxM;
+        $kGrower = $kfrG->Value('mbr_id');
+
+        // Grower record
+        $dGUpdated = substr( $kfrG->Value('_updated'), 0, 10 );
+        $kGUpdatedBy = $kfrG->Value('_updated_by');
+
+        // Seed records
+/*
+        $ra = $this->oC->oApp->kfdb->QueryRA(
+                "SELECT _updated,_updated_by FROM
+                     (
+                     (SELECT _updated,_updated_by FROM seeds_1.SEEDBasket_Products
+                         WHERE product_type='seeds' AND _status='0' AND
+                               uid_seller='$kGrower' ORDER BY _updated DESC LIMIT 1)
+                     UNION
+                     (SELECT PE._updated,PE._updated_by FROM seeds_1.SEEDBasket_ProdExtra PE,seeds_1.SEEDBasket_Products P
+                         WHERE P.product_type='seeds' AND _status='0' AND
+                               P.uid_seller='$kGrower' AND P._key=PE.fk_SEEDBasket_Products ORDER BY 1 DESC LIMIT 1)
+                     ) as A
+                 ORDER BY 1 DESC LIMIT 1" );
+        $dSUpdated = @$ra['_updated'];
+        $kSUpdatedBy = @$ra['_updated_by'];
+*/
+
+// oSB is in MSDLib
+        $oSB = new SEEDBasketCore( null, null, $this->oApp, SEEDBasketProducts_SoD::$raProductTypes, [] );
+        list($kP_dummy,$dSUpdated,$kSUpdatedBy) = $oSB->oDB->ProductLastUpdated( "P.product_type='seeds' AND P.uid_seller='$kGrower'" );
+
+        $nSActive = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.SEEDBasket_Products
+                                                WHERE product_type='seeds' AND _status='0' AND
+                                                      uid_seller='$kGrower' AND eStatus='ACTIVE'" );
+
+        $dMbrExpiry = $this->oApp->kfdb->Query1( "SELECT expires FROM {$this->oApp->DBName('seeds2')}.mbr_contacts WHERE _key='$kGrower'" );
+
+        $sSkip = $kfrG->Value('bSkip')
+                    ? ("<div style='background-color:#ee9'><span style='font-size:12pt'>Skipped</span>"
+                      ." <a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Unskip this grower</a></div>")
+                    : ("<div><a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Skip this grower</a></div>");
+        $sDel = $kfrG->Value('bDelete')
+                    ? ("<div style='background-color:#fdf'><span style='font-size:12pt'>Deleted</span>"
+                      ." <a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>UnDelete this grower</a></div>")
+                    : ("<div><a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>Delete this grower</a></div>");
+
+        try {
+            // days since GUpdate
+            if( (new DateTime())->diff(new DateTime($dGUpdated))->days < 90 ) {
+                $dGUpdated = "<span style='color:green;background-color:#cdc'>$dGUpdated</span>";
+            }
+            // days since SUpdate
+            if( (new DateTime())->diff(new DateTime($dSUpdated))->days < 90 ) {
+                $dSUpdated = "<span style='color:green;background-color:#cdc'>$dSUpdated</span>";
+            }
+        } catch (Exception $e) {}
+
+        $s = "<div style='border:1px solid black; margin:10px; padding:10px'>"
+            ."<p>Seeds active: $nSActive</p>"
+            ."<p>Membership expiry: $dMbrExpiry</p>"
+            ."<p>Last grower record change: $dGUpdated by $kGUpdatedBy</p>"
+            ."<p>Last seed record change: $dSUpdated by $kSUpdatedBy</p>"
+            .$sSkip
+            .$sDel
+            ."</div>";
+
+        return( $s );
+    }
+
+
+    private function sLocalStrs()
+    {
+        return( ['ns'=>'mse-edit-app', 'strs'=> [
+            'Grower block heading'
+                => [ 'EN'=>"This is how your Grower Member profile will look to other members.",
+                     'FR'=>"Ceci est ce qu'aura l'air votre adresse de membre cultivateur dans le Catalogue des semences." ]
+        ]] );
+    }
+}
+
+
+class MSEEditAppTabSeeds
+/***********************
+    Tabset handler for MSE Edit Seeds tab
+ */
+{
+    private $oApp;
+    private $oMEApp;
+
+    private $kGrower = 0;         // the current grower
+    private $kSpecies = 0;        // the current species
+    private $bOffice = false;     // activate office features
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oMEApp = new MSEEditApp($oApp);
+    }
+
+    function Init_Seeds( int $kCurrGrower, int $kCurrSpecies )
+    {
+        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kCurrGrower);
+        $this->kSpecies = $kCurrSpecies;
+    }
+
+    function ControlDraw_Seeds()
+    {
+        $s = "";
+
+        if( $this->bOffice ) {
+            $s .= $this->oMEApp->MakeSelectGrowerNames($this->kGrower,true);    // grower names have to be encoded to utf8 on seeds tab
+        }
+        if( $this->kSpecies ) {
+            $s .= "<div style='margin-top:10px'><strong>Showing ".$this->oMEApp->oMSDLib->GetSpeciesNameFromKey($this->kSpecies)."</strong>"
+                 ." <a href='{$_SERVER['PHP_SELF']}?selectSpecies=0'><button type='button'>Cancel</button></div>";
+        }
+
+        return( $s );
+    }
+
+    function ContentDraw_Seeds()
+    {
+// oSB is in MSDLib, so maybe that should be passed to the SeedEdit control instead?
+        $oSB = new SEEDBasketCore( null, null, $this->oApp, SEEDBasketProducts_SoD::$raProductTypes, [] );
+        $s = (new MSEEditAppSeedEdit($oSB))->Draw( $this->kGrower, $this->kSpecies );
+        return( $s );
     }
 }
 
@@ -492,209 +797,6 @@ basketScript;
 }
 
 
-class MSEEditAppTabGrower
-/************************
-    Tabset handler for MSE Edit Grower tab
- */
-{
-    protected $oApp;
-    protected $oMSDLib;
-    protected $kfrGxM = null;
-
-    protected $kGrower = 0;   // the current grower
-    private   $bOffice = false;     // activate office features
-
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-        $this->oMSDLib = new MSDLib($oApp, ['sbdb'=>'seeds1']);     // should be given by caller?
-        $this->oMSDLib->oL->AddStrs($this->sLocalStrs());
-    }
-
-    function Init_Grower( int $kGrower )
-    {
-        $this->bOffice = $this->oMSDLib->PermOfficeW();
-
-        if( !$kGrower || !$this->bOffice ) {
-            $kGrower = $this->oApp->sess->GetUID();
-        }
-        $this->kGrower = $kGrower;
-
-
-// Activate your seed list -- Done! should be Active (summary of seeds active, skipped, deleted)
-
-        /* First execute a generic update so new http values are saved in the db.
-         * Then look up GxM and place that into the form so the G_* and M_* values can be drawn.
-         */
-        $this->oGrowerForm = new MSDAppGrowerForm( $this->oMSDLib );
-        $this->oGrowerForm->Update();
-
-        if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
-            // create the Grower Record
-            $tmpkfr = $this->oMSDLib->KFRelG()->CreateRecord();
-            $tmpkfr->SetValue( 'mbr_id', $kGrower );
-            $tmpkfr->PutDBRow();
-            // now fetch with with the Member data joined
-// this is not going to work if mbr_contacts record is not there.
-// G_M would work although with blank M_*, but kfrGxM will be null
-            if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
-                $this->oApp->Log( 'MSEEdit.log', "create grower $kGrower failed, probably mbr_contacts row doesn't exist" );
-            }
-        }
-        $this->oGrowerForm->SetKFR( $this->kfrGxM );
-
-        $eOp = '';
-        if( ($k = SEEDInput_Int( 'gdone' )) && $k == $this->kGrower ) {
-            $this->kfrGxM->SetValue( 'bDone', !$this->kfrGxM->value('bDone') );
-            $this->kfrGxM->SetValue( 'bDoneMbr', $this->kfrGxM->value('bDone') );  // make this match bDone
-            $eOp = 'gdone';
-        }
-        if( ($k = SEEDInput_Int( 'gskip' )) && $k == $this->kGrower ) {
-            $this->kfrGxM->SetValue( 'bSkip', !$this->kfrGxM->value('bSkip') );
-            $eOp = 'gskip';
-        }
-        if( ($k = SEEDInput_Int( 'gdelete' )) && $k == $this->kGrower ) {
-            $this->kfrGxM->SetValue( 'bDelete', !$this->kfrGxM->value('bDelete') );
-            $eOp = 'gdelete';
-        }
-        if( $eOp ) {
-            if( !$this->kfrGxM->PutDBRow() ) {
-                $this->oApp->Log( 'MSEEdit.log', "$eOp {$this->kGrower} by user {$this->oApp->sess->GetUID()} failed: ".$this->kfrGxM->KFRel()->KFDB()->GetErrMsg() );
-            }
-        }
-    }
-
-    function ControlDraw_Grower()
-    {
-        // move this to StyleDraw_Grower() when this is drawn by Console02
-        return("
-            <style>
-            .mse-edit-grower-block      { border:1px solid #aaa; padding:5px; }
-            .mse-edit-grower-block-done { color:green; background:#cdc; }
-            </style>
-        ");
-    }
-
-
-    function ContentDraw_Grower()
-    {
-        $sLeft = $sRight = "";
-
-        if( !$this->kfrGxM ) goto done;
-
-        if( !($this->kfrGxM->Value('M__key')) ) {
-// also show this if zero seeds have been entered and this is their first year
-            $sLeft .=
-                  "<h4>Hello {$this->oApp->sess->GetName()}</h4>"
-                 ."<p>This is your first time listing seeds in our Member Seed Exchange. "
-                 ."Please fill in this form to register as a seed grower. <br/>"
-                 ."After that, you will be able to enter the seeds that you want to offer to other Seeds of Diversity members.</p>"
-                 ."<p>Thanks for sharing your seeds!</p>";
-        }
-
-        $sLeft .= "<h3>{$this->kfrGxM->Value('mbr_code')} : ".Mbr_Contacts::GetContactNameFromMbrRA($this->kfrGxM->ValuesRA(), ['fldPrefix'=>'M_'])."</h3>"
-                ."<p>{$this->oMSDLib->oL->S('Grower block heading', [], 'mse-edit-app')}</p>"
-                ."<div class='mse-edit-grower-block".($this->kfrGxM->Value('bDone') ? ' mse-edit-grower-block-done' : '')."'>"
-                .$this->oMSDLib->DrawGrowerBlock( $this->kfrGxM, true )
-                ."</div>"
-                .($this->kfrGxM->Value('bDone') ? "<p style='font-size:16pt;margin-top:20px;'>Done! Thank you!</p>" : "")
-                ."<p><a href='{$this->oApp->PathToSelf()}?gdone={$this->kGrower}'>"
-                    .($this->kfrGxM->Value('bDone')
-                        ? "Click here if you're not really done"
-                        : "<div class='alert alert-warning'><h3>Your seed listings are not active yet</h3> Click here when you are ready (you can undo this)</div>")
-                ."</a></p>"
-                .($this->bOffice ? $this->drawGrowerOfficeSummary() : "");
-
-        $sRight = "<div style='border:1px solid black; margin:10px; padding:10px'>"
-                 .$this->oGrowerForm->DrawGrowerForm()
-                 ."</div>";
-
-        done:
-
-        $s = "<div class='container-fluid><div class='row'>"
-            ."<div class='col-lg-6'>$sLeft</div>"
-            ."<div class='col-lg-6'>$sRight</div>"
-            ."</div></div>";
-
-        return( $s );
-    }
-
-    private function drawGrowerOfficeSummary()
-    {
-        $kfrG = $this->kfrGxM;
-        $kGrower = $kfrG->Value('mbr_id');
-
-        // Grower record
-        $dGUpdated = substr( $kfrG->Value('_updated'), 0, 10 );
-        $kGUpdatedBy = $kfrG->Value('_updated_by');
-
-        // Seed records
-/*
-        $ra = $this->oC->oApp->kfdb->QueryRA(
-                "SELECT _updated,_updated_by FROM
-                     (
-                     (SELECT _updated,_updated_by FROM seeds_1.SEEDBasket_Products
-                         WHERE product_type='seeds' AND _status='0' AND
-                               uid_seller='$kGrower' ORDER BY _updated DESC LIMIT 1)
-                     UNION
-                     (SELECT PE._updated,PE._updated_by FROM seeds_1.SEEDBasket_ProdExtra PE,seeds_1.SEEDBasket_Products P
-                         WHERE P.product_type='seeds' AND _status='0' AND
-                               P.uid_seller='$kGrower' AND P._key=PE.fk_SEEDBasket_Products ORDER BY 1 DESC LIMIT 1)
-                     ) as A
-                 ORDER BY 1 DESC LIMIT 1" );
-        $dSUpdated = @$ra['_updated'];
-        $kSUpdatedBy = @$ra['_updated_by'];
-*/
-        list($kP_dummy,$dSUpdated,$kSUpdatedBy) = $this->oC->oSB->oDB->ProductLastUpdated( "P.product_type='seeds' AND P.uid_seller='$kGrower'" );
-
-        $nSActive = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.SEEDBasket_Products
-                                                WHERE product_type='seeds' AND _status='0' AND
-                                                      uid_seller='$kGrower' AND eStatus='ACTIVE'" );
-
-        $dMbrExpiry = $this->oApp->kfdb->Query1( "SELECT expires FROM {$this->oApp->DBName('seeds2')}.mbr_contacts WHERE _key='$kGrower'" );
-
-        $sSkip = $kfrG->Value('bSkip')
-                    ? ("<div style='background-color:#ee9'><span style='font-size:12pt'>Skipped</span>"
-                      ." <a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Unskip this grower</a></div>")
-                    : ("<div><a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Skip this grower</a></div>");
-        $sDel = $kfrG->Value('bDelete')
-                    ? ("<div style='background-color:#fdf'><span style='font-size:12pt'>Deleted</span>"
-                      ." <a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>UnDelete this grower</a></div>")
-                    : ("<div><a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>Delete this grower</a></div>");
-
-        try {
-            // days since GUpdate
-            if( (new DateTime())->diff(new DateTime($dGUpdated))->days < 90 ) {
-                $dGUpdated = "<span style='color:green;background-color:#cdc'>$dGUpdated</span>";
-            }
-            // days since SUpdate
-            if( (new DateTime())->diff(new DateTime($dSUpdated))->days < 90 ) {
-                $dSUpdated = "<span style='color:green;background-color:#cdc'>$dSUpdated</span>";
-            }
-        } catch (Exception $e) {}
-
-        $s = "<div style='border:1px solid black; margin:10px; padding:10px'>"
-            ."<p>Seeds active: $nSActive</p>"
-            ."<p>Membership expiry: $dMbrExpiry</p>"
-            ."<p>Last grower record change: $dGUpdated by $kGUpdatedBy</p>"
-            ."<p>Last seed record change: $dSUpdated by $kSUpdatedBy</p>"
-            .$sSkip
-            .$sDel
-            ."</div>";
-
-        return( $s );
-    }
-
-
-    private function sLocalStrs()
-    {
-        return( ['ns'=>'mse-edit-app', 'strs'=> [
-            'Grower block heading'
-                => [ 'EN'=>"This is how your Grower Member profile will look to other members.",
-                     'FR'=>"Ceci est ce qu'aura l'air votre adresse de membre cultivateur dans le Catalogue des semences." ]
-        ]] );
-    }
-}
 
 class MSDAppGrowerForm extends KeyframeForm
 /*********************
