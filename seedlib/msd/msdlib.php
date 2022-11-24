@@ -9,9 +9,9 @@
  * Office-Admin functions.
  */
 
-require_once "msdcore.php";
-require_once SEEDCORE."SEEDProblemSolver.php";
-
+include_once( "msdcore.php" );
+include_once( SEEDCORE."SEEDProblemSolver.php" );
+include_once( SEEDCORE."SEEDLocal.php" );
 
 class MSDLib
 {
