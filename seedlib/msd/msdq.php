@@ -275,7 +275,7 @@ class MSDQ extends SEEDQ
             list($okTmp,$sTmp,$sErrTmp) = $this->seedDraw( $kfrS, "REVIEW VIEW_SHOWSPECIES" );
 
             if( $okTmp ) {
-                $s .= $sTmp;
+                $s .= $sTmp."\n";   // when emailing seed listings it's important to keep the line length reasonable
             } else {
                 $sErr .= $sErrTmp;
                 $ok = false;
