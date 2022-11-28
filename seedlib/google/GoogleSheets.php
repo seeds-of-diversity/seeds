@@ -428,4 +428,40 @@ class SEEDGoogleSheets_SyncSheetAndDb
             $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
         }
     }
+
+/* To make a Google Sheet push changes to a sync process:
+
+   Create an http-activated process using this class (example url below).
+   Put the AppScript below in your google sheet.
+   Bind the script to an installable trigger on an Edit action. Don't use onEdit because as a simple trigger
+   it doesn't have permission to use UrlFetchApp.
+
+function MyOnEdit(e)
+{
+  // When a cell is changed, reset the sync_ts column to indicate a dirty row.
+
+  var sheet = e.range.getSheet();
+  var row = e.range.getRowIndex();  // the (first) changed row
+  var col = e.range.getColumn();    // the (first) changed col
+
+  // Only trigger dirty for rows and cols of primary data
+  if( row > 1 && col <= 15 ) {
+    // find the sync_ts column
+    var colTS = 0;
+    for( i=1; i<sheet.getLastColumn(); i++ ) {
+      if( sheet.getRange(1,i).getValue() == "sync_ts") {
+        colTS = i;
+        break;
+      }
+    }
+
+    // if sync_ts column exists, mark the row
+    if( colTS ) {
+      sheet.getRange(row,colTS).setValue('');
+      var response = UrlFetchApp.fetch("https://seeds.ca/app/q2/?qcmd=ev-syncSheet");
+    }
+  }
+
+ */
+
 }
