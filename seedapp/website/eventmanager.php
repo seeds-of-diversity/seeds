@@ -142,7 +142,7 @@ class EventsSheet
 
         if(isset($parms['id'])){ // if $parms is associative array with string index
             //var_dump("Adding {$parms['id']} at $spreadSheetRow");
-            $this->oGoogleSheet->SetRowWithAssociativeArray($this->nameSheet, $spreadSheetRow, $parms);
+            $this->oGoogleSheet->SetRowWithNamedColumns($this->nameSheet, $spreadSheetRow, $parms);
         }
         else{// if $parms is array with integer index
             $this->oGoogleSheet->SetRow($this->nameSheet, $spreadSheetRow, $parms);

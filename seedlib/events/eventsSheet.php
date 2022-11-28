@@ -85,17 +85,20 @@ class EventsSheet
         $note = "";
 
         if( !@$raRow['title'] ) {
-            var_dump( "No title" );
+            $note = "No title";
             $ok = false;
+            goto done;
         }
         if( !@$raRow['date_start'] ) {
-            var_dump( "No date_start" );
+            $note = "No date_start";
             $ok = false;
+            goto done;
         }
         if( !@$raRow['date_end'] ) {
-            $raRow['date_end'] = $raRow['date_start'];
+            $raRow['date_end'] = @$raRow['date_start'];
         }
 
+        done:
         return( [$ok, $note] );
     }
 }

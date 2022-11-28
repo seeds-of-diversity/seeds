@@ -116,6 +116,7 @@ class SEEDGoogleSheets
     function GetColumn( $range ) : array
     {
         if( ctype_alpha($range) ) {
+// should prepend nameSheet! to the range
             $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "$range:$range");
             $values = $response->getValues();
             for($i = 0; $i < count($values); $i++){
@@ -125,22 +126,29 @@ class SEEDGoogleSheets
         }
         return [];
     }
+
     /**
      * set row in spreadsheet
      * @param String $nameSheet - name of the sheet to read
-     * @param row number
-     * @param values array of values to set
+     * @param int $row - row number order-1
+     * @param array $values - 1D array of values to set
      * @return response
      */
-    function SetRow( String $nameSheet, $range, $values )
+    function SetRow( String $nameSheet, int $row, $values )
     {
-        $end = $this->NumberToColumnLetter(count($values)); // find last column index
-        $values = array($values);
-        $requestBody = new Google_Service_Sheets_ValueRange();
-        $requestBody->values = $values;
-        $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, "{$nameSheet}!A$range:$end$range", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+        // docs say that null values leave the original data intact, but other examples on SO show otherwise, and null values actually cause a json error in the library we're using
+        foreach( $values as &$v ) {
+            if( $v === null ) $v = '';
+        }
+        unset($v);
 
-        return $response;
+        $requestBody = new Google_Service_Sheets_ValueRange();
+        $requestBody->values = [$values];   // values are always provided as a 2D array
+
+        $colEnd = $this->NumberToColumnLetter(count($values)); // find last column index
+        $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, "{$nameSheet}!A{$row}:{$colEnd}{$row}", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
+
+        return( $response );
     }
 
     /**
@@ -231,6 +239,11 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
         return( $ra );
     }
 
+    /**
+     * Read all rows of a sheet, returning an array whose keys match the column header names.
+     * @param String $nameSheet - name of the sheet to read
+     * @return array - 2D array of values where keys match column names
+     */
     function GetRowsWithNamedColumns( string $nameSheet ) : array
     {
         $raOut = [];
@@ -246,6 +259,23 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
         }
 
         return( $raOut );
+    }
+
+    /**
+     * Write a row of values to the sheet, from an array whose keys match the column header names, in any order.
+     * @param String $nameSheet - name of the sheet
+     * @param int $row row number
+     * @param array $values 1D array of values where keys match column names
+     */
+    function SetRowWithNamedColumns( string $nameSheet, int $row, array $values )
+    {
+        // Place values in $ra in the same order as the columns in the sheet.
+        $ra = [];
+        foreach( $this->GetColumnNames($nameSheet) as $col ) {
+            $ra[] = isset($values[$col]) ? $values[$col] : '';
+        }
+
+        $this->SetRow($nameSheet, $row, $ra);
     }
 
     /**
@@ -272,33 +302,6 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
             }
         }
         return $ret;
-    }
-
-    /**
-     * takes in an associative array of values
-     * match value with column
-     * this function makes sure if values is not ordered the same way as spreadsheet columns, it will still work
-     * @param String $nameSheet - name of the sheet to read/write
-     * @param $row row number
-     * @param $values associative array where the key matches column names
-     */
-    function SetRowWithAssociativeArray( String $nameSheet, $row, $values )
-    {
-
-        $columns = $this->GetColumnNames($nameSheet);
-        $ra = [];
-
-        foreach( $values as $k=>$v ) {
-            foreach( $columns as $k2=>$v2 ) { // compare each column to $values key
-
-                if( $k == $v2 ) {
-                    $ra[$v2] = $v; //fill $ra with correctly ordered values
-                }
-            }
-        }
-
-        $ra = array_values($ra); // convert associative array into normal array
-        $this->SetRow($nameSheet, $row, $ra); // set rows
     }
 }
 
@@ -374,7 +377,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
 
             if( !($kfr = $this->kfrel->GetRecordFromDBKey($kSync)) ) {
                 $raRow['sync_note'] = "not found in db";
-                $this->oGoogleSheet->SetRowWithAssociativeArray( $this->nameSheet, $iRow, $raRow );
+                $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
                 goto do_next;
             }
 
@@ -422,7 +425,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
         done:
         if( $note || $ok ) {
             $raRow['sync_note'] = $note;
-            $this->oGoogleSheet->SetRowWithAssociativeArray( $this->nameSheet, $iRow, $raRow );
+            $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
         }
     }
 }
