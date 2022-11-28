@@ -37,6 +37,13 @@ class QServerEvents extends SEEDQ
             $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
 
             list($rQ['bOk'],$rQ['raOut'],$rQ['sOut'],$rQ['sErr']) = $this->getEvList( $raParms );
+        } else
+        if( $cmd == 'ev-syncSheet' ){
+            $rQ['bHandled'] = true;
+            $raParms = $parms; // $this->normalizeParms( $parms );
+            $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
+
+            list($rQ['bOk'],$rQ['sErr']) = $this->syncSheet($raParms);
         }
 
         return( $rQ );
@@ -66,4 +73,13 @@ class QServerEvents extends SEEDQ
         return([$bOk, $raOut, $sOut, $sErr]);
     }
 
+    private function syncSheet( $raParms )
+    /*************************************
+        Sync the current events db with the EVENTS_GOOGLE_SPREADSHEET_ID google sheet
+     */
+    {
+        include_once( SEEDLIB."events/eventsSheet.php" );
+        (new EventsSheet($this->oApp))->SyncSheetAndDB();
+        return( [true, ""] );
+    }
 }
