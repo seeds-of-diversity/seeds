@@ -65,38 +65,50 @@ class EventsSheet
 
     function SyncSheetAndDb( string $nameSheet = 'Current' )
     {
-        $mapCols = [
-            ['sheetCol'=>'title',      'dbCol'=>'title',
-             'sheetCol'=>'date_start', 'dbCol'=>'date_start',
-            ]
-        ];
         $raConfig = ['fnValidateSheetRow'=>[$this,'fnValidateSheetRow']];
 
         (new SEEDGoogleSheets_SyncSheetAndDb($this->oApp, $raConfig))->DoSync(
                 $this->oGoogleSheet,
                 $nameSheet,
                 (new EventsLib($this->oApp))->oDB->KFRel('E'),
-                $mapCols,
+                $this->syncMapCols,
                 [] );
     }
+
+    private $syncMapCols = [
+                'city'       => ['dbCol'=>'city',       'sheetCol'=>'City/Town/Region:'],
+                'province'   => ['dbCol'=>'province',   'sheetCol'=>'Province/Territory:'],
+                'date_start' => ['dbCol'=>'date_start', 'sheetCol'=>'Date of event:'],
+                'time'       => ['dbCol'=>'time',       'sheetCol'=>'Start time of event:'],
+                'location'   => ['dbCol'=>'location',   'sheetCol'=>'Location (if virtual, please indicate "virtual")'],
+                'details'    => ['dbCol'=>'details',    'sheetCol'=>'Tell us about your event:'],
+
+
+    ];
+
     function fnValidateSheetRow( array $raRow )
     {
         $ok = true;
         $note = "";
 
-        if( !@$raRow['title'] ) {
-            $note = "No title";
+        if( !@$raRow[$this->syncMapCols['city']['sheetCol']] ) {
+            $note = "No city";
             $ok = false;
             goto done;
         }
-        if( !@$raRow['date_start'] ) {
+        if( !@$raRow[$this->syncMapCols['province']['sheetCol']] ) {
+            $note = "No province";
+            $ok = false;
+            goto done;
+        }
+        if( !@$raRow[$this->syncMapCols['date_start']['sheetCol']] ) {
             $note = "No date_start";
             $ok = false;
             goto done;
         }
-        if( !@$raRow['date_end'] ) {
-            $raRow['date_end'] = @$raRow['date_start'];
-        }
+//        if( !@$raRow['date_end'] ) {
+//            $raRow['date_end'] = @$raRow['date_start'];
+//        }
 
         done:
         return( [$ok, $note] );

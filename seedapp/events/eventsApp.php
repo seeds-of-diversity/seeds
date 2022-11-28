@@ -53,8 +53,6 @@ $pProv = '';
 
     if( ($kfr = $this->oEventsLib->oDB->GetKFRC('E', $sCond, ['sSortCol' => 'date_start', 'bSortDown' => 0] )) ) {
         while( $kfr->CursorFetch() ) {
-//            $s .= $oEv->DrawEvent( $kfr );
-
             $e = Events_event::CreateFromKey( $this->oEventsLib, $kfr->Key() );
             $sList .= "<div style='float:right'>{$e->GetDateNice()}</div>";
             $sList .= $e->DrawEvent();
@@ -93,7 +91,6 @@ $pProv = '';
          ."<div class='col-md-8'>"
              ."<h1 style='text-align:center;margin-bottom:20px'>{$this->S('Events')}</h1>"
              ."<div style='font-size:1.6em;text-align:center;border-top:1px solid #bbb; border-bottom:1px solid #bbb'>$sDate1 - $sDate2</div>"
-             ."Event<hr/>"
 ;
         $s .= $sList;
 
