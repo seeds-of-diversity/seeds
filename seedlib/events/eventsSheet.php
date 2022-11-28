@@ -11,6 +11,7 @@
  *      EVENTS_GOOGLE_SPREADSHEET_ID    the id of the spreadsheet where you store events data
  */
 
+include_once( "events.php" );
 include_once( SEEDLIB."google/GoogleSheets.php" );
 
 class EventsSheet
@@ -46,8 +47,8 @@ class EventsSheet
             ] );
     }
 
-    function GetEventsFromSheet( $nameSheet = 'Current' )
-    /****************************************************
+    function GetEventsFromSheet( string $nameSheet = 'Current' )
+    /***********************************************************
         Read event data from Google sheet
      */
     {
@@ -62,4 +63,39 @@ class EventsSheet
         return( $raEvents );
     }
 
+    function SyncSheetAndDb( string $nameSheet = 'Current' )
+    {
+        $mapCols = [
+            ['sheetCol'=>'title',      'dbCol'=>'title',
+             'sheetCol'=>'date_start', 'dbCol'=>'date_start',
+            ]
+        ];
+        $raConfig = ['fnValidateSheetRow'=>[$this,'fnValidateSheetRow']];
+
+        (new SEEDGoogleSheets_SyncSheetAndDb($this->oApp, $raConfig))->DoSync(
+                $this->oGoogleSheet,
+                $nameSheet,
+                (new EventsLib($this->oApp))->oDB->KFRel('E'),
+                $mapCols,
+                [] );
+    }
+    function fnValidateSheetRow( array $raRow )
+    {
+        $ok = true;
+        $note = "";
+
+        if( !@$raRow['title'] ) {
+            var_dump( "No title" );
+            $ok = false;
+        }
+        if( !@$raRow['date_start'] ) {
+            var_dump( "No date_start" );
+            $ok = false;
+        }
+        if( !@$raRow['date_end'] ) {
+            $raRow['date_end'] = $raRow['date_start'];
+        }
+
+        return( [$ok, $note] );
+    }
 }
