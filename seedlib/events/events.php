@@ -22,12 +22,14 @@
  *      location = blank
  */
 
+include_once( SEEDCORE."SEEDLocal.php" );
 include_once( "eventsDB.php" );
 
 class EventsLib
 {
     public $oApp;
     public $oDB;
+    public $oL;
     private $oTag;
 
     function __construct( SEEDAppSessionAccount $oApp )
@@ -43,6 +45,8 @@ class EventsLib
                          ['fn'=>[$this->oBasicResolver,'ResolveTag'], 'raParms'=>[]]
                        ];
         $this->oTag = new SEEDTagParser( ['raResolvers' => $raResolvers] );
+
+        $this->oL = new SEED_Local( $this->sLocalStrs(), $this->oApp->lang, 'events' );
     }
 
     function ExpandStr( $s )
@@ -72,6 +76,15 @@ class EventsLib
 
         // ReTagging works by returning true as the third return value and a new raTag as the fourth. Subsequent Resolvers will use the new raTag.
         return( [$bHandled, $s, $bRetagged, $raTag] );
+    }
+
+    private function sLocalStrs()
+    {
+        return( ['ns'=>'events', 'strs'=> [
+            'Events'
+                => [ 'EN'=>"[[]]",
+                     'FR'=>"&Eacute;v&eacute;nements" ]
+        ]] );
     }
 }
 
@@ -137,6 +150,11 @@ class Events_event
         return( $this->kfr ? $this->kfr->Value('date_start') : "" );
     }
 
+    function GetDateNice()
+    {
+        return( SEEDDate::NiceDateStrFromDate($this->GetDate(), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY) );
+    }
+
     protected function _getValue( $field, $bEnt = true )
     /***************************************************
         Get the English or French value, or the other one if empty
@@ -163,7 +181,7 @@ class Events_event
         $city     = $this->kfr->Expand( "[[city]], [[province]]" );
         $location = $this->kfr->ValueEnt("location");
         $title    = $this->GetTitle();
-        $date     = $this->_getValue( "date_alt" ) ?: SEEDDateDB2Str( $this->kfr->value("date_start"), $this->oE->oApp->lang );
+        $date     = $this->_getValue( "date_alt" ) ?: SEEDDate::NiceDateStrFromDate( $this->kfr->value("date_start"), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY );
 
         switch( $this->kfr->value("type") ) {
             case 'EV':
