@@ -35,7 +35,6 @@ class SEEDDataStoreSVA extends SEEDDataStore
         parent::__construct( $raConfig );
     }
 
-   // function GetValuesRA() { die( "GetValuesRA not implemented yet" ); }     // only implemented for the base implementation
     function GetValuesRA()
     /*********************
         Return a simple array containing all values in the data store.
@@ -50,6 +49,13 @@ class SEEDDataStoreSVA extends SEEDDataStore
         return( $raOut );
     }
 
+    function Clear()
+    /***************
+        Clear all form values
+     */
+    {
+        die( "SEEDDataStoreSVA::Clear() not implemented yet" );
+    }
 
     /* Override the Data-side methods.
      * The Application-side methods are normally not overridden.
