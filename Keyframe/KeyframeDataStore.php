@@ -28,6 +28,7 @@ class Keyframe_DataStore extends SEEDDataStore
     function GetValuesRA() { return( $this->kfr ? $this->kfr->ValuesRA() : array() ); }
 
     // Sometimes forms use auxiliary code that need a kfr, so it isn't enough to just get/set values from this interface.
+    // The generic way to access this is via DSGetDataObj(), so base code can do the right thing, but use this in KF-aware code.
     function GetKFR()                       { return( $this->kfr ); }
     function SetKFR( KeyframeRecord $kfr )  { $this->kfr = $kfr; }
 
