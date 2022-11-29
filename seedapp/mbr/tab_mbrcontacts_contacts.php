@@ -29,7 +29,7 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
            ."<style></style>"
            ."<div>{$this->DrawList()}</div>"
            ."<div style='border:1px solid #777; padding:15px'>"
-               ."<div style='margin-bottom:5px'><a href='?sf{$cid}ui_k=0'><button>New</button></a>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
+               ."<div style='margin-bottom:5px'><div style='display:inline-block'>{$this->oComp->ButtonNew()}</div>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
                ."<div style='width:100%;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>"
            ."</div>";
 
@@ -86,10 +86,10 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| *Contact #*               || [[Key: | readonly]]
-               ||| *First / last name*       || [[Text:firstname|width:45%]] [[Text:lastname|width:45%]]
-               ||| *First / last name 2*     || [[Text:firstname2]] [[Text:lastname2]]
-               ||| *Company*                 || [[Text:company|width:90%]]
-               ||| *Email*                   || [[Text:email]]
+               ||| *First / last name*       || [[Text:firstname|width:45%]]  [[Text:lastname|width:45%]]
+               ||| *First / last name 2*     || [[Text:firstname2|width:45%]] [[Text:lastname2|width:45%]]
+               ||| *Company*                 || [[Text:company|width:91%]]
+               ||| *Email*                   || [[Text:email|width:91%]]
                ||| *Phone*                   || [[Text:phone]]
                ||| &nbsp;                    || \n
                ||| *Referral*                || [[Text:referral]]
@@ -118,7 +118,6 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
             ."</div>
               </div>
               <input type='submit' value='Save'>
-              <p>The div containing the form element has width 90% but it should be 100%.</p>
               </div>";
 
             return( $s );
