@@ -178,7 +178,11 @@ class SoDMasterTemplate
                     }
                     // could specify 'config_sbdb'=>'seeds1' here but that is MSDCore's default if blank
                     $o = new MSDQ( $this->oApp, ['config_bUTF8'=>$this->bUTF8, 'config_bAllowCanSeedRead'=>true] );
-                    $rQ = $o->Cmd( 'msdSeedList-Draw', ['kUidSeller'=>$kMbr, 'eStatus'=>'ALL'] );
+                    $rQ = $o->Cmd( 'msdSeedList-Draw', ['kUidSeller'=>$kMbr,
+                                                        'eStatus'=>'ALL',
+                                                        // for email, use <hr/> to separate because styles don't work, and keep lines short for transport
+                                                        'sBetween' => "<hr/>\n" ]
+                    );
                     $s =
                     "<style>.sed_seed_skip {background-color:#ccc} .sed_seed {margin:10px}</style>"
                     .$rQ['sOut'];

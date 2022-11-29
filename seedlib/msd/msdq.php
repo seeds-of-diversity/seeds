@@ -267,6 +267,7 @@ class MSDQ extends SEEDQ
 
         $ok = true;
 
+        $sBetween = @$raParms['sBetween'];  // string to put between each seed listing
         foreach( $rQ['raOut'] as $ra ) {
             if( !($kfrS = $this->oMSDCore->GetSeedKfr($ra['_key'])) || !$this->canReadSeed($kfrS) ) {
                 $sErr .= "<p>Cannot read seed {$ra['_key']}</p>";
@@ -275,7 +276,7 @@ class MSDQ extends SEEDQ
             list($okTmp,$sTmp,$sErrTmp) = $this->seedDraw( $kfrS, "REVIEW VIEW_SHOWSPECIES" );
 
             if( $okTmp ) {
-                $s .= $sTmp;
+                $s .= $sTmp.$sBetween;
             } else {
                 $sErr .= $sErrTmp;
                 $ok = false;

@@ -9,13 +9,14 @@
  * Office-Admin functions.
  */
 
-require_once "msdcore.php";
-require_once SEEDCORE."SEEDProblemSolver.php";
-
+include_once( "msdcore.php" );
+include_once( SEEDCORE."SEEDProblemSolver.php" );
+include_once( SEEDCORE."SEEDLocal.php" );
 
 class MSDLib
 {
     public  $oApp;
+    public  $oL;            // SEEDLocal strings available to all MSE apps
     private $oMSDCore;
     private $dbname1;
 
@@ -23,7 +24,8 @@ class MSDLib
     {
         $this->oApp = $oApp;
         $this->oMSDCore = new MSDCore( $oApp, ['sbdb' => @$raConfig['sbdb']] );
-        $this->dbname1 = $this->oApp->GetDBName('seeds1');
+        $this->dbname1 = $this->oApp->GetDBName('seeds1');                              // except if sbdb is not seeds1, but it always is so far
+        $this->oL = new SEED_Local(  $this->SLocalStrs(), $this->oApp->lang, 'mse' );
     }
 
     function PermOfficeW()  { return( $this->oMSDCore->PermOfficeW() ); }
@@ -168,7 +170,7 @@ class MSDLib
     function DrawGrowerBlock( KeyframeRecord $kfrGxM, $bFull = true )
     {
         $s = $kfrGxM->Expand( "<b>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
-             .($kfrGxM->value('organic') ? $this->S('Organic') : "")."</b>"
+             .($kfrGxM->value('organic') ? $this->oL->S('Organic') : "")."</b>"
              ."<br/>";
 
         if( $bFull ) {
@@ -224,7 +226,7 @@ class MSDLib
     }
 
     private $ePaymentMethods = [
-        'pay_cash'      => ['epay'=>0, 'en' => "Cash",                'fr' => "" ],
+        'pay_cash'      => ['epay'=>0, 'en' => "Cash",                'fr' => "" ], // fr now supplied via SEEDLocal so strings here are obsolete
         'pay_cheque'    => ['epay'=>0, 'en' => "Cheque",              'fr' => "" ],
         'pay_stamps'    => ['epay'=>0, 'en' => "Stamps",              'fr' => "" ],
         'pay_ct'        => ['epay'=>0, 'en' => "Canadian Tire money", 'fr' => "" ],
@@ -246,16 +248,9 @@ class MSDLib
         return( implode( ", ", $raPay ) );
     }
 
-    private function S( $sTranslate )
-    {
-        if( $sTranslate == 'Organic' ) return( $this->oApp->lang=='EN' ? $sTranslate : "Biologique" );
-
-        return( $sTranslate );
-    }
-
     function SLocalStrs()
     {
-        $raStrs = [ 'ns'=>'msd', 'strs'=> [
+        $raStrs = [ 'ns'=>'mse', 'strs'=> [
             'Organic'               => ['EN'=>"[[]]", 'FR'=>"Biologique"],
 
             'pay_cash'              => ['EN'=>"Cash",                'FR'=>"Comptant"],
@@ -277,6 +272,7 @@ class MSDLib
 
 /* This was moved to seedapp/msdedit.php so it's no longer used???
  */
+ /*
     function DrawGrowerForm( KeyframeRecord $kfrGxM, $bOffice = false )
     {
         $s = "";
@@ -291,7 +287,7 @@ $s .= "
 </style>
 ";
 
-/*
+[*
     alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
 
     alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
@@ -306,7 +302,7 @@ $s .= "
     alter table sed_growers add dDateRangeStart text;
     alter table sed_growers add dDateRangeEnd   text;
 
- */
+ *]
 
 
         $bNew = !$kfrGxM->Key();
@@ -423,4 +419,5 @@ $s .= "</div>";
 
         return( $s );
     }
+*/
 }

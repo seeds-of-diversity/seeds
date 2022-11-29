@@ -2,7 +2,7 @@
 
 /* SEEDDate
  *
- * Copyright (c) 2010-2020 Seeds of Diversity Canada
+ * Copyright (c) 2010-2022 Seeds of Diversity Canada
  *
  * Manipulate dates and times in English and French
  */
@@ -90,4 +90,44 @@ class SEEDDate
         return( intval( (intval($w %7) +7) %7) );    // don't know why
     }
 
+    static function Date2Unixtime( string $date ) : int
+    /********************************************
+        Convert YYYY-MM-DD or YYYY/MM/DD to unix time
+     */
+    {
+        return( strtotime($date) );
+    }
+
+    const INCLUDE_WEEKDAY = 1;
+
+    static function NiceDateStrFromDate( string $date, string $lang = 'EN', int $eFormat = 0 ) : string
+    /*****************************************************************************************
+        Return a nice string format of the given time, in the given language
+     */
+    {
+        return( self::NiceDateStrFromTime( self::Date2Unixtime($date), $lang, $eFormat ) );
+    }
+
+    static function NiceDateStrFromTime( int $unixTime, string $lang = 'EN', int $eFormat = 0 ) : string
+    /******************************************************************************************
+        Return a nice string format of the given time, in the given language
+     */
+    {
+        $bIncludeWeekday = ($eFormat & self::INCLUDE_WEEKDAY) > 0;
+
+        if( $lang == "FR" ) {
+    // Locales are not set up on localhost or seeds.ca
+    //$l = setlocale( LC_ALL, "fr_CA" );
+    //echo "<P>".$l." : ".strftime ("%A %e %B %Y", mktime (0, 0, 0, 12, 22, 1978))."</P>";
+
+            $raGetDate = getdate($unixTime);
+            $date = ($bIncludeWeekday ? (self::$raDaysOfWeek[$raGetDate["wday"]]['fr'] .' ') : '')
+                    .$raGetDate["mday"] ." ". self::$raMonths[$raGetDate["mon"]]['fr'] ." ". $raGetDate["year"];
+        } else {
+            // English
+            $date = date( $bIncludeWeekday ? "l F j, Y" : "F j, Y", $unixTime );
+        }
+
+        return( $date );
+    }
 }

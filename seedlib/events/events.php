@@ -22,12 +22,14 @@
  *      location = blank
  */
 
+include_once( SEEDCORE."SEEDLocal.php" );
 include_once( "eventsDB.php" );
 
 class EventsLib
 {
     public $oApp;
     public $oDB;
+    public $oL;
     private $oTag;
 
     function __construct( SEEDAppSessionAccount $oApp )
@@ -43,6 +45,8 @@ class EventsLib
                          ['fn'=>[$this->oBasicResolver,'ResolveTag'], 'raParms'=>[]]
                        ];
         $this->oTag = new SEEDTagParser( ['raResolvers' => $raResolvers] );
+
+        $this->oL = new SEED_Local( $this->sLocalStrs(), $this->oApp->lang, 'events' );
     }
 
     function ExpandStr( $s )
@@ -73,6 +77,15 @@ class EventsLib
         // ReTagging works by returning true as the third return value and a new raTag as the fourth. Subsequent Resolvers will use the new raTag.
         return( [$bHandled, $s, $bRetagged, $raTag] );
     }
+
+    private function sLocalStrs()
+    {
+        return( ['ns'=>'events', 'strs'=> [
+            'Events'
+                => [ 'EN'=>"[[]]",
+                     'FR'=>"&Eacute;v&eacute;nements" ]
+        ]] );
+    }
 }
 
 class Events_event
@@ -80,20 +93,40 @@ class Events_event
     private $oE;
     private $kfr = null;
 
-    function __construct( EventsLib $oE, $kEvent )
+    public static function CreateFromKey( EventsLib $oE, int $kEvent )
+    {
+        $o = new Events_event( $oE, $kEvent );
+        return( $o );
+    }
+
+    public static function CreateFromKFR( EventsLib $oE, KeyframeRecord $kfrEv )
+    {
+        $o = new Events_event( $oE, 0 );    // create object with empty kfr
+        $o->_setKfr( $kfrEv );
+        return( $o );
+    }
+
+    private function __construct( EventsLib $oE, int $kEvent )
     {
         $this->oE = $oE;
-        $this->SetEvent($kEvent);
+        $this->SetEvent($kEvent);   // creates empty kfr if kEvent is zero
     }
+
+    // only to be used by CreateFromKFR
+    function _setKfr( KeyframeRecord $kfrEv )  { $this->kfr = $kfrEv; }
 
     function SetEvent( $kEvent )
     {
-        $this->kfr = $this->oE->oDB->KFRel('E')->GetRecordFromDBKey($kEvent);
+        $this->kfr = $kEvent ? $this->oE->oDB->KFRel('E')->GetRecordFromDBKey($kEvent) : $this->oE->oDB->KFRel('E')->CreateRecord();
         return( $this->kfr != null );
     }
 
-    function GetTitle( $kfr )
+    function GetTitle()
     {
+        $title = "";
+
+        if( !$this->kfr )  goto done;
+
         if( $this->kfr->value("type") == "SS" ) {
             $city = $this->kfr->value('city');
 
@@ -107,19 +140,34 @@ class Events_event
         } else {
             $title = $this->_getValue( "title" );
         }
+
+        done:
         return( $title );
     }
 
+    function GetDate()
+    {
+        return( $this->kfr ? $this->kfr->Value('date_start') : "" );
+    }
+
+    function GetDateNice()
+    {
+        return( SEEDDate::NiceDateStrFromDate($this->GetDate(), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY) );
+    }
 
     protected function _getValue( $field, $bEnt = true )
     /***************************************************
         Get the English or French value, or the other one if empty
      */
     {
-        $e = $this->kfr->value($field);
-        $f = $this->kfr->value($field."_fr");
-        $v = (($this->oE->oApp->lang=="EN" && $e) || ($this->oE->oApp->lang=="FR" && !$f)) ? $e : $f;
-        if( $bEnt ) $v = SEEDCore_HSC($v);
+        $v = "";
+
+        if( $this->kfr ) {
+            $e = $this->kfr->value($field);
+            $f = $this->kfr->value($field."_fr");
+            $v = (($this->oE->oApp->lang=="EN" && $e) || ($this->oE->oApp->lang=="FR" && !$f)) ? $e : $f;
+            if( $bEnt ) $v = SEEDCore_HSC($v);
+        }
         return( $v );
     }
 
@@ -132,8 +180,8 @@ class Events_event
 
         $city     = $this->kfr->Expand( "[[city]], [[province]]" );
         $location = $this->kfr->ValueEnt("location");
-        $title    = $this->GetTitle( $this->kfr );
-        $date     = $this->_getValue( "date_alt" ) ?: SEEDDateDB2Str( $this->kfr->value("date_start"), $this->oE->oApp->lang );
+        $title    = $this->GetTitle();
+        $date     = $this->_getValue( "date_alt" ) ?: SEEDDate::NiceDateStrFromDate( $this->kfr->value("date_start"), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY );
 
         switch( $this->kfr->value("type") ) {
             case 'EV':
@@ -157,7 +205,7 @@ class Events_event
                     .$date.SEEDCore_NBSP("",6).$this->kfr->value("time")."<br/>"
                     .($location ? "$location<br/>" : "")
                     .($city     ? "$city<br/>"     : "")
-                ."</b></p>"
+                ."</strong></p>"
                 .$this->drawEventDetails()
                 .(($c = $this->kfr->Value("contact")) ? "<p>Contact: {$this->oE->ExpandStr($c)}</p>" : "")
                 .(($u = $this->kfr->Value("url_more"))

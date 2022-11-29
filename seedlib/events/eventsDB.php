@@ -60,6 +60,8 @@ class EventsDB extends Keyframe_NamedRelations
             vol_notes   TEXT,                                   # materials to send and notes about volunteer/event
             vol_dSent   VARCHAR(20),                            # YYYY-MM-DD when materials sent ('' == not sent yet, anything else means no need to send)
 
+            tsSync      INTEGER DEFAULT 0,                      # for synchronizing with SEEDGoogleSheetsUtil::SyncSheetAndDB()
+
             INDEX (date_start),
             INDEX (province)
         );

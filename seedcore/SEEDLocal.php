@@ -51,6 +51,8 @@ class SEED_Local {
     /**************************
         $raStrs can be ['ns'=>ns, 'strs'=>[strs]]
                     or [ ['ns'=>ns, 'strs'=>[strs]], ['ns'=>ns, 'strs'=>[strs]] ]
+
+        Tip: it's often useful to make the ns the same for all string arrays and just set that as the default
      */
     {
         if( isset($raStrs['ns']) ) {

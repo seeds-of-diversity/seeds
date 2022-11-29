@@ -51,6 +51,16 @@ class Mbr_Contacts
 
     function GetContactName( $k, $raParms = [] )
     /*******************************************
+     */
+    {
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province "
+                                         ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
+        $raParms['fldPrefix'] = '';
+        return( self::GetContactNameFromMbrRA( $ra, $raParms ) );
+    }
+
+    static function GetContactNameFromMbrRA( $ra, $raParms = [] )
+    /************************************************************
         Default is to show [firstname] [lastname] { & [firstname2] [lastname2] }
                         or [company] if names are blank.
 
@@ -59,6 +69,8 @@ class Mbr_Contacts
         SHOW_CITY              = appends "in [city]"
         SHOW_PROVINCE          = appends "in [province]"
         SHOW_CITY_PROVINCE     = appends "in [city], [province]" or SHOW_PROVINCE if city is blank
+
+        fldPrefix: prefix on field names e.g. firstname vs M_firstname
      */
     {
         $s = "";
@@ -69,34 +81,32 @@ class Mbr_Contacts
         $bShowProvince          = @$raParms['SHOW_PROVINCE'];
         $bShowCityProvince      = @$raParms['SHOW_CITY_PROVINCE'];
 
-// put everything except this in another method GetContactNameFromMbrRA($raOutputFromGetBasicValues)
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province "
-                                         ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
+        $prefix = @$raParms['fldPrefix'];
 
         // firstname(s)/lastname(s)
-        $s = self::FirstnameLastname( $ra, '' );
+        $s = self::FirstnameLastname( $ra, $prefix );
 
         // company
         if( !$s || $bShowCompanyWithName ) {
-            $s = ($s ? ", " : "") . $ra['company'];
+            $s = ($s ? ", " : "") . $ra[$prefix.'company'];
         }
 
         // city, province
-        if( !$ra['city'] ) {
+        if( !$ra[$prefix.'city'] ) {
             // if city not defined, reduce to just province parms
             $bShowProvince = $bShowProvince || $bShowCityProvince;
             $bShowCity = false;
             $bShowCityProvince = false;
         }
-        if( !$ra['province'] ) {
+        if( !$ra[$prefix.'province'] ) {
             // if province not defined, reduce to just city parms
             $bShowCity = $bShowCity || $bShowCityProvince;
             $bShowProvince = false;
             $bShowCityProvince = false;
         }
-        if( $bShowCity )          $s .= " in {$ra['city']}";
-        if( $bShowProvince )      $s .= " in {$ra['province']}";
-        if( $bShowCityProvince )  $s .= " in {$ra['city']}, {$ra['province']}";
+        if( $bShowCity )          $s .= " in {$ra[$prefix.'city']}";
+        if( $bShowProvince )      $s .= " in {$ra[$prefix.'province']}";
+        if( $bShowCityProvince )  $s .= " in {$ra[$prefix.'city']}, {$ra[$prefix.'province']}";
 
         return( $s );
     }
