@@ -35,6 +35,14 @@ class KeyframeForm extends SEEDCoreForm
 
     function GetKey()  { return( ($kfr = $this->oDS->GetDataObj()) ? $kfr->Key() : 0 ); }
 
+    function Clear()
+    /***************
+        Reset the form to empty contents and a zero key
+     */
+    {
+        $this->SetKFR( $this->kfrel->CreateRecord() );
+    }
+
     // Additional Form Elements that are KeyFrame specific (these should use the same format as SEEDForm Elements)
 
     function HiddenKey()

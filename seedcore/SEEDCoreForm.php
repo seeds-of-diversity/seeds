@@ -123,6 +123,14 @@ class SEEDCoreForm extends SEEDCoreFormElements
     }
 
 
+    public function Clear()
+    /**********************
+        Clear the form contents
+     */
+    {
+        $this->oDS->Clear();
+    }
+
     function Update( $raParms = array() )
     /************************************
         Get the form parms (rows and controls) for the current cid, serialized a la SEEDFormParms.  Normally http parms, but you can get them from any array.
