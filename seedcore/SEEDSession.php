@@ -47,7 +47,7 @@ class SEEDSessionVarAccessor
             }
             return( $ra );
         } else {
-            return( $_SESSION[$this->ns] );
+            return( @$_SESSION[$this->ns] ?: [] );
         }
     }
 

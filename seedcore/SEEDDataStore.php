@@ -53,10 +53,12 @@ class SEEDDataStore
     private   $raBaseData = array();    // the base data source is an array; derived classes must have their own storage
     protected $raParms = array();       // derived classes can access parms
 
-    function __construct( $raParms = array() )
+    function __construct( $raConfig = [] )
     {
-        $this->raParms = $raParms;
-        $this->Clear();
+        $this->raParms = $raConfig;
+        if( !@$raConfig['bNoClearOnConstruct'] ) {  // persistent datastores should not clear their data here
+            $this->Clear();
+        }
     }
 
     /*** Application-side methods ***/
