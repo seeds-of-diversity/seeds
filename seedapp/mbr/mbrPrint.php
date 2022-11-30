@@ -9,6 +9,7 @@
 
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDCORE."SEEDPrint.php" );
+include_once( SEEDCORE."SEEDCoreFormSession.php" );
 include_once( SEEDAPP."mbr/mbrApp.php" );
 include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDLIB."mbr/MbrContacts.php" );
@@ -92,7 +93,7 @@ if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
 }
 
 
-$o3UpDonors = new Mbr3UpDonors( $oApp, $yCurr );
+$o3UpDonors = new Mbr3UpDonors( $oApp, $yCurr, SEEDInput_Int('dLargeDonation') ?: 200 );
 $o3UpMbr    = new Mbr3UpMemberRenewals( $oApp, $kfdb, $yCurr );
 $oPrint     = new SEEDPrint3UpHTML();
 
@@ -188,6 +189,8 @@ class MyConsole02TabSet extends Console02TabSet
     private $o3UpDonors;
     private $oContacts;
 
+    private $oDonRqstCtrlForm;  // Control area form for donation requests
+
     function __construct( SEEDAppConsole $oApp )
     {
         global $consoleConfig, $o3UpMbr, $o3UpDonors;
@@ -209,6 +212,19 @@ class MyConsole02TabSet extends Console02TabSet
                 .$this->o3UpMbr->ShowDetails();
 
         return( $sBody );
+    }
+
+    function TabSet_main_donationRequests_Init()
+    {
+        $this->oDonRqstCtrlForm = new SEEDCoreFormSVA( $this->TabSetGetSVACurrentTab('main'), 'D');
+        $this->oDonRqstCtrlForm->Update();
+    }
+
+    function TabSet_main_donationRequests_ControlDraw()
+    {
+        return( "<form method='post'>{$this->oDonRqstCtrlForm->Text('dDonThreshold')} &nbsp;&nbsp;<input type='submit' value='Set Donation Threshold'/></form>"
+            ."Note: This does nothing because the code to print slips is outside of the tabset so the groups are generated before this form can be accessed.
+              <br/>Currently you have to do this via url ?dLargeDonation=NNN" );
     }
 
     function TabSet_main_donationRequests_ContentDraw()
@@ -672,6 +688,7 @@ class Mbr3UpDonors
     private $oApp;
     private $lang = "EN";
     private $year;
+    private $dLargeDonation;    // threshold for large donations
 
     private $raDonorEN, $raDonorFR, $raNonDonorEN, $raNonDonorFR;
 
@@ -679,13 +696,14 @@ class Mbr3UpDonors
 
     private $raData = array();
 
-    function __construct( SEEDAppConsole $oApp, $year )
+    function __construct( SEEDAppConsole $oApp, int $year, int $dLargeDonation )
     {
         $this->oApp = $oApp;
         $this->year = $year;
+        $this->dLargeDonation = $dLargeDonation;
 
         $this->oMbr = new Mbr_Contacts($oApp);
-        $this->oMbrList = new MbrContactsList($oApp);
+        $this->oMbrList = new MbrContactsList($oApp, ['dLargeDonation'=>$this->dLargeDonation]);
 
         $this->mode = SEEDInput_Smart( 'mode', array( '', 'donorEN','donor100EN','donor99EN','donorFR','donor100FR','donor99FR','nonDonorEN','nonDonorFR' ) );
         $this->lang = substr( $this->mode, -2 ) ?: 'EN';
@@ -773,8 +791,11 @@ return;
 
     function ShowDetails()
     {
-        $s = "<p>Donors English: {$this->oMbrList->GetGroupCount('donorEN')} - $100/$99 = {$this->oMbrList->GetGroupCount('donor100EN')}/{$this->oMbrList->GetGroupCount('donor99EN')}</p>"
-            ."<p>Donors French:  {$this->oMbrList->GetGroupCount('donorFR')} - $100/$99 = {$this->oMbrList->GetGroupCount('donor100FR')}/{$this->oMbrList->GetGroupCount('donor99FR')}</p>"
+        $sDonThresholdUpper = $this->dLargeDonation;
+        $sDonThresholdLower = $this->dLargeDonation - 1;
+
+        $s = "<p>Donors English: {$this->oMbrList->GetGroupCount('donorEN')} - \${$sDonThresholdUpper}/\${$sDonThresholdLower} = {$this->oMbrList->GetGroupCount('donor100EN')}/{$this->oMbrList->GetGroupCount('donor99EN')}</p>"
+            ."<p>Donors French:  {$this->oMbrList->GetGroupCount('donorFR')} - \${$sDonThresholdUpper}/\${$sDonThresholdLower} = {$this->oMbrList->GetGroupCount('donor100FR')}/{$this->oMbrList->GetGroupCount('donor99FR')}</p>"
             ."<p>Non-donor Members English: {$this->oMbrList->GetGroupCount('nonDonorEN')}</p>"
             ."<p>Non-donor Members French:  {$this->oMbrList->GetGroupCount('nonDonorFR')}</p>"
             ."<p>&nbsp</p>"
