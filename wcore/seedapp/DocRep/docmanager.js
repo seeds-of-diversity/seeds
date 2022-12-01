@@ -427,41 +427,41 @@ class myDocRepCtrlView_Add
         }
     }
 
-	static Submit( e, q_url ) 
-	{
-		e.preventDefault();
-		var rQ;
-		let kDoc = $('#drAdd_kDoc').val();
-		let position = $('input[name=child-or-sibling]:checked').val()
-		let type = $('input[name=text-or-folder]:checked').val()
-		let name = $('#add-name').val();
-		let title = $('#add-title').val();
-		let permissions = $('#add-permissions').val();
+    static Submit( e, q_url ) 
+    {
+        e.preventDefault();
 
-		if( !name || !permissions || !kDoc) {
-			return;
-		}
-	
-		if ( !position ) { // if no position is selected, or position does not exist, default sibling 
-			position == "sibling";
-		}
-		// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
-		if ( position == "child" ) {
-			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
-		}
-		else {
-			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
-		}
-	
-		if (!rQ.bOk) {
-			console.log("error add");
-		}
-		else {
-			// update tree with new folder/file
-			this.UpdateTree();
-		}
-	}
-	
+        let kDoc = $('#drAdd_kDoc').val();
+        let position = $('input[name=child-or-sibling]:checked').val();
+        let type = $('input[name=text-or-folder]:checked').val();
+        let name = $('#add-name').val();
+        let title = $('#add-title').val();
+        let permclass = $('#add-permissions').val();
+
+        if( !kDoc )  return(false);
+        if( position != 'child' ) position = 'sibling';      // default sibling
+        if( !permclass ) {
+            console.log("permission should default to the parent");
+        }
+
+        let q = { qcmd: 'dr--add', kDoc: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permclass };
+
+        if( position == 'child' ) {
+            q.dr_posUnder = kDoc;
+        } else {
+            q.dr_posAfter = kDoc;
+        }
+console.log(q);
+        let rQ = SEEDJXSync(q_url, q);
+        if( !rQ.bOk ) {
+            console.log( "Error adding at kDoc: "+rQ.sErr );
+        } else {
+            // update tree with new folder/file
+//	this.UpdateTree();
+        }
+        return( false );
+    }
+
 	static Duplicate( e, q_url )
 	/**
 	make a copy of currently selected folder beside 
