@@ -441,7 +441,26 @@ class myDocRepCtrlView_Add
         if( !kDoc )  return(false);
         if( position != 'child' ) position = 'sibling';      // default sibling
         if( !permclass ) {
-            console.log("permission should default to the parent");
+            // not defined probably because the control is not exposed in this user mode. Use same permclass as parent.
+            let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', kDoc);
+            if( !oDoc ) {
+                return( false );
+            }
+
+            if( position == 'child' ) {
+                // kDoc is the parent so use the same permclass
+                permclass = oDoc.perms;
+            } else {
+                // kDoc is the sibling so use the parent's permclass
+                if( oDoc.kParent ) {
+                    oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', oDoc.kParent);
+                    permclass = oDoc.perms;
+                } else {
+                    alert( "Cannot add at document tree root without specifying permission class" );
+                    return( false );
+                }
+            }
+            console.log("Permission not specified: using permclass "+permclass+" from parent");
         }
 
         let q = { qcmd: 'dr--add', kDoc: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permclass };
@@ -451,7 +470,7 @@ class myDocRepCtrlView_Add
         } else {
             q.dr_posAfter = kDoc;
         }
-console.log(q);
+
         let rQ = SEEDJXSync(q_url, q);
         if( !rQ.bOk ) {
             console.log( "Error adding at kDoc: "+rQ.sErr );
@@ -528,6 +547,7 @@ class myDocRepCtrlView_Rename
     {
         let sName = "", sTitle = "", sPerms = "";
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+
         if( oDoc ) {
             sName = oDoc['name'];
             sTitle = oDoc['title'];
