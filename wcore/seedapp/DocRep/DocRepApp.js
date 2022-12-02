@@ -19,7 +19,8 @@ class DocRepCache
     GetDocInfo( kDoc, bInternalRecurse = false )
     {
         let oDoc = null;
-
+        kDoc = Number(kDoc);
+        
         if( this.mapDocs.has(kDoc) ) {
             oDoc = this.mapDocs.get(kDoc);
         } else if( !bInternalRecurse ) {
