@@ -124,11 +124,14 @@ class SEEDImgManLib
                     $raFVar['analysis']['sScaleO'] = $raFVar['o']['info']['w'].' x '.$raFVar['o']['info']['h'];
                     $raFVar['analysis']['sScaleR'] = $raFVar['r']['info']['w'].' x '.$raFVar['r']['info']['h'];
 
-                    $raFVar['analysis']['scalePercent'] = floatval($raFVar['analysis']['scaleR']) / floatval($raFVar['analysis']['scaleO']) * 100;
-                    $raFVar['analysis']['sizePercent']  = floatval($raFVar['analysis']['sizeR']) / floatval($raFVar['analysis']['sizeO']) * 100;
+                    $sizeR  = floatval($raFVar['analysis']['sizeR']);
+                    $sizeO  = floatval($raFVar['analysis']['sizeO']);
+                    $scaleR = floatval($raFVar['analysis']['sizeR']);
+                    $scaleO = floatval($raFVar['analysis']['sizeO']);
 
-                    $sizeR = $raFVar['analysis']['sizeR'];
-                    $sizeO = $raFVar['analysis']['sizeO'];
+                    $raFVar['analysis']['sizePercent']  = $sizeO  ? ($sizeR / $sizeO * 100) : 100.0;    // default is no reduction when original size is unreadable
+                    $raFVar['analysis']['scalePercent'] = $scaleO ? ($scaleR / $scaleO * 100) : 100.0;
+
                     if( $raFVar['analysis']['sizePercent'] <= $this->raConfig['fSizePercentThreshold'] ) {
                         $raFVar['action'] = 'DELETE_ORIG MAJOR_FILESIZE_REDUCTION';
                     } else if( $sizeR < $sizeO ) {
