@@ -126,8 +126,8 @@ class SEEDImgManLib
 
                     $sizeR  = floatval($raFVar['analysis']['sizeR']);
                     $sizeO  = floatval($raFVar['analysis']['sizeO']);
-                    $scaleR = floatval($raFVar['analysis']['sizeR']);
-                    $scaleO = floatval($raFVar['analysis']['sizeO']);
+                    $scaleR = floatval($raFVar['analysis']['scaleR']);
+                    $scaleO = floatval($raFVar['analysis']['scaleO']);
 
                     $raFVar['analysis']['sizePercent']  = $sizeO  ? ($sizeR / $sizeO * 100) : 100.0;    // default is no reduction when original size is unreadable
                     $raFVar['analysis']['scalePercent'] = $scaleO ? ($scaleR / $scaleO * 100) : 100.0;
