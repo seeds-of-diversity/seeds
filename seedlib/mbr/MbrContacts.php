@@ -87,8 +87,8 @@ class Mbr_Contacts
         $s = self::FirstnameLastname( $ra, $prefix );
 
         // company
-        if( !$s || $bShowCompanyWithName ) {
-            $s = ($s ? ", " : "") . $ra[$prefix.'company'];
+        if( ($sCompany = $ra[$prefix.'company']) && (!$s || $bShowCompanyWithName) ) {
+            $s .= ($s ? ", " : "") . $sCompany;
         }
 
         // city, province
