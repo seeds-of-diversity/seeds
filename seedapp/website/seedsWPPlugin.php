@@ -156,6 +156,8 @@ class seedsWPPlugin_EventControl
      */
     static function init()
     {
+
+/*
         // MEC plugin might not be installed, so fail gracefully if not
         $f = WP_CONTENT_DIR."/plugins/modern-events-calendar-lite/modern-events-calendar-lite.php";
         if( !file_exists($f) ) {
@@ -167,6 +169,15 @@ class seedsWPPlugin_EventControl
             SEEDConfig_NewAppConsole_LoginNotRequired([])->Log( 'seedsWPPlugin', "There is no MEC_main class" );
             return;
         }
+*/
+        // Add the map js and css to the <head>. This is done for all wordpress pages whether or not they use the map,
+        // but it's easier to maintain WP code by putting it all in this file.
+        wp_register_style(  'eventsMap-css',      "https://seeds.ca/app/ev/dist/jqvmap.css", [], '1.0' /*, 'screen'*/ );    // optional final parm: not media-specific
+        wp_register_script( 'eventsMap-js',       "https://seeds.ca/app/ev/dist/jquery.vmap.js", ['jquery'], '1.0', false );    // put the script at the top of the file because it's (sometimes) called in the middle
+        wp_register_script( 'eventsMapCanada-js', "https://seeds.ca/app/ev/dist/maps/jquery.vmap.canada.js", ['jquery','eventsMap-js'], '1.0', false );    // put the script at the top of the file because it's (sometimes) called in the middle
+        wp_enqueue_style(  'eventsMap-css' );
+        wp_enqueue_script( 'eventsMap-js' );
+        wp_enqueue_script( 'eventsMapCanada-js' );
 
         add_action( 'admin_menu', ['seedsWPPlugin_EventControl', 'addMenu'] );
     }
@@ -176,8 +187,9 @@ class seedsWPPlugin_EventControl
     }
     static function drawPanel()
     {
-        include_once( SEEDAPP."website/eventmanager.php" );
-        echo (new EventsSheet())->DrawEventControlPanel();
+        // this is the old MEC code
+        //include_once( SEEDAPP."website/eventmanager.php" );
+        //echo (new EventsSheet())->DrawEventControlPanel();
     }
 }
 

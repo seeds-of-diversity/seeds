@@ -23,6 +23,7 @@
  */
 
 include_once( SEEDCORE."SEEDLocal.php" );
+include_once( SEEDCORE."SEEDDate.php" );
 include_once( "eventsDB.php" );
 
 class EventsLib

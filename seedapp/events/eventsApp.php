@@ -27,6 +27,17 @@ class EventsApp
     {
         $s = "";
 
+// This is in seedsWPPlugin so map css and js are included in <head> for all wordpress pages, not just the events page. Seemed easier to maintain this code there.
+//        if( function_exists('wp_register_style') ) {
+//            // we're in wordpress. register the map css and js
+//            wp_register_style( 'eventsMap-css', "https://seeds.ca/app/ev/dist/jqvmap.css", [], '1.0' /*, 'screen'*/ );    // optional final parm: not media-specific
+//            wp_enqueue_style( 'eventsMap-css' );
+//            wp_register_script( 'eventsMap-js', "https://seeds.ca/app/ev/dist/jquery.vmap.js", ['jquery'], '1.0', false );    // put the script at the top of the file because it's (sometimes) called in the middle
+//            wp_enqueue_script( 'eventsMap-js' );
+//            wp_register_script( 'eventsMapCanada-js', "https://seeds.ca/app/ev/dist/maps/jquery.vmap.canada.js", ['jquery','eventsMap-js'], '1.0', false );    // put the script at the top of the file because it's (sometimes) called in the middle
+//            wp_enqueue_script( 'eventsMapCanada-js' );
+//        }
+
 
     $oForm = new SEEDCoreForm('E');
 
@@ -108,12 +119,12 @@ $s .= "
 /* onchange is great with date controls if you use the calendar control, but as soon as you try to type in them there will be an onchange for every keystroke.
  * This switches to an onblur if you start typing, and adds a listener for the Enter key.
  */
-$('input#pDate1, input#pDate2').change(function() {
+jQuery('input#pDate1, input#pDate2').change(function() {
     this.form.submit();                                 // ordinarily use onchange for mouse-controlled calendar
 });
-$('input#pDate1, input#pDate2').keypress(function(e) {  // but when you type something
-    $(this).off('change blur');                         // remove bindings
-    $(this).blur(function () { this.form.submit(); });  // bind blur and Enter to submit the form
+jQuery('input#pDate1, input#pDate2').keypress(function(e) {  // but when you type something
+    jQuery(this).off('change blur');                         // remove bindings
+    jQuery(this).blur(function () { this.form.submit(); });  // bind blur and Enter to submit the form
     if(e.keyCode === 13) { this.form.submit(); }
 });
 </script>

@@ -132,12 +132,11 @@ class SoDMasterTemplate
                 $bHandled = true;
                 break;
 
-
-            case 'events':
-                // move events handler from siteTemplate
+            case 'events-page':
+                include_once(SEEDAPP."events/eventsApp.php");
+                $s .= (new EventsApp($this->oApp))->DrawEventsPage();
                 $bHandled = true;
                 break;
-
 
             case 'cd':
                 // move crop profiles handler from siteTemplate
