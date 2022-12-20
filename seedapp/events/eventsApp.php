@@ -52,7 +52,15 @@ class EventsApp
      */
     if( !$pDate1 )  $pDate1 = date("Y-m-d");                        // default today
     if( !$pDate2 || $pDate2 < $pDate1 ) {
-        $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // default 30 days after pDate1
+        // Default end of date range is the date of the first event that occurs at least 30 days after pDate1.
+        // This ensures that the default list will not be empty.
+
+        $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
+
+        // make sure there's at least one event in the date range, by extending the window to the next event
+        if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['bSortCol'=>'date_start'])) ) {
+            $pDate2 = $kfrNext->Value('date_start');
+        }
     }
     $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->oApp->lang);
     $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->oApp->lang);
