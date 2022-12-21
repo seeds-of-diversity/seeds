@@ -82,13 +82,16 @@ class EventsApp
               ."</div>";
 
 
-    $s .= "<form id='events_form' action='' method='post'>"
-         ."<div class='container-fluid'>"
+    $s .= "<style>
+           .EV_Event { margin-top:20px }
+           </style>"
+         ."<form id='events_form' action='' method='post'>"
          ."<div style='margin-bottom:30px'>"
              .$oForm->Text( 'pSearch', "", ['attrs'=>"placeholder='Search for events' style='border:1px solid #ccc;height:2.5em;padding:5px;width:30em'"] )
-             ."&nbsp;<input type='submit' value='Search'/>"
+             // not needed and just takes up space   ."&nbsp;<input type='submit' value='Search'/>"
          ."</div>"
 
+         ."<div class='container-fluid'>"
          ."<div class='row'>"
          ."<div class='col-md-2'>"
              ."<ul class='nav nav-tabs'>
@@ -108,7 +111,7 @@ class EventsApp
              .$sBanner
              .$sList
          ."</div>"
-         ."<div class='col-md-2' style='text-align:center'>"
+         ."<div class='col-md-2' style='text-align:center' id='map-container'>"
              ."<div style='width:100%;border:1px solid #ccc' id='vmap'></div>"
              //.$oForm->Select( 'pProv', ["-- Province --"=>'',"Ontario"=>'ON'], "", ['attrs'=>"onChange='submit();'"] )
              .SEEDLocation::SelectProvinceWithSEEDForm( $oForm, 'pProv', ['bAll'=>true,'bFullnames'=>true,'lang'=>$this->oApp->lang,'sAttrs'=>"onChange='submit();'"] )
@@ -118,49 +121,65 @@ class EventsApp
          ."</form>";
 
 $s .= "
-<script>
-/* onchange is great with date controls if you use the calendar control, but as soon as you try to type in them there will be an onchange for every keystroke.
- * This switches to an onblur if you start typing, and adds a listener for the Enter key.
- */
-jQuery('input.event-date-ctrl').change(function() {
-    this.form.submit();                                      // ordinarily use onchange for mouse-controlled calendar
-});
-jQuery('input.event-date-ctrl').keypress(function(e) {       // but when you type something
-    jQuery(this).off('change blur');                         // remove bindings
-    jQuery(this).blur(function () { this.form.submit(); });  // bind blur and Enter to submit the form
-    if(e.keyCode === 13) { this.form.submit(); }
-});
-</script>
+<script type='text/javascript'>
 
-    <script type='text/javascript'>
-    jQuery(document).ready(function() {
-        let w = jQuery('#vmap').width();
-        w = Math.floor(w);
-        jQuery('#vmap').width(w);
-        jQuery('#vmap').height(w);
+jQuery(document).ready(function() {
 
-
-      jQuery('#vmap').vectorMap({
-          map: 'canada_en',
-          backgroundColor: null,
-          color: '#5c882d', //'#c23616',
-          hoverColor: '#999999',
-          enableZoom: false,
-          showTooltip: true,
-          selectedRegions: [".($pProv ? "'$pProv'" : "")."],
-          onRegionClick: function(element, code, region)
-          {
-              // User clicked on the map. Set the <select> and submit the form.
-              jQuery('#sfEp_pProv').val(code.toUpperCase());
-              jQuery('#events_form').submit();
-
-//              jQuery('#selectedRegion').html('Seedy Events in '+region);
-//              jQuery('#texthere',window.parent.document).html('Seedy Events in '+region);
-          }
-      });
+    /* Fix date controls so they work when you type.
+     * onchange is great with date controls if you use the calendar control, but as soon as you try to type in them there will be an onchange for every keystroke.
+     * This switches to an onblur if you start typing, and adds a listener for the Enter key.
+     */
+    jQuery('input.event-date-ctrl').change(function() {
+        this.form.submit();                                      // ordinarily use onchange for mouse-controlled calendar
     });
-    </script>
-";
+    jQuery('input.event-date-ctrl').keypress(function(e) {       // but when you type something
+        jQuery(this).off('change blur');                         // remove bindings
+        jQuery(this).blur(function () { this.form.submit(); });  // bind blur and Enter to submit the form
+        if(e.keyCode === 13) { this.form.submit(); }
+    });
+
+
+    /* Resize map to fit map-container
+     */
+    reSizeMap();
+    $(window).on('resize', reSizeMap);
+
+
+    /* Configure map
+     */
+    jQuery('#vmap').vectorMap({
+        map: 'canada_en',
+        backgroundColor: null,
+        color: '#5c882d', //'#c23616',
+        hoverColor: '#999999',
+        enableZoom: false,
+        showTooltip: true,
+        selectedRegions: [".($pProv ? "'$pProv'" : "")."],
+        onRegionClick: function(element, code, region)
+        {
+            // User clicked on the map. Set the <select> and submit the form.
+            jQuery('#sfEp_pProv').val(code.toUpperCase());
+            jQuery('#events_form').submit();
+        }
+    });
+});
+
+
+function reSizeMap()
+/*******************
+    Resize map to parent container
+ */
+{
+    let w = $('#map-container').width();
+    w = Math.floor(w);
+
+    $('#vmap').css({
+        'width': w,
+        'height': w
+    });
+}
+
+</script>";
 
         return( $s );
     }
