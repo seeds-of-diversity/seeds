@@ -142,7 +142,7 @@ jQuery(document).ready(function() {
     /* Resize map to fit map-container
      */
     reSizeMap();
-    $(window).on('resize', reSizeMap);
+    jQuery(window).on('resize', reSizeMap);
 
 
     /* Configure map
@@ -170,10 +170,10 @@ function reSizeMap()
     Resize map to parent container
  */
 {
-    let w = $('#map-container').width();
+    let w = jQuery('#map-container').width();
     w = Math.floor(w);
 
-    $('#vmap').css({
+    jQuery('#vmap').css({
         'width': w,
         'height': w
     });
