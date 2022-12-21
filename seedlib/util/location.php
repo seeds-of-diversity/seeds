@@ -19,7 +19,7 @@ class SEEDLocation
                          'PE' => ['EN'=>"Prince Edward Island",      'FR'=>"&Icirc;le du Prince-&Eacute;douard "],
                          'QC' => ['EN'=>"Quebec",                    'FR'=>"Qu&eacute;bec"],
                          'SK' => ['EN'=>"Saskatchewan",              'FR'=>"Saskatchewan"],
-                         'YK' => ['EN'=>"Yukon",                     'FR'=>"Yukon"],
+                         'YT' => ['EN'=>"Yukon",                     'FR'=>"Yukon"],
                          'NT' => ['EN'=>"Northwest Territories",     'FR'=>"Territoires du Nord-Ouest"],
                          'NU' => ['EN'=>"Nunavut",                   'FR'=>"Nunavut"]
                         ];
