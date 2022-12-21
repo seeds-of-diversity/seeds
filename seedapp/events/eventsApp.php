@@ -69,12 +69,16 @@ class EventsApp
     $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->oApp->lang);
     $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->oApp->lang);
 
-    $sBanner = "<div style='text-align:center;border-top:1px solid #bbb; border-bottom:1px solid #bbb'>"
+    $sBanner = "<style>
+                .events-banner        { text-align:center;border-top:1px solid #bbb; border-bottom:1px solid #bbb; }
+                .events-banner-filter { background-color:#ddd;border-radius:5px; }
+                </style>"
+              ."<div class='events-banner'>"
                   ."<span style='font-size:1.6em'>"
                   ."$sDate1 - $sDate2"
                   ."</span>"
-                  .($pProv ? ("<br/>".($this->oApp->lang=='FR' ? "en" : "in")." ".SEEDLocation::ProvinceName($pProv,$this->oApp->lang)) : "")
-                  .($pSearch ? "<br/>containing \"".SEEDCore_HSC($pSearch)."\"" : "")
+                  .($pProv ? ("<div class='events-banner-filter'>".($this->oApp->lang=='FR' ? "en" : "in")." ".SEEDLocation::ProvinceName($pProv,$this->oApp->lang)."</div>") : "")
+                  .($pSearch ? "<div class='events-banner-filter'>containing \"".SEEDCore_HSC($pSearch)."\"</div>" : "")
               ."</div>";
 
 
@@ -87,33 +91,23 @@ class EventsApp
 
          ."<div class='row'>"
          ."<div class='col-md-2'>"
-             ."<ul class='nav nav-tabs' role='tablist'>
-                 <li role='presentation' class='active'><a href='#date_range' aria-controls='date_range' role='tab' data-toggle='tab'>Date range</a></li>
+             ."<ul class='nav nav-tabs'>
+                 <li class='active'><a href='#date_range' aria-controls='date_range' role='tab' data-toggle='tab'>Date range</a></li>
                </ul>"
 
-."<div role='tabpanel' class='tab-pane active' id='date_range'>
-    <div class='events-range input-daterange input-group' id='datepicker' style='border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:0 20px 20px 0;width:100%'>
-        <label for='start'>From</label>
-        <div class='input-group events-date-input'>
-            <input type='date' title='From' class='form-control' value='{$oForm->Value('pDate1')}' name='sfEp_pDate1' id='pDate1' aria-label='Start Date'>
-            <span class='input-group-addon'><i class='am-events'></i></span>
-        </div>
-        <label for='end'>To</label>
-        <div class='input-group events-date-input'>
-            <input type='date' title='To' class='form-control' value='{$oForm->Value('pDate2')}' name='sfEp_pDate2' id='pDate2' aria-label='End Date'>
-            <span class='input-group-addon'><i class='am-events'></i></span>
-        </div>
-    </div>
-</div>"
+         ."<div style='border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:0 20px 20px 0;width:100%'>
+               <label for='sfEp_pDate1'>From</label>
+               <input type='date' title='From' class='event-date-ctrl form-control' value='{$oForm->Value('pDate1')}' name='sfEp_pDate1' id='sfEp_pDate1'>
+               <label for='sfEp_pDate2'>To</label>
+               <input type='date' title='To' class='event-date-ctrl form-control' value='{$oForm->Value('pDate2')}' name='sfEp_pDate2' id='sfEp_pDate2'>
+           </div>"
 
          ."</div>"
          ."<div class='col-md-8'>"
              ."<h1 style='text-align:center;margin-bottom:20px'>{$this->S('Events')}</h1>"
-             .$sBanner;
-
-        $s .= $sList;
-
-        $s .= "</div>"
+             .$sBanner
+             .$sList
+         ."</div>"
          ."<div class='col-md-2' style='text-align:center'>"
              ."<div style='width:100%;border:1px solid #ccc' id='vmap'></div>"
              //.$oForm->Select( 'pProv', ["-- Province --"=>'',"Ontario"=>'ON'], "", ['attrs'=>"onChange='submit();'"] )
@@ -128,10 +122,10 @@ $s .= "
 /* onchange is great with date controls if you use the calendar control, but as soon as you try to type in them there will be an onchange for every keystroke.
  * This switches to an onblur if you start typing, and adds a listener for the Enter key.
  */
-jQuery('input#pDate1, input#pDate2').change(function() {
-    this.form.submit();                                 // ordinarily use onchange for mouse-controlled calendar
+jQuery('input.event-date-ctrl').change(function() {
+    this.form.submit();                                      // ordinarily use onchange for mouse-controlled calendar
 });
-jQuery('input#pDate1, input#pDate2').keypress(function(e) {  // but when you type something
+jQuery('input.event-date-ctrl').keypress(function(e) {       // but when you type something
     jQuery(this).off('change blur');                         // remove bindings
     jQuery(this).blur(function () { this.form.submit(); });  // bind blur and Enter to submit the form
     if(e.keyCode === 13) { this.form.submit(); }
@@ -195,16 +189,22 @@ jQuery('input#pDate1, input#pDate2').keypress(function(e) {  // but when you typ
 
         /* TO: if pSearch, set to last event so all future events are searched
          */
+//TODO: to be complete, this test should only happen if there is a NEW search term.
+//      If you search, then change the TO date, that change is ignored.
         if( $pSearch ) {
-
-        } else
+            if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
+                $pDate2 = $kfr->value('date_start');
+            } else {
+                $pDate2 = "";   // use the default below
+            }
+        }
         /* TO: default is the date of the first event that occurs at least 30 days after FROM (or just 30 days later if there are no future events).
          */
         if( !$pDate2 || $pDate2 < $pDate1 ) {
             $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
 
             // make sure there's at least one event in the date range, by extending the window to the next event
-            if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['bSortCol'=>'date_start'])) ) {
+            if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['sSortCol'=>'date_start','bSortDown'=>false])) ) {
                 $pDate2 = $kfrNext->Value('date_start');
             }
         }
