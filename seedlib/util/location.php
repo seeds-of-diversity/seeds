@@ -40,7 +40,7 @@ class SEEDLocation
         $lang = (@$raParms['lang']=='FR' ? 'FR' : 'EN');
         $bFullnames = @$raParms['bFullnames'];              // by default show province codes
 
-        $s = "<select name='$fld' $sAttrs>";
+        $s = "<select name='$fld' id='$fld' $sAttrs>";
         if( @$raParms['bAll'] ) {
             $s .= "<option value=''".($value=='' ? " SELECTED" : "").">-- ".($lang=='EN' ? "All" : "Tout")."--</option>";
         }

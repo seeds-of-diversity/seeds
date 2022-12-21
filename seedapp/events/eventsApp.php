@@ -78,7 +78,7 @@ class EventsApp
               ."</div>";
 
 
-    $s .= "<form action='' method='post'>"
+    $s .= "<form id='events_form' action='' method='post'>"
          ."<div class='container-fluid'>"
          ."<div style='margin-bottom:30px'>"
              .$oForm->Text( 'pSearch', "", ['attrs'=>"placeholder='Search for events' style='border:1px solid #ccc;height:2.5em;padding:5px;width:30em'"] )
@@ -153,10 +153,15 @@ jQuery('input#pDate1, input#pDate2').keypress(function(e) {  // but when you typ
           hoverColor: '#999999',
           enableZoom: false,
           showTooltip: true,
+          selectedRegions: [".($pProv ? "'$pProv'" : "")."],
           onRegionClick: function(element, code, region)
           {
-              jQuery('#selectedRegion').html('Seedy Events in '+region);
-              jQuery('#texthere',window.parent.document).html('Seedy Events in '+region);
+              // User clicked on the map. Set the <select> and submit the form.
+              jQuery('#sfEp_pProv').val(code.toUpperCase());
+              jQuery('#events_form').submit();
+
+//              jQuery('#selectedRegion').html('Seedy Events in '+region);
+//              jQuery('#texthere',window.parent.document).html('Seedy Events in '+region);
           }
       });
     });
