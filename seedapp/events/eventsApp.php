@@ -9,6 +9,7 @@
 
 include_once( SEEDCORE."SEEDDate.php" );
 include_once( SEEDLIB."events/events.php" );
+include_once( SEEDLIB."util/location.php" );
 
 class EventsApp
 {
@@ -40,37 +41,23 @@ class EventsApp
 
 
     $oForm = new SEEDCoreForm('E');
+    $oForm->Update();
 
     $sList = "";
 
-    $pDate1 = SEEDInput_Str('pDate1');               // show events >= this date
-    $pDate2 = SEEDInput_Str('pDate2');               // show events <= this date
-
-    /* Compute FROM-TO date range.
-     * FROM: Default is today.
-     * TO: If empty or prior to FROM date, default is 30 days past FROM date.
+    /* Normalize the input control values, set those into the form, and return the new form values for convenience
      */
-    if( !$pDate1 )  $pDate1 = date("Y-m-d");                        // default today
-    if( !$pDate2 || $pDate2 < $pDate1 ) {
-        // Default end of date range is the date of the first event that occurs at least 30 days after pDate1.
-        // This ensures that the default list will not be empty.
+    list($pDate1, $pDate2, $pProv, $pSearch,
+         $dbDate1,$dbDate2,$dbProv,$dbSearch) = $this->getControls($oForm);
 
-        $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
+    $sCond = "(date_start >= '$dbDate1')"
+            .($pDate2 ? " AND (date_start <= '$dbDate2')" : "")
+            .($pProv  ? " AND (province = '$dbProv')" : "")
+            .($pSearch? " AND (title LIKE '%{$dbSearch}%'    OR title_fr LIKE '%{$dbSearch}%' OR
+                               city LIKE '%{$dbSearch}%'     OR location LIKE '%{$dbSearch}%' OR
+                               details LIKE '%{$dbSearch}%'  OR details_fr LIKE '%{$dbSearch}%')" : "");
 
-        // make sure there's at least one event in the date range, by extending the window to the next event
-        if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['bSortCol'=>'date_start'])) ) {
-            $pDate2 = $kfrNext->Value('date_start');
-        }
-    }
-    $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->oApp->lang);
-    $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->oApp->lang);
-
-$pProv = '';
-    $sCond = "(date_start >= '".addslashes($pDate1)."')"
-            .($pDate2 ? " AND (date_start <= '".addslashes($pDate2)."')" : "")
-            .($pProv  ? " AND (province = '".addslashes($pProv)."')" : "");
-
-    if( ($kfr = $this->oEventsLib->oDB->GetKFRC('E', $sCond, ['sSortCol' => 'date_start', 'bSortDown' => 0] )) ) {
+    if( ($kfr = $this->oEventsLib->oDB->GetKFRC('E', $sCond, ['sSortCol'=>'date_start', 'bSortDown'=>0] )) ) {
         while( $kfr->CursorFetch() ) {
             $e = Events_event::CreateFromKey( $this->oEventsLib, $kfr->Key() );
             $sList .= "<div style='float:right'>{$e->GetDateNice()}</div>";
@@ -79,10 +66,23 @@ $pProv = '';
         }
     }
 
+    $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->oApp->lang);
+    $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->oApp->lang);
+
+    $sBanner = "<div style='text-align:center;border-top:1px solid #bbb; border-bottom:1px solid #bbb'>"
+                  ."<span style='font-size:1.6em'>"
+                  ."$sDate1 - $sDate2"
+                  ."</span>"
+                  .($pProv ? ("<br/>".($this->oApp->lang=='FR' ? "en" : "in")." ".SEEDLocation::ProvinceName($pProv,$this->oApp->lang)) : "")
+                  .($pSearch ? "<br/>containing \"".SEEDCore_HSC($pSearch)."\"" : "")
+              ."</div>";
+
+
     $s .= "<form action='' method='post'>"
          ."<div class='container-fluid'>"
          ."<div style='margin-bottom:30px'>"
-             .$oForm->Text( 'srch', "", ['attrs'=>"placeholder='Search for events' style='border:1px solid #ccc;height:2.5em;padding:5px;width:30em'"] )
+             .$oForm->Text( 'pSearch', "", ['attrs'=>"placeholder='Search for events' style='border:1px solid #ccc;height:2.5em;padding:5px;width:30em'"] )
+             ."&nbsp;<input type='submit' value='Search'/>"
          ."</div>"
 
          ."<div class='row'>"
@@ -95,12 +95,12 @@ $pProv = '';
     <div class='events-range input-daterange input-group' id='datepicker' style='border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:0 20px 20px 0;width:100%'>
         <label for='start'>From</label>
         <div class='input-group events-date-input'>
-            <input type='date' title='From' class='form-control' value='$pDate1' name='pDate1' id='pDate1' aria-label='Start Date'>
+            <input type='date' title='From' class='form-control' value='{$oForm->Value('pDate1')}' name='sfEp_pDate1' id='pDate1' aria-label='Start Date'>
             <span class='input-group-addon'><i class='am-events'></i></span>
         </div>
         <label for='end'>To</label>
         <div class='input-group events-date-input'>
-            <input type='date' title='To' class='form-control' value='$pDate2' name='pDate2' id='pDate2' aria-label='End Date'>
+            <input type='date' title='To' class='form-control' value='{$oForm->Value('pDate2')}' name='sfEp_pDate2' id='pDate2' aria-label='End Date'>
             <span class='input-group-addon'><i class='am-events'></i></span>
         </div>
     </div>
@@ -109,14 +109,15 @@ $pProv = '';
          ."</div>"
          ."<div class='col-md-8'>"
              ."<h1 style='text-align:center;margin-bottom:20px'>{$this->S('Events')}</h1>"
-             ."<div style='font-size:1.6em;text-align:center;border-top:1px solid #bbb; border-bottom:1px solid #bbb'>$sDate1 - $sDate2</div>"
-;
+             .$sBanner;
+
         $s .= $sList;
 
         $s .= "</div>"
          ."<div class='col-md-2' style='text-align:center'>"
              ."<div style='width:100%;border:1px solid #ccc' id='vmap'></div>"
-             .$oForm->Select( 'prov', ["-- Province --"=>''], "" )
+             //.$oForm->Select( 'pProv', ["-- Province --"=>'',"Ontario"=>'ON'], "", ['attrs'=>"onChange='submit();'"] )
+             .SEEDLocation::SelectProvinceWithSEEDForm( $oForm, 'pProv', ['bAll'=>true,'bFullnames'=>true,'lang'=>$this->oApp->lang,'sAttrs'=>"onChange='submit();'"] )
          ."</div>"
 
          ."</div>"
@@ -165,4 +166,49 @@ jQuery('input#pDate1, input#pDate2').keypress(function(e) {  // but when you typ
         return( $s );
     }
 
+    private function getControls( SEEDCoreForm $oForm )
+    /**************************************************
+        Get form control values.
+        Normalize them.
+        Put the new values into the form.
+        Return the new values for convenience.
+     */
+    {
+        /* FROM date: default is today
+         * TO date:   If empty or less than FROM, default is the date of the first event that occurs at least 30 days after FROM date.
+         *            If pSearch has just been set, TO date is MAX(date_start) so all events after FROM are searched.
+         */
+        $pDate1  = $oForm->Value('pDate1');               // show events >= this date
+        $pDate2  = $oForm->Value('pDate2');               // show events <= this date
+        $pProv   = $oForm->Value('pProv');
+        $pSearch = $oForm->Value('pSearch');
+
+
+        /* FROM: Default is today.
+         */
+        if( !$pDate1 )  $pDate1 = date("Y-m-d");
+
+        /* TO: if pSearch, set to last event so all future events are searched
+         */
+        if( $pSearch ) {
+
+        } else
+        /* TO: default is the date of the first event that occurs at least 30 days after FROM (or just 30 days later if there are no future events).
+         */
+        if( !$pDate2 || $pDate2 < $pDate1 ) {
+            $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
+
+            // make sure there's at least one event in the date range, by extending the window to the next event
+            if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['bSortCol'=>'date_start'])) ) {
+                $pDate2 = $kfrNext->Value('date_start');
+            }
+        }
+
+        $oForm->SetValue( 'pDate1',  $pDate1 );
+        $oForm->SetValue( 'pDate2',  $pDate2 );
+        $oForm->SetValue( 'pProv',   $pProv );
+        $oForm->SetValue( 'pSearch', $pSearch );
+
+        return( [$pDate1,$pDate2,$pProv,$pSearch, addslashes($pDate1), addslashes($pDate2), addslashes($pProv), addslashes($pSearch)] );
+    }
 }
