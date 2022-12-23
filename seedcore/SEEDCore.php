@@ -817,3 +817,79 @@ function SEEDCore_RemoveDirectory( $dir, $bLeaveEmpty = false )
     done:
     return( $ok );
 }
+
+function SEEDCore_SplitOnWhitespace( string $input )
+/***************************************************
+    Return an array of strings split from $input that are alternating either whitespace or non-whitespace.
+    Concatenating all the returned strings will get back the exact original string.
+ */
+{
+    $raOut = [];
+
+    $sWs = $sNws = "";
+    for( $i = 0; $i < strlen($input); $i++ ) {
+        $c = $input[$i];
+
+        if( ctype_space($c) ) {     // matches all whitespace characters
+            $sWs .= $c;
+            if( $sNws ) {
+                $raOut[] = $sNws;
+                $sNws = "";
+            }
+        } else {
+            $sNws .= $c;
+            if( strlen($sWs) ) {
+                $raOut[] = $sWs;
+                $sWs = "";
+            }
+        }
+    }
+    if( $sNws ) $raOut[] = $sNws;
+    if( $sWs )  $raOut[] = $sWs;
+
+    return( $raOut );
+}
+
+
+function SEEDCore_ExpandLinks( string $input, array $raParms )
+/*************************************************************
+    Convert whitespace-delimited email addresses and/or URLs in the given string into links.
+    Warning: this removes all unnecessary whitespace.
+
+    eType: EMAIL convert emails
+           URL   convert urls
+           e.g. 'eType'=>'EMAIL URL'
+ */
+{
+    $ra = SEEDCore_SplitOnWhitespace($input);       // split into an array of alternating ws and non-ws strings
+
+    if( strpos(@$raParms['eType'], 'EMAIL') !== false ) {
+        foreach( $ra as &$w ) {
+            // if w is a valid email address, make it a link
+            if( filter_var($w, FILTER_VALIDATE_EMAIL) ) {
+                $w = "<a href='mailto:$w'>$w</a> ";
+            }
+        }
+    }
+
+    if( strpos(@$raParms['eType'], 'URL') !== false ) {
+        foreach( $ra as &$w ) {
+            // if w is a valid url, make it a link
+            if( filter_var($w, FILTER_VALIDATE_URL) ) {
+                $w = "<a href='$w' target='_blank'>$w</a> ";
+                continue;
+            }
+            // if w starts with www or if it ends with a domain suffix, make it a link
+            if( ( SEEDCore_StartsWith($w, 'www')
+                  ||
+                  (SEEDCore_EndsWith($w, '.ca') || SEEDCore_EndsWith($w, '.com') ||
+                   SEEDCore_EndsWith($w, '.org') || SEEDCore_EndsWith($w, '.net')) )
+                && filter_var("http://$w", FILTER_VALIDATE_URL) )
+            {
+                $w = "<a href='http://$w' target='_blank'>$w</a> ";
+            }
+        }
+    }
+
+    return( implode('', $ra) );     // put all the strings back together
+}

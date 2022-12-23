@@ -129,11 +129,11 @@ class Events_event
         if( !$this->kfr )  goto done;
 
         if( $this->kfr->value("type") == "SS" ) {
-            $city = $this->kfr->value('city');
+            $city = $this->kfr->valueEnt('city');
 
             if( $this->oE->oApp->lang == "FR" ) {
                 $title = "F&ecirc;te des semences $city";
-            } else if( ($l = @date('l', @strtotime($this->kfr->value("date_start")))) ) {
+            } else if( ($l = @date('l', @strtotime($this->kfr->valueEnt("date_start")))) ) {
                 $title = "$city Seedy $l";          // e.g. Charlottetown Seedy Sunday
             } else {
                 $title = "$city Seedy Saturday";    // default to Saturday
@@ -164,8 +164,8 @@ class Events_event
         $v = "";
 
         if( $this->kfr ) {
-            $e = $this->kfr->value($field);
-            $f = $this->kfr->value($field."_fr");
+            $e = $this->kfr->valueEnt($field);
+            $f = $this->kfr->valueEnt($field."_fr");
             $v = (($this->oE->oApp->lang=="EN" && $e) || ($this->oE->oApp->lang=="FR" && !$f)) ? $e : $f;
             if( $bEnt ) $v = SEEDCore_HSC($v);
         }
@@ -179,12 +179,12 @@ class Events_event
 
 //        if( $this->kfr->IsEmpty('latlong') ) { $this->geocode( $kfr ); }
 
-        $city     = $this->kfr->Expand( "[[city]], [[province]]" );
-        $location = $this->kfr->ValueEnt("location");
+        $city     = $this->kfr->Expand( "[[city]], [[province]]", true );
+        $location = $this->kfr->ValueEnt('location');
         $title    = $this->GetTitle();
-        $date     = $this->_getValue( "date_alt" ) ?: SEEDDate::NiceDateStrFromDate( $this->kfr->value("date_start"), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY );
+        $date     = $this->_getValue('date_alt') ?: SEEDDate::NiceDateStrFromDate( $this->kfr->valueEnt('date_start'), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY );
 
-        switch( $this->kfr->value("type") ) {
+        switch( $this->kfr->value('type') ) {
             case 'EV':
             default:
                 // show title, city, province, location as recorded
@@ -200,26 +200,23 @@ class Events_event
                 $location = "";
         }
 
+        /* If "contact" contains an email address, turn it into a link
+         * If "url_more" contains a url, turn it into a link
+         */
+        $sContact = SEEDCore_ExpandLinks( $this->kfr->valueEnt('contact'), ['eType'=>"EMAIL"] );
+        $sUrlMore = SEEDCore_ExpandLinks( $this->kfr->valueEnt('url_more'), ['eType'=>"EMAIL URL"] );
+
         $s = "<div class='EV_Event'>"//.SEEDCore_ArrayExpandSeries($this->kfr->ValuesRA(), "[[k]]=>[[v]]<br/>").$this->kfr->Key()
                 ."<h3>$title</h3>"
                 ."<p><strong>"
-                    .$date.SEEDCore_NBSP("",6).$this->kfr->value("time")."<br/>"
+                    .$date.SEEDCore_NBSP("",6).$this->kfr->valueEnt("time")."<br/>"
                     .($location ? "$location<br/>" : "")
                     .($city     ? "$city<br/>"     : "")
                 ."</strong></p>"
                 .$this->drawEventDetails()
-                .(($c = $this->kfr->Value("contact")) ? "<p>Contact: {$this->oE->ExpandStr($c)}</p>" : "")
-                .(($u = $this->kfr->Value("url_more"))
-                        ? ("<p>$u".($this->oE->oApp->lang == 'FR' ? "Plus d'information" : "More information").": {$this->oE->ExpandStr($u)}</p>")
-                        : "" )
-                .(($x = $this->kfr->Value("url_more"))
-                        ? ("<p>AAA<a style='text-decoration:none;' target='_blank' href='$x'>BBB".$x
-                     ."<div class='btn btn-success'>"
-                     .($this->oE->oApp->lang == 'FR' ? "Plus d'information" : "More information")
-                     ."</div>"
-                     ."</a>CCC</p>"
-                        )
-                        : "")
+                .($sContact ? "<p>Contact: $sContact</p>" : "")
+                .($sUrlMore ? ("<p>".($this->oE->oApp->lang=='FR' ? "Plus d'information" : "More information").": $sUrlMore</p>")
+                            : "" )
                 ."</div>";
 
 /*
@@ -237,7 +234,7 @@ class Events_event
      */
     {
         $details = $this->_getValue( "details", false );    // do not expand entities because this is allowed to contain HTML
-        $details = trim($details);                                  // get rid of trailing blank lines
+        $details = trim($details);                          // get rid of trailing blank lines
 
         if( intval(substr($this->kfr->value("date_start"),0,4)) < 2008 ) {
             // prior to 2008 we used plaintext, now use Wiki
@@ -259,7 +256,8 @@ class Events_event
         $s = "";
 
         if( $this->kfr ) {
-            $raMbrVol = ($kVol = $this->kfr->Value('vol_kMbr')) ? $this->oE->oApp->kfdb->QueryRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _key='$kVol'" ) : [];
+// this is all done by Mbr_Contacts
+            $raMbrVol = ($kVol = $this->kfr->ValueInt('vol_kMbr')) ? $this->oE->oApp->kfdb->QueryRA( "SELECT * FROM seeds_2.mbr_contacts WHERE _key='$kVol'" ) : [];
             $s .= @$raMbrVol['_key'] ? "{$raMbrVol['firstname']} {$raMbrVol['lastname']} in {$raMbrVol['city']} ({$raMbrVol['_key']})" : "";
         }
 
