@@ -80,10 +80,11 @@ class EventsSheet
                 'province'   => ['dbCol'=>'province',   'sheetCol'=>'Province/Territory:'],
                 'date_start' => ['dbCol'=>'date_start', 'sheetCol'=>'Date of event:'],
                 'time'       => ['dbCol'=>'time',       'sheetCol'=>'Start time of event:'],
+                'time-end'   => ['dbCol'=>'',           'sheetCol'=>'End time of event:'],      // used in validation, doesn't match a dbCol
                 'location'   => ['dbCol'=>'location',   'sheetCol'=>'Location (if virtual, please indicate "virtual")'],
                 'details'    => ['dbCol'=>'details',    'sheetCol'=>'Tell us about your event:'],
-
-
+                'contact'    => ['dbCol'=>'contact',    'sheetCol'=>'Contact email and/or phone number for event:'],
+                'url_more'   => ['dbCol'=>'url_more',   'sheetCol'=>'Website/social media handles/other links for event:'],
     ];
 
     function fnValidateSheetRow( array $raRow )
@@ -106,11 +107,16 @@ class EventsSheet
             $ok = false;
             goto done;
         }
+
+        if( ($t = @$raRow[$this->syncMapCols['time-end']['sheetCol']]) ) {
+            // time-end is defined in the spreadsheet; append it to time
+            $raRow[$this->syncMapCols['time']['sheetCol']] .= " - ".$t;
+        }
 //        if( !@$raRow['date_end'] ) {
 //            $raRow['date_end'] = @$raRow['date_start'];
 //        }
 
         done:
-        return( [$ok, $note] );
+        return( [$ok, $raRow, $note] );
     }
 }

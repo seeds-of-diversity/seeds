@@ -404,7 +404,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
 
         // If there's a validation function, use that to test whether the row should be copied. If not, store a note.
         if( ($fn = @$this->raConfig['fnValidateSheetRow']) ) {
-            list($ok,$n1) = call_user_func($fn, $raRow);
+            list($ok,$raRow,$n1) = call_user_func($fn, $raRow);
             if( !$ok ) {
                 $note = $n1;
                 goto done;
@@ -412,7 +412,9 @@ class SEEDGoogleSheets_SyncSheetAndDb
         }
 
         foreach( $this->mapCols as $raMap ) {
-            $kfr->SetValue( $raMap['dbCol'], @$raRow[$raMap['sheetCol']] );
+            if( $raMap['dbCol'] ) { // some map rows are used in the validation process and don't have dbCols
+                $kfr->SetValue( $raMap['dbCol'], @$raRow[$raMap['sheetCol']] );
+            }
         }
         $kfr->SetValue( 'tsSync', time() );
         if( $kfr->PutDBRow() ) {
