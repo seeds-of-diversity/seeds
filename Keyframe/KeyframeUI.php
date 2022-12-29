@@ -214,5 +214,5 @@ class KeyFrameUI_ListFormUI_Config
      */
     function ListRowTranslate( $raRow )             { return( $raRow ); }    // override to alter list values (only affects display)
     function PreStore( Keyframe_DataStore $oDS )    { return( true ); }      // override to validate/alter values before save; return false to cancel save
-    function FormTemplate()                         { return( "" ); }        // override to draw the Form
+    function FormTemplate( SEEDCoreForm $oForm )    { return( "" ); }        // override to draw the Form
 }
