@@ -279,6 +279,26 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
     }
 
     /**
+     * Write values to specific named cells in a given row.
+     *
+     * @param String $nameSheet - name of the sheet to read
+     * @param int    $row - row number to write
+     * @param array  [colname => value, colname => value, ...]
+     */
+    function WriteCellsWithNamedColumns( string $nameSheet, int $row, array $raCells )
+    {
+        $raColNames = $this->GetColumnNames($nameSheet);
+        foreach( $raCells as $colname => $v ) {
+            // Get the index number of the named col, convert to A1 notation
+//TODO: a smarter implementation could combine adjacent cells
+            if( ($i = array_search($colname, $raColNames)) === false ) continue;
+            $range = $this->NumberToColumnLetter($i+1).$row;
+            $this->WriteValues( $nameSheet.'!'.$range, [[$v]] );   // value in 2D array
+var_dump("Writing $v to $range");
+        }
+    }
+
+    /**
      * Get array of the values in the named column starting at row 2.
      *     i.e. $ret[0] is spreadsheet row 2 of the column that has $colname in row 1
      *
@@ -376,8 +396,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
             }
 
             if( !($kfr = $this->kfrel->GetRecordFromDBKey($kSync)) ) {
-                $raRow['sync_note'] = "not found in db";
-                $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
+                $this->oGoogleSheet->WriteCellWithNamedColumns( $this->nameSheet, $iRow, ['sync_note' => "not found in db"] );
                 goto do_next;
             }
 
@@ -400,13 +419,13 @@ class SEEDGoogleSheets_SyncSheetAndDb
      */
     {
         $ok = false;
-        $note = "";
+        $writeCells = ['sync_key'=>"", 'sync_ts'=>"", 'sync_note'=>""];  // these are written to the sheet row
 
         // If there's a validation function, use that to test whether the row should be copied. If not, store a note.
         if( ($fn = @$this->raConfig['fnValidateSheetRow']) ) {
             list($ok,$raRow,$n1) = call_user_func($fn, $raRow);
             if( !$ok ) {
-                $note = $n1;
+                $writeCells['sync_note'] = $n1;
                 goto done;
             }
         }
@@ -418,16 +437,15 @@ class SEEDGoogleSheets_SyncSheetAndDb
         }
         $kfr->SetValue( 'tsSync', time() );
         if( $kfr->PutDBRow() ) {
-            $raRow['sync_key'] = $kfr->Key();
-            $raRow['sync_ts'] = $kfr->Value('tsSync');
-            $note = "synced";
+            $writeCells['sync_key'] = $kfr->Key();
+            $writeCells['sync_ts'] = $kfr->Value('tsSync');
+            $writeCells['sync_note'] = "synced";
             $ok = true;
         }
 
         done:
-        if( $note || $ok ) {
-            $raRow['sync_note'] = $note;
-            $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
+        if( $ok || $writeCells['sync_note'] ) {
+            $this->oGoogleSheet->WriteCellsWithNamedColumns( $this->nameSheet, $iRow, $writeCells );
         }
     }
 
