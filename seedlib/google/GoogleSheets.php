@@ -423,9 +423,9 @@ class SEEDGoogleSheets_SyncSheetAndDb
 
         // If there's a validation function, use that to test whether the row should be copied. If not, store a note.
         if( ($fn = @$this->raConfig['fnValidateSheetRow']) ) {
-            list($ok,$raRow,$n1) = call_user_func($fn, $raRow);
+            list($ok,$raRow,$note) = call_user_func($fn, $raRow);
+            $writeCells['sync_note'] = $note;
             if( !$ok ) {
-                $writeCells['sync_note'] = $n1;
                 goto done;
             }
         }
@@ -439,7 +439,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
         if( $kfr->PutDBRow() ) {
             $writeCells['sync_key'] = $kfr->Key();
             $writeCells['sync_ts'] = $kfr->Value('tsSync');
-            $writeCells['sync_note'] = "synced";
+            $writeCells['sync_note'] = "synced".$writeCells['sync_note'];
             $ok = true;
         }
 
@@ -456,7 +456,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
    Bind the script to an installable trigger on an Edit action. Don't use onEdit because as a simple trigger
    it doesn't have permission to use UrlFetchApp.
 
-function MyOnEdit(e)
+function MyOnEdit(e)    // or just use onEdit if you don't need to use UrlFetchApp to push the change
 {
   // When a cell is changed, reset the sync_ts column to indicate a dirty row.
 
@@ -464,24 +464,22 @@ function MyOnEdit(e)
   var row = e.range.getRowIndex();  // the (first) changed row
   var col = e.range.getColumn();    // the (first) changed col
 
-  // Only trigger dirty for rows and cols of primary data
-  if( row > 1 && col <= 15 ) {
-    // find the sync_ts column
-    var colTS = 0;
-    for( i=1; i<sheet.getLastColumn(); i++ ) {
-      if( sheet.getRange(1,i).getValue() == "sync_ts") {
-        colTS = i;
-        break;
-      }
-    }
-
-    // if sync_ts column exists, mark the row
-    if( colTS ) {
-      sheet.getRange(row,colTS).setValue('');
-      var response = UrlFetchApp.fetch("https://seeds.ca/app/q2/?qcmd=ev-syncSheet");
-    }
+  // find the sync_key,sync_ts columns
+  var colKey = 0;
+  var colTS = 0;
+  for( i=1; i<sheet.getLastColumn(); i++ ) {
+    if( sheet.getRange(1,i).getValue() == "sync_key") { colKey = i; }
+    if( sheet.getRange(1,i).getValue() == "sync_ts")  { colTS = i; }
   }
 
- */
+  // Only trigger dirty for rows and cols of primary data (below header row and left of sync_key)
+  if( colKey && (row > 1 && col < colKey) ) {
+    // mark the row by blanking the sync_ts
+    sheet.getRange(row,colTS).setValue('');
+//      var response = UrlFetchApp.fetch("https://seeds.ca/app/q2/?qcmd=ev-syncSheet");
+  }
+}
+
+*/
 
 }
