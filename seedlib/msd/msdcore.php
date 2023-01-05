@@ -2,7 +2,7 @@
 
 /* MSDCore
  *
- * Copyright (c) 2018-2021 Seeds of Diversity
+ * Copyright (c) 2018-2023 Seeds of Diversity
  *
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
@@ -43,7 +43,7 @@ class MSDCore
         $this->dbname1 = $this->oApp->GetDBName('seeds1');
         $this->dbname2 = $this->oApp->GetDBName('seeds2');
 
-        $this->oMSDSB = new MSDBasketCore( $oApp->kfdb, $oApp->sess, $oApp );
+        $this->oMSDSB = new MSDBasketCore( $oApp );
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
                                          // create these kfrels in oSBDB
                                          ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
@@ -600,11 +600,11 @@ class MSDBasketCore extends SEEDBasketCore
 {
     public $bIsMember;
 
-    function __construct( $kfdb, $sess, SEEDAppConsole $oApp, $raConfig = [] )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
-        $this->bIsMbrLogin = $sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
+        $this->bIsMbrLogin = $oApp->sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
 
-        parent::__construct( $kfdb, $sess, $oApp,
+        parent::__construct( null, null, $oApp,
                              //SEEDBasketProducts_SoD::$raProductTypes );
                              array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ),
 

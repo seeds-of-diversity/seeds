@@ -167,6 +167,92 @@ class MSDLib
         return( array( $ok, $s ) );
     }
 
+    function DrawAvailability( KeyframeRecord $kfrP, KeyframeRecord $kfrGxM )
+    /************************************************************************
+        State the availability of a product, given a Product and a Grower kfr.
+     */
+    {
+        $s = "";
+
+        $eRequestable = $this->oApp->sess->IsLogin() ? $this->oMSDCore->IsRequestableByUser($kfrP) : MSDCore::REQUESTABLE_NO_NOLOGIN;
+        $bRequestable = ($eRequestable==MSDCore::REQUESTABLE_YES);
+
+        if( $bRequestable ) {   // this also verifies that the current user can access grower contact info
+            if( $kfrGxM->Value('M_firstname') || $kfrGxM->Value('M_lastname') ) {
+                $who = $kfrGxM->Expand( "[[M_firstname]] [[M_lastname]] in [[M_city]] [[M_province]]" );
+            } else {
+                $who = $kfrGxM->Expand( "[[M_company]] in [[M_city]] [[M_province]]" );
+            }
+        } else {
+            $who = $kfrGxM->Expand( "a Seeds of Diversity member in [[M_province]]" );
+        }
+
+        $s .= "<p>This is offered by $who for $".$kfrP->Value('item_price')." in {$this->drawPaymentMethod($kfrGxM)}.</p>";
+
+        return( [$s,$eRequestable] );
+    }
+
+    function DrawOrderSlide( MSDBasketCore $oSB, KeyframeRecord $kfrP )
+    {
+        $s = "";
+
+        $kP = $kfrP->Key();
+        $kM = $kfrP->Value('uid_seller');
+        $raPE = $oSB->oDB->GetProdExtraList( $kP );                 // prodExtra
+        if( !($kfrGxM = $this->KFRelGxM()->GetRecordFromDB( "G.mbr_id='$kM'" )) ) goto done;
+
+        list($sAvailability, $eRequestable) = $this->DrawAvailability( $kfrP, $kfrGxM );
+        $bRequestable = ($eRequestable==MSDCore::REQUESTABLE_YES);
+
+        // make this false to prevent people from ordering
+        $bEnableAddToBasket = true;
+
+        $sMbrCode = $kfrGxM->Value('mbr_code');
+        $sButton1Attr = $bRequestable && $bEnableAddToBasket ? "onclick='AddToBasket_Name($kP);'"
+                                                             : "disabled='disabled'";
+        $sButton2Attr = true /*$bRequestable*/ ? "onclick='msdShowSeedsFromGrower($kM,\"$sMbrCode\");'"
+                                      : "disabled='disabled'";
+
+        $sG = "";
+        if( $kfrGxM ) {
+            $sG = "<div style='width:100%;margin:20px auto;max-width:80%;border:1px solid #777;background-color:#f8f8f8'>"
+                 .$this->DrawGrowerBlock( $kfrGxM, true )
+                 ."</div>";
+        }
+
+        switch( $eRequestable ) {
+            default:
+            case MSDCore::REQUESTABLE_YES:
+                $sReq = "";
+                break;
+            case MSDCore::REQUESTABLE_NO_NOLOGIN:
+                $sReq = "<p>Please login to request seeds.</p>";
+                break;
+            case MSDCore::REQUESTABLE_NO_INACTIVE:
+                $sReq = "<p>This seed offer is not currently active.</p>";
+                break;
+            case MSDCore::REQUESTABLE_NO_OUTOFSEASON:
+                $sReq = "<p class='alert alert-warning'>This grower only offers these seeds from {$kfrGxM->Value('dDateRangeStart')} to {$kfrGxM->Value('dDateRangeEnd')}</p>";
+                break;
+            case MSDCore::REQUESTABLE_NO_NONGROWER:
+                $sReq = "<p>These seeds are only available to members who also offer seeds in the Seed Exchange.</p></p>";
+                break;
+        }
+
+
+        $s = "" //"<div style='display:none' class='msd-order-info msd-order-info-$kP'>"
+                .SEEDCore_ArrayExpand( $raPE, "<p><b>[[species]] - [[variety]]</b></p>" )
+                ."<p>$sAvailability</p>"
+                .$sReq
+                ."<p><button $sButton1Attr>Add this request to your basket</button>&nbsp;&nbsp;&nbsp;"
+                   ."<button $sButton2Attr>Show other seeds from this grower</button></p>"
+                .($bRequestable ? $sG : "")
+            ;//."</div>";
+
+        done:
+        return( $s );
+    }
+
     function DrawGrowerBlock( KeyframeRecord $kfrGxM, $bFull = true )
     {
         $s = $kfrGxM->Expand( "<b>[[mbr_code]]: [[M_firstname]] [[M_lastname]] ([[mbr_id]]) " )
