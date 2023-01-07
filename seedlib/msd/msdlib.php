@@ -187,7 +187,7 @@ class MSDLib
             $who = $kfrGxM->Expand( "a Seeds of Diversity member in [[M_province]]" );
         }
 
-        $s .= "<p>This is offered by $who for $".$kfrP->Value('item_price')." in {$this->drawPaymentMethod($kfrGxM)}.</p>";
+        $s .= "<p>This is offered by $who for $".$kfrP->Value('item_price')." in {$this->DrawPaymentMethod($kfrGxM)}.</p>";
 
         return( [$s,$eRequestable] );
     }
@@ -301,7 +301,7 @@ class MSDLib
             }
             $s .= $kfrGxM->value('nTotal')." listings: ".implode( ", ", $ra ).".<br/>";
 
-            if( ($sPM = $this->drawPaymentMethod($kfrGxM)) ) {
+            if( ($sPM = $this->DrawPaymentMethod($kfrGxM)) ) {
                 $s .= "<i>Payment method: $sPM</i><br/>";
             }
 
@@ -320,7 +320,7 @@ class MSDLib
         'pay_etransfer' => ['epay'=>1, 'en' => "E-transfer",          'fr' => "" ],
         'pay_paypal'    => ['epay'=>1, 'en' => "Paypal",              'fr' => "" ] ];
 
-    private function drawPaymentMethod( $kfrGxM )
+    function DrawPaymentMethod( KeyframeRecord $kfrGxM )
     {
         $raPay = [];
 

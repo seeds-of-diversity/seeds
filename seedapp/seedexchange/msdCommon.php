@@ -2,7 +2,7 @@
 
 /* msdCommon
  *
- * Copyright (c) 2011-2020 Seeds of Diversity Canada
+ * Copyright (c) 2011-2023 Seeds of Diversity Canada
  *
  * Member Seed Directory methods common to multiple applications
  */
