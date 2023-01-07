@@ -108,7 +108,7 @@ class MSDLibIntegrity
                        'failLabel' => "Grower codes blank",
                        'failShowRow' => "mbr_id=[[mbr_id]]",
                        'testSql' =>
-                           "SELECT mbr_id FROM {$this->dbname1}.sed_curr_growers WHERE mbr_code='' OR mbr_code IS NULL",
+                           "SELECT mbr_id FROM {$this->dbname1}.sed_curr_growers WHERE (mbr_code='' OR mbr_code IS NULL) AND nTotal>0",
                      ),
 
             'integ_gmbr_code_unique1' =>
@@ -118,7 +118,8 @@ class MSDLibIntegrity
                        'failShowRow' => "mbr_code=[[mbr_code]]",
                        'testSql' =>
                            "SELECT G1.mbr_code as mbr_code FROM {$this->dbname1}.sed_curr_growers G1,{$this->dbname1}.sed_curr_growers G2 "
-                          ."WHERE G1.mbr_code=G2.mbr_code AND G1._key<G2._key",
+                           // not checking blank mbr_codes
+                           ."WHERE G1.mbr_code<>'' AND G1.mbr_code=G2.mbr_code AND G1._key<G2._key",
                      ),
 
             'integ_grower_code_unique2' =>
@@ -144,11 +145,13 @@ class MSDLibIntegrity
                        'testSql' =>
                            "SELECT G.mbr_code as mc, G.mbr_id as mid1, G2.mbr_id as mid2, 'current' as y1, G2.year as y2, M1.firstname as fn1,M1.lastname as ln1,M2.firstname as fn2,M2.lastname as ln2 "
                               ."FROM {$this->dbname1}.sed_curr_growers G, {$this->dbname1}.sed_growers G2, {$this->dbname2}.mbr_contacts M1, {$this->dbname2}.mbr_contacts M2 "
-                              ."WHERE G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id"
+                              // not checking blank mbr_codes
+                              ."WHERE G.mbr_code<>'' AND G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id"
                           ." UNION "
                           ."SELECT G.mbr_code as mc, G.mbr_id as mid1, G2.mbr_id as mid2, 'current' as y1, 'current' as y2, M1.firstname as fn1,M1.lastname as ln1,M2.firstname as fn2,M2.lastname as ln2 "
                               ."FROM {$this->dbname1}.sed_curr_growers G, {$this->dbname1}.sed_curr_growers G2, {$this->dbname2}.mbr_contacts M1, {$this->dbname2}.mbr_contacts M2 "
-                              ."WHERE G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id ORDER BY 1",
+                              // not checking blank mbr_codes
+                              ."WHERE G.mbr_code<>'' AND G.mbr_code=G2.mbr_code AND G.mbr_id <> G2.mbr_id AND M1._key=G.mbr_id AND M2._key=G2.mbr_id ORDER BY 1",
                      ),
 
             /* Soft content integrity tests
@@ -163,7 +166,7 @@ class MSDLibIntegrity
                        'bNonFatal' => true,
                        'testSql' =>
                            "SELECT G.mbr_id as m,G.mbr_code as mc FROM {$this->dbname1}.sed_curr_growers G "
-                          ."WHERE NOT (G.bDoneMbr OR G.bDoneOffice) AND $sGNoSkipDel",
+                          ."WHERE NOT (G.bDoneMbr OR G.bDone) AND $sGNoSkipDel",
                 ),
 
             // Do these for winter and summer
@@ -220,7 +223,7 @@ class MSDLibIntegrity
                        'failShowRow' => "[[m]] : [[mc]]",
                        'bNonFatal' => true,
                        'testSql' =>
-                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM {$this->dbname1}.sed_curr_growers G WHERE LENGTH(G.mbr_code)<>7 AND G.mbr_code<>'SODC/SDPC'",
+                           "SELECT G.mbr_id as m,G.mbr_code as mc FROM {$this->dbname1}.sed_curr_growers G WHERE LENGTH(G.mbr_code)<>7 AND G.mbr_code<>'' AND G.mbr_code<>'SODC/SDPC'",
                      ),
 
             'data_cat_sp_var_exist' =>
