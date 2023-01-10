@@ -312,7 +312,7 @@ class MSEEditAppTabSeeds
         $this->oMEApp = new MSEEditApp($oApp);
     }
 
-    function Init_Seeds( int $kCurrGrower, int|string $kCurrSpecies )   // kluge: kSp can be tomatoAC, tomatoDH
+    function Init_Seeds( int $kCurrGrower, $kCurrSpecies )   // kluge: kSp is normally int but can be tomatoAC, tomatoDH
     {
         list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kCurrGrower, 'seeds');
         $this->kSpecies = $kCurrSpecies;
@@ -369,7 +369,7 @@ class MSEEditAppSeedEdit
            ."<div class='seededit-form' style='display:none'></div>"
        ."</div>";
 
-    function Draw( $uidSeller, int|string $kSp )        // kSp is usually int, but can be tomatoAC, tomatoDH, etc
+    function Draw( $uidSeller, $kSp )        // kSp is usually int, but can be tomatoAC, tomatoDH, etc
     {
         $s = "";
         $sForm = $sList = "";
@@ -761,7 +761,7 @@ basketScript;
     }
 
 
-    private function drawListOfMSDSeedContainers( $uidSeller, int|string $kSp )     // kSp is usually int but can be tomatoAC, tomatoDH, etc
+    private function drawListOfMSDSeedContainers( $uidSeller, $kSp )     // kSp is usually int but can be tomatoAC, tomatoDH, etc
     {
         $sList = "";
         $raSeeds = array();
