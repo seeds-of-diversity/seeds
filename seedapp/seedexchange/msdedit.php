@@ -326,7 +326,9 @@ class MSEEditAppTabSeeds
             $s .= $this->oMEApp->MakeSelectGrowerNames($this->kGrower,true);    // grower names have to be encoded to utf8 on seeds tab
         }
         if( $this->kSpecies ) {
-            $s .= "<div style='margin-top:10px'><strong>Showing ".$this->oMEApp->oMSDLib->GetSpeciesNameFromKey($this->kSpecies)."</strong>"
+            $sSpecies = is_numeric($this->kSpecies) ? $this->oMEApp->oMSDLib->GetSpeciesNameFromKey($this->kSpecies) : $this->kSpecies; // normally int but can be tomatoAC,tomatoDH,etc
+
+            $s .= "<div style='margin-top:10px'><strong>Showing $sSpecies</strong>"
                  ." <a href='{$_SERVER['PHP_SELF']}?selectSpecies=0'><button type='button'>Cancel</button></div>";
         }
 
