@@ -340,14 +340,11 @@ class myDocRepCtrlView_Add
         this.kCurrDoc = kCurrDoc;
     }
     
-    static DrawTabBody( parentID ) 
-    /**
-    draw form for add 
-    if CurrDoc is a file, add beside 
-    if CurrDoc is a folder, show option to add under folder or beside folder 
+    static DrawTabBody( parentID )
+    /*****************************
+        Draw form for add 
      */
     {
-
 		let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);   
 		let sType = '';
         if( oDoc ) {
@@ -360,40 +357,29 @@ class myDocRepCtrlView_Add
         $(`#${parentID}`).empty();
         $(`#${parentID}`).html(`
         		<form id='drAdd_form' onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
-					<br>	
-					<div>Type: </div>
 					<div class='row'> 
-						<div class=${label}>File</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-file'  name='text-or-folder' value='text' checked/>
+						<div class='col-md-12'>
+						    <select id='select-page-or-folder'>
+						    <option value='page' selected>Add a new Page</option>
+						    <option value='folder'>Add a new Folder</option> 
+						    </select>
 						</div>
 					</div>
-					<div class='row'> 
-						<div class=${label}>Folder</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-folder'  name='text-or-folder' value='folder' />
-						</div>
-					</div>
-					<br>
 				</form>`);
 
-		if (sType == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
+		if( sType == 'folder' ) { // if current is a folder, add option to place new doc as child or sibling 
 			$(`#drAdd_form`).append(`
 					<div class='row'> 
-						<div class=${label}>Add under folder</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-as-child'  name='child-or-sibling' value='child' checked/>
+						<div class='col-md-12'>
+                            <select id='select-child-or-sibling'>
+                            <option value='child' selected>Inside the current folder</option>
+                            <option value='sibling'>After the current folder</option> 
+                            </select>
 						</div>
-					</div>
-					<div class='row'> 
-						<div class=${label}>Add beside folder</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-as-sibling'  name='child-or-sibling' value='sibling' />
-						</div>
-					</div>
-					<br>`);
+					</div>`);
 		}
 		$(`#drAdd_form`).append(`
+					<br/>
 					<div class='row'> 
 						<div class=${label}>Name</div>
 						<div class=${ctrl}>
@@ -431,9 +417,11 @@ class myDocRepCtrlView_Add
     {
         e.preventDefault();
 
-        let kDoc = $('#drAdd_kDoc').val();
-        let position = $('input[name=child-or-sibling]:checked').val();
-        let type = $('input[name=text-or-folder]:checked').val();
+        let oDocCurr = this.oCtrlView.fnHandleEvent('getDocInfoCurr');
+        let kDoc = oDocCurr.k; // $('#drAdd_kDoc').val();
+        
+        let position = $('#select-child-or-sibling').val();
+        let type = $('#select-page-or-folder').val();
         let name = $('#add-name').val();
         let title = $('#add-title').val();
         let permclass = $('#add-permissions').val();
@@ -463,17 +451,20 @@ class myDocRepCtrlView_Add
             console.log("Permission not specified: using permclass "+permclass+" from parent");
         }
 
-        let q = { qcmd: 'dr--add', kDoc: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permclass };
+        let q = { qcmd: 'dr--add', kDoc: kDoc,
+                                   type: type=='folder' ? 'folder' : 'text',
+                                   dr_name: name, dr_title: title, dr_permclass: permclass };
 
         if( position == 'child' ) {
             q.dr_posUnder = kDoc;
         } else {
             q.dr_posAfter = kDoc;
         }
-
+        console.log(q);
+        
         let rQ = SEEDJXSync(q_url, q);
         if( !rQ.bOk ) {
-            console.log( "Error adding at kDoc: "+rQ.sErr );
+            console.log( "Error adding doc: "+rQ.sErr, q );
         } else {
             // update tree with new folder/file
 //	this.UpdateTree();
