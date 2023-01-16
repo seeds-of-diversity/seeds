@@ -56,7 +56,7 @@ class Mbr_Contacts
         $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province "
                                          ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
         $raParms['fldPrefix'] = '';
-        return( self::GetContactNameFromMbrRA( $ra, $raParms ) );
+        return( $ra ? self::GetContactNameFromMbrRA( $ra, $raParms ) : "" );
     }
 
     static function GetContactNameFromMbrRA( $ra, $raParms = [] )

@@ -4,7 +4,7 @@
  *
  * Manage sending email via SEEDMail
  *
- * Copyright (c) 2010-2022 Seeds of Diversity Canada
+ * Copyright (c) 2010-2023 Seeds of Diversity Canada
  *
  * SEEDMailCore     - core class implements SEEDMailDB and methods non-specific to a particular mail item
  * SEEDMailMessage  - implement a SEEDMail record (an email message that can be staged any number of times)
@@ -57,7 +57,7 @@ extends SEEDMailDB
         Get the given email from the staging table
      */
     {
-        return( $kStaged ?  : $this->oDB->KFRel('MS')->CreateRecord() );
+        return( $kStaged ? $this->oDB->GetKFR('MS', $kStaged) : $this->oDB->KFRel('MS')->CreateRecord() );
     }
 
     function GetStagedList( $sCond )
@@ -90,22 +90,25 @@ extends SEEDMailDB
      */
     {
         $ok = true;
+        $sErr = "";
 
         $bDocRepFetch = SEEDCore_ArraySmartBool( $raParms, 'bDocRepFetch', true );  // fetch docrep by default (if it's a docrep code)
         $bExpandTags  = SEEDCore_ArraySmartBool( $raParms, 'bExpandTags', true );   // expand tags by default
         $raVars       = @$raParms['raVars'] ?: [];
 
         if( $bDocRepFetch && SEEDCore_StartsWith( $sMsg, "DocRep:" ) ) {
+            // sMsg is DocRep:dbname_logical:docid
             $ra = explode( ":", $sMsg );
             $db = @$ra[1];
             $docid = @$ra[2];
 
             if( $docid ) {
-                $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp, ['bReadonly'=>true, 'db'=>$db] );
+                $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $oApp, ['bReadonly'=>true, 'db'=>$db] ); // db is logical dbname
                 if( ($oDoc = $oDocRepDB->GetDoc($docid)) ) { // new DocRepDoc2( $oDocRepDB, $docid );
                     $sMsg = $oDoc->GetText('');
                 } else {
-                    $oApp->Log("mailsend.log", "*** Failed to expand mail message - '$docid' not found in DocRep - a blank email was probably sent anyway" );
+                    $sErr = "*** Failed to expand mail message - '$docid' not found in DocRep";
+                    //$this->log( null, "", $sErr );
                     $sMsg = "";
                     $ok = false;
                 }
@@ -124,7 +127,7 @@ extends SEEDMailDB
             $sMsg = $oTmpl->ExpandStr( $sMsg, $raVars );
         }
 
-        return( [$ok,$sMsg] );
+        return( [$ok,$sMsg,$sErr] );
     }
 }
 
@@ -154,7 +157,7 @@ class SEEDMailMessage
         if( $this->kfrMsg ) {
             $s = $this->kfrMsg->Value('sBody');
             $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
-            list($okDummy,$s) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
+            list($okDummy,$s,$sErr) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
         }
 
         return( $s );
@@ -298,41 +301,54 @@ class SEEDMailSend
         Return the _key of the email that was attempted, or 0 if no more are 'READY'
      */
     {
-        $sMsg = "";
+        $sOut = "";
         $ok = false;
 
         // Get one random READY email from the staging table
         $kfrStage = $this->oCore->GetKFRStagedReady();
         if( !$kfrStage || !$kfrStage->Key() ) {
-            $sMsg = "No emails are ready to send";
+            $sOut .= "No emails are ready to send";
             goto done;
         }
 
         $kMail = $kfrStage->Value('fk_SEEDMail');   // master SEEDMail record for this email
+        $sTo = $kfrStage->Value('sTo');             // email address or member number
+        $sFrom = $kfrStage->Value("M_sFrom");
+        $sSubject = $kfrStage->Value("M_sSubject");
+
+
 //        $oMessage = new SEEDMailMessage( $this->oCore, $kMail );
 
         /* sTo is either kMbr or email. Use Mbr_Contacts to try to get full contact info, otherwise just use email.
          */
-        $sTo = @$raMbr['email'] ?: $kfrStage->Value('sTo');
+        $oMbrContacts = new Mbr_Contacts($this->oCore->oApp);
+        $raMbr = $oMbrContacts->GetBasicValues( $sTo );
+        $kMbrTo = intval(@$raMbr['_key']);
 
-        $oMbrContacts = new Mbr_Contacts( $this->oCore->oApp );
-        $raMbr = $oMbrContacts->GetBasicValues( $kfrStage->Value('sTo') );
-        if( @$raMbr['_key'] ) {
+        if( $kMbrTo && @$raMbr['email'] ) {
+            // sTo is a known member with an email address
+            $sTo = $raMbr['email'];
 // make and use GetContactNameFromMbrRA()
-$sContact = $oMbrContacts->GetContactName($raMbr['_key']);
-$sContact = str_replace( ['<','>'], ['',''], $sContact );   // don't let the arbitrary contact name to disrupt the <email> delimiters
-            if( $sContact ) $sTo = $sContact." <$sTo>";
+            if( ($sContact = $oMbrContacts->GetContactName($kMbrTo)) ) {
+                $sContact = str_replace( ['<','>'], ['',''], $sContact );   // remove any < and > from the arbitrary contact name so they don't disrupt the <email> delimiters
+                $sTo = "$sContact <{$sTo}>";
+                if( SEED_isLocal ) { $sTo = SEEDCore_HSC($sTo); }   // on dev installations the email will be shown instead of sent, so do this to make the <email> appear correctly in html
+            }
+            $bSendable = true;
+        } else if( filter_var($sTo, FILTER_VALIDATE_EMAIL) ) {
+            // sTo looks like a valid email address but we don't know them in the member database. Send the email.
+            $bSendable = true;
+        } else {
+            // sTo is either an invalid email address or it looks like a member number but we don't know them, or we do but they don't have an email address
+            $bSendable = false;
         }
 
-        $kMbrTo = intval(@$raMbr['_key']);
-        $sFrom = $kfrStage->Value("M_sFrom");
-        $sSubject = $kfrStage->Value("M_sSubject");
-
-        if( !$sTo || !$sFrom || !$sSubject ) {
+        if( !$bSendable || !$sFrom || !$sSubject ) {
             $sLog = $kfrStage->Key()." cannot send. To='$sTo', From='$sFrom', Subject='$sSubject'";
             $kfrStage->SetValue( "eStageStatus", "FAILED" );
             $kfrStage->PutDBRow();
-            $this->oApp->Log("mailsend.log", $sLog);
+            $this->log( $kfrStage, $sTo, $sLog );
+            $sOut .= $sLog;
             goto done;
         }
 
@@ -345,12 +361,14 @@ $raVars['lang'] = $this->oCore->oApp->lang;
         //$oDocRepWiki->AddVar( 'kMbrTo', $kMbr );
         //$oDocRepWiki->AddVar( 'sEmailTo', $sEmailTo );
         //$oDocRepWiki->AddVar( 'sEmailSubject', $sEmailSubject );
-        list($ok,$sBody) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
+        list($ok,$sBody,$sErr) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $kfrStage->Value('M_sBody'), ['raVars'=>$raVars] );
+        $sOut .= $sErr;
 
         // if ExpandMessage failed, don't send the message (sBody probably blank) - SEEDMail should have logged the problem (e.g. DocRep doc not found)
         if( $ok ) {
 // either here or in SEEDEmail put <html><body> </body></html> around the message if it doesn't already have that
             $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
+            $sOut .= "Sent to $sTo : ".($ok ? "successful" : "failed");
         }
 
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()
@@ -358,8 +376,8 @@ $raVars['lang'] = $this->oCore->oApp->lang;
         $kfrStage->PutDBRow();
 
 // the staging record should be removed, not updated. Get NOW() from kfdb and log everything that's known.
-$this->oCore->SetTSSent( $kfrStage->Key() );
-$this->oCore->oApp->Log( "mailsend.log", $kfrStage->Expand( "[[_key]] [[fk_SEEDMail]] [[eStageStatus]] [[sTo]] [[tsSent]]" ) );
+$this->oCore->SetTSSent( $kfrStage->Key() );                              // this could be done via kfr directly when SetVerbatim is implemented
+$this->log( $this->oCore->GetKFRStaged($kfrStage->Key()), $sTo, $sErr);   // reload db row to get tsSent
 
         /* If this is the first message of a mail batch, update the SEEDMail record status
          */
@@ -378,7 +396,15 @@ $this->oCore->oApp->Log( "mailsend.log", $kfrStage->Expand( "[[_key]] [[fk_SEEDM
 //        }
 
         done:
-        return( [$ok ? $kfrStage->Key() : 0, $sMsg] );
+        return( [$ok ? $kfrStage->Key() : 0, $sOut] );
+    }
+
+    private function log( ?KeyframeRecord $kfrStage = null, $sToActual = "", $sMsg = "" )
+    {
+        $this->oCore->oApp->Log( "mailsend.log",
+                                 ($kfrStage ? $kfrStage->Expand( "[[_key]] [[fk_SEEDMail]] [[eStageStatus]] ([[tsSent]]) [[sTo]]" )
+                                            : "0 0 X 0 X")
+                                ." ($sToActual) $sMsg" );
     }
 }
 
