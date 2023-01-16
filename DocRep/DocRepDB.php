@@ -107,30 +107,6 @@ class DocRepDB2 extends DocRep_DB
     function GetRel()   { return( $this->oRel ); }
     function GetParms() { return( $this->parms ); }
 
-/* Use GetDocRepDoc instead
-    function GetDocFromName( $sName )
-    [********************************
-        Return kDoc of the document with the given name.  Plain integer names are converted to intval.
-     *]
-    {
-        $kDoc = 0;
-
-        if( empty($sName) ) goto done;
-
-        if( is_numeric($sName) ) {
-            $kfr = $this->oRel->GetKFR( 'Doc', intval($sName) );
-        } else {
-            $kfr = $this->oRel->GetKFRCond( 'Doc', "name='".addslashes($sName)."'" );
-        }
-
-        if( $kfr && $this->PermsR_Okay( $kfr->Key(), $kfr->Value('permclass') ) ) {
-            $kDoc = $kfr->Key();
-        }
-
-        done:
-        return( $kDoc );
-    }
-*/
 
 // It's worth doing this even if you just want the kDoc of a name. The minimal code would do almost as much work, and there's a
 // pretty good chance you're going to use the cached DocRepDoc after you get the kDoc.
@@ -150,26 +126,17 @@ class DocRepDB2 extends DocRep_DB
         if( is_numeric($sDoc) ) {
             $kDoc = intval($sDoc);
         } else {
-// this does not work if any ancestors have blank names
-// instead use full path names everywhere
-            // split the name into its components, then follow them down the tree to find the doc
-            $raName = explode('/', $sDoc);
-            $k = 0;
-            foreach( $raName as $n ) {
-                if( ($kfr = $this->GetRel()->GetKFRCond('Doc', "kDoc_parent='$k' && name='".addslashes($n)."'")) ) {
-                    $k = $kfr->Key();
-                } else {
-                    goto done;
-                }
+            if( ($kfr = $this->GetRel()->GetKFRCond('Doc', "name='".addslashes($sDoc)."'")) ) {
+                $kDoc = $kfr->Key();
             }
-            $kDoc = $k;
         }
-
+//var_dump($sDoc,$kDoc);
         if( $kDoc ) {
             if( isset($this->raDRDocsCache[$kDoc] ) ) {
                 $oDRDoc = $this->raDRDocsCache[$kDoc];
             } else {
                 $oDRDoc = new DocRepDoc2( $this, $kDoc );
+//var_dump($oDRDoc->IsValid());
                 if( $oDRDoc->IsValid() ) {
                     $this->raDRDocsCache[$kDoc] = $oDRDoc;
                 } else {
@@ -430,7 +397,8 @@ class DocRepDoc2_ReadOnly
     protected $kDoc;
     private   $bValid = false;    // to test if the constructor worked
 
-    private   $raValues = array();    // array( flag1 => array(vals), flag2 => array(vals) )
+    // cached data
+    private   $raValues = [];       // array( flag1 => array(vals), flag2 => array(vals) )
     private   $raAncestors = null;
     private   $sFolderName = null;
 
@@ -692,8 +660,12 @@ class DocRepDoc2_ReadOnly
      * doc tree because docs can be unnamed. Unnamed structures subdivide the name heirarchy, which is handy, but imposes
      * tricky rules for name generation.
      *
+     * If a doc has a name, it can always be decomposed into foldername/basename, where foldername is a unique doc name which is an ancestor (not necessarily parent), and
+     * basename is not blank. Also, basenames cannot contain '/' so locating the last '/' is a good way to decompose the name.
+     * If a named doc has no named ancestor then there is no '/', so decomposition must obtain the basename in that case.
+     * If a doc has no basename, then it also has no doc name at all (i.e. we don't refer to it using the folder name, because that's the name of one of its ancestors).
+     *
      * The doc name can be split into a foldername (whether or not it is a FOLDER) and a basename.
-     * Typically, this is used in UI where the user provides the base name and the foldername is derived from doc ancestors.
      *
      *  one                      name = one           foldername =             basename = one
      *      |
@@ -701,7 +673,7 @@ class DocRepDoc2_ReadOnly
      *      |
      *      - three              name = one/three     foldername = one         basename = three
      *      |
-     *      - (noname)           name =               foldername = one         basename =
+     *      - (noname)           name =               foldername = one         basename =           ** N.B. this doc has no name
      *                |
      *                - four     name = one/four      foldername = one         basename = four
      *
@@ -709,16 +681,13 @@ class DocRepDoc2_ReadOnly
      * the closest named ancestor. Also, the foldername is not present within the doc name if the doc is unnamed. That seems
      * obvious when stated this way, but it's easy to forget while coding.
      *
-     * Insertion rules:
-     *      When inserting a named doc, the docname = foldername/name
-     *      1) if foldername is blank, there is no '/'.  This would happen at parent=0 (example one),
-     *         or if all ancestors were unnamed.
-     *      2) if the parent has a name, then foldername=parent name
-     *      3) if the parent doesn't have a name, then foldername=name of closest named ancestor.
-     *      4) if inserting after a sibling, it's convenient to know that foldername of new doc = foldername of sibling
-     *
-     *  When inserting an unnamed doc, the docname is always blank.
-     *  This is what creates the trickiness, because then the foldername is not stored in the doc, imposing an ancestor-search.
+     * Insertion/renaming rules:
+     *      When inserting/renaming a doc, the basename and tree location are provided
+     *      1) if the basename is blank, the doc name is set to empty.
+     *      else
+     *      2) foldername = name of closest named ancestor. This could be the parent, but not necessarily.
+     *      3) if foldername is blank, i.e. parent==0 or all ancestors are unnamed, there is no '/' before the basename.
+     *      4) if inserting after a sibling, it's convenient that foldername of new doc = foldername of sibling
      *
      *  N.B. this scheme is used for all doc types, not just folders. Originally it was only used for folders because it was
      *  assumed that a doc inserted under a non-folder would not want the current doc's name e.g. foo.htm as part of the folder
@@ -727,17 +696,11 @@ class DocRepDoc2_ReadOnly
      *  one.htm and one.htm/two.htm, and more confusing to put named images in a heirarchy e.g. "foo.jpg/bar.jpg" but you'd
      *  never do that.
      *  Therefore, the same name-structure conventions are used for all doctypes.
-     *
-     *  Can base names contain '/' ?
-     *      No. So GetNewDocName converts '/' to '_'
      */
 
-//    function GetDocName()   { return( $this->GetName() ); }  // same thing; we call it docname to differentiate from basename and foldername
-
-    function GetNameFull()
+//obsolete, names are always full path names
+     function GetNameFull() { return( $this->GetName() ); }
     /*
-     * return full path name starting from root
-     */
     {
         $sNameFull = "";
         $raAncestors = $this->GetAncestors();
@@ -751,14 +714,37 @@ class DocRepDoc2_ReadOnly
 
         return $sNameFull;
     }
+*/
+
+    function GetBaseName()
+    /*********************
+        foldername/basename     return the basename
+        foldername/(unnamed)    return "" (easy because doc.name is blank)
+        basename                return the basename (there is no named ancestor)
+     */
+    {
+        if( ($name = $this->GetName()) ) {           // full path name
+            if( ($n = strrpos($name,'/')) > 0 ) {    // 0-based position of rightmost '/' == # chars to left of that '/'
+                // end of foldername found: get the basename
+                $name = substr( $name, $n+1 );
+            } else {
+                // no folder name: the whole thing is the basename (i.e. this is the topmost named doc in the tree)
+            }
+        }
+        return( $name );
+    }
 
     function GetFolderName( $kRoot = 0 )
     /***********************************
         This is actually the closest named ancestor's name, whether or not it is a folder.
+
         If the doc is named, it is substr(name,0,strrpos('/'))
+            name=foldername/basename     return foldername
+            name=basename                return ""    (there is no named ancestor)
+
         If the doc is not named, we have to walk backward through the ancestor list to find a named ancestor.
 
-        kRoot is the highest ancestor to evaluate (not sure why this is ever useful)
+        kRoot is the parent of the highest ancestor to evaluate (not sure why this is ever useful)
      */
     {
         if( $this->sFolderName === null ) {
@@ -766,63 +752,76 @@ class DocRepDoc2_ReadOnly
 
             if( ($name = $this->GetName()) ) {
                 if( ($n = strrpos($name,'/')) > 0 ) {    // 0-based position of rightmost '/' == # chars to left of that '/'
+                    // end of foldername found; get it
                     $this->sFolderName = substr( $name, 0, $n );
+                } else {
+                    // return "": docname has a basename but no foldername; it is the topmost named doc in the tree
                 }
             } else {
-                // Foldername = name of closest named ancestor
+                // unnamed doc, so foldername is the name of closest named ancestor
                 $o = $this;
-                while( $o = $o->GetParentObj() ) {
+                while( $o && $o->GetKey() != $kRoot ) {
                     if( ($this->sFolderName = $o->GetName()) ) break;    // found a named ancestor
-                    if( $o->GetKey() == $kRoot )  break;                 // reached the root ancestor
+                    $o = $o->GetParentObj();
                 }
             }
         }
         return( $this->sFolderName );
     }
 
-    function GetNewDocName( $sName, $bInsertInto = false )
-    /*****************************************************
-        Generate the docname of a new doc that is being inserted relative to this doc.
+    const NEW_DOC_NAME_OP_RENAME = "rename";    // use this for Update too, because an updated name is just a rename
+    const NEW_DOC_NAME_OP_INSERT = "insert";
 
-        $sName is the (new) base name of a document, either being inserted, updated or renamed.
-        $bInsertInto == (inserting a doc && posUnder the current doc)  -- this was contracted from $bInsert and $bPosUnder
-        Return the base name of the inserted/updated doc.
+    function GetNewDocName( $sNewBasename, $eOp = self::NEW_DOC_NAME_OP_RENAME, $bInsertPosUnder = false )
+    /*****************************************************************************************************
+        Generate the doc.name for a basename that is either a rename for this doc, or being inserted relative to this doc.
 
-        If updating/renaming, the folder name doesn't change
-        If inserting after the current doc, the folder name is the same as the current doc's folder name.
-        If inserting under the current doc, the folder name is this doc
+        Rename:                          new basename replaces the old basename, with the same foldername
+        Insert under (into) current doc: if current doc has a name, then that is the new doc's folder name
+                                         if current doc is unnamed, then its foldername is the new doc's folder name
+        Insert after the current doc:    the new doc's foldername is the same as the current doc's foldername
      */
     {
-        if( !empty($sName) ) {
-            $sName = str_replace( '/', '_', $sName );  // eliminate slashes so users can't insert weird name heirarchy
+        $sNewFullname = "";
 
-            // convert sName into full path name
-            if( $bInsertInto ) { // if inserting new doc under current
-                $sName = $this->GetNameFull() ."/" .$sName;
+        /* if basename is blank, we store the doc.name as ""
+         */
+        if( !$sNewBasename )  goto done;
 
-            } else { // if inserting new doc beside current
-                if( $parent = $this->oDocRepDB->GetDocRepDoc($this->GetParent())){ // find parent of current
-                    $sName = $parent->GetNameFull() ."/" .$sName;
-                }
-                else{ // if parent is root
-                    // $sName is already full path
-                }
+        // eliminate slashes so users can't insert weird name heirarchy
+        $sNewBasename = str_replace( '/', '_', $sNewBasename );
+        if( $eOp == self::NEW_DOC_NAME_OP_INSERT && $bInsertPosUnder && ($n = $this->GetName()) ) {
+            $sNewFoldername = $n;
+        } else if( ($n = $this->GetFoldername()) ) {
+            $sNewFoldername = $n;
+        } else {
+            // current doc has blank foldername, so the new doc.name is just basename with no '/'
+            $sNewFoldername = "";
+        }
+
+        $sNewFullname = $sNewFoldername.($sNewFoldername ? "/" : "").$sNewBasename;
+
+        /* Prevent duplicate names by adding a unique number. Ignore collision if it's the same doc being renamed to the same name.
+         */
+        if( ($oDoc = $this->oDocRepDB->GetDoc( $sNewFullname )) &&
+            !($eOp == self::NEW_DOC_NAME_OP_RENAME && $oDoc->GetKey() == $this->GetKey()) )     // same doc being renamed to the same name is not a collision
+        {
+            // put the suffix before the last dot, or at the end of the name; foo.jpg becomes foo1.jpg and foobar becomes foobar1
+            if( ($iSuffix = strrpos( $sNewBasename, '.' )) === false ) {
+                $iSuffix = strlen($sNewBasename);
             }
 
-            /* If there is another doc with this name, add a suffix.
-             */
-// Have to check if this is an update of the same doc. Checking the return of GetDocFromName()==$this->GetKey() is not enough
-// unless we know this is an update, not an insert.
-// OR let the Insert function add the suffix
-
-            $sName = $this->makeUniqueName( $sName ); // return unique full name
-
-            // convert $sName back to base name
-            if( strpos($sName, "/") !== false ) { // if name contains "/"
-                $sName = substr($sName, strrpos($sName, "/")+1); // base name is after last "/"
+            for( $i = 1; ; ++$i ) {
+                $sNewFullname = $sNewFoldername.($sNewFoldername ? "/" : "").substr($sNewBasename, 0, $iSuffix).$i.substr($sNewBasename,$iSuffix);
+                if( !$this->oDocRepDB->GetDoc( $sNewFullname ) ) {
+                    // this name does not exist, so keep it
+                    break;
+                }
             }
         }
-        return( $sName );
+
+        done:
+        return( $sNewFullname );
     }
 
     function GetSFileExt()
@@ -841,42 +840,6 @@ class DocRepDoc2_ReadOnly
         }
 
         return( $ext );
-    }
-
-    protected function makeUniqueName( $sName )
-    /******************************************
-     If the name already exists in the DocRep, add a suffix to make this name unique.
-     takes full name in parameter and returns full name
-     */
-    {
-        if( $this->oDocRepDB->GetDocRepDoc( $sName ) ) {
-            /* The name is already used. Figure out where to put a number to uniqueify it.
-             * foo1.jpg is a lot better than foo.jpg1
-             */
-            if( ($iDot = strrpos( $sName, '.' )) === false ) {
-                // no dot: put the suffix at the end of the name
-                $iPos = strlen($sName);
-            } else if( ($iSlash = strrpos( $sName, '/' )) === false ) {
-                // no slash: put the suffix before the dot
-                $iPos = $iDot;
-            } else if( $iDot > $iSlash ) {
-                // the last dot is after the last slash: put the suffix before the dot
-                $iPos = $iDot;
-            } else {
-                // the last dot is before a slash: put the suffix at the end of the name
-                $iPos = strlen($sName);
-            }
-
-            for( $iSuffix = 1; ; ++$iSuffix ) {
-                $sNameNew = substr( $sName, 0, $iPos ).$iSuffix.substr( $sName, $iPos );
-                if( !$this->oDocRepDB->GetDocRepDoc( $sNameNew ) ) {
-                    $sName = $sNameNew;
-                    break;
-                }
-            }
-            $this->oDocRepDB->ErrMsg( "Duplicate name; calling this document <b>$sName</b> instead." );
-        }
-        return( $sName );
     }
 
     function GetFlagOfCurrVer()
@@ -938,7 +901,9 @@ class DocRepDoc2_ReadOnly
         Use this when data changes so the cache will be reloaded.
      */
     {
-        $this->raValues = array();
+        $this->raValues = [];
+        $this->raAncestors = null;
+        $this->sFolderName = null;
     }
 
     protected function voidDoc()
@@ -946,7 +911,7 @@ class DocRepDoc2_ReadOnly
         Use this to invalidate the doc object, e.g. when it is deleted from the db.
      */
     {
-        unset($this->raValues);
+        $this->clearCache();
         $this->bValid = false;
         $this->kDoc = 0;
     }
@@ -1075,6 +1040,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                     break;
             }
         }
+        $this->clearCache();    // force a data refresh
 
         return( $ok );
     }
@@ -1082,36 +1048,32 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
     function Rename( $parms )
     /************************
         Update the content and/or metadata of a document
+
+        parms: name     = new base name
+               title    = new title
      */
     {
+// make an UpdateMetadata() method and call it from here
         $ok = true;
 
-        // change title if it is given and different
-        if( @$parms['title'] && $this->GetTitle('') != $parms['title'] ) {
+// TODO: there is no way to change a title to "". The solution is to only update parms that are isset()
+        if( @$parms['title'] ) {
             $kfrData = $this->getKfrData( $this->kDoc, '' );
             $kfrData->SetValue( 'title', $parms['title'] );
             $ok = $kfrData->PutDBRow();
         }
 
-        // change name if it is given and different
-        if( $ok && @$parms['name'] && $this->GetName() != $parms['name'] ) {
-            // if there is a sibling with the same name, don't rename
+// TODO: there is no way to change a name to ""
+        if( $ok && @$parms['name'] ) {
+            $newName = $this->GetNewDocName($parms['name'], self::NEW_DOC_NAME_OP_RENAME);  // convert to full path name
 
-            $parent = $this->GetParent();
-            $raSibNames = $this->oDocRepDB->kfdb->QueryRowsRA1("SELECT name FROM docrep2_docs WHERE kDoc_parent=$parent"); // find all sibling's names
-
-            if( in_array($parms['name'], $raSibNames) ) { // if sibling has same name
-                $ok = false; // dont change name
-                return $ok;
-
-            }
-
-            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' ); // change name
-            $kfrDoc->SetValue( 'name', $parms['name'] );
+            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
+            $kfrDoc->SetValue( 'name', $newName );
             $ok = $kfrDoc->PutDBRow();
         }
 
-        done:
+        $this->clearCache();    // force a data refresh
+
         return( $ok );
     }
 
@@ -1120,6 +1082,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
      * update permclass
      */
     {
+// make an UpdateMetadata() method and call it from here
         $ok = false;
 
         if( @$parms['permclass'] ) {
@@ -1286,7 +1249,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
 
 
         Basic parms:
-        parms['dr_name'] = the name of the doc
+        parms['dr_name'] = the name of the doc (basename relative to dr_posUnder/dr_posAfter doc)
         parms['dr_title'] = the title of the doc
         parms['dr_docspec']  = user string for searching, grouping, etc - for the document (applies to all versions)
         parms['dr_dataspec'] = user string for searching, grouping, etc - for the version
@@ -1309,13 +1272,13 @@ class DocRepDoc2_Insert extends DocRepDoc2
 
         if( @$parms['dr_name'] ) {
             if( @$parms['dr_posUnder']) {
-                $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posUnder'])->GetNewDocName( $parms['dr_name'], true );
+                $parms['dr_name'] = $this->oDocRepDB->GetDoc($parms['dr_posUnder'])->GetNewDocName( $parms['dr_name'], self::NEW_DOC_NAME_OP_INSERT, true );
             }
             else if ( @$parms['dr_posUnderLastChild'] ) {
-                $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posUnderLastChild'])->GetNewDocName( $parms['dr_name'], true );
+                $parms['dr_name'] = $this->oDocRepDB->GetDoc($parms['dr_posUnderLastChild'])->GetNewDocName( $parms['dr_name'], self::NEW_DOC_NAME_OP_INSERT, true );
             }
             else if( @$parms['dr_posAfter'] ) {
-                $parms['dr_name'] = $this->oDocRepDB->GetDocRepDoc($parms['dr_posAfter'])->GetNewDocName( $parms['dr_name'], false );
+                $parms['dr_name'] = $this->oDocRepDB->GetDoc($parms['dr_posAfter'])->GetNewDocName( $parms['dr_name'], self::NEW_DOC_NAME_OP_INSERT, false );
             }
         }
 
