@@ -368,7 +368,7 @@ $raVars['lang'] = $this->oCore->oApp->lang;
         if( $ok ) {
 // either here or in SEEDEmail put <html><body> </body></html> around the message if it doesn't already have that
             $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
-            $sOut .= "Sent to $sTo : ".($ok ? "successful" : "failed");
+            $sOut .= SEEDCore_HSC("Sent to $sTo : ".($ok ? "successful" : "failed"));   // HSC makes <email> show correctly in html instead of rendering like an html tag
         }
 
         $kfrStage->SetValue( "iResult", $ok );    // we only get a boolean from mail()
