@@ -35,12 +35,71 @@ class MSDLib
 
     function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
 
+    function GetSpeciesSelectOpts( string $sCond = "", array $raParms = [] )
+    {
+        $raOpts = [];
+        $raParmsLookup = [];
+
+        if( ($cat = @$raParms['category']) ) {
+            $raParmsLookup['category'] = $cat;
+        }
+
+        foreach( $this->oMSDCore->LookupSpeciesList($sCond, $raParmsLookup) as $ra ) {
+            $raOpts["{$ra['species']} - {$ra['category']}"] = $ra['klugeKey2'];
+        }
+        return( $raOpts );
+    }
+
     function TranslateCategory( $sCat ) { return( $this->oMSDCore->TranslateCategory( $sCat ) ); }
     function TranslateSpecies( $sSp )   { return( $this->oMSDCore->TranslateSpecies( $sSp ) ); }
     function TranslateSpecies2( $sSp )  { return( $this->oMSDCore->TranslateSpecies2( $sSp ) ); }
 
     function KFRelG()   { return( $this->oMSDCore->KFRelG() ); }
     function KFRelGxM() { return( $this->oMSDCore->KFRelGxM() ); }
+
+    function BulkRenameSpecies( int $klugeKey2From, int $klugeKey2To )
+    /*****************************************************************
+        Where the inputs are category/species klugeKey2s, rename PEspecies.v,PEcategory.v
+        klugeKey2s are arbitrary Product keys that identify cat/sp tuples
+     */
+    {
+        $ok = false;
+        $sMsg = "";
+
+        if( $klugeKey2From == $klugeKey2To ) {
+            $sMsg = "Same species";
+            goto done;
+        }
+
+        list($sFromSp,$sFromCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($klugeKey2From);
+        list($sToSp,$sToCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($klugeKey2To);
+
+        if( !$sFromSp || !$sToSp ) {
+            $sMsg = "Can't find names for $klugeKey2From or $klugeKey2To";
+            goto done;
+        }
+
+        // For all Products with From cat/sp tuples, rename their cat/sp to the To tuple.
+        $dbFromSp  = addslashes($sFromSp);
+        $dbFromCat = addslashes($sFromCat);
+        $dbToSp    = addslashes($sToSp);
+        $dbToCat   = addslashes($sToCat);
+        $sql = "UPDATE {$this->dbname1}.SEEDBasket_Products P,{$this->dbname1}.SEEDBasket_ProdExtra PE_sp,{$this->dbname1}.SEEDBasket_ProdExtra PE_cat "
+                     ."SET PE_sp.v='$dbToSp', PE_cat.v='$dbToCat' "
+                     ."WHERE P.product_type='seeds' AND P._key=PE_sp.fk_SEEDBasket_Products AND P._key=PE_cat.fk_SEEDBasket_Products AND "
+                           ."P._status=0 AND PE_sp._status=0 AND PE_cat._status=0 AND "
+                           ."PE_sp.k='species' AND PE_cat.k='category' AND "
+                           ."PE_sp.v='$dbFromSp' AND PE_cat.v='$dbFromCat'";
+var_dump($sql);
+        $this->oApp->kfdb->Execute($sql);
+        $nAffected = $this->oApp->kfdb->GetAffectedRows();
+
+        $sMsg = SEEDCore_HSC("Renamed $nAffected listings: $sFromSp ($sFromCat) to $sToSp ($sToCat)");
+        $ok = true;
+
+        done:
+        return( [$ok,$sMsg] );
+    }
 
     function AdminNormalizeStuff()
     {
