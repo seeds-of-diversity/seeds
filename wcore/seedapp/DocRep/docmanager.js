@@ -1,6 +1,6 @@
 /* Implements a custom DocManager
  *
- * Copyright (c) 2021-2022 Seeds of Diversity Canada
+ * Copyright (c) 2021-2023 Seeds of Diversity Canada
  *
  * usage: DocRepApp02::InitUI() makes it all start up
  *
@@ -540,7 +540,7 @@ class myDocRepCtrlView_Rename
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
 
         if( oDoc ) {
-            sName = oDoc['name'];
+            sName = this.docBasename(oDoc);
             sTitle = oDoc['title'];
             sPerms = oDoc['perms'];
         }
@@ -574,6 +574,27 @@ class myDocRepCtrlView_Rename
                 <input type='submit' value='Change'/>
 			</form>`);
     }
+   
+   // put this in a Doc object 
+    static docBasename( oDoc )
+    {
+        let basename = "";
+        
+        if( oDoc.name ) {
+            let i = oDoc.name.lastIndexOf('/');
+            
+            if( i == -1 ) {
+                // name has no named parent (basename is full name)
+                basename = oDoc.name;
+            } else {
+                basename = oDoc.name.substring(i+1);
+            }
+        }
+        
+        return( basename );
+    }
+
+
     
    static Submit( e, q_url ) 
    /**
@@ -1096,7 +1117,7 @@ class DocRepUI02
                         } );
 
         this.kCurrDoc = 0;
-        
+
         console.log("DocRepUI at level "+oConfig.ui.eUILevel);
     }
 

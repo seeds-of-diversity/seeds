@@ -244,6 +244,18 @@ class DocRepDB2 extends DocRep_DB
         return( $raRet );
     }
 
+    function DocCacheClear( $kDoc )
+    /******************************
+        When DocRepDoc operations change info about other docs, they use this to clear old data from the cache
+        e.g. when Rename() changes the names of descendants, we have to reload those descendant DocRepDocs.
+        There might be many of them so we don't do it via a DocRepDoc tree traversal, so they're probably not loaded, but they could be.
+     */
+    {
+        if( isset($this->raDRDocsCache[$kDoc] ) ) {     // this is the cache of DocRepDoc objects
+            $this->raDRDocsCache[$kDoc]->ClearCache();  // this is the doc info inside the object
+        }
+    }
+
     function ExportXML( $kDoc )
     /**
      * convert subtree under $kDoc into a xml string
@@ -896,9 +908,9 @@ class DocRepDoc2_ReadOnly
     }
 
 
-    protected function clearCache()
-    /******************************
-        Use this when data changes so the cache will be reloaded.
+    function ClearCache()
+    /********************
+        Use this when data changes so it will be reloaded.
      */
     {
         $this->raValues = [];
@@ -911,7 +923,7 @@ class DocRepDoc2_ReadOnly
         Use this to invalidate the doc object, e.g. when it is deleted from the db.
      */
     {
-        $this->clearCache();
+        $this->ClearCache();
         $this->bValid = false;
         $this->kDoc = 0;
     }
@@ -1003,7 +1015,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
             $kfr->SetValue( 'docMetadata', SEEDCore_ParmsRA2URL($raDocMetadata) );
             $kfr->PutDBRow();
         }
-        $this->clearCache();    // force a data refresh
+        $this->ClearCache();    // force a data refresh
     }
 
     function Update( $parms )
@@ -1040,14 +1052,14 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                     break;
             }
         }
-        $this->clearCache();    // force a data refresh
+        $this->ClearCache();    // force a data refresh
 
         return( $ok );
     }
 
     function Rename( $parms )
     /************************
-        Update the content and/or metadata of a document
+        Change the name or title of a document. Changed names also rename descendants.
 
         parms: name     = new base name
                title    = new title
@@ -1056,23 +1068,49 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
 // make an UpdateMetadata() method and call it from here
         $ok = true;
 
+// TODO: there is no way to change a name to ""
+        if( @$parms['name'] ) {
+            $newName = $this->GetNewDocName($parms['name'], self::NEW_DOC_NAME_OP_RENAME);  // convert to full path name
+            $oldName = $this->GetName();
+
+            if( $newName != $oldName ) {
+                // Rename the doc
+                $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
+                $kfrDoc->SetValue( 'name', $newName );
+                $ok = $kfrDoc->PutDBRow();
+
+                // Rename all descendants. e.g. if this doc is renamed from a/b to a/b1, then a/b/c becomes a/b1/c
+                if( $ok ) {
+                    $dbNewName = addslashes($newName);
+                    $dbOldName = addslashes($oldName);
+                    $lenOldName = strlen($oldName);
+                    if( ($kfrc = $this->oDocRepDB->GetRel()->GetKFRC('Doc', "name LIKE '${dbOldName}/%'")) ) {
+                        while( $kfrc->CursorFetch() ) {
+                            // rename descendant doc
+                            $kfr = $this->getKfrDoc( $kfrc->Key(), '' );
+                            $kfr->SetValue( 'name', $newName.substr($kfr->Value('name'),strlen($oldName)) );
+                            $ok = $kfr->PutDBRow();
+                            // uncache any DocRepDoc obj for this descendant
+                            $this->oDocRepDB->DocCacheClear($kfrc->Key());
+                        }
+                        /*
+                        $this->oDocRepDB->kfdb->Execute( "UPDATE {$this->oDocRepDB->GetRel()->DBName()}.docrep2_docs
+                                                          SET name=CONCAT('$dbNewName',SUBSTR(name,$lenOldName))
+                                                          WHERE name LIKE '{$dbNewName}/%'" );
+                        */
+                    }
+                }
+            }
+        }
+
 // TODO: there is no way to change a title to "". The solution is to only update parms that are isset()
-        if( @$parms['title'] ) {
+        if( $ok && @$parms['title'] ) {
             $kfrData = $this->getKfrData( $this->kDoc, '' );
             $kfrData->SetValue( 'title', $parms['title'] );
             $ok = $kfrData->PutDBRow();
         }
 
-// TODO: there is no way to change a name to ""
-        if( $ok && @$parms['name'] ) {
-            $newName = $this->GetNewDocName($parms['name'], self::NEW_DOC_NAME_OP_RENAME);  // convert to full path name
-
-            $kfrDoc = $this->getKfrDoc( $this->kDoc, '' );
-            $kfrDoc->SetValue( 'name', $newName );
-            $ok = $kfrDoc->PutDBRow();
-        }
-
-        $this->clearCache();    // force a data refresh
+        $this->ClearCache();    // force a data refresh
 
         return( $ok );
     }
@@ -1337,7 +1375,7 @@ class DocRepDoc2_Insert extends DocRepDoc2
             $this->oDocRepDB->VersionSetDXDFlag( $kfrDoc->Key(), $kfrData->Key(), $flag );
         }
 
-        $this->clearCache();    // maybe this operation messes up some cached version data so reload from the db
+        $this->ClearCache();    // maybe this operation messes up some cached version data so reload from the db
 
         return( $this->kDoc );
     }
