@@ -85,6 +85,7 @@ class EventsSheet
                 'details'    => ['dbCol'=>'details',    'sheetCol'=>'Tell us about your event:'],
                 'contact'    => ['dbCol'=>'contact',    'sheetCol'=>'Contact email and/or phone number for event:'],
                 'url_more'   => ['dbCol'=>'url_more',   'sheetCol'=>'Website/social media handles/other links for event:'],
+                'title'      => ['dbCol'=>'title',      'sheetCol'=>'Title of event:'],
     ];
 
     function fnValidateSheetRow( array $raRow )

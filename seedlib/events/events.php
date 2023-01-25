@@ -2,7 +2,7 @@
 
 /* events.php
  *
- * Copyright (c) 2019-2022 Seeds of Diversity Canada
+ * Copyright (c) 2019-2023 Seeds of Diversity Canada
  *
  * Record and manage events with volunteers and exhibit materials
  *
@@ -128,7 +128,10 @@ class Events_event
 
         if( !$this->kfr )  goto done;
 
-        if( $this->kfr->value("type") == "SS" ) {
+        $title = $this->_getValue('title');
+
+        // title overrides, but if blank on SS then compose "$city Seedy Saturday" using date to write the day-of-week
+        if( !$title && $this->kfr->value("type") == "SS" ) {
             $city = $this->kfr->valueEnt('city');
 
             if( $this->oE->oApp->lang == "FR" ) {
@@ -138,8 +141,6 @@ class Events_event
             } else {
                 $title = "$city Seedy Saturday";    // default to Saturday
             }
-        } else {
-            $title = $this->_getValue( "title" );
         }
 
         done:
@@ -164,8 +165,8 @@ class Events_event
         $v = "";
 
         if( $this->kfr ) {
-            $e = $this->kfr->valueEnt($field);
-            $f = $this->kfr->valueEnt($field."_fr");
+            $e = $this->kfr->value($field);
+            $f = $this->kfr->value($field."_fr");
             $v = (($this->oE->oApp->lang=="EN" && $e) || ($this->oE->oApp->lang=="FR" && !$f)) ? $e : $f;
             if( $bEnt ) $v = SEEDCore_HSC($v);
         }
@@ -233,7 +234,7 @@ class Events_event
     /**********************************
      */
     {
-        $details = $this->_getValue( "details", false );    // do not expand entities because this is allowed to contain HTML
+        $details = $this->_getValue( "details", false );    // do not expand entities because this is allowed to contain HTML -- must screen user input
         $details = trim($details);                          // get rid of trailing blank lines
 
         if( intval(substr($this->kfr->value("date_start"),0,4)) < 2008 ) {
