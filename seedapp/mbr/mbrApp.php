@@ -24,6 +24,7 @@ class MbrApp
             [ 'renewalRequests'   => ['R MBR'],
               'donationRequests' => ['R MBRDonations', 'A MBR', '|'],
               'donationReceipts' => ['R MBRDonations', 'A MBR', '|'],
+              'donationReceipts2' => ['R MBRDonations', 'A MBR', '|'],
               'donations'        => ['W MBRDonations', 'A MBR', '|'],
               'donationsSL'      => ['W MBRDonations', 'W SLAdopt', 'A MBR', 'A SL', '|'],
               '|'  // allows screen-login even if some tabs are ghosted

@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2022 Seeds of Diversity Canada
+ * Copyright 2020-2023 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -13,6 +13,7 @@ include_once( SEEDCORE."SEEDCoreFormSession.php" );
 include_once( SEEDAPP."mbr/mbrApp.php" );
 include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDLIB."mbr/MbrContacts.php" );
+include_once( SEEDLIB."mbr/MbrDonations.php" );
 
 //list($kfdb,$sess,$lang) = SiteStartSessionAccount( array( 'R MBR' ) );
 
@@ -26,6 +27,7 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'renewalRequests'  => ['label'=>'Renewal Notices'],
                                         'donationRequests' => ['label'=>'Donation Requests'],
                                         'donationReceipts' => ['label'=>'Donation Receipts'],
+                                        'donationReceipts2' => ['label'=>'Donation Receipts2'],
                                         'donations'        => ['label'=>'Donations'],
                                         'donationsSL'      => ['label'=>'Seed Library Adoptions'],
                                       ],
@@ -48,48 +50,15 @@ $sess = $oApp->sess;
 SEEDPRG();
 
 
-if( SEEDInput_Str('cmd') == 'printDonationReceipt' ) {
-    include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
-
-    if( !($rngReceipt = SEEDInput_Str('donorReceiptRange')) ) {
+if( SEEDInput_Str('cmd') == 'printDonationReceipt' || SEEDInput_Str('cmd') == 'printDonationReceipt2' ) {
+    if( ($rngReceipt = SEEDInput_Str('donorReceiptRange')) ) {
+        list($sHead,$sBody) = (new MbrDonations($oApp))->DrawDonationReceipt( $rngReceipt, SEEDInput_Str('cmd') == 'printDonationReceipt' ? 'HTML' : 'PDF_STREAM' );
+        // HTML returns with these vars; PDF_STREAM does not return
+        echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
+        exit;
+    } else {
         $oApp->oC->AddErrMsg( 'Enter a receipt number' );
-        goto printDonationReceiptAbort;
     }
-
-    $oMT = new SoDMasterTemplate( $oApp, ['raSEEDTemplateMakerParms'=>['fTemplates'=>[SEEDAPP."templates/donation_receipt.html"]]] );
-
-    list($raReceipts) = SEEDCore_ParseRangeStr( $rngReceipt );
-
-    $oContacts = new Mbr_Contacts( $oApp );
-    $sBody = $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', [] );;
-    foreach( $raReceipts as $nReceipt ) {
-        if( !($kfr = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
-            $sBody .= "<div class='donReceipt_page'>Unknown receipt number $nReceipt</div>";
-            continue;
-        }
-
-// use MbrContacts::DrawAddressBlock
-        $vars = [
-            'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]")
-                          .( ($name2 = trim($kfr->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
-                          .$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
-            'donorAddr' => $kfr->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
-            'donorReceiptNum' => $nReceipt,
-            'donorAmount'  => $kfr->Value('amount'),
-            'donorDateReceived' => $kfr->Value('date_received'),
-            'donorDateIssued' => $kfr->Value('date_issued'),
-            'taxYear' => substr($kfr->Value('date_received'), 0, 4)     // should be the year for which the donation applies
-        ];
-
-        $sBody .= $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', $vars );
-    }
-
-    $sHead = "";
-    echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
-
-    exit;
-
-    printDonationReceiptAbort:
 }
 
 
@@ -244,6 +213,19 @@ class MyConsole02TabSet extends Console02TabSet
 
         $s .= "<form target='_blank'>
               <input type='hidden' name='cmd' value='printDonationReceipt'>
+              <input type='text' name='donorReceiptRange'/>
+              <input type='submit' value='Make Receipt'/>
+              </form>";
+
+        return( $s );
+    }
+
+    function TabSet_main_donationReceipts2_ContentDraw()
+    {
+        $s = "";
+
+        $s .= "<form target='_blank'>
+              <input type='hidden' name='cmd' value='printDonationReceipt2'>
               <input type='text' name='donorReceiptRange'/>
               <input type='submit' value='Make Receipt'/>
               </form>";
