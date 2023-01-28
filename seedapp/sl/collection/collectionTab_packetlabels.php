@@ -110,13 +110,13 @@ class CollectionTab_PacketLabels
             // set position to the top with left padding for the logo, and write the cvname in bold
             $pdf->AddLabel2( $xMarginText, $yMarginText );
             $pdf->SetFont( '', 'B', $fontsizeText );
-            $pdf->AddLabel3( $sHead, $xMarginText );
+            $pdf->AddLabel3( SEEDCore_utf8_encode($sHead), $xMarginText );
 
             // set position to the top-left with additional left padding for the logo and one line of top padding for the cvname,
             // and write the description
             $pdf->SetFont( '', '', $fontsizeText );
             $pdf->AddLabel2a( $xMarginText );
-            $pdf->AddLabel3( $sDesc, $xMarginText );
+            $pdf->AddLabel3( SEEDCore_utf8_encode($sDesc), $xMarginText );
             //$pdf->AddLabel3( "\n".$sDesc, $xMarginText );      old method reset Y to top and inserted \n here
         }
 
