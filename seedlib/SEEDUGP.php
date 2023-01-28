@@ -97,7 +97,7 @@ class SEEDUGP_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
         return( $raRow );
     }
 
-    function FormTemplate()
+    function FormTemplate( SEEDCoreForm $dummy )
     {
         switch($this->c) {
             case 'users':
@@ -205,7 +205,7 @@ class SEEDPerm_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
 
     /* These are not called directly, but referenced in raConfig
      */
-    function FormTemplate()
+    function FormTemplate( SEEDCoreForm $dummy )
     {
         if( $this->c == 'seedpermsclasses' ) {
             $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"

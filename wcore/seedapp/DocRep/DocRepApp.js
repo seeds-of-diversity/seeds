@@ -1,6 +1,6 @@
 /* DocRepApp.js
  *
- * Copyright (c) 2021-2022 Seeds of Diversity Canada
+ * Copyright (c) 2021-2023 Seeds of Diversity Canada
  *
  * UI widgets for managing DocRep documents.
  *
@@ -19,7 +19,8 @@ class DocRepCache
     GetDocInfo( kDoc, bInternalRecurse = false )
     {
         let oDoc = null;
-
+        kDoc = Number(kDoc);
+        
         if( this.mapDocs.has(kDoc) ) {
             oDoc = this.mapDocs.get(kDoc);
         } else if( !bInternalRecurse ) {
@@ -121,13 +122,20 @@ class DocRepTree
     {
         let s = "";
 
+        let label = "Untitled";
+        if( oDoc.title ) {
+            label = oDoc.title + (oDoc.name ? ("&nbsp;&nbsp;<span style='font-size:x-small;color:#777;font-weight:normal'>("+this.docBasename(oDoc)+")</span>") : "");
+        } else if( oDoc.name ) {
+            label = oDoc.name;
+        }
+
         s = `<div class='DocRepTree_title' data-kdoc='${oDoc.k}'>
                  <div class='DocRepTree_titleFolderTriangle' style='width:10px;display:inline-block;margin:0 3px'>`
                 +this.drawFolderTriangle( oDoc )
                 +`</div>`
                 +(oDoc.doctype=='folder' ? `<img src='${this.dirIcons}folder.png' width='20'>`
                                          : `<img src='${this.dirIcons}text.png' width='20'>`)
-                +`&nbsp;${oDoc.name}
+                +`&nbsp;${label}
              </div>`;
 
 /*
@@ -138,6 +146,25 @@ class DocRepTree
 */
 
         return( s );
+    }
+
+// put this in a Doc object 
+    docBasename( oDoc )
+    {
+        let basename = "";
+        
+        if( oDoc.name ) {
+            let i = oDoc.name.lastIndexOf('/');
+            
+            if( i == -1 ) {
+                // name has no named parent (basename is full name)
+                basename = oDoc.name;
+            } else {
+                basename = oDoc.name.substring(i+1);
+            }
+        }
+        
+        return( basename );
     }
 
     drawFolderTriangle( oDoc )

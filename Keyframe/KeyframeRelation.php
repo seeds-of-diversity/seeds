@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2022 Seeds of Diversity Canada
+ * Copyright (c) 2006-2023 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
@@ -679,11 +679,24 @@ private $raColAlias = [];        // store all field names for reference ( array 
          *     [ alias=>fld, ... ] generates {fld as alias},...
          *     [ 'VERBATIM1'=>1, 'VERBATIM2'=>"'foo'", 'VERBATIM3'=>"COUNT(*) as c"] generates {1,'foo',COUNT(*) as c}  keys start with VERBATIM but should have different arbitrary suffixes because they're keys
          *
-         * If sGroupAliases is defined (and not raFieldsOverride), use it to create the select fields.
+         * If sGroupAliases is specified (and not raFieldsOverride), use it to create the select fields.
          *     [ alias1,alias2 ] uses {col1,col2} as grouping cols and {col1 as alias1,col2 as alias2} as select fields
+         * This creates the group clause regardless of whether raFieldsOverride is specified.
          *
          * Otherwise use the default select fields computed from the kfrel.
+         *
+         * e.g.
+         *  raFieldsOverride=>['A_foo'=>'A.foo','maxbar'=>"MAX(A.bar)"], sGroupAliases=>"A_foo"
+         *      makes
+         *      SELECT A.foo as A_foo, MAX(A.bar) as maxbar FROM ... GROUP BY A.foo    which is valid sql
          */
+
+// VERBATIM deficiency in KF: you can make a select that returns novel aliases (using raFieldsOverride) but KF doesn't copy those into the kfr unless they're defined in the kfrel
+// the correct solution is to enumerate all returned cols (named "as alias") and copy their alias=>value into the kfr.
+// a kluge that is used instead is to use an alias of an existing column that is not relevant.
+//    e.g you want SELECT MAX(A.bar) as maxbar... as above, but if there is no maxbar in the kfrel that value will not be in the kfr.
+//        so use SELECT MAX(A.bar) as _updated  and put a big comment there explaining why, and don't re-write the kfr
+
         $sFieldsClause = "";
         if( isset($parms['raFieldsOverride']) ) {
             foreach( $parms['raFieldsOverride'] as $alias=>$fld ) {
@@ -696,6 +709,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
             // alias1,alias2,... identify the group cols and if !raFieldsOverride then also all of the select cols/aliases.
             foreach( ($ra = explode( ',', $sGroupAliases )) as $a ) {
                 $col = $this->GetRealColName( trim($a) );
+                // raFieldsOverride specifies the SELECT clause instead
                 if( !isset($parms['raFieldsOverride']) ) {
                     $sFieldsClause .= ($sFieldsClause ? "," : "")
                                      ."$col as $a";
@@ -746,7 +760,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
 
         These are safe ways to use user-inputted col/alias names without sql injection. Substitution is allowed so high-level code doesn't have to know which is which.
         {{ac|foo}}      required to be an alias or column named foo. Check for alias first, and if it is actually a column, converted to the corresponding alias.
-        {{ca|foo}}      required to be a column or alias named foo. Check for column first, and if it is actually a column, convert to the corresponding alias.
+        {{ca|foo}}      required to be a column or alias named foo. Check for column first, and if it is actually an alias, convert to the corresponding column.
      */
     {
 //$b = strpos($q,'{{') !== false;

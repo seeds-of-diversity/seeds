@@ -835,7 +835,7 @@ if( $kfrBPxP->Value('P_product_type') == 'seeds' ) {
 // make this a derived class adjustment:  ComputeExtraItems( oPur, uidSeller, uidBuyer ) : [[sLabel,fAmount], ]
 // you get a discount if you are a grower member (but only on products over $2)
 if( $oPur->GetProductType() == 'seeds' &&
-    $this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" ) &&
+    $this->oSB->oDB->kfdb->Query1( "SELECT _key FROM {$this->oSB->oApp->DBName('seeds1')}.sed_curr_growers WHERE mbr_id='".$this->oSB->GetUID_SB()."' AND NOT bSkip" ) &&
     $oPur->GetPrice() > 2.00 )
 {
     if( floatval($oPur->GetPrice()) > 10.00 ) {
@@ -845,7 +845,7 @@ if( $oPur->GetProductType() == 'seeds' &&
     }
     $this->raComputed['fTotal'] += $discount;
     $this->raComputed['raSellers'][$uidSeller]['fSellerTotal'] += $discount;
-    $this->raComputed['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Your grower member discount", 'fAmount'=>$discount];
+    $this->raComputed['raSellers'][$uidSeller]['raExtraItems'][] = ['sLabel'=>"Discount for members who offer seeds in the seed exchange", 'fAmount'=>$discount];
 }
                 // add other items for shipping / discount
         }

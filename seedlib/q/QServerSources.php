@@ -153,6 +153,7 @@ class QServerSourceCV extends SEEDQ
          *      So the ANY_VALUE is placed in fk_sl_pcv because we know it isn't used.
          */
         $raParms['kfrcParms']['sGroupAliases'] = "fk_sl_species,ocv";
+// deficiency in KF: you can make a select that returns novel aliases (using raFieldsOverride) but KF doesn't copy those into the kfr
         $raParms['kfrcParms']['raFieldsOverride'] = ['fk_sl_species'=>'fk_sl_species','ocv'=>'ocv',
                                                      'VERBATIM-k'=>"MIN(SRCCV._key) as fk_sl_pcv"];   // put ANY_VALUE in fk_sl_pcv; this is horrible
         $raParms['kfrcParms']['sSortCol'] = "ocv";

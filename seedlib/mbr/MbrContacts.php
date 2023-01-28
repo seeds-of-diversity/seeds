@@ -56,7 +56,7 @@ class Mbr_Contacts
         $ra = $this->oApp->kfdb->QueryRA( "SELECT firstname,lastname,firstname2,lastname2,company,city,province "
                                          ."FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$k'" );
         $raParms['fldPrefix'] = '';
-        return( self::GetContactNameFromMbrRA( $ra, $raParms ) );
+        return( $ra ? self::GetContactNameFromMbrRA( $ra, $raParms ) : "" );
     }
 
     static function GetContactNameFromMbrRA( $ra, $raParms = [] )
@@ -87,8 +87,8 @@ class Mbr_Contacts
         $s = self::FirstnameLastname( $ra, $prefix );
 
         // company
-        if( !$s || $bShowCompanyWithName ) {
-            $s = ($s ? ", " : "") . $ra[$prefix.'company'];
+        if( ($sCompany = $ra[$prefix.'company']) && (!$s || $bShowCompanyWithName) ) {
+            $s .= ($s ? ", " : "") . $sCompany;
         }
 
         // city, province
@@ -528,7 +528,7 @@ class MbrContactsList
         $this->oMbr = new Mbr_Contacts($oApp);
 
         $this->yCurrent = @$raConfig['yCurrent'] ?: date('Y');
-        $this->initGroups();
+        $this->initGroups($raConfig);
     }
 
     function GetGroup( $sGroup )
@@ -555,14 +555,17 @@ class MbrContactsList
         return( ($raG = $this->GetGroup($sGroup)) ? intval(@count($raG['raList'])) : 0 );
     }
 
-    private function initGroups()
+    private function initGroups($raConfig)
     {
         $dStart    = ($this->yCurrent - 2)."-01-01";         // include members and donors from two years ago
         $dDonorEnd = date("Y-m-d", strtotime("-6 months"));  // and donors who haven't made donations during the past six months
         $lEN = "M.lang<>'F'";
         $lFR = "M.lang='F'";
-// parameterize
-        $condLarge = "D.amountTotal>=150";
+
+        // large donation threshold
+        $dDonThresholdUpper = intval(@$raConfig['dLargeDonation']) ?: 150;
+        $dDonThresholdLower = $dDonThresholdUpper - 1;
+        $condLarge = "D.amountTotal>=$dDonThresholdUpper";
 
         /* condM_D filters the results of the final join M_D
          * 1) Donor is anyone eligible for a donation request who made a donation between dDonorStart and dDonorEnd
@@ -575,14 +578,14 @@ class MbrContactsList
         $condDonor = "D.date_received IS NOT NULL AND D.date_received BETWEEN '$dStart' AND '$dDonorEnd'";
         $condNonDonorMember = "(D.date_received IS NULL OR D.date_received<'$dStart') AND M.expires>='$dStart'";
 
-        foreach(['donorEN'    => ['title'=>'Donors English',       'cond'=>[$condDonor,          $lEN],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donorFR'    => ['title'=>'Donors French',        'cond'=>[$condDonor,          $lFR],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor100EN' => ['title'=>'Donors English $150+', 'cond'=>[$condDonor,          $lEN, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor100FR' => ['title'=>'Donors French $150+',  'cond'=>[$condDonor,          $lFR, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor99EN'  => ['title'=>'Donors English $149-', 'cond'=>[$condDonor,          $lEN, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor99FR'  => ['title'=>'Donors French $149-',  'cond'=>[$condDonor,          $lFR, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'nonDonorEN' => ['title'=>'Non-donors English',   'cond'=>[$condNonDonorMember, $lEN],                   'parms'=>[]],// 'order'=>"lastname,firstname"],
-                 'nonDonorFR' => ['title'=>'Non-donors French',    'cond'=>[$condNonDonorMember, $lFR],                   'parms'=>[]],// 'order'=>"lastname,firstname"]
+        foreach(['donorEN'    => ['title'=>"Donors English",                          'cond'=>[$condDonor,          $lEN],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donorFR'    => ['title'=>"Donors French",                           'cond'=>[$condDonor,          $lFR],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor100EN' => ['title'=>"Donors English \${$dDonThresholdUpper}+", 'cond'=>[$condDonor,          $lEN, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor100FR' => ['title'=>"Donors French \${$dDonThresholdUpper}+",  'cond'=>[$condDonor,          $lFR, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor99EN'  => ['title'=>"Donors English \${$dDonThresholdLower}-", 'cond'=>[$condDonor,          $lEN, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor99FR'  => ['title'=>"Donors French \${$dDonThresholdLower}-",  'cond'=>[$condDonor,          $lFR, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'nonDonorEN' => ['title'=>"Non-donors English",                      'cond'=>[$condNonDonorMember, $lEN],                   'parms'=>[]],// 'order'=>"lastname,firstname"],
+                 'nonDonorFR' => ['title'=>"Non-donors French",                       'cond'=>[$condNonDonorMember, $lFR],                   'parms'=>[]],// 'order'=>"lastname,firstname"]
                 ] as $k => $ra )
         {
             $this->raGroups[$k] = ['title'=>$ra['title'], 'raList'=>null, 'cond'=>implode(' AND ',$ra['cond']), 'parms'=>$ra['parms'], 'sql'=>""];

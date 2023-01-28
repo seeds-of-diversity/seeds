@@ -2,7 +2,7 @@
 
 /* mailsend.php
  *
- * Copyright 2010-2022 Seeds of Diversity Canada
+ * Copyright 2010-2023 Seeds of Diversity Canada
  *
  * Send email staged by mailsetup.
  *
@@ -55,7 +55,6 @@ $sBody = "<h2>Seeds of Diversity Bulk Mailer</h2>"
         ."<form method='get'><input type='submit' value='Reload'/></form>";
 
 list($bTestOk,$sTest) = (new SEEDMailTestHistory($oApp))->TestMailHistory();
-$sBody .= $sTest;
 
 $bSendMail = ($bTestOk && $nToSend);
 
@@ -74,6 +73,8 @@ if( $bSendMail ) {
         if( SEED_isCLI && $nQuantity && $nDelay ) sleep($nDelay);   // sleep for cmd line invocation; web invocation uses <meta> below
     }
 }
+
+$sBody .= $sTest;
 
 $sBody = $oApp->oC->DrawConsole($sBody);
 

@@ -2,7 +2,7 @@
 
 /* SEEDBasketDB.php
  *
- * Copyright (c) 2016-2021 Seeds of Diversity Canada
+ * Copyright (c) 2016-2023 Seeds of Diversity Canada
  *
  * DB layer for shopping baskets
  */
@@ -13,6 +13,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     public $kfdb;   // just so third parties can find this in a likely place
     private $raCustomProductKfrelDefs = array();
     private $db;
+    private $raConfig;
 
     function __construct( KeyframeDatabase $kfdb, $uid, $logdir, $raConfig = array() )
     {
@@ -21,6 +22,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
          * $kfdb can be a different db, but it has to be able to read 'sbdb'
          */
         $this->kfdb = $kfdb;
+        $this->raConfig = $raConfig;
         global $config_KFDB;
         $this->db = @$raConfig['sbdb'] ? $config_KFDB[$raConfig['sbdb']]['kfdbDatabase'] : $kfdb->GetDB();
         $this->raCustomProductKfrelDefs = @$raConfig['raCustomProductKfrelDefs'] ?: array();
@@ -234,6 +236,20 @@ class SEEDBasketDB extends Keyframe_NamedRelations
                                               "Fields" => "Auto" ];
             }
             $raKfrel[$kfName] = new Keyframe_Relation( $kfdb, $kdef, $uid, $raParms );
+        }
+
+        /* fnInitKfrel can add named relations, either though a callback or a derived method.
+         * The functions return [relation_name => kfdef, ...]
+         */
+        if( method_exists($this, 'fnInitKfrel') ) {
+            foreach( $this->fnInitKfrel() as $relname => $kdef ) {
+                $raKfrel[$relname] = new Keyframe_Relation( $kfdb, $kdef, $uid, $raParms );
+            }
+        }
+        if( @$this->raConfig['fnInitKfrel'] ) {
+            foreach( call_user_func( $this->raConfig['fnInitKfrel']) as $relname => $kdef ) {
+                $raKfrel[$relname] = new Keyframe_Relation( $kfdb, $kdef, $uid, $raParms );
+            }
         }
 
         return( $raKfrel );

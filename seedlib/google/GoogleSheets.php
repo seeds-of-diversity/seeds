@@ -279,6 +279,26 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
     }
 
     /**
+     * Write values to specific named cells in a given row.
+     *
+     * @param String $nameSheet - name of the sheet to read
+     * @param int    $row - row number to write
+     * @param array  [colname => value, colname => value, ...]
+     */
+    function WriteCellsWithNamedColumns( string $nameSheet, int $row, array $raCells )
+    {
+        $raColNames = $this->GetColumnNames($nameSheet);
+        foreach( $raCells as $colname => $v ) {
+            // Get the index number of the named col, convert to A1 notation
+//TODO: a smarter implementation could combine adjacent cells
+            if( ($i = array_search($colname, $raColNames)) === false ) continue;
+            $range = $this->NumberToColumnLetter($i+1).$row;
+            $this->WriteValues( $nameSheet.'!'.$range, [[$v]] );   // value in 2D array
+var_dump("Writing $v to $range");
+        }
+    }
+
+    /**
      * Get array of the values in the named column starting at row 2.
      *     i.e. $ret[0] is spreadsheet row 2 of the column that has $colname in row 1
      *
@@ -376,8 +396,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
             }
 
             if( !($kfr = $this->kfrel->GetRecordFromDBKey($kSync)) ) {
-                $raRow['sync_note'] = "not found in db";
-                $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
+                $this->oGoogleSheet->WriteCellWithNamedColumns( $this->nameSheet, $iRow, ['sync_note' => "not found in db"] );
                 goto do_next;
             }
 
@@ -400,32 +419,67 @@ class SEEDGoogleSheets_SyncSheetAndDb
      */
     {
         $ok = false;
-        $note = "";
+        $writeCells = ['sync_key'=>"", 'sync_ts'=>"", 'sync_note'=>""];  // these are written to the sheet row
 
         // If there's a validation function, use that to test whether the row should be copied. If not, store a note.
         if( ($fn = @$this->raConfig['fnValidateSheetRow']) ) {
-            list($ok,$n1) = call_user_func($fn, $raRow);
+            list($ok,$raRow,$note) = call_user_func($fn, $raRow);
+            $writeCells['sync_note'] = $note;
             if( !$ok ) {
-                $note = $n1;
                 goto done;
             }
         }
 
         foreach( $this->mapCols as $raMap ) {
-            $kfr->SetValue( $raMap['dbCol'], @$raRow[$raMap['sheetCol']] );
+            if( $raMap['dbCol'] ) { // some map rows are used in the validation process and don't have dbCols
+                $kfr->SetValue( $raMap['dbCol'], @$raRow[$raMap['sheetCol']] );
+            }
         }
         $kfr->SetValue( 'tsSync', time() );
         if( $kfr->PutDBRow() ) {
-            $raRow['sync_key'] = $kfr->Key();
-            $raRow['sync_ts'] = $kfr->Value('tsSync');
-            $note = "synced";
+            $writeCells['sync_key'] = $kfr->Key();
+            $writeCells['sync_ts'] = $kfr->Value('tsSync');
+            $writeCells['sync_note'] = "synced".$writeCells['sync_note'];
             $ok = true;
         }
 
         done:
-        if( $note || $ok ) {
-            $raRow['sync_note'] = $note;
-            $this->oGoogleSheet->SetRowWithNamedColumns( $this->nameSheet, $iRow, $raRow );
+        if( $ok || $writeCells['sync_note'] ) {
+            $this->oGoogleSheet->WriteCellsWithNamedColumns( $this->nameSheet, $iRow, $writeCells );
         }
     }
+
+/* To make a Google Sheet push changes to a sync process:
+
+   Create an http-activated process using this class (example url below).
+   Put the AppScript below in your google sheet.
+   Bind the script to an installable trigger on an Edit action. Don't use onEdit because as a simple trigger
+   it doesn't have permission to use UrlFetchApp.
+
+function MyOnEdit(e)    // or just use onEdit if you don't need to use UrlFetchApp to push the change
+{
+  // When a cell is changed, reset the sync_ts column to indicate a dirty row.
+
+  var sheet = e.range.getSheet();
+  var row = e.range.getRowIndex();  // the (first) changed row
+  var col = e.range.getColumn();    // the (first) changed col
+
+  // find the sync_key,sync_ts columns
+  var colKey = 0;
+  var colTS = 0;
+  for( i=1; i<sheet.getLastColumn(); i++ ) {
+    if( sheet.getRange(1,i).getValue() == "sync_key") { colKey = i; }
+    if( sheet.getRange(1,i).getValue() == "sync_ts")  { colTS = i; }
+  }
+
+  // Only trigger dirty for rows and cols of primary data (below header row and left of sync_key)
+  if( colKey && (row > 1 && col < colKey) ) {
+    // mark the row by blanking the sync_ts
+    sheet.getRange(row,colTS).setValue('');
+//      var response = UrlFetchApp.fetch("https://seeds.ca/app/q2/?qcmd=ev-syncSheet");
+  }
+}
+
+*/
+
 }

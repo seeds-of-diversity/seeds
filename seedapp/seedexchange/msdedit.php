@@ -38,13 +38,13 @@ class MSEEditApp
         $this->oMSDLib = new MSDLib($oApp, ['sbdb'=>'seeds1']);
     }
 
-    function NormalizeParms( int $kCurrGrower )
-    /******************************************
+    function NormalizeParms( int $kCurrGrower, string $eTab )
+    /********************************************************
         Init() methods use this to normalize the current grower and office perm status
      */
     {
         $bOffice = $this->oMSDLib->PermOfficeW();
-        if( !$kCurrGrower || !$bOffice ) {
+        if( !$bOffice || (!$kCurrGrower && $eTab=='grower') ) {     // kGrower==0 allowed for Seeds in office (see all seeds in current section)
             $kCurrGrower = $this->oApp->sess->GetUID();
         }
         return( [$bOffice, $kCurrGrower] );
@@ -105,7 +105,7 @@ class MSEEditAppTabGrower
 
     function Init_Grower( int $kGrower )
     {
-        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kGrower);
+        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kGrower, 'grower');
         $kGrower = $this->kGrower;  // be sure not to use the old value below
 
 // Activate your seed list -- Done! should be Active (summary of seeds active, skipped, deleted)
@@ -312,9 +312,9 @@ class MSEEditAppTabSeeds
         $this->oMEApp = new MSEEditApp($oApp);
     }
 
-    function Init_Seeds( int $kCurrGrower, int $kCurrSpecies )
+    function Init_Seeds( int $kCurrGrower, $kCurrSpecies )   // kluge: kSp is normally int but can be tomatoAC, tomatoDH
     {
-        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kCurrGrower);
+        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kCurrGrower, 'seeds');
         $this->kSpecies = $kCurrSpecies;
     }
 
@@ -326,7 +326,9 @@ class MSEEditAppTabSeeds
             $s .= $this->oMEApp->MakeSelectGrowerNames($this->kGrower,true);    // grower names have to be encoded to utf8 on seeds tab
         }
         if( $this->kSpecies ) {
-            $s .= "<div style='margin-top:10px'><strong>Showing ".$this->oMEApp->oMSDLib->GetSpeciesNameFromKey($this->kSpecies)."</strong>"
+            $sSpecies = is_numeric($this->kSpecies) ? $this->oMEApp->oMSDLib->GetSpeciesNameFromKey($this->kSpecies) : $this->kSpecies; // normally int but can be tomatoAC,tomatoDH,etc
+
+            $s .= "<div style='margin-top:10px'><strong>Showing $sSpecies</strong>"
                  ." <a href='{$_SERVER['PHP_SELF']}?selectSpecies=0'><button type='button'>Cancel</button></div>";
         }
 
@@ -367,7 +369,7 @@ class MSEEditAppSeedEdit
            ."<div class='seededit-form' style='display:none'></div>"
        ."</div>";
 
-    function Draw( $uidSeller, $kSp )
+    function Draw( $uidSeller, $kSp )        // kSp is usually int, but can be tomatoAC, tomatoDH, etc
     {
         $s = "";
         $sForm = $sList = "";
@@ -759,7 +761,7 @@ basketScript;
     }
 
 
-    private function drawListOfMSDSeedContainers( $uidSeller, $kSp )
+    private function drawListOfMSDSeedContainers( $uidSeller, $kSp )     // kSp is usually int but can be tomatoAC, tomatoDH, etc
     {
         $sList = "";
         $raSeeds = array();

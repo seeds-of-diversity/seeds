@@ -211,8 +211,21 @@ class MSDQ extends SEEDQ
             || ($uid = intval(@$raParms['uid_seller'])) ) { // deprecated
             $raCond[] = "P.uid_seller='$uid'";
         }
+// kSp is normally int but it can be tomatoAC,tomatoDH,etc
         if( ($kSp = intval(@$raParms['kSp'])) ) {
             $raCond[] = "PE2.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
+        } else if( SEEDCore_StartsWith(@$raParms['kSp'], 'tomato')) {
+            // kluge tomatoAC, tomatoDH, etc
+            $cond = "PE2.v LIKE 'TOMATO%'";
+            switch( $kSp ) {
+                default: // fall to tomatoAC
+                case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PE3.v,1)) <= 'C'";               break;
+                case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'D' AND 'H'";  break;
+                case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'I' AND 'M'";  break;
+                case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'N' AND 'R'";  break;
+                case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PE3.v,1)) >= 'S'";               break;
+            }
+            $raCond[] = $cond;
         }
 
         if( !count($raCond) && !@$raParms['bAll'] ) {       // this is why eStatus is a secondary parameter; it is required but at least one primary filter is also required

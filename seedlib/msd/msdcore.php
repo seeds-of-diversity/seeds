@@ -2,7 +2,7 @@
 
 /* MSDCore
  *
- * Copyright (c) 2018-2021 Seeds of Diversity
+ * Copyright (c) 2018-2023 Seeds of Diversity
  *
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
@@ -43,15 +43,46 @@ class MSDCore
         $this->dbname1 = $this->oApp->GetDBName('seeds1');
         $this->dbname2 = $this->oApp->GetDBName('seeds2');
 
-        $this->oMSDSB = new MSDBasketCore( $oApp->kfdb, $oApp->sess, $oApp );
+        $this->oMSDSB = new MSDBasketCore( $oApp );
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
                                          // create these kfrels in oSBDB
                                          ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
+                                          'fnInitKfrel' => [$this,'mseInitKfrel'],      // initKfrel calls this to define additional Named Relations
                                           'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'
                                          ] );
-
         $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
     }
+
+    function mseInitKfrel()
+    /**********************
+        Return additional defs for Named Relations.
+        e.g. PxCATEGORY_SPECIES joins PxPExPE such that PEcategory.v and PEspecies.v are the columns containing those values
+                                                    and PEcategory_v and PEspecies_v are the column aliases
+     */
+
+
+    {
+        // relation-name => kfdef
+        $kdef = [];
+        $kdef['PxCATEGORY'] = ['Tables' => ['P' => ['Table' => "{$this->dbname1}.SEEDBasket_Products",
+                                                      'Fields' => "Auto"] ]
+                                            + $this->mseInitKfrel_def('category') ];
+
+        $kdef['PxCATEGORYxSPECIES'] = $kdef['PxCATEGORY'];
+        $kdef['PxCATEGORYxSPECIES']['Tables'] += $this->mseInitKfrel_def('species');
+
+        return( $kdef );
+    }
+    private function mseInitKfrel_def( $k )
+    {
+        // table-alias => table-def
+        return( ["PE{$k}" => ['Table' => "{$this->dbname1}.SEEDBasket_ProdExtra",
+                              'Type' => 'Join',
+                              'JoinOn' => "PE{$k}.fk_SEEDBasket_Products=P._key AND PE{$k}.k='$k'",
+                              'Fields' => "Auto"] ] );
+    }
+
+
 
     function GetCurrYear()  { return( $this->currYear ); }
 
@@ -220,6 +251,60 @@ class MSDCore
 
         done:
         return( $eReq );
+    }
+
+    function LookupCategoryList( string $sCond = "" )
+    {
+        $raOut = [];
+
+        if( ($ra = $this->oSBDB->GetList('PxCATEGORY', $sCond, ['sGroupAliases'=>'PEcategory_v'])) ) {
+            $raOut = array_column($ra, 'PEcategory_v');
+        }
+        return( $raOut );
+    }
+
+    function LookupSpeciesList( string $sCond = "", array $raParms = [] )
+    /********************************************************************
+        Return [category, species, klugeKey2]... for all distinct category,species
+
+        raParms: category   = limit to a category
+
+        N.B. klugeKey2 is totally different than the older kluge keys used in other methods
+     */
+    {
+        $raOut = [];
+
+        if( ($cat = @$raParms['category']) ) {
+            $sCond = ($sCond ? " AND " : "")."PEcategory.v='".addslashes($cat)."'";
+        }
+
+        /* kluge 1: klugeKey is one random key of a Product that has a given category,species
+         *          That means PxCATEGORYxSPECIES where P._key=$klugeKey will give you that category,species (until the database changes)
+         *          and SELECT * FROM SEEDBasket_ProdExtra WHERE fk_SEEDBasketProducts=$klugeKey will give you that too (in a random product with those two values)
+         *
+         * kluge 2: For klugeKey we get MAX(P._key) as an arbitrary key that maps to category,species.
+         *          The problem with novel aliases in KF is only cols known in the kfrel are copied into the kfr, so we don't yet have a way to get "MAX(P._key) as klugeKey".
+         *          Some day maybe novel aliases will be added to the code that copies db values to the kfr.
+         *          Until then, the code below uses the existing but unused v_i1 column. Note that this does not alter v_i1 in the db, just in the kfr.
+         *          Don't re-write these records to the db.
+         */
+        $raSp = $this->oSBDB->GetList( 'PxCATEGORYxSPECIES', $sCond,
+                                       ['sGroupAliases'=>'PEcategory_v,PEspecies_v',
+                                        'raFieldsOverride'=>['PEcategory_v'=>'PEcategory.v','PEspecies_v'=>'PEspecies.v',
+                                                             'v_i1'=>'MAX(P._key)']     // v_i1 is a kluge to retrieve a novel alias's value
+                                       ] );
+        foreach( $raSp as $ra ) {
+            $raOut[] = ['category'=>$ra['PEcategory_v'], 'species'=>$ra['PEspecies_v'], 'klugeKey2'=>$ra['v_i1']];   // now throw away $ra containing v_i1 because it's a bad kluge
+        }
+        return( $raOut );
+    }
+
+    function GetSpeciesNameFromKlugeKey2( int $klugeKey2 )
+    {
+        // klugeKey2 is an arbitrary SEEDBasket_Products key that identifies a category,species (and nothing else)
+        $kfr = $this->oSBDB->GetKfr('PxCATEGORYxSPECIES', $klugeKey2);
+        return( [$kfr ? $kfr->Value('PEspecies_v') : "",
+                 $kfr ? $kfr->Value('PEcategory_v') : ""] );
     }
 
     function SeedCursorOpen( $cond )
@@ -600,11 +685,11 @@ class MSDBasketCore extends SEEDBasketCore
 {
     public $bIsMember;
 
-    function __construct( $kfdb, $sess, SEEDAppConsole $oApp, $raConfig = [] )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
-        $this->bIsMbrLogin = $sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
+        $this->bIsMbrLogin = $oApp->sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
 
-        parent::__construct( $kfdb, $sess, $oApp,
+        parent::__construct( null, null, $oApp,
                              //SEEDBasketProducts_SoD::$raProductTypes );
                              array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ),
 

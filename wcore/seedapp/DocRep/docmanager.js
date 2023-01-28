@@ -1,6 +1,6 @@
 /* Implements a custom DocManager
  *
- * Copyright (c) 2021-2022 Seeds of Diversity Canada
+ * Copyright (c) 2021-2023 Seeds of Diversity Canada
  *
  * usage: DocRepApp02::InitUI() makes it all start up
  *
@@ -340,14 +340,11 @@ class myDocRepCtrlView_Add
         this.kCurrDoc = kCurrDoc;
     }
     
-    static DrawTabBody( parentID ) 
-    /**
-    draw form for add 
-    if CurrDoc is a file, add beside 
-    if CurrDoc is a folder, show option to add under folder or beside folder 
+    static DrawTabBody( parentID )
+    /*****************************
+        Draw form for add 
      */
     {
-
 		let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);   
 		let sType = '';
         if( oDoc ) {
@@ -360,40 +357,29 @@ class myDocRepCtrlView_Add
         $(`#${parentID}`).empty();
         $(`#${parentID}`).html(`
         		<form id='drAdd_form' onsubmit='myDocRepCtrlView_Add.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
-					<br>	
-					<div>Type: </div>
 					<div class='row'> 
-						<div class=${label}>File</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-file'  name='text-or-folder' value='text' checked/>
+						<div class='col-md-12'>
+						    <select id='select-page-or-folder'>
+						    <option value='page' selected>Add a new Page</option>
+						    <option value='folder'>Add a new Folder</option> 
+						    </select>
 						</div>
 					</div>
-					<div class='row'> 
-						<div class=${label}>Folder</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-folder'  name='text-or-folder' value='folder' />
-						</div>
-					</div>
-					<br>
 				</form>`);
 
-		if (sType == 'folder') { // if current is a folder, add option to place new doc as child or sibling 
+		if( sType == 'folder' ) { // if current is a folder, add option to place new doc as child or sibling 
 			$(`#drAdd_form`).append(`
 					<div class='row'> 
-						<div class=${label}>Add under folder</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-as-child'  name='child-or-sibling' value='child' checked/>
+						<div class='col-md-12'>
+                            <select id='select-child-or-sibling'>
+                            <option value='child' selected>Inside the current folder</option>
+                            <option value='sibling'>After the current folder</option> 
+                            </select>
 						</div>
-					</div>
-					<div class='row'> 
-						<div class=${label}>Add beside folder</div>
-						<div class=${ctrl}>
-							<input type='radio' id='add-as-sibling'  name='child-or-sibling' value='sibling' />
-						</div>
-					</div>
-					<br>`);
+					</div>`);
 		}
 		$(`#drAdd_form`).append(`
+					<br/>
 					<div class='row'> 
 						<div class=${label}>Name</div>
 						<div class=${ctrl}>
@@ -427,41 +413,65 @@ class myDocRepCtrlView_Add
         }
     }
 
-	static Submit( e, q_url ) 
-	{
-		e.preventDefault();
-		var rQ;
-		let kDoc = $('#drAdd_kDoc').val();
-		let position = $('input[name=child-or-sibling]:checked').val()
-		let type = $('input[name=text-or-folder]:checked').val()
-		let name = $('#add-name').val();
-		let title = $('#add-title').val();
-		let permissions = $('#add-permissions').val();
+    static Submit( e, q_url ) 
+    {
+        e.preventDefault();
 
-		if( !name || !permissions || !kDoc) {
-			return;
-		}
-	
-		if ( !position ) { // if no position is selected, or position does not exist, default sibling 
-			position == "sibling";
-		}
-		// q_url is from oCtrlView.oConfigEnv. If this method is moved to a static class the oCtrlView can be stored there the same as with Preview
-		if ( position == "child" ) {
-			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posUnder: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
-		}
-		else {
-			rQ = SEEDJXSync(q_url, { qcmd: 'dr--add', kDoc: kDoc, dr_posAfter: kDoc, type: type, dr_name: name, dr_title: title, dr_permclass: permissions });
-		}
-	
-		if (!rQ.bOk) {
-			console.log("error add");
-		}
-		else {
-			// update tree with new folder/file
-			this.UpdateTree();
-		}
-	}
-	
+        let oDocCurr = this.oCtrlView.fnHandleEvent('getDocInfoCurr');
+        let kDoc = oDocCurr.k; // $('#drAdd_kDoc').val();
+        
+        let position = $('#select-child-or-sibling').val();
+        let type = $('#select-page-or-folder').val();
+        let name = $('#add-name').val();
+        let title = $('#add-title').val();
+        let permclass = $('#add-permissions').val();
+
+        if( !kDoc )  return(false);
+        if( position != 'child' ) position = 'sibling';      // default sibling
+        if( !permclass ) {
+            // not defined probably because the control is not exposed in this user mode. Use same permclass as parent.
+            let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', kDoc);
+            if( !oDoc ) {
+                return( false );
+            }
+
+            if( position == 'child' ) {
+                // kDoc is the parent so use the same permclass
+                permclass = oDoc.perms;
+            } else {
+                // kDoc is the sibling so use the parent's permclass
+                if( oDoc.kParent ) {
+                    oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', oDoc.kParent);
+                    permclass = oDoc.perms;
+                } else {
+                    alert( "Cannot add at document tree root without specifying permission class" );
+                    return( false );
+                }
+            }
+            console.log("Permission not specified: using permclass "+permclass+" from parent");
+        }
+
+        let q = { qcmd: 'dr--add', kDoc: kDoc,
+                                   type: type=='folder' ? 'folder' : 'text',
+                                   dr_name: name, dr_title: title, dr_permclass: permclass };
+
+        if( position == 'child' ) {
+            q.dr_posUnder = kDoc;
+        } else {
+            q.dr_posAfter = kDoc;
+        }
+        console.log(q);
+        
+        let rQ = SEEDJXSync(q_url, q);
+        if( !rQ.bOk ) {
+            console.log( "Error adding doc: "+rQ.sErr, q );
+        } else {
+            // update tree with new folder/file
+//	this.UpdateTree();
+        }
+        return( false );
+    }
+
 	static Duplicate( e, q_url )
 	/**
 	make a copy of currently selected folder beside 
@@ -528,8 +538,9 @@ class myDocRepCtrlView_Rename
     {
         let sName = "", sTitle = "", sPerms = "";
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
+
         if( oDoc ) {
-            sName = oDoc['name'];
+            sName = this.docBasename(oDoc);
             sTitle = oDoc['title'];
             sPerms = oDoc['perms'];
         }
@@ -563,6 +574,27 @@ class myDocRepCtrlView_Rename
                 <input type='submit' value='Change'/>
 			</form>`);
     }
+   
+   // put this in a Doc object 
+    static docBasename( oDoc )
+    {
+        let basename = "";
+        
+        if( oDoc.name ) {
+            let i = oDoc.name.lastIndexOf('/');
+            
+            if( i == -1 ) {
+                // name has no named parent (basename is full name)
+                basename = oDoc.name;
+            } else {
+                basename = oDoc.name.substring(i+1);
+            }
+        }
+        
+        return( basename );
+    }
+
+
     
    static Submit( e, q_url ) 
    /**
@@ -1085,7 +1117,7 @@ class DocRepUI02
                         } );
 
         this.kCurrDoc = 0;
-        
+
         console.log("DocRepUI at level "+oConfig.ui.eUILevel);
     }
 

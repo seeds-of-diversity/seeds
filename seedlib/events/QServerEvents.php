@@ -78,8 +78,9 @@ class QServerEvents extends SEEDQ
         Sync the current events db with the EVENTS_GOOGLE_SPREADSHEET_ID google sheet
      */
     {
+        $sSheetName = SEED_isLocal ? "Current local" : "Form responses 1";
         include_once( SEEDLIB."events/eventsSheet.php" );
-        (new EventsSheet($this->oApp))->SyncSheetAndDB();
+        (new EventsSheet($this->oApp))->SyncSheetAndDB($sSheetName);
         return( [true, ""] );
     }
 }

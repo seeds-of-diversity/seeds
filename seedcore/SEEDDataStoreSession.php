@@ -32,7 +32,7 @@ class SEEDDataStoreSVA extends SEEDDataStore
     function __construct( SEEDSessionVarAccessor $oSVA, $raConfig = array() )
     {
         $this->oSVA = $oSVA;
-        parent::__construct( $raConfig );
+        parent::__construct( $raConfig + ['bNoClearOnConstruct'=>true] );
     }
 
     function GetValuesRA()
@@ -54,7 +54,7 @@ class SEEDDataStoreSVA extends SEEDDataStore
         Clear all form values
      */
     {
-        die( "SEEDDataStoreSVA::Clear() not implemented yet" );
+        $this->oSVA->VarUnSetAll();
     }
 
     /* Override the Data-side methods.
