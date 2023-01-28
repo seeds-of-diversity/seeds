@@ -128,6 +128,12 @@ class CollectionTab_PacketLabels
 
 class MyPDF_Label extends PDF_Label
 {
+    /* Encoding dilemma:
+     *      FPDF fonts only support ISO-8859-1
+     *      The form that drives this labelling is drawn using utf8_encode() so cultivar name and description is utf8.
+     *      That means you have use utf8_decode() when you draw those below.
+     */
+
     function __construct( $format )
     {
         parent::__construct( $format );
