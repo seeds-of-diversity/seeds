@@ -206,25 +206,41 @@ function reSizeMap()
          */
         if( !$pDate1 )  $pDate1 = date("Y-m-d");
 
-        /* TO: if pSearch, set to last event so all future events are searched
+        /* TO:  bShowAllEvents = default pDate2 to the date of the last event; also force this if searching
+         *     !bShowAllEvents = default pDate2 to the first event after 30 days from now; or the last event if searching
          */
+        $bShowAllEvents = true;
+        if( $bShowAllEvents ) {
+            if( $pSearch || !$pDate2 || $pDate2 < $pDate1 ) {
+                // set pDate2 to the date of the last event
+                if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
+                    $pDate2 = $kfr->value('date_start');
+                } else {
+                    // fallback is 30 days after pDate1 (if there are no events in the future)
+                    $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);
+                }
+            }
+        } else {
+            /* if searching, set to last event so all future events are searched
+             */
 //TODO: to be complete, this test should only happen if there is a NEW search term.
 //      If you search, then change the TO date, that change is ignored.
-        if( $pSearch ) {
-            if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
-                $pDate2 = $kfr->value('date_start');
-            } else {
-                $pDate2 = "";   // use the default below
+            if( $pSearch ) {
+                if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
+                    $pDate2 = $kfr->value('date_start');
+                } else {
+                    $pDate2 = "";   // use the default below
+                }
             }
-        }
-        /* TO: default is the date of the first event that occurs at least 30 days after FROM (or just 30 days later if there are no future events).
-         */
-        if( !$pDate2 || $pDate2 < $pDate1 ) {
-            $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
+            /* TO: default is the date of the first event that occurs at least 30 days after FROM (or just 30 days later if there are no future events).
+             */
+            if( !$pDate2 || $pDate2 < $pDate1 ) {
+                $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
 
-            // make sure there's at least one event in the date range, by extending the window to the next event
-            if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['sSortCol'=>'date_start','bSortDown'=>false])) ) {
-                $pDate2 = $kfrNext->Value('date_start');
+                // make sure there's at least one event in the date range, by extending the window to the next event
+                if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['sSortCol'=>'date_start','bSortDown'=>false])) ) {
+                    $pDate2 = $kfrNext->Value('date_start');
+                }
             }
         }
 
