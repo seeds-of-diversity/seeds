@@ -50,22 +50,22 @@ class MbrDonations
         $oContacts = new Mbr_Contacts($this->oApp);
         $sBody = $eFmt=='HTML' ? $oMT->GetTmpl()->ExpandTmpl('donation_receipt_page', []) : "";     // HTML needs an extra blank first page
         foreach( $raReceipts as $nReceipt ) {
-            if( !($kfr = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
+            if( !($kfrD = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
                 $sBody .= "<div class='donReceipt_page'>Unknown receipt number $nReceipt</div>";
                 continue;
             }
 
 // use MbrContacts::DrawAddressBlock
             $vars = [
-                'donorName' => $kfr->Expand("[[M_firstname]] [[M_lastname]]")
-                              .( ($name2 = trim($kfr->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
-                              .$kfr->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
-                'donorAddr' => $kfr->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
+                'donorName' => $kfrD->Expand("[[M_firstname]] [[M_lastname]]")
+                              .( ($name2 = trim($kfrD->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
+                              .$kfrD->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
+                'donorAddr' => $kfrD->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
                 'donorReceiptNum' => $nReceipt,
-                'donorAmount'  => $kfr->Value('amount'),
-                'donorDateReceived' => $kfr->Value('date_received'),
-                'donorDateIssued' => $kfr->Value('date_issued'),
-                'taxYear' => substr($kfr->Value('date_received'), 0, 4)     // should be the year for which the donation applies
+                'donorAmount'  => $kfrD->Value('amount'),
+                'donorDateReceived' => $kfrD->Value('date_received'),
+                'donorDateIssued' => $kfrD->Value('date_issued'),
+                'taxYear' => substr($kfrD->Value('date_received'), 0, 4)     // should be the year for which the donation applies
             ];
 
             switch($eFmt) {
@@ -77,6 +77,21 @@ class MbrDonations
                     $sBody .= $oMT->GetTmpl()->ExpandTmpl( 'donation_receipt_page', $vars );
                     break;
             }
+
+            // Record that the current user accessed this receipt
+/*
+Implement SetVerbatim()
+
+            $kfrAccess = $oContacts->oDB->KFRel('RxMxD')->CreateRecord();
+            $kfrAccess->SetValue('fk_mbr_contacts', $this->oApp->sess->GetUID());
+            $kfrAccess->SetValue('fk_mbr_donations', $kfrD->Key());
+            $kfrAccess->SetVerbatim('time', 'NOW()');
+            $kfrAccess->PutDBRow();
+*/
+            $uid = $this->oApp->sess->GetUID();
+            $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
+                                        (_key,_created,_created_by,_updated,_updated_by,_status,fk_mbr_contacts,fk_mbr_donations,time)
+                                        VALUES (NULL,NOW(),{$uid},NOW(),{$uid},0,{$uid},{$kfrD->Key()},NOW())");
         }
 
         switch($eFmt) {

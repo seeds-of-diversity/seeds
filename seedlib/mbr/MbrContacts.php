@@ -1,5 +1,12 @@
 <?php
 
+/* MbrContacts
+ *
+ * Copyright 2021-2023 Seeds of Diversity Canada
+ *
+ * Keep track of our contacts, members, donors.
+ */
+
 class Mbr_Contacts
 {
     public  $oDB;
@@ -337,6 +344,19 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                         "Fields" => 'Auto']
             ]];
 
+        // Which donation receipts has a member accessed?
+        $defRxMxD =
+            ["Tables" => [
+                "R" => ["Table" => "{$dbname2}.mbr_donation_receipts_accessed",
+                        "Type"  => 'Base',
+                        "Fields" => 'Auto'],
+                "M" => ["Table" => "{$dbname2}.mbr_contacts",
+                        "Type"  => 'Join',
+                        "Fields" => 'Auto'],
+                "D" => ["Table" => "{$dbname2}.mbr_donations",
+                        "Type"  => "Join",
+                        "Fields" => 'Auto']
+            ]];
 
         $parms = $logdir ? ['logfile'=>$logdir."mbr_contacts.log"] : [];
 
@@ -345,6 +365,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
         $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
+        $raKfrel['RxMxD'] = new Keyframe_Relation( $kfdb, $defRxMxD, $uid, $parms );
 
         return( $raKfrel );
     }
@@ -506,6 +527,25 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             notes                TEXT,
 
             INDEX (fk_mbr_contacts)
+        );
+    ";
+
+
+    /* Record when each person accessed a donation receipt
+     */
+    const SqlCreate_DonationsAccessed = "
+        CREATE TABLE IF NOT EXISTS seeds_2.mbr_donation_receipts_accessed (
+
+                _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                _created    DATETIME,
+                _created_by INTEGER,
+                _updated    DATETIME,
+                _updated_by INTEGER,
+                _status     INTEGER DEFAULT 0,
+
+            fk_mbr_contacts      INTEGER NOT NULL,      # actually this is the sess.uid, which should be a mbr too
+            fk_mbr_donations     INTEGER NOT NULL,
+            time                 TIMESTAMP
         );
     ";
 }
