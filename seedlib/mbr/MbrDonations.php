@@ -10,22 +10,61 @@
 class MbrDonations
 {
     private $oApp;
+    public  $oDB;
 
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
+        $this->oDB = new Mbr_ContactsDB($oApp);
     }
 
     /**
      * Get donation history for one person
      * @param int $kMbr - member to retrieve history
      * @param array $raParms - filter/sort the returned records
-     * @return array - array of donation records
+     * @return array - array of DxM records
      */
     function GetDonationInfo( int $kMbr, array $raParms = [] )
     {
+        $sCond = "";
 
+        if( @$raParms['minDate'] )  $sCond .= " AND (date_received >= '".addslashes($raParms['minDate'])."')";
+        if( @$raParms['maxDate'] )  $sCond .= " AND (date_received <= '".addslashes($raParms['maxDate'])."')";
+
+        switch( @$raParms['sort'] ) {
+            case 'dateDown':
+            default:
+                $kfParms = ['sSortCol'=>'date_received','bSortDown'=>true];
+                break;
+            case 'dateUp':
+                $kfParms = ['sSortCol'=>'date_received','bSortDown'=>false];
+                break;
+        }
+
+        return( $this->oDB->GetList('DxM', "D.fk_mbr_contacts='$kMbr'".$sCond, $kfParms) );
     }
+
+
+    /**
+     * Show a list of links to view receipts for one person
+     * @param int $kMbr - member who made donations
+     * @param array $raParms - filter/sort the list
+     * @return string - html of links to receipts
+     */
+    function DrawReceiptLinks( int $kMbr, array $raParms = [] )
+    {
+        $s = "";
+// q : mbrdonation-printReceipt&receipt=
+//            foreach( $this->oDonations->GetDonationInfo($kMbr,['minDate'=>'2022-01-01']) as $raDon ) {
+
+        foreach( $this->GetDonationInfo($kMbr) as $raDon ) {
+            $s .= SEEDCore_ArrayExpand( $raDon,
+                    "<p style='margin-left:5ex'>Receipt #<a href='?cmd=printDonationReceipt2&donorReceiptRange=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
+                         for $[[amount]] donated [[date_received]]</p>" );
+        }
+        return( $s );
+    }
+
 
     /**
      * Make a donation receipt
@@ -55,6 +94,14 @@ class MbrDonations
                 continue;
             }
 
+            /* Ensure that the current user is allowed to view this receipt
+             */
+            if( $this->oApp->sess->GetUID() != $kfrD->Value('fk_mbr_contacts') && $this->oApp->sess->GetUID() != 1499 ) {
+                $sBody .= "<div class='donReceipt_page'>Please login to view donation receipt number $nReceipt</div>";
+                continue;
+            }
+
+
 // use MbrContacts::DrawAddressBlock
             $vars = [
                 'donorName' => $kfrD->Expand("[[M_firstname]] [[M_lastname]]")
@@ -82,15 +129,15 @@ class MbrDonations
 /*
 Implement SetVerbatim()
 
-            $kfrAccess = $oContacts->oDB->KFRel('RxMxD')->CreateRecord();
-            $kfrAccess->SetValue('fk_mbr_contacts', $this->oApp->sess->GetUID());
+            $kfrAccess = $oContacts->oDB->KFRel('RxD_M')->CreateRecord();
+            $kfrAccess->SetValue('uid_accessor', $this->oApp->sess->GetUID());
             $kfrAccess->SetValue('fk_mbr_donations', $kfrD->Key());
             $kfrAccess->SetVerbatim('time', 'NOW()');
             $kfrAccess->PutDBRow();
 */
             $uid = $this->oApp->sess->GetUID();
             $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
-                                        (_key,_created,_created_by,_updated,_updated_by,_status,fk_mbr_contacts,fk_mbr_donations,time)
+                                        (_key,_created,_created_by,_updated,_updated_by,_status,uid_accessor,fk_mbr_donations,time)
                                         VALUES (NULL,NOW(),{$uid},NOW(),{$uid},0,{$uid},{$kfrD->Key()},NOW())");
         }
 
@@ -103,7 +150,7 @@ Implement SetVerbatim()
                 $dompdf->loadHtml($sBody);
                 $dompdf->setPaper('letter', 'portrait');
                 $dompdf->render();
-                $dompdf->stream( 'file.pdf', ['Attachment' => 0] );
+                $dompdf->stream( "Seeds of Diversity donation receipt #$nReceipt {$vars['donorName']}.pdf", ['Attachment' => 0] );
                 exit;
             case 'PDF':
                 break;

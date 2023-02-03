@@ -345,17 +345,18 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             ]];
 
         // Which donation receipts has a member accessed?
-        $defRxMxD =
+        $defRxD_M =
             ["Tables" => [
                 "R" => ["Table" => "{$dbname2}.mbr_donation_receipts_accessed",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
-                "M" => ["Table" => "{$dbname2}.mbr_contacts",
-                        "Type"  => 'Join',
-                        "Fields" => 'Auto'],
                 "D" => ["Table" => "{$dbname2}.mbr_donations",
                         "Type"  => "Join",
-                        "Fields" => 'Auto']
+                        "Fields" => 'Auto'],
+                "M" => ["Table" => "{$dbname2}.mbr_contacts",
+                        "Type"  => 'LeftJoin',
+                        "JoinOn" => "R.uid_accessor=M._key",    // not using fk_mbr_contacts because this can be different than mbr_donations.fk_mbr_contacts, but hoping uid is a member
+                        "Fields" => 'Auto'],
             ]];
 
         $parms = $logdir ? ['logfile'=>$logdir."mbr_contacts.log"] : [];
@@ -365,7 +366,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
         $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
-        $raKfrel['RxMxD'] = new Keyframe_Relation( $kfdb, $defRxMxD, $uid, $parms );
+        $raKfrel['RxD_M'] = new Keyframe_Relation( $kfdb, $defRxD_M, $uid, $parms );
 
         return( $raKfrel );
     }
@@ -533,7 +534,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
     /* Record when each person accessed a donation receipt
      */
-    const SqlCreate_DonationsAccessed = "
+    const SqlCreate_DonationReceiptsAccessed = "
         CREATE TABLE IF NOT EXISTS seeds_2.mbr_donation_receipts_accessed (
 
                 _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -543,7 +544,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                 _updated_by INTEGER,
                 _status     INTEGER DEFAULT 0,
 
-            fk_mbr_contacts      INTEGER NOT NULL,      # actually this is the sess.uid, which should be a mbr too
+            uid_accessor         INTEGER NOT NULL,      # sess.uid that accesses the receipt; can be different than mbr_donations.fk_mbr_contacts so don't use that name else KF can get confused
             fk_mbr_donations     INTEGER NOT NULL,
             time                 TIMESTAMP
         );

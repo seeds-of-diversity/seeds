@@ -157,6 +157,7 @@ class MyConsole02TabSet extends Console02TabSet
     private $o3UpMbr;
     private $o3UpDonors;
     private $oContacts;
+    private $oDonations;
 
     private $oDonRqstCtrlForm;  // Control area form for donation requests
 
@@ -170,6 +171,7 @@ class MyConsole02TabSet extends Console02TabSet
         $this->o3UpDonors = $o3UpDonors;
 
         $this->oContacts = new Mbr_Contacts( $oApp );
+        $this->oDonations = new MbrDonations($oApp);
     }
 
     function TabSet_main_renewalRequests_ContentDraw()
@@ -214,7 +216,7 @@ class MyConsole02TabSet extends Console02TabSet
         $s .= "<form target='_blank'>
               <input type='hidden' name='cmd' value='printDonationReceipt'>
               <input type='text' name='donorReceiptRange'/>
-              <input type='submit' value='Make Receipt'/>
+              <input type='submit' value='Make Receipts'/>
               </form>";
 
         return( $s );
@@ -222,13 +224,35 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_main_donationReceipts2_ContentDraw()
     {
-        $s = "";
+        $sMbrReceiptsLinks = "";
+        $kMbr = "";
 
-        $s .= "<form target='_blank'>
-              <input type='hidden' name='cmd' value='printDonationReceipt2'>
-              <input type='text' name='donorReceiptRange'/>
-              <input type='submit' value='Make Receipt'/>
-              </form>";
+        if( SEEDInput_Str('cmd')=='showReceiptLinksForMember' && ($kMbr = SEEDInput_Int('kMbr') ) ) {
+            if( ($sMbrReceiptsLinks = $this->oDonations->DrawReceiptLinks($kMbr)) ) {
+                $sMbrReceiptsLinks = "<div style='margin:10px; padding:10px; background-color:#eee'>
+                                        <h4>Click to download official donation receipts</h4>$sMbrReceiptsLinks
+                                      </div>";
+            }
+
+        }
+
+        $s = "<div class='container-fluid'><div class='row'>
+                  <div class='col-md-3'>
+                      <form target='_blank'>
+                          <input type='hidden' name='cmd' value='printDonationReceipt2'>
+                          <input type='text' name='donorReceiptRange'/>
+                          <input type='submit' value='Make Receipts'/>
+                      </form>
+                  </div>
+                  <div class='col-md-3'>
+                      <form>
+                          <input type='hidden' name='cmd' value='showReceiptLinksForMember'>
+                          <input type='text' name='kMbr' value='$kMbr' />
+                          <input type='submit' value='List Receipts for Member'/>
+                      </form>
+                      $sMbrReceiptsLinks
+                  </div>
+              </div></div>";
 
         return( $s );
     }
@@ -392,6 +416,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
     private function donationData( $kDonation, $kMbr )
     {
         $s = "";
+        $sTicket = $sAccessed = "";
 
 //        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$kMbr'" );
 //        $s .= "<p>Mbr database:<br/>donation_receipt: ".@$ra['donation_receipt']."</p>";
@@ -409,8 +434,22 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
             include_once( SEEDCOMMON."mbr/mbrOrder.php" );
             $kfdb = SiteKFDB();
             $oMbrOrder = new MbrOrder( $this->oApp, $kfdb, "EN", $kOrder );
-            $s = $oMbrOrder->DrawTicket();
+            $sTicket = $oMbrOrder->DrawTicket();
         }
+
+        /* Show the receipt views
+         */
+        $sAccessed = "<h4>Receipt viewed by</h4>";
+        if( ($kfrR = $this->oMbrDB->GetKFRC('RxD_M', "D._key=$kDonation",['sSortCol'=>'R.time'])) ) {
+            while( $kfrR->CursorFetch() ) {
+                $sColour = $kfrR->Value('uid_accessor')==$kMbr ? 'green' : 'red';   // green if the access was by the donor
+                $sAccessed .= $kfrR->Expand( "<span style='color:$sColour'>[[uid_accessor]]</span> at [[time]]<br/>" );
+            }
+        }
+
+        $s = "<table><tr><td valign='top' style='padding-right:20px'>$sTicket</td>
+                         <td valign='top'>$sAccessed</td>
+              </tr></table>";
 
         return( $s );
     }
