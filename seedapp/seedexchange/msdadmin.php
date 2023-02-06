@@ -97,7 +97,8 @@ class MSDAdminTab
 
         $s .= "<h4>Printed Directory</h4>"
              ."<p><a href='?doReport=JanGrowers' target='_blank'>Grower list</a></p>"
-             ."<p><a href='?doReport=JanSeeds' target='_blank'>Seeds list</a></p>";
+             ."<p><a href='?doReport=JanSeeds'            target='_blank'>Seeds list - everything except tomatoes</a></p>"
+             ."<p><a href='?doReport=JanSeeds&doTomato=1' target='_blank'>Seeds list - all tomatoes sorted by variety</a></p>";
 
         $s .= "<h4>Packages to Send to Growers</strong></h4>"
              ."<p><a href='?doReport=SeptGrowers' target='_blank'>Grower info sheets - all growers</a></p>"

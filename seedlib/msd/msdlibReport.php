@@ -102,38 +102,37 @@ class MSDLibReport
         $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
                                    SEEDBasketProducts_SoD::$raProductTypes );
 
-        // Everything that isn't tomatoes
-        if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
-                                         "product_type='seeds' AND "
-                                        ."eStatus='ACTIVE' AND "
-                                        ."PE1.k='category' AND "
-                                        ."PE2.k='species' AND "
-                                        ."PE3.k='variety'"
-// uncomment one of these to limit the query to a section
-//." AND PE1.v in ('flowers')"
-//." AND PE1.v in ('fruit','grain','herbs','misc','trees')"
-." AND not (PE1.v = 'vegetables' AND PE2.v like 'TOMATO%')"
-//." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO%' AND PE2.v not like 'TOMATO/YELLOW%'"
-//." AND PE1.v in ('vegetables') AND PE2.v like 'TOMATO/YELLOW%'"
-                                        ,
-                                        ['sSortCol'=>'PE1_v,PE2_v,PE3_v'] )) )
-        {
-            $s .= $this->janSeedsDrawList( $oSB, $kfrP, true );
-        }
-
-        // All tomatoes sorted by variety
-        $s .= "<div class='sed_type'><h3><b>TOMATO</b></h3></div>";
-        if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
-                                         "product_type='seeds' AND "
-                                        ."eStatus='ACTIVE' AND "
-                                        ."PE1.k='category' AND "
-                                        ."PE2.k='species' AND "
-                                        ."PE3.k='variety'"
-." AND (PE1.v = 'vegetables' AND PE2.v like 'TOMATO%')"
-                                        ,
-                                        ['sSortCol'=>'PE3_v'] )) )
-        {
-            $s .= $this->janSeedsDrawList( $oSB, $kfrP, false );
+        if( !SEEDInput_Int('doTomato') ) {
+            // Everything that isn't tomatoes
+            if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
+                                             "product_type='seeds' AND "
+                                            ."eStatus='ACTIVE' AND "
+                                            ."PE1.k='category' AND "
+                                            ."PE2.k='species' AND "
+                                            ."PE3.k='variety'"
+                                            ." AND not (PE1.v = 'vegetables' AND PE2.v like 'TOMATO%')"
+    // uncomment one of these to limit the query to a section
+    //." AND PE1.v in ('flowers')"
+    //." AND PE1.v in ('fruit','grain','herbs','misc','trees')"
+                                            ,
+                                            ['sSortCol'=>'PE1_v,PE2_v,PE3_v'] )) )
+            {
+                $s .= $this->janSeedsDrawList( $oSB, $kfrP, true );
+            }
+        } else {
+            // All tomatoes sorted by variety
+            $s .= "<div class='sed_type'><h3><b>TOMATO</b></h3></div>";
+            if( ($kfrP = $oSB->oDB->GetKFRC( "PxPE3",
+                                             "product_type='seeds' AND "
+                                            ."eStatus='ACTIVE' AND "
+                                            ."PE1.k='category' AND "
+                                            ."PE2.k='species' AND "
+                                            ."PE3.k='variety'"
+                                            ." AND (PE1.v = 'vegetables' AND PE2.v like 'TOMATO%')",
+                                            ['sSortCol'=>'PE3_v'] )) )
+            {
+                $s .= $this->janSeedsDrawList( $oSB, $kfrP, false );
+            }
         }
 
         return( $s );
