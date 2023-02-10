@@ -404,7 +404,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
                sGroupCol => GROUP BY sGroupCol
                iOffset   => offset of rows to return
                iLimit    => max rows to return (might help to optimize query on the server end)
-               iStatus   => _status=iStatus  default 0
+               iStatus   => _status=iStatus  default 0, -1 means do not filter _status (include all _status values)
 
                raFieldsOverride => array of colalias=>fld to override the fields clause
      */
