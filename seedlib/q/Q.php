@@ -2,7 +2,7 @@
 
 /* Q.php
  *
- * Copyright 2017-2020 Seeds of Diversity Canada
+ * Copyright 2017-2023 Seeds of Diversity Canada
  *
  * Main API point for Q commands
  */
@@ -86,9 +86,9 @@ class Q
         else
 
         if( SEEDCore_StartsWith( $cmd, 'mbr' ) ) {
-//            include_once( SEEDLIB."mbr/QServerMbr.php" );
-//            $o = new QServerMbr( $this->oApp, $this->raConfig );
-//            $rQ = $o->Cmd( $cmd, $parms );
+            include_once( SEEDLIB."mbr/QServerMbr.php" );
+            $o = new QServerMbr( $this->oApp, $this->raConfig );
+            $rQ = $o->Cmd( $cmd, $parms );
         }
         else
 

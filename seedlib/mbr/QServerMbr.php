@@ -2,12 +2,13 @@
 
 /* QServerMbr
  *
- * Copyright 2019-2020 Seeds of Diversity Canada
+ * Copyright 2019-2023 Seeds of Diversity Canada
  *
  * Contacts Q layer
  */
 
 include_once( "MbrContacts.php" );
+include_once( "MbrDonations.php" );
 
 class QServerMbr extends SEEDQ
 {
@@ -23,33 +24,27 @@ class QServerMbr extends SEEDQ
 
     function Cmd( $cmd, $raParms = array() )
     {
-        $rQ = $this->GetEmptyRQ();
+        $rQ = SEEDQ::GetEmptyRQ();
 
-// use sess->CheckPerms()
-        if( SEEDCore_StartsWith( $cmd, 'mbr---' ) ) {
-            $rQ['bHandled'] = true;
-
-            if( !$this->oApp->sess->CanAdmin('MBR') ) {
-                $rQ['sErr'] = "<p>You do not have permission to admin mbr information.</p>";
-                goto done;
-            }
-        } else
-        if( SEEDCore_StartsWith( $cmd, 'mbr--' ) ) {
-            $rQ['bHandled'] = true;
-
-            if( !$this->oApp->sess->CanWrite('MBR') ) {
-                $rQ['sErr'] = "<p>You do not have permission to change mbr information.</p>";
-                goto done;
-            }
-        } else
-        if( SEEDCore_StartsWith( $cmd, 'mbr-' ) ) {
-            $rQ['bHandled'] = true;
-
-            if( !$this->oApp->sess->CanRead('MBR') ) {
-                $rQ['sErr'] = "<p>You do not have permission to read mbr information.</p>";
-                goto done;
-            }
+        // determine if this is the handler for this class of cmd, and if the current user has permission
+        if( $cmd == 'mbrdonation.printReceipt' ) {
+            // exception: mbrdonation-printReceipt only needs you to be logged in (it later authorizes based on identity)
+            $bPermOk = $this->oApp->sess->IsLogin();
+            $sErr = $bPermOk ? "" : "<p>Please login to view donation receipt</p>";
+        } else if( SEEDCore_StartsWith($cmd, 'mbrdonation') ) {
+            list($bPermOk,$sErr) = $this->TestPerm($cmd, 'mbrdonation');
+        } else if( SEEDCore_StartsWith($cmd, 'mbr') ) {
+            list($bPermOk,$sErr) = $this->TestPerm($cmd, 'mbr', 'MBR');
+        } else {
+            $rQ['bHandled'] = false;  // other handlers can try instead
+            goto done;
         }
+        $rQ['bHandled'] = true;       // even if not bPermOk, this is the handler so other handlers won't be attempted
+        if( !$bPermOk ) {
+            $rQ['sErr'] = $sErr;
+            goto done;
+        }
+
 
         switch( $cmd ) {
             /* Read commands
@@ -98,11 +93,20 @@ class QServerMbr extends SEEDQ
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->mbrSearch( $raParms );
                 break;
 
+            /* Donation read-only
+             */
+            // print donation receipt to pdf/html and exit
+            case 'mbrdonation.printReceipt':    // only donor can access, without explicit mbr-read permission
+            case 'mbrdonation!printReceipt':    // only internal tools can access, to print any receipt
+                $this->mbrDonationPrintReceipt( $raParms, $cmd == 'mbrdonation!printReceipt' );
+                exit;
+
             /* Write commands
              */
             case 'mbr--putBasic':   list($rQ['bOk'],$rQ['sErr']) = $this->mbrPut( $raParms, 'basic' );     break;
             case 'mbr--putOffice':  list($rQ['bOk'],$rQ['sErr']) = $this->mbrPut( $raParms, 'office' );    break;
             // only accessible by internal code
+//what is ----
             case 'mbr----putAll':   list($rQ['bOk'],$rQ['sErr']) = $this->mbrPut( $raParms, 'sensitive' ); break;
         }
 
@@ -340,5 +344,28 @@ class QServerMbr extends SEEDQ
         done:
         return( [$bOk, $sErr] );
     }
-}
 
+    private function mbrDonationPrintReceipt( array $raParms, $bOffice = false )
+    /***************************************************************************
+        bOffice == false:   Requires the donor to be logged in
+                            receiptnum : output this single receipt number as pdf, record that this user has accessed it
+
+        bOffice == true:    Only accessible to internal tools
+                            receiptnum : can be a range of receipt numbers, output in one pdf, don't record that they have been accessed
+     */
+    {
+        $oDon = new MbrDonations($this->oApp);
+
+        if( ($receiptnum = @$raParms['receiptnum']) ) {
+            if( $bOffice ) {
+                if( $this->oApp->GetUID() == 1499 )  $oDon->DrawDonationReceipt($receiptnum, 'PDF_STREAM', false);      // receiptnum can be a range string; do not record access
+            } else {
+                if( ($receiptnum = intval($receiptnum)) && $oDon->CurrentUserCanAccessReceipt($receiptnum) ) {          // receiptnum must be single integer
+                    $oDon->DrawDonationReceipt($receiptnum, 'PDF_STREAM', true);                                        // record access
+                }
+            }
+        }
+
+        exit;
+    }
+}

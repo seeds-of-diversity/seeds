@@ -266,6 +266,61 @@ class SEEDQ
         return( $this->bUTF8 ? SEEDCore_utf8_decode($s) : $s );
     }
 
+    function TestPerm( $qcmd, $prefix, $perm = "" )
+    /**********************************************
+        Test whether the current user has permission to access this command.
+
+        If qcmd doesn't start with $prefix and at least one hyphen then it passes.
+        Otherwise the SEEDSession_Perm checked is $perm or $prefix.
+
+        prefix---foo       is admin-only
+        prefix--foo        is write-only
+        prefix-foo         is read-only
+
+        Without hyphens has no permission restriction (although commands can enforce other criteria)
+        prefixfoo          has no restriction
+        prefix.foo         is a nice format for no restriction
+
+        An ! anywhere means no access via ajax (internal code only)
+        prefix!foo         has no restriction but not accessible by ajax
+        prefix---!foo      is admin-only but not accessible by ajax
+     */
+    {
+        $bOk = false;
+        $sErr = "";
+
+        // if perm is blank, use prefix as the perm
+        $perm = $perm ?: $prefix;
+
+        // test admin
+        if( SEEDCore_StartsWith($qcmd, $prefix.'---') ) {
+            if( !$this->oApp->sess->CanAdmin($perm) ) {
+                $sErr = "<p>You do not have permission to admin $prefix information.</p>";
+                goto done;
+            }
+        } else
+        // test write
+        if( SEEDCore_StartsWith($qcmd, $prefix.'--') ) {
+            if( !$this->oApp->sess->CanWrite($perm) ) {
+                $sErr = "<p>You do not have permission to change $prefix information.</p>";
+                goto done;
+            }
+
+        } else
+        // test read
+        if( SEEDCore_StartsWith($qcmd, $prefix.'-') ) {
+            if( !$this->oApp->sess->CanRead($perm) ) {
+                $sErr = "<p>You do not have permission to read $prefix information.</p>";
+                goto done;
+            }
+        }
+
+        $bOk = true;
+
+        done:
+        return( [$bOk,$sErr] );
+    }
+
     static function GetEmptyRQ()
     /***************************
      */

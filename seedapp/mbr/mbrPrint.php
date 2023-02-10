@@ -368,7 +368,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
             ."[[hiddenkey:]]"
             .""
             ."<br/><br/>"
-            .$this->donationData( $oForm->Value('_key'), $oForm->Value('fk_mbr_contacts') )
+            .$this->donationData( $oForm->ValueInt('_key'), $oForm->ValueInt('fk_mbr_contacts') )
             .$jsScript;
 
         return( $s );
@@ -440,6 +440,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         /* Show the receipt views
          */
         $sAccessed = "<h4>Receipt viewed by</h4>";
+
         if( ($kfrR = $this->oMbrDB->GetKFRC('RxD_M', "D._key=$kDonation",['sSortCol'=>'R.time'])) ) {
             while( $kfrR->CursorFetch() ) {
                 $sColour = $kfrR->Value('uid_accessor')==$kMbr ? 'green' : 'red';   // green if the access was by the donor

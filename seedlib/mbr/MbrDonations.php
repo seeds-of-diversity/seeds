@@ -7,6 +7,8 @@
  * Information about member donations
  */
 
+include_once("MbrContacts.php");
+
 class MbrDonations
 {
     private $oApp;
@@ -54,15 +56,32 @@ class MbrDonations
     function DrawReceiptLinks( int $kMbr, array $raParms = [] )
     {
         $s = "";
+
 // q : mbrdonation-printReceipt&receipt=
 //            foreach( $this->oDonations->GetDonationInfo($kMbr,['minDate'=>'2022-01-01']) as $raDon ) {
 
         foreach( $this->GetDonationInfo($kMbr) as $raDon ) {
             $s .= SEEDCore_ArrayExpand( $raDon,
-                    "<p style='margin-left:5ex'>Receipt #<a href='?cmd=printDonationReceipt2&donorReceiptRange=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
+                    "<p style=''>Receipt #<a href='{$this->oApp->UrlQ()}?qcmd=mbrdonation.printReceipt&receiptnum=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
                          for $[[amount]] donated [[date_received]]</p>" );
         }
         return( $s );
+    }
+
+    /**
+     * Validate that the current user is allowed to access a donation receipt
+     * @param int $receiptnum - mbr_donations.receipt_num
+     * @return bool - access is allowed
+     */
+    function CurrentUserCanAccessReceipt( int $receiptnum )
+    {
+        $ok = false;
+
+        if( ($kfr = $this->oDB->GetKFRCond('D', "receipt_num='$receiptnum'")) ) {
+            $ok = $kfr->Value('fk_mbr_contacts') == $this->oApp->sess->GetUID();
+        }
+
+        return( $ok );
     }
 
 
@@ -75,7 +94,7 @@ class MbrDonations
      *          PDF        = return pdf string
      *          PDF_STREAM = output the pdf format to the return stream and exit
      */
-    function DrawDonationReceipt( string $rngReceipt, $eFmt = 'PDF' )
+    function DrawDonationReceipt( string $rngReceipt, $eFmt = 'PDF', $bRecordAccess = true )
     {
         $sHead = $sBody = "";
 
@@ -96,7 +115,7 @@ class MbrDonations
 
             /* Ensure that the current user is allowed to view this receipt
              */
-            if( $this->oApp->sess->GetUID() != $kfrD->Value('fk_mbr_contacts') && $this->oApp->sess->GetUID() != 1499 ) {
+            if( !$this->oApp->sess->IsLogin() || !in_array($this->oApp->sess->GetUID(), [$kfrD->Value('fk_mbr_contacts'), 1499]) ) {
                 $sBody .= "<div class='donReceipt_page'>Please login to view donation receipt number $nReceipt</div>";
                 continue;
             }
@@ -126,7 +145,9 @@ class MbrDonations
             }
 
             // Record that the current user accessed this receipt
+            if( $bRecordAccess ) {
 /*
+
 Implement SetVerbatim()
 
             $kfrAccess = $oContacts->oDB->KFRel('RxD_M')->CreateRecord();
@@ -135,10 +156,11 @@ Implement SetVerbatim()
             $kfrAccess->SetVerbatim('time', 'NOW()');
             $kfrAccess->PutDBRow();
 */
-            $uid = $this->oApp->sess->GetUID();
-            $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
-                                        (_key,_created,_created_by,_updated,_updated_by,_status,uid_accessor,fk_mbr_donations,time)
-                                        VALUES (NULL,NOW(),{$uid},NOW(),{$uid},0,{$uid},{$kfrD->Key()},NOW())");
+                $uid = $this->oApp->sess->GetUID();
+                $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
+                                            (_key,_created,_created_by,_updated,_updated_by,_status,uid_accessor,fk_mbr_donations,time)
+                                            VALUES (NULL,NOW(),{$uid},NOW(),{$uid},0,{$uid},{$kfrD->Key()},NOW())");
+            }
         }
 
         switch($eFmt) {
