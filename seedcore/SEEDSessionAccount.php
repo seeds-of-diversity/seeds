@@ -2,7 +2,7 @@
 
 /* SEEDSessionAccount
  *
- * Copyright 2015-2018 Seeds of Diversity Canada
+ * Copyright 2015-2023 Seeds of Diversity Canada
  *
  * Implement a user account.
  *
@@ -76,8 +76,9 @@ class SEEDSessionAccount extends SEEDSession
 
     const TS_LOGOUT = 1;                // this timestamp is very far in the past, so the session is seen as expired
 
-    public $oDB = null;
+    public $oDB = null;     // deprecate in favour of oDB2
     public $oAuthDB = null; // old code refers to this, deprecate
+    public $oDB2 = null;
 
     private $bLogin = false;
     private $eLoginState = self::SESSION_NONE;
@@ -88,6 +89,7 @@ class SEEDSessionAccount extends SEEDSession
     protected $kfdb;
     protected $httpNameUID = "seedsession_uid";     // the http parm that identifies the user login userid  (change if an override wants to use a different parm name)
     protected $httpNamePWD = "seedsession_pwd";     // the http parm that identifies the user login password
+    protected $httpNameML  = "seedsession_ml";      // the http parm that identifies a magic login id
     protected $kSessionIdStr = "seedsession_key"; // $_SESSION[$this->kSessionIdStr] is the current session's id string used by findSession
     protected $nExpiryDefault = 7200;
 
@@ -104,14 +106,19 @@ class SEEDSessionAccount extends SEEDSession
                  logdir     = record UGP changes in logdir/seedsessionaccount.log
                  uid        = different name for uid http parm
                  pwd        = different name for pwd http parm
+                 ml         = different name for magic http parm
      */
     {
         parent::__construct();
 
         $this->kfdb = $kfdb;
         $this->initKfrel(0);    // uid 0 because we don't know who we are yet and this is readonly anyway
+// deprecate oDB and use oDB2 instead
         $this->oDB = new SEEDSessionAccountDBRead( $kfdb );
         $this->oAuth = $this->oDB;
+
+        $this->oDB2 = new SEEDSessionAccountDBRead2($kfdb,0);   // uid 0 because we don't know who we are yet and this is readonly anyway
+
 
         if( ($logfile = @$raParms['logfile']) ) {
             $this->logfile = $logfile;
@@ -124,16 +131,20 @@ class SEEDSessionAccount extends SEEDSession
          */
         $sUid = @$raParms['uid'] ?: SEEDInput_Str( $this->httpNameUID );
         $sPwd = @$raParms['pwd'] ?: SEEDInput_Str( $this->httpNamePWD );
+        $sMagicLink = @$raParms['ml'] ?: SEEDInput_Str( $this->httpNameML );
 
         /* It is imperative that these be removed from the _REQUEST array, because several applications copy
          * and reissue GPC parms to subsequent pages.  This would reveal the password in client application links.
          */
         unset($_POST[$this->httpNameUID]);
         unset($_POST[$this->httpNamePWD]);
+        unset($_POST[$this->httpNameML]);
         unset($_GET[$this->httpNameUID]);
         unset($_GET[$this->httpNamePWD]);
+        unset($_GET[$this->httpNameML]);
         unset($_REQUEST[$this->httpNameUID]);
         unset($_REQUEST[$this->httpNamePWD]);
+        unset($_REQUEST[$this->httpNameML]);
 
         /* First see if the user is trying to login, because they can login to override a current session (especially on a page
          * where their current user session doesn't have the required perms).
@@ -147,6 +158,16 @@ class SEEDSessionAccount extends SEEDSession
             $this->LogoutSession();
 
             if( $this->makeSession( $sUid, $sPwd ) ) {
+                $this->eLoginState = self::SESSION_CREATED;
+            } else {
+                $this->eLoginState = self::SESSION_LOGIN_FAILED;
+                goto done;
+            }
+        } else if( $sMagicLink ) {
+            // The user sent a magic login link. That means we destroy any current user session and start over.
+            $this->LogoutSession();
+
+            if( $this->makeMagicSession($sMagicLink) ) {
                 $this->eLoginState = self::SESSION_CREATED;
             } else {
                 $this->eLoginState = self::SESSION_LOGIN_FAILED;
@@ -431,12 +452,12 @@ class SEEDSessionAccount extends SEEDSession
     {
         $ra = array();
         foreach( $_GET as $k => $v ) {
-            if( $k != $this->httpNameUID && $k != $this->httpNamePWD ) {
+            if( !in_array($k, [$this->httpNameUID,$this->httpNamePWD,$this->httpNameML]) ) {
                 $ra[$k] = $v;
             }
         }
         foreach( $_POST as $k => $v ) {
-            if( $k != $this->httpNameUID && $k != $this->httpNamePWD ) {
+            if( !in_array($k, [$this->httpNameUID,$this->httpNamePWD,$this->httpNameML]) ) {
                 $ra[$k] = $v;
             }
         }
@@ -514,10 +535,12 @@ class SEEDSessionAccount extends SEEDSession
         return( $ok );
     }
 
-    private function makeSessionRecord( $kUser, $realname, $email )
+    private function makeSessionRecord( $kUser, $realname, $email, $perms = "" )
+    /***************************************************************************
+        if perms is urlencoded permsR=...&permsW=...&permsA=... login the given user with those perms in SEEDSession
+        if perms is blank, look up the user's perms as usual
+     */
     {
-        $raSessParms = array(); // this could be an arg allowing MagicLogin to push perms and ts_expiry into this session
-
         $sess_idstr = SEEDCore_UniqueId();
 
         $this->kfrSession = $this->kfrelSess->CreateRecord();
@@ -526,7 +549,7 @@ class SEEDSessionAccount extends SEEDSession
         $this->kfrSession->SetValue( "realname",   $realname );
         $this->kfrSession->SetValue( "email",      $email );
 
-        if( empty($raSessParms["permsR"]) && empty($raSessParms["permsW"]) && empty($raSessParms["permsA"]) ) {
+        if( !$perms ) {
             $permsR = $permsW = $permsA = " ";
 
 /* this doesn't use gid_inherited
@@ -565,9 +588,10 @@ class SEEDSessionAccount extends SEEDSession
             $this->kfrSession->SetValue( "permsA", $permsA );
 
         } else {
-            $this->kfrSession->SetValue( "permsR", @$raSessParms["permsR"] );
-            $this->kfrSession->SetValue( "permsW", @$raSessParms["permsW"] );
-            $this->kfrSession->SetValue( "permsA", @$raSessParms["permsA"] );
+            $raPerms = SEEDCore_ParmsURL2RA($perms);
+            $this->kfrSession->SetValue( "permsR", @$raParms["permsR"] );
+            $this->kfrSession->SetValue( "permsW", @$raParms["permsW"] );
+            $this->kfrSession->SetValue( "permsA", @$raParms["permsA"] );
         }
 
         $this->kfrSession->SetValue( "ts_expiry", time() + (!empty($raSessParms["ts_expiry"]) ? $raSessParms["ts_expiry"]
@@ -575,6 +599,81 @@ class SEEDSessionAccount extends SEEDSession
 
         return( $this->kfrSession->PutDBRow() );
     }
+
+    private function makeMagicSession( $sMagicLink )
+    /***********************************************
+        This class was constructed with a seedsession_ml parm in the http.
+        That means someone clicked on a link that was coded for Magic Login.
+        The page is currently being processed, any current session was destroyed before calling here,
+        and if we can authenticate this magic link, the user will be logged in according to the magic login record.
+
+        Magic logins can specify perms: blank means to provide all perms for the given user.
+                                 tsExpiry: only allow login until that time
+                                 nLimit: only allow login this many times (-1 means unlimited)
+
+        Magic Links can look like:
+            A{kMagicLogin}A{magic_str}      Look up the magic record. If magic_str matches, login the uid in the record.
+            B{kMagicLogin}B{uid}B{hash}     Look up the magic record. If hash matches the hash of uid+magic_str, login the uid in the link.
+     */
+    {
+        $ok = false;
+
+        switch( substr($sMagicLink,0,1) ) {
+            case 'A':
+                goto done;
+                break;
+
+            case 'B':
+                list($kMagicLogin,$kUid,$sHash) = explode('B', substr($sMagicLink,1), 3);
+                $kMagicLogin = intval($kMagicLogin);
+                $kUid = intval($kUid);
+                // look up the magic login record
+                if( !($kfr = $this->oDB2->GetKFR('ML',$kMagicLogin)) ) {
+// set err "SEEDSESSION_ERR_MAGIC_NOT_FOUND"
+                    goto done;
+                }
+                // make sure the hash is good
+                if( $sHash != md5($kUid.$kfr->Value('magic_str')) ) {
+// set err "SEEDSESSION_ERR_MAGIC_NOT_FOUND"
+                    goto done;
+                }
+                break;
+
+            default:
+                goto done;
+        }
+
+        /* $kUid is authenticated for login using $kfr->[perms]
+         * Verify that ts_expiry, nLimit are okay, and that the user is ACTIVE
+         */
+        if( $kfr->Value('ts_expiry') && time() > $kfr->Value('ts_expiry') ) {
+// set err SEEDSESSION_ERR_MAGIC_EXPIRED
+            goto done;
+        }
+        if( ($nLimit = $kfr->Value('nLimit')) == 0 ) {
+// set err SEEDSESSION_ERR_MAGIC_EXPIRED
+            goto done;
+        } else if( $nLimit > 0 ) {
+            $kfr->SetValue('nLimit', $nLimit - 1);
+            $kfr->PutDBRow();
+        }
+        list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo($kUid);
+        if( !$kUser || @$raUser['eStatus'] != 'ACTIVE' ) {
+// set err SEEDSESSION_ERR_MAGIC_FAILED
+            goto done;
+        }
+
+        /* Magic Login has passed all tests. Login kUser with given perms, or default perms if that is blank.
+         */
+        if( ($ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'], $kfr->Value('perms'))) ) {
+            // save the session id string in $_SESSION so findSession() can find this user session again
+            $this->VarSet( $this->kSessionIdStr, $this->kfrSession->Value('sess_idstr') );
+        }
+
+        done:
+        return( $ok );
+    }
+
 
     private function initKfrel( $uid )
     {

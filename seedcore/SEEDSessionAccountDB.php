@@ -2,7 +2,7 @@
 
 /* SEEDSessionAccountDB
  *
- * Copyright 2006-2022 Seeds of Diversity Canada
+ * Copyright 2006-2023 Seeds of Diversity Canada
  *
  * DB layer for SEEDSession Users, Groups, Perms, Metadata
  */
@@ -1172,6 +1172,17 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
                                                   array("col"=>"v",   "type"=>"S" ),
                 ) ) ) );
 
+        $def_ML = ['Tables' => [
+                'ML' => ['Table' => "{$this->sDB}SEEDSession_MagicLogin",
+                         'Fields' => [['col'=>"magic_str",  "type"=>"S"],
+                                      ["col"=>"uid",        "type"=>"I"],
+                                      ["col"=>"perms",      "type"=>"S"],
+                                      ["col"=>"notes",      "type"=>"S"],
+                                      ["col"=>"sess_parms", "type"=>"S"],
+                                      ["col"=>"ts_expiry",  "type"=>"S"],
+                                      ["col"=>"nLimit",     "type"=>"I"],
+            ]]]];
+
         $raKfrel = array();
         $parms = $logdir ? array('logfile'=>$logdir."seedsessionaccount.log") : array();
         // This relation returns a single row because the left join only matches one row, populated or not
@@ -1182,6 +1193,8 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         $raKfrel['GM']  = new Keyframe_Relation( $kfdb, $kfreldef_GM,  $uid, $parms );
         // This relation returns one row per Perms record, with single-row info left joined from other tables
         $raKfrel['P']   = new Keyframe_Relation( $kfdb, $kfreldef_P,   $uid, $parms );
+
+        $raKfrel['ML']  = new Keyframe_Relation( $kfdb, $def_ML,  $uid, $parms );
 
         return( $raKfrel );
     }
@@ -1576,4 +1589,23 @@ CREATE TABLE IF NOT EXISTS SEEDSession_GroupsMetadata (
 "
 );
 
-?>
+define('SEEDSESSION_DB_TABLE_SEEDSESSION_MAGICLOGIN',
+"
+CREATE TABLE IF NOT EXISTS SEEDSession_MagicLogin (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    magic_str   VARCHAR(200) NOT NULL,
+    uid         INTEGER,                            # login as this user, unless uid specified in magic link
+    perms       VARCHAR(200) NOT NULL DEFAULT '',   # with these perms (if blank, look up normal perms for the user)
+    ts_expiry   INTEGER,                            # Unix time when this magic login stops working (0=no expiry)
+    nLimit      INTEGER,                            # number of times this magic login will work (count down). -1 means unlimited
+    sess_parms  TEXT,                               # optional parms to control the session
+    notes       VARCHAR(200)                        # optional description of purpose
+);
+"
+);
