@@ -1174,13 +1174,14 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
 
         $def_ML = ['Tables' => [
                 'ML' => ['Table' => "{$this->sDB}SEEDSession_MagicLogin",
-                         'Fields' => [['col'=>"magic_str",  "type"=>"S"],
-                                      ["col"=>"uid",        "type"=>"I"],
-                                      ["col"=>"perms",      "type"=>"S"],
-                                      ["col"=>"notes",      "type"=>"S"],
-                                      ["col"=>"sess_parms", "type"=>"S"],
-                                      ["col"=>"ts_expiry",  "type"=>"S"],
-                                      ["col"=>"nLimit",     "type"=>"I"],
+                         'Fields' => [['col'=>"name",       'type'=>'S'],
+                                      ['col'=>"magic_str",  'type'=>'S'],
+                                      ["col"=>"uid",        'type'=>'I'],
+                                      ["col"=>"perms",      'type'=>'S'],
+                                      ["col"=>"notes",      'type'=>'S'],
+                                      ["col"=>"sess_parms", 'type'=>'S'],
+                                      ["col"=>"ts_expiry",  'type'=>'S'],
+                                      ["col"=>"nLimit",     'type'=>'I'],
             ]]]];
 
         $raKfrel = array();
@@ -1599,7 +1600,8 @@ CREATE TABLE IF NOT EXISTS SEEDSession_MagicLogin (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    magic_str   VARCHAR(200) NOT NULL,
+    name        VARCHAR(200) NOT NULL,              # records can be named (optional at app level for looking up the _key)
+    magic_str   VARCHAR(200) NOT NULL,              # arbitrary string for passcode/hashing/authentication of the magic link
     uid         INTEGER,                            # login as this user, unless uid specified in magic link
     perms       VARCHAR(200) NOT NULL DEFAULT '',   # with these perms (if blank, look up normal perms for the user)
     ts_expiry   INTEGER,                            # Unix time when this magic login stops working (0=no expiry)
