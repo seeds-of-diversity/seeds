@@ -682,7 +682,7 @@ class SEEDSessionAccount_MagicLogin
     /*************************************************************************************************
         Create a MagicLogin link for the given named record
      */
-    {var_dump($name,$uid);
+    {
         $s = "";
 
         if( ($kfrML = $oDB->GetKFRCond('ML',"name='".addslashes($name)."'")) ) {
