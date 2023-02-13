@@ -288,6 +288,7 @@ class myDocRepCtrlView_Edit
         this.oCtrlView = oCtrlView;
         
     	CKEDITOR.replace( 'drEdit_text', {
+            allowedContent: true                // allow any content (mainly to allow style attributes which are stripped by default)
 			//customConfig: '/seeds/wcore/seedapp/DocRep/ckeditor_config.js'
 		} );
 		
