@@ -1175,6 +1175,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         $def_ML = ['Tables' => [
                 'ML' => ['Table' => "{$this->sDB}SEEDSession_MagicLogin",
                          'Fields' => [['col'=>"name",       'type'=>'S'],
+                                      ['col'=>"type",       'type'=>'S'],
                                       ['col'=>"magic_str",  'type'=>'S'],
                                       ["col"=>"uid",        'type'=>'I'],
                                       ["col"=>"perms",      'type'=>'S'],
@@ -1601,6 +1602,7 @@ CREATE TABLE IF NOT EXISTS SEEDSession_MagicLogin (
         _status     INTEGER DEFAULT 0,
 
     name        VARCHAR(200) NOT NULL,              # records can be named (optional at app level for looking up the _key)
+    type        VARCHAR(200) NOT NULL,              # A=uid specified in record; B=uid specified in link
     magic_str   VARCHAR(200) NOT NULL,              # arbitrary string for passcode/hashing/authentication of the magic link
     uid         INTEGER,                            # login as this user, unless uid specified in magic link
     perms       VARCHAR(200) NOT NULL DEFAULT '',   # with these perms (if blank, look up normal perms for the user)

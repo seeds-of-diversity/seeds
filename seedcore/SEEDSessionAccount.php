@@ -14,16 +14,18 @@ include_once( SEEDCORE."SEEDSession.php" );
 include_once( SEEDCORE."SEEDSessionAccountDB.php" );
 
 
-define( "SEEDSESSION_ERR_NOERR",               "0" );
-define( "SEEDSESSION_ERR_GENERAL",             "1" );
-define( "SEEDSESSION_ERR_NOSESSION",           "2" );
-define( "SEEDSESSION_ERR_EXPIRED",             "3" );
-define( "SEEDSESSION_ERR_UID_UNKNOWN",         "4" );
-define( "SEEDSESSION_ERR_USERSTATUS_PENDING",  "5" );
-define( "SEEDSESSION_ERR_USERSTATUS_INACTIVE", "6" );
-define( "SEEDSESSION_ERR_WRONG_PASSWORD",      "7" );
-define( "SEEDSESSION_ERR_PERM_NOT_FOUND",      "8" );
-define( "SEEDSESSION_ERR_MAGIC_NOT_FOUND",     "9" );
+define( 'SEEDSESSION_ERR_NOERR',               0 );
+define( 'SEEDSESSION_ERR_GENERAL',             1 );
+define( 'SEEDSESSION_ERR_NOSESSION',           2 );
+define( 'SEEDSESSION_ERR_EXPIRED',             3 );
+define( 'SEEDSESSION_ERR_UID_UNKNOWN',         4 );
+define( 'SEEDSESSION_ERR_USERSTATUS_PENDING',  5 );
+define( 'SEEDSESSION_ERR_USERSTATUS_INACTIVE', 6 );
+define( 'SEEDSESSION_ERR_WRONG_PASSWORD',      7 );
+define( 'SEEDSESSION_ERR_PERM_NOT_FOUND',      8 );
+define( 'SEEDSESSION_ERR_MAGIC_NOT_FOUND',     9 );
+define( 'SEEDSESSION_ERR_MAGIC_INVALID',      10 );
+define( 'SEEDSESSION_ERR_MAGIC_EXPIRED',      11 );
 
 class SEEDSessionAccount extends SEEDSession
 /*******************************************
@@ -618,54 +620,23 @@ class SEEDSessionAccount extends SEEDSession
     {
         $ok = false;
 
-        switch( substr($sMagicLink,0,1) ) {
-            case 'A':
-                goto done;
-                break;
+        list($bOk,$kUid,$sPerms,$errcode) = SEEDSessionAccount_MagicLogin::ValidateMagicLoginLink($this->oDB2, $sMagicLink);
 
-            case 'B':
-                list($kMagicLogin,$kUid,$sHash) = explode('B', substr($sMagicLink,1), 3);
-                $kMagicLogin = intval($kMagicLogin);
-                $kUid = intval($kUid);
-                // look up the magic login record
-                if( !($kfr = $this->oDB2->GetKFR('ML',$kMagicLogin)) ) {
-// set err "SEEDSESSION_ERR_MAGIC_NOT_FOUND"
-                    goto done;
-                }
-                // make sure the hash is good
-                if( $sHash != md5($kUid.$kfr->Value('magic_str')) ) {
-// set err "SEEDSESSION_ERR_MAGIC_NOT_FOUND"
-                    goto done;
-                }
-                break;
-
-            default:
-                goto done;
-        }
-
-        /* $kUid is authenticated for login using $kfr->[perms]
-         * Verify that ts_expiry, nLimit are okay, and that the user is ACTIVE
-         */
-        if( $kfr->Value('ts_expiry') && time() > $kfr->Value('ts_expiry') ) {
-// set err SEEDSESSION_ERR_MAGIC_EXPIRED
+        if( !$bOk ) {
+// set err $errcode
             goto done;
         }
-        if( ($nLimit = $kfr->Value('nLimit')) == 0 ) {
-// set err SEEDSESSION_ERR_MAGIC_EXPIRED
-            goto done;
-        } else if( $nLimit > 0 ) {
-            $kfr->SetValue('nLimit', $nLimit - 1);
-            $kfr->PutDBRow();
-        }
+
+        // The magic login is good; make sure the user is ACTIVE
         list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo($kUid);
         if( !$kUser || @$raUser['eStatus'] != 'ACTIVE' ) {
-// set err SEEDSESSION_ERR_MAGIC_FAILED
+// set err SEEDSESSION_ERR_USERSTATUS_INACTIVE
             goto done;
         }
 
-        /* Magic Login has passed all tests. Login kUser with given perms, or default perms if that is blank.
+        /* Magic Login has passed all tests. Login kUser with given perms (if blank, makeSessionRecord looks up the user's default perms)
          */
-        if( ($ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'], $kfr->Value('perms'))) ) {
+        if( ($ok = $this->makeSessionRecord( $kUser, $raUser['realname'], $raUser['email'], $sPerms)) ) {
             // save the session id string in $_SESSION so findSession() can find this user session again
             $this->VarSet( $this->kSessionIdStr, $this->kfrSession->Value('sess_idstr') );
         }
@@ -695,4 +666,96 @@ class SEEDSessionAccount extends SEEDSession
     }
 }
 
-?>
+class SEEDSessionAccount_MagicLogin
+/**********************************
+    MagicLogins are links that refer to SEEDSession_MagicLogin records that can allow a user to login just by issuing the link as an http parm (e.g. by clicking in an email).
+    These links should obviously not be shared.
+    They can be set to expire at a certain datetime, or only work a certain number of times.
+
+    Type A: uid specified in record, magic_str in link for verification
+            link : {kMagic}M{magic_str}
+    Type B: uid specified in link, magic_str & uid hashed in link
+            link : {kMagic}M{uid}B{hash}
+ */
+{
+    static function CreateMagicLoginLink( SEEDSessionAccountDBRead2 $oDB, string $name, int $uid = 0 )
+    /*************************************************************************************************
+        Create a MagicLogin link for the given named record
+     */
+    {var_dump($name,$uid);
+        $s = "";
+
+        if( ($kfrML = $oDB->GetKFRCond('ML',"name='".addslashes($name)."'")) ) {
+            switch($kfrML->Value('type')) {
+                case 'A':
+                    break;
+                case 'B':
+                    if( $uid ) {
+                        $s = $kfrML->Key()."M".$uid."B".md5($uid.$kfrML->Value('magic_str'));   // hash of uid+magic_str makes the link unique wrt the plaintext uid
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return( $s );
+    }
+
+    static function ValidateMagicLoginLink( SEEDSessionAccountDBRead2 $oDB, string $sLink )
+    /**************************************************************************************
+        Parse and validate a MagicLogin link.
+        Return uid and kfrML if valid, err code otherwise
+     */
+    {
+        $bOk = false;
+        $uid = 0;
+        $sPerms = "";
+        $errCode = SEEDSESSION_ERR_MAGIC_NOT_FOUND;
+
+        /* get the MagicLogin record
+         */
+        list($kMagic,$sLink) = explode('M',$sLink,2);
+        if( !($kfrML = $oDB->GetKFR('ML',intval($kMagic))) ) { goto done; }
+
+        /* Verify that ts_expiry, nLimit are okay
+         */
+        if( $kfrML->Value('ts_expiry') && time() > $kfrML->Value('ts_expiry') ) {
+            $errCode = SEEDSESSION_ERR_MAGIC_EXPIRED;
+            goto done;
+        }
+        if( ($nLimit = $kfrML->Value('nLimit')) == 0 ) {
+            $errCode = SEEDSESSION_ERR_MAGIC_EXPIRED;
+            goto done;
+        } else if( $nLimit > 0 ) {
+            $kfrML->SetValue('nLimit', $nLimit - 1);
+            $kfrML->PutDBRow();
+        }
+
+        /* parse the second part of the link according to type
+         */
+        switch($kfrML->Value('type')) {
+            case 'A':
+                goto done;
+            case 'B':
+                // sLink is {uid}B{hash} : get uid and make sure hash is good
+                list($kUid,$sHash) = explode('B', $sLink, 2);
+                $kUid = intval($kUid);
+                if( $sHash != md5($kUid.$kfrML->Value('magic_str')) ) {
+                    $errCode = SEEDSESSION_ERR_MAGIC_INVALID;
+                    goto done;
+                }
+                break;
+            default:
+                goto done;
+        }
+
+        /* $kUid is authenticated for login using $kfrML->[perms]  (caller must still check that the user is ACTIVE)
+         */
+        $bOk = true;
+        $uid = $kUid;
+        $sPerms = $kfrML->Value('perms');
+
+        done:
+        return([$bOk, $uid, $sPerms, $errCode]);
+    }
+}
