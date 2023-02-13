@@ -61,9 +61,14 @@ class MbrDonations
 //            foreach( $this->oDonations->GetDonationInfo($kMbr,['minDate'=>'2022-01-01']) as $raDon ) {
 
         foreach( $this->GetDonationInfo($kMbr) as $raDon ) {
-            $s .= SEEDCore_ArrayExpand( $raDon,
-                    "<p style=''>Receipt #<a href='{$this->oApp->UrlQ()}?qcmd=mbrdonation.printReceipt&receiptnum=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
-                         for $[[amount]] donated [[date_received]]</p>" );
+            if( $raDon['receipt_num'] ) {
+                $s .= SEEDCore_ArrayExpand( $raDon,
+                        "<p style=''>Receipt #<a href='{$this->oApp->UrlQ()}?qcmd=mbrdonation.printReceipt&receiptnum=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
+                             for $[[amount]] donated [[date_received]]</p>" );
+            } else {
+                $s .= SEEDCore_ArrayExpand( $raDon,
+                        "<p style=''>$[[amount]] donated [[date_received]] (receipt is being processed)</p>" );
+            }
         }
         return( $s );
     }
@@ -133,6 +138,8 @@ class MbrDonations
                 'donorDateIssued' => $kfrD->Value('date_issued'),
                 'taxYear' => substr($kfrD->Value('date_received'), 0, 4)     // should be the year for which the donation applies
             ];
+            $vars['donorName'] = SEEDCore_utf8_encode($vars['donorName']);
+            $vars['donorAddr'] = SEEDCore_utf8_encode($vars['donorAddr']);
 
             switch($eFmt) {
                 case 'PDF_STREAM':
