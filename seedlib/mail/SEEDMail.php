@@ -150,14 +150,14 @@ class SEEDMailMessage
     function GetKFR() { return( $this->kfrMsg ); }
     function Key()    { return( $this->kfrMsg ? $this->kfrMsg->Key() : 0 ); }
 
-    function GetMessageText( $raParms = [] )    // blank is the default behaviour
+    function GetMessageText( $raParms = [], $bExpandTags = true )    // blank is the default behaviour
     {
         $s = "";
 
         if( $this->kfrMsg ) {
             $s = $this->kfrMsg->Value('sBody');
             $raVars = []; // $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );  have to choose a kfrStage first
-            list($okDummy,$s,$sErr) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $s, ['raVars'=>$raVars] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
+            list($okDummy,$s,$sErr) = SEEDMailCore::ExpandMessage( $this->oCore->oApp, $s, ['raVars'=>$raVars,'bExpandTags'=>$bExpandTags] );    // returns $s=='' if failure but that only happens if DocRep can't find msg
         }
 
         return( $s );
@@ -352,7 +352,7 @@ class SEEDMailSend
             goto done;
         }
 
-
+// factor this with mailsetup preview for Expanded mode
         $raVars = SEEDCore_ParmsURL2RA( $kfrStage->Value('sVars') );
         $raVars['kMbrTo'] = $kMbrTo;
 $raVars['lang'] = $this->oCore->oApp->lang;

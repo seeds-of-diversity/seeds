@@ -305,3 +305,10 @@ class Console02TabSet_TabInfo
         $this->oSVA = $oCTS->TabSetGetSVA( $tsid, $tabname );
     }
 }
+
+interface Console02TabSet_Worker
+{
+    function Init();
+    function ControlDraw();
+    function ContentDraw();
+}
