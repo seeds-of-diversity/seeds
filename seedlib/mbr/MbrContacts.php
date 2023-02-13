@@ -359,6 +359,22 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                         "Fields" => 'Auto'],
             ]];
 
+        // Which donation receipts have not been accessed?
+        //  cond=YEAR(D.date_received)='Y' AND R.fk_mbr_donations IS NULL
+        //  N.B. to limit to only receipts not accessed by the donor (as opposed to office) that is much harder
+        $defD_R =
+            ['bFetchFullBaseAliases' => true,
+             "Tables" => [
+                "D" => ["Table" => "{$dbname2}.mbr_donations",
+                        "Type"  => "Base",
+                        "Fields" => 'Auto'],
+                "R" => ["Table" => "{$dbname2}.mbr_donation_receipts_accessed",
+                        "Type"  => 'LeftJoin',
+                        "JoinOn" => "R.fk_mbr_donations=D._key",
+                        "Fields" => 'Auto'],
+            ]];
+
+
         $parms = $logdir ? ['logfile'=>$logdir."mbr_contacts.log"] : [];
 
         $raKfrel['M'] = new Keyframe_Relation( $kfdb, $defM, $uid, $parms );
@@ -367,6 +383,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
         $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
         $raKfrel['RxD_M'] = new Keyframe_Relation( $kfdb, $defRxD_M, $uid, $parms );
+        $raKfrel['D_R'] = new Keyframe_Relation( $kfdb, $defD_R, $uid, $parms );
 
         return( $raKfrel );
     }

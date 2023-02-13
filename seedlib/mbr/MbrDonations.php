@@ -190,4 +190,31 @@ Implement SetVerbatim()
 
         return( [$sHead,$sBody] );
     }
+
+    function GetListDonationsNotAccessedByDonor( int $year )
+    /*******************************************************
+        Get donations of the given year whose receipts have not been accessed.
+        We try to prevent office access from being recorded, but just in case, this is important to make sure we don't incorrectly think a donor got their receipt.
+     */
+    {
+        $raOut = [];
+
+        $raDonations = $this->oDB->GetList('D_R', "YEAR(D.date_received)='$year' AND D.receipt_num");
+        /* Difficult to get D where R is null OR R.uid does not include donor.
+         * These are either 1) uid==null : left join found no R so include this donation
+         *                  2) uid==donor : the donor accessed this, so exclude
+         *                  3) uid==other : an office access was accidentally recorded, so include UNLESS the donor also accessed
+         * To solve the last case, make a list of 2, then process 1 and 3 while excluding any that overlap 2
+         */
+        $raDonorAccessed = [];
+        foreach( $raDonations as $raDR ) {
+            if( $raDR['R_uid_accessor']==$raDR['fk_mbr_contacts'] )  $raDonorAccessed[] = $raDR['_key'];
+        }
+        foreach( $raDonations as $raDR ) {
+            if( !in_array($raDR['_key'], $raDonorAccessed) ) {
+                $raOut[] = $raDR;
+            }
+        }
+        return( $raOut );
+    }
 }
