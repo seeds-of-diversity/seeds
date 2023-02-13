@@ -166,7 +166,18 @@ class mailCtrlView_Text implements Console02TabSet_Worker
     {
         $s = "";
 
-        $raMbrTo = ['-- To --' => 0, 'bob@seeds.ca' => 1499];
+        $oContacts = new Mbr_Contacts($this->oMailUI->oApp);
+
+        /* Get staged and unstaged recipients for member-expansion dropdown
+         */
+        $raMbrTo = ['-- To --' => 0];
+        if( ($oMessage = $this->oMailUI->CurrMessageObj()) ) {
+            foreach( array_merge($oMessage->GetRAStagedRecipients(), $oMessage->GetRAUnStagedRecipients()) as $email ) {    // $email can be kMbr or email
+                if( ($raM = $oContacts->GetBasicValues($email)) ) {
+                    $raMbrTo[$raM['email']] = $raM['_key'];
+                }
+            }
+        }
 
         $s = "<form>"
             .$this->oCtrlForm->Select('mode', ['Normal'=>'Normal','Expanded'=>'Expanded','HTML'=>'HTML','Expanded HTML'=>'Expanded HTML'])

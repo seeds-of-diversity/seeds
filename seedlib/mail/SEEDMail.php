@@ -200,7 +200,14 @@ class SEEDMailMessage
         Array of email/kMbr of recipients not yet staged, on this message
      */
     {
-        return( $this->kfrMsg && ($sAddr = $this->kfrMsg->Value('sAddresses')) ? explode("\n", $sAddr) : [] );
+        $raOut = [];
+
+        if( $this->kfrMsg && ($sAddr = $this->kfrMsg->Value('sAddresses')) ) {
+            foreach( explode("\n", $sAddr) as $a ) {
+                $raOut[] = trim($a);
+            }
+        }
+        return( $raOut );
     }
 
     function GetRAStagedRecipients( $eStageStatus = '' )
