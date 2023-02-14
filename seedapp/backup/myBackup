@@ -51,7 +51,7 @@ declare -a tables1=(
   )
   
 declare -a tables2=(
-               "mbr:             mbr_contacts mbr_donations"                                                        
+               "mbr:             mbr_contacts mbr_donations mbr_donation_receipts_accessed"                                                        
                "mbrmail:         mbr_mail_send mbr_mail_send_recipients"                                            
                "seedmail:        SEEDMail SEEDMail_Staged"                                                          
                "gcgc:            gcgc_growers gcgc_varieties gcgc_gxv"                                              
