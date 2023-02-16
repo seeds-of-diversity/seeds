@@ -199,7 +199,7 @@ Implement SetVerbatim()
     {
         $raOut = [];
 
-        $raDonations = $this->oDB->GetList('D_R', "YEAR(D.date_received)='$year' AND D.receipt_num");
+        $raDonations = $this->oDB->GetList('D_R', "YEAR(D.date_received)='$year' AND D.receipt_num > 0");
         /* Difficult to get D where R is null OR R.uid does not include donor.
          * These are either 1) uid==null : left join found no R so include this donation
          *                  2) uid==donor : the donor accessed this, so exclude
