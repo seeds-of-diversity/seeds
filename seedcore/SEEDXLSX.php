@@ -46,6 +46,16 @@ class SEEDXls
 
         return( $i );
     }
+
+    /**
+     * Validate whether a string contains a valid cell code e.g. A1, N20, CF120
+     * @param String - alphabetic column name
+     * @return int - 0-based index
+     */
+    static function IsValidCellname( string $cellname )
+    {
+        return( preg_match( "/^[A-Z]+[0-9]+$/", $cellname) );
+    }
 }
 
 

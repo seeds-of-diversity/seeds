@@ -145,7 +145,7 @@ class SEEDGoogleSheets
         $requestBody = new Google_Service_Sheets_ValueRange();
         $requestBody->values = [$values];   // values are always provided as a 2D array
 
-        $colEnd = $this->NumberToColumnLetter(count($values)); // find last column index
+        $colEnd = self::NumberToColumnLetter(count($values)); // find last column index
         $response = $this->oService->spreadsheets_values->update($this->idSpreadsheet, "{$nameSheet}!A{$row}:{$colEnd}{$row}", $requestBody, ['valueInputOption' => 'USER_ENTERED']);
 
         return( $response );
@@ -193,7 +193,7 @@ class SEEDGoogleSheets
      * @param int $columnNumber
      * @return string column letter
      */
-    function NumberToColumnLetter( int $columnNumber )
+    static function NumberToColumnLetter( int $columnNumber )
     {
         $columnName = "";
 
@@ -292,9 +292,9 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
             // Get the index number of the named col, convert to A1 notation
 //TODO: a smarter implementation could combine adjacent cells
             if( ($i = array_search($colname, $raColNames)) === false ) continue;
-            $range = $this->NumberToColumnLetter($i+1).$row;
+            $range = self::NumberToColumnLetter($i+1).$row;
             $this->WriteValues( $nameSheet.'!'.$range, [[$v]] );   // value in 2D array
-var_dump("Writing $v to $range");
+//var_dump("Writing $v to $range");
         }
     }
 
@@ -311,7 +311,7 @@ var_dump("Writing $v to $range");
 
         $raColnames = $this->GetColumnNames( $nameSheet );
         if( ($iCol = array_search($colname, $raColnames, false)) !== false ) {    // $i is the index of colname in the column names
-            $range = $this->NumberToColumnLetter( $iCol + 1 );
+            $range = self::NumberToColumnLetter( $iCol + 1 );
             // Get one column. Returns 2D array so reduce to 1D array and remove the top row.
             $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "$nameSheet!$range:$range");
             $values = $response->getValues();
