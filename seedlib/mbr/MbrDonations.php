@@ -212,9 +212,11 @@ Implement SetVerbatim()
         }
         foreach( $raDonations as $raDR ) {
             if( !in_array($raDR['_key'], $raDonorAccessed) ) {
-                $raOut[] = $raDR;
+                // raDonations is a list of unique D_R, not unique Donations. use _key to make raOut unique D (but arbitrary R)
+                $raOut[$raDR['_key']] = $raDR;
             }
         }
+// N.B. this is a list of unique D; with arbitrary R
         return( $raOut );
     }
 }

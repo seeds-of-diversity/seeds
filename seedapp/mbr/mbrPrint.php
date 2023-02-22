@@ -52,7 +52,7 @@ SEEDPRG();
 
 if( SEEDInput_Str('cmd') == 'printDonationReceipt' || SEEDInput_Str('cmd') == 'printDonationReceipt2' ) {
     if( ($rngReceipt = SEEDInput_Str('donorReceiptRange')) ) {
-        list($sHead,$sBody) = (new MbrDonations($oApp))->DrawDonationReceipt( $rngReceipt, SEEDInput_Str('cmd') == 'printDonationReceipt' ? 'HTML' : 'PDF_STREAM' );
+        list($sHead,$sBody) = (new MbrDonations($oApp))->DrawDonationReceipt( $rngReceipt, SEEDInput_Str('cmd') == 'printDonationReceipt' ? 'HTML' : 'PDF_STREAM', false ); // don't record
         // HTML returns with these vars; PDF_STREAM does not return
         echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
         exit;
@@ -147,8 +147,6 @@ if( SEEDInput_Str('cmd') == 'printSFG2020Slips' ) {
 }
 
 
-
-
 class MyConsole02TabSet extends Console02TabSet
 {
     private $oApp;
@@ -224,8 +222,10 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_main_donationReceipts2_ContentDraw()
     {
-        $sMbrReceiptsLinks = "";
         $kMbr = "";
+        $y = 0;
+        $sMbrReceiptsLinks = "";
+        $raReceiptNumbers = [];
 
         if( SEEDInput_Str('cmd')=='showReceiptLinksForMember' && ($kMbr = SEEDInput_Int('kMbr') ) ) {
             if( ($sMbrReceiptsLinks = $this->oDonations->DrawReceiptLinks($kMbr)) ) {
@@ -233,7 +233,11 @@ class MyConsole02TabSet extends Console02TabSet
                                         <h4>Click to download official donation receipts</h4>$sMbrReceiptsLinks
                                       </div>";
             }
-
+        }
+        if( SEEDInput_Str('cmd')=='showReceiptsNotAccessed' && ($y = SEEDInput_Int('year') ) ) {
+            foreach( $this->oDonations->GetListDonationsNotAccessedByDonor($y) as $raD ) {
+                $raReceiptNumbers[] = $raD['receipt_num'];
+            }
         }
 
         $s = "<div class='container-fluid'><div class='row'>
@@ -251,6 +255,16 @@ class MyConsole02TabSet extends Console02TabSet
                           <input type='submit' value='List Receipts for Member'/>
                       </form>
                       $sMbrReceiptsLinks
+                  </div>
+                  <div class='col-md-3'>
+                      <form>
+                          <input type='hidden' name='cmd' value='showReceiptsNotAccessed'>
+                          <select name='year'><option value='2022'>2022</option></select>
+                          <input type='submit' value='List Receipts Not Accessed by Donor'/>
+                      </form>
+                      <p>Use this to print and mail receipts in February</p>
+                      <p style='border:1px solid #aaa;background-color:#eee'>".SEEDCore_MakeRangeStr($raReceiptNumbers)."</p>
+                      <textarea>".implode("\n",$raReceiptNumbers)."</textarea>
                   </div>
               </div></div>";
 
