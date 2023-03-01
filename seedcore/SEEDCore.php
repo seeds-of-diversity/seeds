@@ -2,7 +2,7 @@
 
 /* SEEDCore
  *
- * Copyright (c) 2016-2020 Seeds of Diversity Canada
+ * Copyright (c) 2016-2023 Seeds of Diversity Canada
  *
  * Basic functions useful in most applications
  */
@@ -72,7 +72,7 @@ function SEEDCore_Ent( $s )
     Since the default charset used by htmlentities depends on the php version, standardize the charset by using this instead
  */
 {
-    return( htmlentities( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
+    return( htmlentities( $s!==null ? $s : "", ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
 }
 
 function SEEDCore_HSC( $s )
@@ -80,7 +80,7 @@ function SEEDCore_HSC( $s )
     Since the default charset used by htmlspecialchars depends on the php version, standardize the charset by using this instead
  */
 {
-    return( htmlspecialchars( $s, ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
+    return( htmlspecialchars( $s!==null ? $s : "", ENT_QUOTES, 'cp1252') );  // assuming php will not soon use unicode natively
 }
 
 /* Replace the standard utf8_encode/decode functions because they go to/from iso-8859-1 so they screw up Windows quotes.
@@ -98,6 +98,8 @@ function SEEDCore_CharsetConvert( $val, $sCharsetFrom, $sCharsetTo, $bTransliter
  */
 {
     if( $bTransliterate ) $sCharsetTo .= '//TRANSLIT';
+
+    if($val === null) $val = "";
 
     if( is_string($val) ) {
         $val = iconv( $sCharsetFrom, $sCharsetTo, $val );
