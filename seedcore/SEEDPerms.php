@@ -2,7 +2,7 @@
 
 /* SEEDPerms
  *
- * Copyright (c) 2007-2018 Seeds of Diversity Canada
+ * Copyright (c) 2007-2023 Seeds of Diversity Canada
  *
  * A flexible permissions manager.
  *
@@ -173,9 +173,10 @@ class SEEDPermsTest extends SEEDPermsRead
                 $permclass = $kfr->value('C__key');
                 $modes = $kfr->value('modes');
 
-                $this->raClassesInfo[$permclass]['classname'] = $kfr->value('C_name');
-                for( $i = 0; $i < strlen($modes); ++$i ) {
-                    $m = $modes[$i];
+                if( !isset($this->raClassesInfo[$permclass]) ) {
+                    $this->raClassesInfo[$permclass] = ['classname'=>$kfr->value('C_name'), 'modes'=>""];
+                }
+                foreach( str_split($modes) as $m ) {    // splits string to array of chars
                     // Store the relation permclass->mode
                     if( strpos( @$this->raClassesInfo[$permclass]['modes'], $m ) === false ) {
                         @$this->raClassesInfo[$permclass]['modes'] .= $m;

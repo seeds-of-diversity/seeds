@@ -6,7 +6,7 @@ include_once( "console02tabset.php" );
  *
  * Basic console framework
  *
- * Copyright (c) 2009-2019 Seeds of Diversity Canada
+ * Copyright (c) 2009-2023 Seeds of Diversity Canada
  */
 
 class Console02
@@ -170,7 +170,10 @@ class Console02
      * raMatches[5] = title (if any)
      */
     {
-        return( $this->ExpandTemplateTag( trim(@$raMatches[2]), trim(@$raMatches[3]), trim(@$raMatches[5]) ) );
+        $ns    = trim(@$raMatches[2] ?: "");
+        $tag   = trim(@$raMatches[3] ?: "");
+        $title = trim(@$raMatches[5] ?: "");
+        return( $this->ExpandTemplateTag( $ns, $tag, $title ) );
     }
 
     function ExpandTemplateTag( $namespace, $tag, $title )
@@ -224,6 +227,7 @@ class Console02Static
             sCharset      : UTF-8 by default
             bCTHeader     : output header(Content-type) by default, =>false to disable
             sTitle        : <title>
+            icon          : url of favicon - default /favicon.ico
             sBodyAttr     : attrs for body tag e.g. onload
             cssBodyMargin : put a margin on the <body> (useful for bootstrap pages that look tight with bs's default 0 margin)
             raScriptFiles : script files for the header
@@ -273,6 +277,11 @@ class Console02Static
                      ."<script src='//oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js'></script>"
                      ."<![endif]-->";
         }
+
+        /* Set shortcut icon
+         */
+        $sIcon = @$raConfig['icon'] ?: "/favicon.ico";
+        $sHead .= "<link rel='shortcut icon' href='$sIcon'/>";
 
         /* Set the css and js for the requested console skin, and add extra css and js files too.
          */
