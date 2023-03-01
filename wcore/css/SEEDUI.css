@@ -1,33 +1,50 @@
 /*****
+    SEEDUI_Box1 is a gray box with white title
+    
+    <div class='seedui-box1 {combine with seedui-box-expand}'>
+        <div class='seedui-box-head'>  </div>
+        <div class='seedui-box-body'>  </div>
+    </div>
+*/
+.seedui-box1
+    { margin-left:10px; border:1px solid #aaa; }
+.seedui-box1 .seedui-box-head
+    { padding:3px 10px; background-color:#999; color:white; font-size:16px; font-weight:bold; text-align:center }
+.seedui-box1 .seedui-box-body
+    { padding: 10px; text-align:left; font-size:9pt; }
+.seedui-box1 .seedui-box-errmsg
+    { color:red; text-align:center; }
+
+
+
+/*****
     SEEDUI_BoxExpand makes a box whose body opens and closes when you click on the header
 
     See SEEDUI_BoxExpandInit() in SEEDUI.js
 
-    <div class='boxexpand'>
-        <div class='boxexpand_head'></div>
-        <div class='boxexpand_body'></div>
+    <div class='seedui_boxexpand {combine with seedui_boxN}'>
+        <div class='seedui_box_head'>  </div>
+        <div class='seedui_box_body'>  </div>
     </div>
 */
-
-.seedui_boxexpand {}
-.seedui_boxexpand_body {
+.seedui-boxexpand {}
+.seedui-boxexpand .seedui-box-body {
         display: none
 }
-.seedui_boxexpand_expand-button {
+.seedui-boxexpand-expand-button {
         position: relative;
         float: left;
         height: 14px;
         width: 14px;
         overflow: hidden;
 }
-.seedui_boxexpand_expand-button img {
+.seedui-boxexpand-expand-button img {
         position: absolute;
         left: 0;         /* js shifts this image right-left to alternate the symbol */
         max-width:none;  /* override responsive img css that a lot of themes like to do */
 }
-.seedui_boxexpand_expand-instruction {
+.seedui-boxexpand-expand-instruction {
         font-size:9pt;
         float:left;
         margin-left:5px;
 }
-

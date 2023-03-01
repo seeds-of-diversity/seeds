@@ -52,6 +52,7 @@ class SoDMasterTemplate
         $raTmplParms = SEEDCore_ArraySmartVal1( $raConfig, 'raSEEDTemplateMakerParms', [] );    // empty array is the default value
 
         $raTmplParms['fTemplates'][] = SEEDAPP."templates/seeds_sessionaccount.html";
+        $raTmplParms['fTemplates'][] = SEEDAPP."templates/SEEDUI.html";
 
         $raTmplParms['raResolvers'] = [
             // handler for SEEDContent:
