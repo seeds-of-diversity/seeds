@@ -18,9 +18,9 @@
         "fpdf/fpdf": "^1.8",
         "phpoffice/phpword": "^0.18.0",
         "phpoffice/phpspreadsheet": "^1.5",
-        "twig/twig": "1.42.2",
+        "twig/twig": "^3.0",
         "components/jquery": "^3.3",
-        "dompdf/dompdf": "^1.2.1",
+        "dompdf/dompdf": "^2.0",
         "10bestdesign/jqvmap": "1.5.*",
           "jfcherng/php-diff": "^6.11"
     }
