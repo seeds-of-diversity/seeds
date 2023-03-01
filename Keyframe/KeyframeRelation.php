@@ -458,15 +458,24 @@ private $raColAlias = [];        // store all field names for reference ( array 
     function GetRecordSetRA( $cond, $parms = array() )
     /*************************************************
         Return an array of array() for the given record set
+
+        parms: sKeyRecordSet = name of column that will be used as keys of returned array (default: returned array is unkeyed)
      */
     {
-        $ra = array();
+        $raOut = [];
+        $kOut = @$parms['sKeyRecordSet'] ?: "";
+
         if( ($kfrc = $this->CreateRecordCursor( $cond, $parms )) ) {
             while( $kfrc->CursorFetch() ) {
-                $ra[] = $kfrc->ValuesRA();
+                $ra = $kfrc->ValuesRA();
+                if( $kOut ) {
+                    $raOut[$ra[$kOut]] = $ra;       // returned array is keyed by the value of $kOut in each row
+                } else {
+                    $raOut[] = $ra;                 // returned array is unkeyed
+                }
             }
         }
-        return( $ra );
+        return( $raOut );
     }
 
     // Override these to create custom KFRecord objects
@@ -1304,6 +1313,8 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         $bForceDefaults should be false when the record already contains values and $ra is a subset
      */
     {
+//if @kfrdef['bFetchFullBaseAliases']  also put base table values in $f['alias_full']
+
         if( isset($ra['_key']) ) {          // _key won't necessarily be in ra if these are values posted from a form
             $this->key = intval($ra['_key']);
         } else if( $bForceDefaults ) {
@@ -1634,6 +1645,15 @@ class Keyframe_NamedRelations
      */
     {
         return( ($kfrel = $this->GetKfrel($sRel)) ? $kfrel->GetRecordSetRA( $sCond, $raKFParms ) : array() );
+    }
+
+    function GetListKeyed( string $sRel, string $keyName, string $sCond, $raKFParms = [] )
+    /*************************************************************************************
+        Same as GetList but the returned array has keys extracted from each sub-array [ ra1[keyName]=>ra1, ra2[keyName]=>ra2, ...]
+        e.g. GetListKeyed('REL', '_key', ... )
+     */
+    {
+        return( $this->GetList($sRel, $sCond, array_merge($raKFParms, ['sKeyRecordSet'=>$keyName])) );
     }
 
     function Get1List( $sRel, $fld, $sCond, $raKFParms = [] )
