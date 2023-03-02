@@ -321,7 +321,8 @@ class SEEDTemplate_Generator2
     /* Create the Twig object and its loader
      */
     {
-        $o = new \Twig\Environment( $this->factory_TwigLoader() );
+        $o = function_exists('Twig_Environment') ? (new Twig_Environment($this->factory_TwigLoader()))    // twig 1.42 deprecate
+                                                 : (new \Twig\Environment($this->factory_TwigLoader()));  // twig ^3.0
         if( isset($this->raConfig['charset']) )  $o->setCharset($this->raConfig['charset']);
 
         return( $o );
@@ -330,7 +331,8 @@ class SEEDTemplate_Generator2
     protected function factory_TwigLoader( $raParms = array() )
     {
         if( !($loader = @$this->raConfig['TwigLoader']) ) {
-            $loader = new \Twig\Loader\ArrayLoader( $this->oLoader->GetRATmpl() );
+            $loader = function_exists('Twig_Loader_Array') ? (new Twig_Loader_Array($this->oLoader->GetRATmpl()))         // twig 1.42 deprecate
+                                                           : (new \Twig\Loader\ArrayLoader($this->oLoader->GetRATmpl())); // twig ^3.0
         }
         return( $loader );
     }
