@@ -12,7 +12,13 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
         parent::__construct($oApp, $this->getListFormConfig());
     }
 
-    function Init()  { parent::Init(); }
+    function Init()
+    {
+        parent::Init();
+        // if KeyframeUI_ListFormUI had a Console it could get these
+        $this->oApp->oC->AddUserMsg($this->oComp->oUI->GetUserMsg());
+        $this->oApp->oC->AddErrMsg($this->oComp->oUI->GetErrMsg());
+    }
 
     function ControlDraw()
     {
@@ -49,7 +55,7 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
             'sessNamespace' => "MbrContacts_Contacts",
             'cid'   => 'M',
             'kfrel' => $this->oContacts->oDB->GetKfrel('M'),
-            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'contactsPreStore']]]],
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'contactsPreStore'], 'fn_DSPreOp'=>[$this,'contactsPreOp']]]],
 
             'raListConfig' => [
                 'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
@@ -80,8 +86,15 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
     function contactsPreStore( Keyframe_DataStore $oDS )
     {
         return( true );
-
     }
+
+    function contactsPreOp( Keyframe_DataStore $oDS, $op )
+    {
+$this->oApp->oC->AddErrMsg("Test if member can be deleted");
+
+        return( true );
+    }
+
     function contactsFormTemplate()
     {
         $s = "<h4>".($this->oComp->IsNewRowState() ? "New" : "Edit")." Contact</h4>

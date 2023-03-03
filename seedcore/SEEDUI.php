@@ -57,6 +57,10 @@ class SEEDUI
     public    $lang;       // used for default button labels
     protected $raComps = array();
 
+    // if we had a Console we'd write these there; instead you have to get them yourself
+    private $sUserMsg = "";
+    private $sErrMsg = "";
+
     /* UIParms are stored this way for extensibility. e.g. you could add a field to signify persistence
      * Each row contains the ui parms for a Component:
      *
@@ -88,7 +92,12 @@ class SEEDUI
         }
     }
 
-    public function Config( $k )        { return( @$this->raConfig[$k] ); }
+    public function Config( $k )             { return( @$this->raConfig[$k] ); }
+    public function GetUserMsg() : string    { return( $this->sUserMsg ); }
+    public function GetErrMsg()  : string    { return( $this->sErrMsg ); }
+    public function SetUserMsg( string $s )  { $this->sUserMsg .= $s; }
+    public function SetErrMsg( string $s )   { $this->sErrMsg .= $s; }
+
 
     public function RegisterComponent( SEEDUIComponent $oComp )
     {
@@ -292,7 +301,6 @@ class SEEDUIComponent
 
 //    public $kCurr = 0;     // the key of the current element in some list or table
 //    private $iCurr = 0;    // another way of representing the current item in a list or table
-//    public $kDel = 0;      // non-zero for an element being deleted
 
     protected $sSqlCond = "";           // sql condition for the View, built here just to be nice to the derived class that implements db access
 
@@ -389,32 +397,22 @@ class SEEDUIComponent
             if( method_exists($this->oForm,'SetKey') ) { $this->oForm->SetKey(0); }     // reset current row in the form
             $this->oForm->Clear();                                                      // clear the contents of the form (could be redundant depending on derived implementation)
 
-            // bNew is persistent in implementations where uiParms are kept in a persistent store. Doesn't make sense for this parm, but for now we reset it.
+            // uiParm bNew is sometimes kept in a persistent store. Doesn't make sense for this parm, so for now we reset it.
             $this->Unset_bNew();
         }
 
         if( $this->Get_kDel() ) {
-
-            // command has been issued to delete the current row
-            //
-            // This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
-            // detect that here so that the UI can be reset to reflect the missing row
-
-            var_dump("kCurr=".$this->Get_kCurr().", kDel={$this->GetUIParm('kDel')}");
-/*
-            if( $this->oForm->GetKey() && ($kfr = $this->kfuiCurrRow->GetKFR()) ) {
-                $bDelOk = isset($this->raCompConfig['fnPreDelete']) ? call_user_func( $this->raCompConfig['fnPreDelete'], $kfr ) : true;
-                //var_dump($bDelOk);
-                if( $bDelOk ) {
-                //    $kfr->StatusSet( KFRECORD_STATUS_DELETED );
-                //    $kfr->PutDBRow();
-                //    $this->kfuiCurrRow->SetKey( 0 ); // clear the curr row; this also clears the kfr in the oForm
-                }
+            /* Command has been issued to delete the given (typically current) row
+             *
+             * This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
+             * detect that here so we can reset the UI to reflect the missing row
+             */
+            if( $this->DeleteRow($this->Get_kDel()) ) {     // derived class has to do this because it's hard to generalize; also easier for derived to call e.g. fn_PreDelete
+                // could use a callback function to make a descriptive string but the derived class can provide more data to that callback
+                //$this->oUI->SetUserMsg("Deleted {$this->Get_kDel()}");
             }
 
-*/
-
-            // kDel is persistent in implementations where uiParms are kept in a persistent store. Doesn't make sense for this parm, but for now we reset it.
+            // uiParm kDel is sometimes kept in a persistent store. Doesn't make sense for this parm, so for now we reset it.
             $this->Unset_kDel();
         }
 /*
@@ -426,6 +424,8 @@ status
 groupcol
 */
     }
+    function DeleteRow( int $kDel ) {}  // called above, must be overridden
+
 
     function Start()
     /***************
