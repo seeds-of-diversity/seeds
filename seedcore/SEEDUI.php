@@ -100,7 +100,7 @@ class SEEDUI
      */
     public function GetUIParm( $cid, $name )
     {
-        return( @$this->raUIParms[$cid][$name]['v'] );
+        return( @$this->raUIParms[$cid][$name]['v'] ?: "");
     }
     public function SetUIParm( $cid, $name, $v )
     {
@@ -204,6 +204,7 @@ class SEEDUI
         if( !isset($this->raUIParms[$cid]) )  goto done;
 
         // You almost always want kCurr so we add it to the array every time so you don't have to
+        // Note: sometimes you get two identical <input> that doesn't matter  e.g. getUIParmsFromOtherWidgets(null) where all widgets included
         if( !isset($raP['kCurr']) )  $raP['kCurr'] = $this->GetUIParm( $cid, 'kCurr' );
 
         // Map every known parm name to its http name
@@ -269,7 +270,7 @@ class SEEDUIComponent
         sf[[cid]]ui_k      = the key of the current element of component cid (could be a list, a form, a drop-down, etc)
         sf[[cid]]ui_i      = the view-offset of the current element of component cid (e.g. 0-based placement in a list)
         sf[[cid]]ui_bNew   = a new element has been ordered for component cid - enter bNewRowState
-//        sf[[cid]]ui_kDel   = command to delete an element of component cid
+        sf[[cid]]ui_kDel   = command to delete an element of component cid
         sf[[cid]]ui_iWO    = the window offset of component cid
         sf[[cid]]ui_nWS    = the window size of component cid
 
@@ -287,7 +288,7 @@ class SEEDUIComponent
     protected $cid;
     protected $raCompConfig = array();
     public    $oForm;                   // widgets use this to draw controls
-    public    $bNewRowState = false;         // true if a new element is being made
+    private   $bNewRowState = false;    // true if a new element is being made
 
 //    public $kCurr = 0;     // the key of the current element in some list or table
 //    private $iCurr = 0;    // another way of representing the current item in a list or table
@@ -322,7 +323,7 @@ class SEEDUIComponent
         $raUIParms = array( 'kCurr'         => array( 'http'=>'sf[[cid]]ui_k',    'v'=>0 ),
                             'iCurr'         => array( 'http'=>'sf[[cid]]ui_i',    'v'=>0 ),
                             'bNew'          => array( 'http'=>'sf[[cid]]ui_bNew', 'v'=>0 ),
-//                            'kDel'          => array( 'http'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
+                            'kDel'          => array( 'http'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
                             'iWindowOffset' => array( 'http'=>'sf[[cid]]ui_iWO',  'v'=>0 ),
                             'nWindowSize'   => array( 'http'=>'sf[[cid]]ui_nWS',  'v'=>0 ) );
         if( isset($raCompConfig['raUIParms']) ) {
@@ -346,14 +347,17 @@ class SEEDUIComponent
     public function Set_iWindowOffset( $i ) { $this->SetUIParmInt('iWindowOffset', $i ); }
     public function Set_nWindowSize( $i )   { $this->SetUIParmInt('nWindowSize', $i ); }
 
-//    public function Get_kDel()          { return( $this->GetUIParm('kDel') ); }
-//    public function Set_kDel( $k )          { $this->SetUIParm('kDel', $k ); }
+    public function Get_bNew()              { return( $this->GetUIParmInt('bNew') ); }
+    public function Get_kDel()              { return( $this->GetUIParmInt('kDel') ); }
+    public function Unset_bNew()            { $this->SetUIParm('bNew', 0); }                // since bNew and kDel are inappropriately kept in persistent storage, they have to be cleared
+    public function Unset_kDel()            { $this->SetUIParm('kDel', 0); }
 
     public function GetUIParm( $k )         { return( $this->oUI->GetUIParm( $this->cid, $k ) ); }
     public function GetUIParmInt( $k )      { return( intval($this->GetUIParm($k)) ); }
     public function SetUIParm( $k, $v )     { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
     public function SetUIParmInt( $k, $v )  { return( $this->SetUIParm($k, intval($v)) ); }
 
+    public function IsNewRowState()         { return($this->bNewRowState); }
 
     protected function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
     {
@@ -376,7 +380,7 @@ class SEEDUIComponent
 //            $this->SetKey( $k );                // this was $this->kfuiCurrRow->SetKey(  );
         }
 
-        if( $this->GetUIParm('bNew') == 1 ) {
+        if( $this->Get_bNew() == 1 ) {
             /* Command has been issued to create a new row.
              */
             $this->bNewRowState = true;                                                 // enter the special bNewRowState
@@ -385,15 +389,19 @@ class SEEDUIComponent
             if( method_exists($this->oForm,'SetKey') ) { $this->oForm->SetKey(0); }     // reset current row in the form
             $this->oForm->Clear();                                                      // clear the contents of the form (could be redundant depending on derived implementation)
 
-            // uiparms are persistent, which doesn't make sense for bNew. It should be a non-persistent control parm, but for now we reset it.
-            $this->SetUIParm('bNew', 0);
+            // bNew is persistent in implementations where uiParms are kept in a persistent store. Doesn't make sense for this parm, but for now we reset it.
+            $this->Unset_bNew();
         }
-/*
-        if( $this->oForm->ControlGet('deleterow') == 1 ) {
+
+        if( $this->Get_kDel() ) {
+
             // command has been issued to delete the current row
             //
             // This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
             // detect that here so that the UI can be reset to reflect the missing row
+
+            var_dump("kCurr=".$this->Get_kCurr().", kDel={$this->GetUIParm('kDel')}");
+/*
             if( $this->oForm->GetKey() && ($kfr = $this->kfuiCurrRow->GetKFR()) ) {
                 $bDelOk = isset($this->raCompConfig['fnPreDelete']) ? call_user_func( $this->raCompConfig['fnPreDelete'], $kfr ) : true;
                 //var_dump($bDelOk);
@@ -403,9 +411,12 @@ class SEEDUIComponent
                 //    $this->kfuiCurrRow->SetKey( 0 ); // clear the curr row; this also clears the kfr in the oForm
                 }
             }
-        }
+
 */
 
+            // kDel is persistent in implementations where uiParms are kept in a persistent store. Doesn't make sense for this parm, but for now we reset it.
+            $this->Unset_kDel();
+        }
 /*
 SEEDUI should pick these up
 
@@ -595,6 +606,7 @@ groupcol
         // Insert bNew=1 to the http parms, plus any given in raParms.
         // The null widget argument below causes all parms of all widgets to be propagated,
         // which is correct because the New button is not a registered widget.
+        // Note there will be two identical <input name='kCurr'> but that's okay
         $raPropagate = array_merge( (@$raParms['raPropagate'] ?: []), ['bNew'=>1] );
 
         return( $this->DrawWidgetInForm( "<input type='submit' value='$sLabel'/>".$this->oUI->HiddenFormParms($this->cid, $raPropagate),
@@ -610,16 +622,20 @@ groupcol
         kDelete==0 means kDelete=$this->Get_kCurr()
      */
     {
-        // delete current row unless another row is specified
+        // if no row is specified don't draw the button
         if( !$kDelete && !($kDelete = $this->Get_kCurr()) )  return( "" );
 
-        if( !$sLabel )  $sLabel = ($this->lang == 'FR' ? "Supprimer" : "Delete");
+        if( !$sLabel )  $sLabel = ($this->oUI->lang == 'FR' ? "Supprimer" : "Delete");
 
-        // propagate these parms when the button is clicked
-        $raPropagate = @$raParms['raPropagate'] ?: array();
-        $raPropagate = array_merge( array('kCurr'=>$this->Get_kCurr()), $raPropagate, array('bDel' => $kDelete) );
+        // Insert kDel to the http parms, plus any given in raParms.
+        // The null widget argument below causes all parms of all widgets to be propagated,
+        // which is correct because the Delete button is not a registered widget.
+        // Note there will be two identical <input name='kCurr'> but that's okay
+        $raPropagate = array_merge( (@$raParms['raPropagate'] ?: []), ['kDel'=>$kDelete] );
 
-        return( $this->FormDraw( "<INPUT type='submit' value='$sLabel'/>", $raPropagate, $raParms ) );
+        return( $this->DrawWidgetInForm( "<input type='submit' value='$sLabel'/>".$this->oUI->HiddenFormParms($this->cid, $raPropagate),
+                                 // null widget causes state of all of the widgets to be propagated
+                                 null, [] ) );
     }
 
     public function ButtonEdit( $kEdit, $sLabel = "", $raParms = array() )
@@ -953,7 +969,7 @@ class SEEDUIComponent_ViewWindow
          * Initialize kCurr to the first row iCurr=0.
          * This also tries to work for cases where iCurr>0 but that probably doesn't happen?
          */
-        if( !$this->oComp->bNewRowState &&
+        if( !$this->oComp->IsNewRowState() &&
             !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 ) {
             if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
                 $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
@@ -986,7 +1002,7 @@ class SEEDUIComponent_ViewWindow
         /* There is a weird case when a relogin is necessary after a session timeout where kCurr and iCurr seem unsynchronized.
          * At this point, the iCurr row might as well be loaded, so do that and test that it contains kCurr. If not, reset the view.
          */
-        if( !$this->oComp->bNewRowState &&
+        if( !$this->oComp->IsNewRowState() &&
             (!($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) || $raRow['_key'] != $this->oComp->Get_kCurr()) ) {
             $this->oComp->Set_iCurr(0);
             $this->oComp->Set_iWindowOffset(0);
@@ -995,7 +1011,7 @@ class SEEDUIComponent_ViewWindow
             }
         }
 
-        if( $this->oComp->bNewRowState ) {
+        if( $this->oComp->IsNewRowState() ) {
             // this is correct but probably redundant since it's done where bNewRowState is set, but maybe iCurr changes?
             $this->oComp->Set_iCurr(-1);
         }

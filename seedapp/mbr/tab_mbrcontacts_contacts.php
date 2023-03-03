@@ -26,12 +26,19 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
         $cid = $this->oComp->Cid();
 
         $s = $this->DrawStyle()
-           ."<style></style>"
-           ."<div>{$this->DrawList()}</div>"
-           ."<div style='border:1px solid #777; padding:15px'>"
-               ."<div style='margin-bottom:5px'><div style='display:inline-block'>{$this->oComp->ButtonNew()}</div>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
-               ."<div style='width:100%;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>"
-           ."</div>";
+           ."<style>
+             .content-upper-section  { }
+             .content-lower-section  { border:1px solid #777; padding:15px; }
+             .content-button-new     { margin-bottom:5px; float:left }
+             .content-button-del     { margin-bottom:5px; float:right }
+             .content-form-container { width:100%;padding:20px;border:2px solid #999;clear:both }
+             </style>"
+           ."<div class='content-upper-section'>{$this->DrawList()}</div>"
+           ."<div class='content-lower-section'>
+                 <div class='content-button-new'>{$this->oComp->ButtonNew()}</div>
+                 <div class='content-button-del'>{$this->oComp->ButtonDelete()}</div>
+                 <div class='content-form-container'>{$this->DrawForm()}</div>
+             </div>";
 
         return( $s );
     }
@@ -77,7 +84,7 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
     }
     function contactsFormTemplate()
     {
-        $s = "<h4>Edit Contact</h4>
+        $s = "<h4>".($this->oComp->IsNewRowState() ? "New" : "Edit")." Contact</h4>
               <div style='font-size:x-small;margin-bottom:10px;'>
               The information in this database is private and confidential. It may only be used by Seeds of Diversity staff, and core volunteers.
               </div>";
