@@ -396,9 +396,13 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         // if a VIEW_RESET occurs, reset iWindowOffset=0,kCurr=0,iCurr=0 so the default selection will be made
         foreach( $raAdvisories as $v ) {
             if( $v == 'VIEW_RESET' ) {
-                $this->oComp->SetUIParm( 'iWindowOffset', 0 );
-                $this->oComp->SetUIParm( 'iCurr', 0 );
-                $this->oComp->SetUIParm( 'kCurr', 0 );
+                if( $this->oViewWindow->IsEnableKeys() ) {
+                    $this->oComp->SetUIParm('iCurr', -1);       // this is all InitViewWindow() needs for a reset, and it tries to look up kCurr in the new View
+                } else {
+                    $this->oComp->SetUIParm( 'iWindowOffset', 0 );
+                    $this->oComp->SetUIParm( 'iCurr', 0 );
+                    $this->oComp->SetUIParm( 'kCurr', 0 );
+                }
             }
         }
     }

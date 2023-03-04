@@ -944,7 +944,7 @@ class SEEDUIComponent_ViewWindow
      *     [e.g. Initialization - when iCurr is most likely also 0]
      *    Set kCurr to the key of iCurr's row
      *
-     * 1b) kCurr>0 but not in view - because the view changed
+     * 1b) kCurr>0 but not in view - because the view changed       *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
      *    [e.g. SearchControl / List Dropdown parms change]
      *    After VIEW_RESET (or application starts) the selected row is unknown or possibly not in the new view.
      *    The solution is that the first row in the new view should be selected.
@@ -978,7 +978,7 @@ class SEEDUIComponent_ViewWindow
      * 4) New row state (a New row is being entered so form empty & list has no selection) - caller sets kCurr=0, iCurr=-1. Do not try to find kCurr or iCurr.
      */
     {
-$bViewChanged = false;
+        $bViewChanged = false;  // *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
 
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
@@ -997,7 +997,7 @@ var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}
         $kCurr = $this->oComp->Get_kCurr();
         $iCurr = $this->oComp->Get_iCurr();
 
-        /* iCurr<0 means selection is not defined
+        /* iCurr<0 means row selection is not defined
          */
         if( $iCurr < 0 ) {
             /* Case 0a) if kCurr also not set there is nothing to calculate
@@ -1051,7 +1051,7 @@ var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}
         } else {
             /* kCurr is no longer in view
              */
-            if( $bViewChanged ) {
+            if( $bViewChanged ) {   // *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
                 /* Case 1b) kCurr not in the view because it changed e.g. Search changed so previous kCurr row now not included
                  *          Reset to top of view
                  */
