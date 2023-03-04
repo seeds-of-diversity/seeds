@@ -937,16 +937,28 @@ class SEEDUIComponent_ViewWindow
      *
      * Here are several special cases to prepare the ViewWindow:
      *
-     * 1) [e.g. Initialization or SearchControl parms change]
+     * 0a) iCurr and kCurr not set - nothing to do
+     * 0b) iCurr and kCurr properly set and in sync - good
+     *
+     * 1a) iCurr>=0 and kCurr==0
+     *     [e.g. Initialization - when iCurr is most likely also 0]
+     *    Set kCurr to the key of iCurr's row
+     *
+     * 1b) kCurr>0 but not in view - because the view changed
+     *    [e.g. SearchControl / List Dropdown parms change]
      *    After VIEW_RESET (or application starts) the selected row is unknown or possibly not in the new view.
      *    The solution is that the first row in the new view should be selected.
      *    If keys are enabled, kCurr should be initialized to raViewRows[(iCurr=0)]['_key'].
-     *    Calling code must do the reset of kCurr=iCurr=0.
-     *    The code below detects that kCurr=0 and loads the first view row to set kCurr.
      *
-     * 1b) New row state - caller sets kCurr=0, iCurr=-1. Do not try to find kCurr or iCurr.
+     * 1c) iCurr>=0 and kCurr>0 but not in view - because it went out of view
+     *    [e.g. value edited so row no longer meets Search condition]
+     *    The user expects the edited row to disappear since it no longer meets the Search, but also expects the view & window to remain in place.
+     *    The solution is to move the selection to the next row in the same view/window.
+     *    i.e. iCurr stays the same, and we make kCurr=raViewRows[iCurr]['_key']
+     *    Note that if the bottom row was previously selected, then iCurr has to move to the current bottom row before getting kCurr.
      *
-     * 2) [e.g. Sorting]
+     * 2) iCurr>=0 and kCurr>0 but they don't match : raViewRows[iCurr]['_key']<>kCurr
+     *    [e.g. after Sorting]
      *    When the view changes in such a way that the selected row is still in the view (not necessarily in the window) but at a different
      *    offset, we have no way to predict the new iCurr.
      *    If keys not enabled, the calling code should do a VIEW_RESET so sorting causes the selection to jump to the first row.
@@ -954,69 +966,157 @@ class SEEDUIComponent_ViewWindow
      *    Calling code must set iCurr=-1.
      *    The code below detects iCurr=-1 and searches the view for kCurr in order to set iCurr.
      *
-     * 3) [e.g. Sorting]
-     *    When the view changes in such a way that the Window's content is still in the view (selected row might not be in the window)
+     * 3) window offset should move to selection
+     *    [e.g. after Sorting]
+     *    When the view changes in such a way that the previous Window's content is still in the view but
      *    but not in the same position, nor contiguous, the window shouldn't really stay at the same offset.
      *    The most usual case is that the selected row is in the window and you'd like it to stay in the window after sorting.
      *    The solution is to reposition the window around the re-computed iCurr.
      *    If keys not enabled, this case will not happen because the above case will cause a VIEW_RESET anyway.
      *    The code below repositions the iWO after it re-computes iCurr as above.
+     *
+     * 4) New row state (a New row is being entered so form empty & list has no selection) - caller sets kCurr=0, iCurr=-1. Do not try to find kCurr or iCurr.
      */
     {
+$bViewChanged = false;
+
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
-        /* See case (1) above.
-         * Initialize kCurr to the first row iCurr=0.
-         * This also tries to work for cases where iCurr>0 but that probably doesn't happen?
+var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+
+        /* Case 4) IsNewRowState()
+         *         there will be no selection in the list - probably redundant since this should be done where bNewRowState is set
          */
-        if( !$this->oComp->IsNewRowState() &&
-            !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 ) {
-            if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
-                $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
-            }
+        if( $this->oComp->IsNewRowState() ) {
+            $this->setRowUnselected();
+            goto done;
         }
 
-
-        /* See case (2) and (3) above.
-         * Search for iCurr and reposition iWO after the view is sorted (or similarly reordered without losing kCurr).
+        /* Get uiParms
          */
-        if( $this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() < 0 ) {
-            // fetch 100 rows at a time
-            for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
-                $rows = $this->GetViewData( $i, 100 );
-                foreach( $rows as $ra ) {
-                    if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {
-                        $this->oComp->Set_iCurr( $i );
-                        goto doneSearch;
+        $kCurr = $this->oComp->Get_kCurr();
+        $iCurr = $this->oComp->Get_iCurr();
+
+        /* iCurr<0 means selection is not defined
+         */
+        if( $iCurr < 0 ) {
+            /* Case 0a) if kCurr also not set there is nothing to calculate
+             */
+            if( !$kCurr )  goto done;
+
+            /* Case 2) We have a key but no iCurr.
+             *         iCurr is often set to -1 when there's a VIEW_RESET or a control alters the view e.g. List Dropdown
+             *         Search for the row that has the key.
+             * Case 3) Reposition iWO to include the new iCurr row
+             */
+            $iCurrNew = $this->findRowFromKey($kCurr);
+            if( $iCurrNew >= 0 ) {
+                $this->oComp->Set_iCurr($iCurrNew);     // found the row
+            } else {
+                $this->setRowTopOfView();               // not found so reset to top of list
+            }
+            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
+            goto done;
+        }
+
+        /* We know that iCurr>=0 so get the selected row
+         */
+        $raRowICurr = $this->GetRowData($iCurr);     // could be null if the view shrunk
+
+        /* Case 0b) kCurr and iCurr are in sync - no problem
+         */
+        if( $kCurr && ($kCurr == @$raRowICurr['_key']) )  goto done;
+
+        /* Case 1a) kCurr==0 (and iCurr>=0 from above)
+         *          set kCurr to key of iCurr's row
+         */
+        if( !$kCurr ) { // && $iCurr >= 0  from above
+            if( @$raRowICurr['_key'] ) {
+                $this->oComp->Set_kCurr($raRowICurr['_key']);    // found a row which is probably the right one
+            } else {
+                $this->setRowTopOfView();                        // for some reason there is no row at iCurr anymore e.g. a Search change made the view shorter - reset to top of list
+            }
+            goto done;
+        }
+
+        /* We know that kCurr>0 and iCurr>=0 but not in sync - search for the key in view data
+         */
+        $iCurrNew = $this->findRowFromKey($kCurr);
+        if( $iCurrNew >=0 ) {
+            /* Found kCurr in the view.
+             * This is the same as Case 2) and 3) where the rows are re-arranged but the selected row is still there.
+             */
+            $this->oComp->Set_iCurr($iCurrNew);
+            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
+        } else {
+            /* kCurr is no longer in view
+             */
+            if( $bViewChanged ) {
+                /* Case 1b) kCurr not in the view because it changed e.g. Search changed so previous kCurr row now not included
+                 *          Reset to top of view
+                 */
+                $this->setRowTopOfView();
+            } else {
+                /* Case 1c) the view didn't change but kCurr's row moved out of view (deleted or searched-value changed)
+                 *      Keep iCurr the same (it is now the previously "next" row) and set kCurr to that row's key
+                 */
+                if( @$raRowICurr['_key'] ) {
+                    $this->oComp->Set_kCurr($raRowICurr['_key']);
+                } else {
+                    // maybe kCurr was the bottom row of the view so there is no "next row" - try moving to previous row
+                    $raRow2 = $this->GetRowData($iCurr - 1);
+                    if( @$raRow2['_key'] ) {
+                        $this->oComp->Set_kCurr($raRow2['_key']);   // move selection to previous row
+                        $this->oComp->Set_iCurr($iCurr - 1);
+                    } else {
+                        $this->setRowTopOfView();                   // whatever, maybe the view is empty; this always does the right thing
                     }
-                    ++$i;
                 }
             }
-            doneSearch:
-
-            // reposition iWO to include the new iCurr row
-            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
-        }
-
-
-        /* There is a weird case when a relogin is necessary after a session timeout where kCurr and iCurr seem unsynchronized.
-         * At this point, the iCurr row might as well be loaded, so do that and test that it contains kCurr. If not, reset the view.
-         */
-        if( !$this->oComp->IsNewRowState() &&
-            (!($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) || $raRow['_key'] != $this->oComp->Get_kCurr()) ) {
-            $this->oComp->Set_iCurr(0);
-            $this->oComp->Set_iWindowOffset(0);
-            if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
-                $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
-            }
-        }
-
-        if( $this->oComp->IsNewRowState() ) {
-            // this is correct but probably redundant since it's done where bNewRowState is set, but maybe iCurr changes?
-            $this->oComp->Set_iCurr(-1);
         }
 
         done:;
+var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+    }
+
+    private function findRowFromKey( $k )
+    {
+        $iFound = -1;
+
+        // fetch 100 rows at a time
+        for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
+            $rows = $this->GetViewData( $i, 100 );
+            foreach( $rows as $ra ) {
+                if( @$ra['_key'] == $k ) {
+                    $iFound = $i;
+                    goto done;
+                }
+                ++$i;
+            }
+        }
+
+        done:
+        return( $iFound );
+    }
+
+    private function setRowUnselected()
+    {
+        // there will be no selection in the list and an empty form
+        $this->oComp->Set_kCurr(0);
+        $this->oComp->Set_iCurr(-1);
+        // don't change window offset because New button probably doesn't want that
+    }
+
+    private function setRowTopOfView()
+    {
+        if( ($raRow = $this->GetRowData(0)) && @$raRow['_key'] ) {
+            // top row of view
+            $this->oComp->Set_iCurr(0);
+            $this->oComp->Set_kCurr($raRow['_key']);
+            $this->oComp->Set_iWindowOffset(0);
+        } else {
+            $this->setRowUnselected();
+        }
     }
 }
 
