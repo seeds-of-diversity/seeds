@@ -397,7 +397,11 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         foreach( $raAdvisories as $v ) {
             if( $v == 'VIEW_RESET' ) {
                 if( $this->oViewWindow->IsEnableKeys() ) {
-                    $this->oComp->SetUIParm('iCurr', -1);       // this is all InitViewWindow() needs for a reset, and it tries to look up kCurr in the new View
+                    if( !$this->oComp->Get_kCurr() ) {
+                        $this->oComp->SetUIParm('iCurr', 0);        // kCurr==0 means this is initialization; start at top of view
+                    } else {
+                        $this->oComp->SetUIParm('iCurr', -1);       // kCurr>0 means view was reset by change of parms; this tells InitViewWindow() to look up kCurr in the new View
+                    }
                 } else {
                     $this->oComp->SetUIParm( 'iWindowOffset', 0 );
                     $this->oComp->SetUIParm( 'iCurr', 0 );

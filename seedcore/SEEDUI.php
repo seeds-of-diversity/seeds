@@ -982,7 +982,8 @@ class SEEDUIComponent_ViewWindow
 
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
-var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+$debug=false;
+if($debug) var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
 
         /* Case 4) IsNewRowState()
          *         there will be no selection in the list - probably redundant since this should be done where bNewRowState is set
@@ -1076,7 +1077,7 @@ var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}
         }
 
         done:;
-var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+if($debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
     }
 
     private function findRowFromKey( $k )
