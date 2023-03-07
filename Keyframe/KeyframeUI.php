@@ -78,10 +78,10 @@ class KeyframeUIComponent extends SEEDUIComponent
 
         // Component can be configured with 'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreOp'=>[$this,'myPreOp']...
         if( $this->oForm->DeleteKFRecord() ) {
-            $this->oUI->SetUserMsg("Deleted $kDel");
+            if( !$this->oUI->GetUserMsg() )  $this->oUI->SetUserMsg("Deleted $kDel");           // generic message; don't do this if fn_DSPreOp already did
             $bDeleted = true;
         } else {
-            $this->oUI->SetErrMsg("Could not delete $kDel");
+            if( !$this->oUI->GetErrMsg() )  $this->oUI->SetErrMsg("Could not delete $kDel");    // generic message; don't do this if fn_DSPreOp already did
         }
 
         done:

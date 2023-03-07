@@ -1,6 +1,7 @@
 <?php
 
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
+include_once( SEEDLIB."mbr/MbrIntegrity.php" );
 
 class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console02TabSet_Worker or a flavour that is a KeyframeUI_ListFormUI
 {
@@ -95,9 +96,39 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
 
     function contactsPreOp( Keyframe_DataStore $oDS, $op )
     {
-//$this->oApp->oC->AddErrMsg("Test if member can be deleted");
+        $bOk = false;   // if op=='d' then this is true if it's okay to delete the contact
 
-        return( true );
+        if( $op != 'd' && $op != 'h' ) {
+            $bOk = true;
+            goto done;
+        }
+
+        // Don't delete a contact if it's referenced in a table (return false to disallow delete)
+        // This function only tests for fk rows with _status==0 because deletion causes the contact row to be _status=1 so
+        // referential integrity is preserved if all related rows are "deleted"
+
+        $bDelete = false;
+
+        if( $oDS && $oDS->Key() ) {
+            $ra = (new MbrIntegrity($this->oApp))->WhereIsContactReferenced($oDS->Key());
+
+            $sErr = "";
+            if( ($n = $ra['nSBBaskets']) )   { $sErr .= "<li>Has $n orders recorded in the order system</li>"; }
+            if( ($n = $ra['nSProducts']) )   { $sErr .= "<li>Has $n offers in the seed exchange</li>"; }
+            if( ($n = $ra['nDescSites']) )   { $sErr .= "<li>Has $n crop descriptions in their name</li>"; }
+            if( ($n = $ra['nMSD']      ) )   { $sErr .= "<li>Is listed in the seed exchange</li>"; }
+            if( ($n = $ra['nSLAdoptions']) ) { $sErr .= "<li>Has $n seed adoptions in their name</li>"; }
+            if( ($n = $ra['nDonations']) )   { $sErr .= "<li>Has $n donation records in their name</li>"; }
+
+            if( $sErr ) {
+                $this->oComp->oUI->SetErrMsg( "Cannot delete contact {$oDS->Key()}:<br/><ul>$sErr</ul>" );
+            } else {
+                $this->oComp->oUI->SetUserMsg( "Deleted {$oDS->Key()}: {$oDS->Value('firstname')} {$oDS->Value('lastname')} {$oDS->Value('company')}" );
+                $bOk = true;
+            }
+        }
+        done:
+        return( $bOk );
     }
 
     function contactsFormTemplate()

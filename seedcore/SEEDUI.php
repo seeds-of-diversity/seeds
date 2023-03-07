@@ -406,10 +406,19 @@ class SEEDUIComponent
              *
              * This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
              * detect that here so we can reset the UI to reflect the missing row
+             *
+             * Derived class has to do the deletion because it's hard to generalize; also easier for derived to call e.g. fn_PreDelete.
+             * Derived class should also make a descriptive string and put it in
+             *     $oApp->oC->AddUserMsg()  or $oApp->oC->AddErrMsg() or
+             *     $this->oUI->SetUserMsg() or $this->oUI->AddErrMsg() - something has to retrieve these and write them someplace
              */
-            if( $this->DeleteRow($this->Get_kDel()) ) {     // derived class has to do this because it's hard to generalize; also easier for derived to call e.g. fn_PreDelete
-                // could use a callback function to make a descriptive string but the derived class can provide more data to that callback
-                //$this->oUI->SetUserMsg("Deleted {$this->Get_kDel()}");
+            if( $this->DeleteRow($this->Get_kDel()) ) {
+                /* Typically a UI should send kCurr == kDel so if delete fails the row will still be highlit.
+                 * Since delete succeeded, clear kCurr so the UI won't go looking for it.
+                 * e.g. ListViewWindow() would guess that the view had been reordered and search for kCurr, obviously not find it,
+                 * and then do the same thing as kCurr=0,iCurr>=0 but after an unnecessary lag.
+                 */
+                $this->Set_kCurr(0);    // if iCurr>=0 (typically true) ListViewWindow() will set kCurr to the key of iCurr's row (the next row after the deleted row)
             }
 
             // uiParm kDel is sometimes kept in a persistent store. Doesn't make sense for this parm, so for now we reset it.
@@ -424,7 +433,7 @@ status
 groupcol
 */
     }
-    function DeleteRow( int $kDel ) {}  // called above, must be overridden
+    function DeleteRow( int $kDel ) { die("OVERRIDE"); }  // called above, must be overridden
 
 
     function Start()
