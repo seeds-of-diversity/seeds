@@ -30,10 +30,21 @@ class KeyframeForm extends SEEDCoreForm
 
     function Kfrel()  { return( $this->kfrel ); }
 
+    function GetKey()  { return( ($kfr = $this->oDS->GetDataObj()) ? $kfr->Key() : 0 ); }
+
     function GetKFR()                       { return( $this->oDS->GetKFR() ); }
     function SetKFR( KeyframeRecord $kfr )  { $this->oDS->SetKFR( $kfr ); }
 
-    function GetKey()  { return( ($kfr = $this->oDS->GetDataObj()) ? $kfr->Key() : 0 ); }
+    function LoadKFR( int $k )
+    /*************************
+        Load the given kfr from db and put it in the form
+     */
+    {
+        if( !$k || !($kfr = $this->kfrel->GetRecordFromDBKey($k)) ) {
+            $kfr = $this->kfrel->CreateRecord();
+        }
+        $this->SetKFR($kfr);
+    }
 
     function Clear()
     /***************
@@ -52,6 +63,8 @@ class KeyframeForm extends SEEDCoreForm
     {
         return( $this->HiddenKeyParm( $this->GetKey() ) );    // use SEEDForm::HiddenKeyParm to encode the key as an sfParmKey
     }
-}
 
-?>
+    function DeleteKFRecord()    { return( $this->oDS->Op('d') ); }
+    function HideKFRecord()      { return( $this->oDS->Op('h') ); }
+    function RestoreKFRecord()   { return( $this->oDS->Op('r') ); }
+}

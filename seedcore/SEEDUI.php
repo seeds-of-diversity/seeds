@@ -57,6 +57,10 @@ class SEEDUI
     public    $lang;       // used for default button labels
     protected $raComps = array();
 
+    // if we had a Console we'd write these there; instead you have to get them yourself
+    private $sUserMsg = "";
+    private $sErrMsg = "";
+
     /* UIParms are stored this way for extensibility. e.g. you could add a field to signify persistence
      * Each row contains the ui parms for a Component:
      *
@@ -88,7 +92,12 @@ class SEEDUI
         }
     }
 
-    public function Config( $k )        { return( @$this->raConfig[$k] ); }
+    public function Config( $k )             { return( @$this->raConfig[$k] ); }
+    public function GetUserMsg() : string    { return( $this->sUserMsg ); }
+    public function GetErrMsg()  : string    { return( $this->sErrMsg ); }
+    public function SetUserMsg( string $s )  { $this->sUserMsg .= $s; }
+    public function SetErrMsg( string $s )   { $this->sErrMsg .= $s; }
+
 
     public function RegisterComponent( SEEDUIComponent $oComp )
     {
@@ -100,7 +109,7 @@ class SEEDUI
      */
     public function GetUIParm( $cid, $name )
     {
-        return( @$this->raUIParms[$cid][$name]['v'] );
+        return( @$this->raUIParms[$cid][$name]['v'] ?: "");
     }
     public function SetUIParm( $cid, $name, $v )
     {
@@ -204,6 +213,7 @@ class SEEDUI
         if( !isset($this->raUIParms[$cid]) )  goto done;
 
         // You almost always want kCurr so we add it to the array every time so you don't have to
+        // Note: sometimes you get two identical <input> that doesn't matter  e.g. getUIParmsFromOtherWidgets(null) where all widgets included
         if( !isset($raP['kCurr']) )  $raP['kCurr'] = $this->GetUIParm( $cid, 'kCurr' );
 
         // Map every known parm name to its http name
@@ -269,7 +279,7 @@ class SEEDUIComponent
         sf[[cid]]ui_k      = the key of the current element of component cid (could be a list, a form, a drop-down, etc)
         sf[[cid]]ui_i      = the view-offset of the current element of component cid (e.g. 0-based placement in a list)
         sf[[cid]]ui_bNew   = a new element has been ordered for component cid - enter bNewRowState
-//        sf[[cid]]ui_kDel   = command to delete an element of component cid
+        sf[[cid]]ui_kDel   = command to delete an element of component cid
         sf[[cid]]ui_iWO    = the window offset of component cid
         sf[[cid]]ui_nWS    = the window size of component cid
 
@@ -287,11 +297,10 @@ class SEEDUIComponent
     protected $cid;
     protected $raCompConfig = array();
     public    $oForm;                   // widgets use this to draw controls
-    public    $bNewRowState = false;         // true if a new element is being made
+    private   $bNewRowState = false;    // true if a new element is being made
 
 //    public $kCurr = 0;     // the key of the current element in some list or table
 //    private $iCurr = 0;    // another way of representing the current item in a list or table
-//    public $kDel = 0;      // non-zero for an element being deleted
 
     protected $sSqlCond = "";           // sql condition for the View, built here just to be nice to the derived class that implements db access
 
@@ -322,7 +331,7 @@ class SEEDUIComponent
         $raUIParms = array( 'kCurr'         => array( 'http'=>'sf[[cid]]ui_k',    'v'=>0 ),
                             'iCurr'         => array( 'http'=>'sf[[cid]]ui_i',    'v'=>0 ),
                             'bNew'          => array( 'http'=>'sf[[cid]]ui_bNew', 'v'=>0 ),
-//                            'kDel'          => array( 'http'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
+                            'kDel'          => array( 'http'=>'sf[[cid]]ui_kDel', 'v'=>0 ),
                             'iWindowOffset' => array( 'http'=>'sf[[cid]]ui_iWO',  'v'=>0 ),
                             'nWindowSize'   => array( 'http'=>'sf[[cid]]ui_nWS',  'v'=>0 ) );
         if( isset($raCompConfig['raUIParms']) ) {
@@ -346,14 +355,17 @@ class SEEDUIComponent
     public function Set_iWindowOffset( $i ) { $this->SetUIParmInt('iWindowOffset', $i ); }
     public function Set_nWindowSize( $i )   { $this->SetUIParmInt('nWindowSize', $i ); }
 
-//    public function Get_kDel()          { return( $this->GetUIParm('kDel') ); }
-//    public function Set_kDel( $k )          { $this->SetUIParm('kDel', $k ); }
+    public function Get_bNew()              { return( $this->GetUIParmInt('bNew') ); }
+    public function Get_kDel()              { return( $this->GetUIParmInt('kDel') ); }
+    public function Unset_bNew()            { $this->SetUIParm('bNew', 0); }                // since bNew and kDel are inappropriately kept in persistent storage, they have to be cleared
+    public function Unset_kDel()            { $this->SetUIParm('kDel', 0); }
 
     public function GetUIParm( $k )         { return( $this->oUI->GetUIParm( $this->cid, $k ) ); }
     public function GetUIParmInt( $k )      { return( intval($this->GetUIParm($k)) ); }
     public function SetUIParm( $k, $v )     { $this->oUI->SetUIParm( $this->cid, $k, $v ); }
     public function SetUIParmInt( $k, $v )  { return( $this->SetUIParm($k, intval($v)) ); }
 
+    public function IsNewRowState()         { return($this->bNewRowState); }
 
     protected function factory_SEEDForm( $cid, $raSFParms )   // Override if the SEEDForm is a derived class
     {
@@ -376,7 +388,7 @@ class SEEDUIComponent
 //            $this->SetKey( $k );                // this was $this->kfuiCurrRow->SetKey(  );
         }
 
-        if( $this->GetUIParm('bNew') == 1 ) {
+        if( $this->Get_bNew() == 1 ) {
             /* Command has been issued to create a new row.
              */
             $this->bNewRowState = true;                                                 // enter the special bNewRowState
@@ -385,27 +397,33 @@ class SEEDUIComponent
             if( method_exists($this->oForm,'SetKey') ) { $this->oForm->SetKey(0); }     // reset current row in the form
             $this->oForm->Clear();                                                      // clear the contents of the form (could be redundant depending on derived implementation)
 
-            // uiparms are persistent, which doesn't make sense for bNew. It should be a non-persistent control parm, but for now we reset it.
-            $this->SetUIParm('bNew', 0);
+            // uiParm bNew is sometimes kept in a persistent store. Doesn't make sense for this parm, so for now we reset it.
+            $this->Unset_bNew();
         }
-/*
-        if( $this->oForm->ControlGet('deleterow') == 1 ) {
-            // command has been issued to delete the current row
-            //
-            // This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
-            // detect that here so that the UI can be reset to reflect the missing row
-            if( $this->oForm->GetKey() && ($kfr = $this->kfuiCurrRow->GetKFR()) ) {
-                $bDelOk = isset($this->raCompConfig['fnPreDelete']) ? call_user_func( $this->raCompConfig['fnPreDelete'], $kfr ) : true;
-                //var_dump($bDelOk);
-                if( $bDelOk ) {
-                //    $kfr->StatusSet( KFRECORD_STATUS_DELETED );
-                //    $kfr->PutDBRow();
-                //    $this->kfuiCurrRow->SetKey( 0 ); // clear the curr row; this also clears the kfr in the oForm
-                }
-            }
-        }
-*/
 
+        if( $this->Get_kDel() ) {
+            /* Command has been issued to delete the given (typically current) row
+             *
+             * This can be accomplished with sfAd=1 (would be handled by the oForm->Update above) but it's harder to
+             * detect that here so we can reset the UI to reflect the missing row
+             *
+             * Derived class has to do the deletion because it's hard to generalize; also easier for derived to call e.g. fn_PreDelete.
+             * Derived class should also make a descriptive string and put it in
+             *     $oApp->oC->AddUserMsg()  or $oApp->oC->AddErrMsg() or
+             *     $this->oUI->SetUserMsg() or $this->oUI->AddErrMsg() - something has to retrieve these and write them someplace
+             */
+            if( $this->DeleteRow($this->Get_kDel()) ) {
+                /* Typically a UI should send kCurr == kDel so if delete fails the row will still be highlit.
+                 * Since delete succeeded, clear kCurr so the UI won't go looking for it.
+                 * e.g. ListViewWindow() would guess that the view had been reordered and search for kCurr, obviously not find it,
+                 * and then do the same thing as kCurr=0,iCurr>=0 but after an unnecessary lag.
+                 */
+                $this->Set_kCurr(0);    // if iCurr>=0 (typically true) ListViewWindow() will set kCurr to the key of iCurr's row (the next row after the deleted row)
+            }
+
+            // uiParm kDel is sometimes kept in a persistent store. Doesn't make sense for this parm, so for now we reset it.
+            $this->Unset_kDel();
+        }
 /*
 SEEDUI should pick these up
 
@@ -415,6 +433,8 @@ status
 groupcol
 */
     }
+    function DeleteRow( int $kDel ) { die("OVERRIDE"); }  // called above, must be overridden
+
 
     function Start()
     /***************
@@ -595,6 +615,7 @@ groupcol
         // Insert bNew=1 to the http parms, plus any given in raParms.
         // The null widget argument below causes all parms of all widgets to be propagated,
         // which is correct because the New button is not a registered widget.
+        // Note there will be two identical <input name='kCurr'> but that's okay
         $raPropagate = array_merge( (@$raParms['raPropagate'] ?: []), ['bNew'=>1] );
 
         return( $this->DrawWidgetInForm( "<input type='submit' value='$sLabel'/>".$this->oUI->HiddenFormParms($this->cid, $raPropagate),
@@ -610,16 +631,20 @@ groupcol
         kDelete==0 means kDelete=$this->Get_kCurr()
      */
     {
-        // delete current row unless another row is specified
+        // if no row is specified don't draw the button
         if( !$kDelete && !($kDelete = $this->Get_kCurr()) )  return( "" );
 
-        if( !$sLabel )  $sLabel = ($this->lang == 'FR' ? "Supprimer" : "Delete");
+        if( !$sLabel )  $sLabel = ($this->oUI->lang == 'FR' ? "Supprimer" : "Delete");
 
-        // propagate these parms when the button is clicked
-        $raPropagate = @$raParms['raPropagate'] ?: array();
-        $raPropagate = array_merge( array('kCurr'=>$this->Get_kCurr()), $raPropagate, array('bDel' => $kDelete) );
+        // Insert kDel to the http parms, plus any given in raParms.
+        // The null widget argument below causes all parms of all widgets to be propagated,
+        // which is correct because the Delete button is not a registered widget.
+        // Note there will be two identical <input name='kCurr'> but that's okay
+        $raPropagate = array_merge( (@$raParms['raPropagate'] ?: []), ['kDel'=>$kDelete] );
 
-        return( $this->FormDraw( "<INPUT type='submit' value='$sLabel'/>", $raPropagate, $raParms ) );
+        return( $this->DrawWidgetInForm( "<input type='submit' value='$sLabel'/>".$this->oUI->HiddenFormParms($this->cid, $raPropagate),
+                                 // null widget causes state of all of the widgets to be propagated
+                                 null, [] ) );
     }
 
     public function ButtonEdit( $kEdit, $sLabel = "", $raParms = array() )
@@ -921,16 +946,28 @@ class SEEDUIComponent_ViewWindow
      *
      * Here are several special cases to prepare the ViewWindow:
      *
-     * 1) [e.g. Initialization or SearchControl parms change]
+     * 0a) iCurr and kCurr not set - nothing to do
+     * 0b) iCurr and kCurr properly set and in sync - good
+     *
+     * 1a) iCurr>=0 and kCurr==0
+     *     [e.g. Initialization - when iCurr is most likely also 0]
+     *    Set kCurr to the key of iCurr's row
+     *
+     * 1b) kCurr>0 but not in view - because the view changed       *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
+     *    [e.g. SearchControl / List Dropdown parms change]
      *    After VIEW_RESET (or application starts) the selected row is unknown or possibly not in the new view.
      *    The solution is that the first row in the new view should be selected.
      *    If keys are enabled, kCurr should be initialized to raViewRows[(iCurr=0)]['_key'].
-     *    Calling code must do the reset of kCurr=iCurr=0.
-     *    The code below detects that kCurr=0 and loads the first view row to set kCurr.
      *
-     * 1b) New row state - caller sets kCurr=0, iCurr=-1. Do not try to find kCurr or iCurr.
+     * 1c) iCurr>=0 and kCurr>0 but not in view - because it went out of view
+     *    [e.g. value edited so row no longer meets Search condition]
+     *    The user expects the edited row to disappear since it no longer meets the Search, but also expects the view & window to remain in place.
+     *    The solution is to move the selection to the next row in the same view/window.
+     *    i.e. iCurr stays the same, and we make kCurr=raViewRows[iCurr]['_key']
+     *    Note that if the bottom row was previously selected, then iCurr has to move to the current bottom row before getting kCurr.
      *
-     * 2) [e.g. Sorting]
+     * 2) iCurr>=0 and kCurr>0 but they don't match : raViewRows[iCurr]['_key']<>kCurr
+     *    [e.g. after Sorting]
      *    When the view changes in such a way that the selected row is still in the view (not necessarily in the window) but at a different
      *    offset, we have no way to predict the new iCurr.
      *    If keys not enabled, the calling code should do a VIEW_RESET so sorting causes the selection to jump to the first row.
@@ -938,69 +975,158 @@ class SEEDUIComponent_ViewWindow
      *    Calling code must set iCurr=-1.
      *    The code below detects iCurr=-1 and searches the view for kCurr in order to set iCurr.
      *
-     * 3) [e.g. Sorting]
-     *    When the view changes in such a way that the Window's content is still in the view (selected row might not be in the window)
+     * 3) window offset should move to selection
+     *    [e.g. after Sorting]
+     *    When the view changes in such a way that the previous Window's content is still in the view but
      *    but not in the same position, nor contiguous, the window shouldn't really stay at the same offset.
      *    The most usual case is that the selected row is in the window and you'd like it to stay in the window after sorting.
      *    The solution is to reposition the window around the re-computed iCurr.
      *    If keys not enabled, this case will not happen because the above case will cause a VIEW_RESET anyway.
      *    The code below repositions the iWO after it re-computes iCurr as above.
+     *
+     * 4) New row state (a New row is being entered so form empty & list has no selection) - caller sets kCurr=0, iCurr=-1. Do not try to find kCurr or iCurr.
      */
     {
+        $bViewChanged = false;  // *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
+
         if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
-        /* See case (1) above.
-         * Initialize kCurr to the first row iCurr=0.
-         * This also tries to work for cases where iCurr>0 but that probably doesn't happen?
+$debug=false;
+if($debug) var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+
+        /* Case 4) IsNewRowState()
+         *         there will be no selection in the list - probably redundant since this should be done where bNewRowState is set
          */
-        if( !$this->oComp->bNewRowState &&
-            !$this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() >= 0 ) {
-            if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
-                $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
-            }
+        if( $this->oComp->IsNewRowState() ) {
+            $this->setRowUnselected();
+            goto done;
         }
 
-
-        /* See case (2) and (3) above.
-         * Search for iCurr and reposition iWO after the view is sorted (or similarly reordered without losing kCurr).
+        /* Get uiParms
          */
-        if( $this->oComp->Get_kCurr() && $this->oComp->Get_iCurr() < 0 ) {
-            // fetch 100 rows at a time
-            for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
-                $rows = $this->GetViewData( $i, 100 );
-                foreach( $rows as $ra ) {
-                    if( @$ra['_key'] == $this->oComp->Get_kCurr() ) {
-                        $this->oComp->Set_iCurr( $i );
-                        goto doneSearch;
+        $kCurr = $this->oComp->Get_kCurr();
+        $iCurr = $this->oComp->Get_iCurr();
+
+        /* iCurr<0 means row selection is not defined
+         */
+        if( $iCurr < 0 ) {
+            /* Case 0a) if kCurr also not set there is nothing to calculate
+             */
+            if( !$kCurr )  goto done;
+
+            /* Case 2) We have a key but no iCurr.
+             *         iCurr is often set to -1 when there's a VIEW_RESET or a control alters the view e.g. List Dropdown
+             *         Search for the row that has the key.
+             * Case 3) Reposition iWO to include the new iCurr row
+             */
+            $iCurrNew = $this->findRowFromKey($kCurr);
+            if( $iCurrNew >= 0 ) {
+                $this->oComp->Set_iCurr($iCurrNew);     // found the row
+            } else {
+                $this->setRowTopOfView();               // not found so reset to top of list
+            }
+            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
+            goto done;
+        }
+
+        /* We know that iCurr>=0 so get the selected row
+         */
+        $raRowICurr = $this->GetRowData($iCurr);     // could be null if the view shrunk
+
+        /* Case 0b) kCurr and iCurr are in sync - no problem
+         */
+        if( $kCurr && ($kCurr == @$raRowICurr['_key']) )  goto done;
+
+        /* Case 1a) kCurr==0 (and iCurr>=0 from above)
+         *          set kCurr to key of iCurr's row
+         */
+        if( !$kCurr ) { // && $iCurr >= 0  from above
+            if( @$raRowICurr['_key'] ) {
+                $this->oComp->Set_kCurr($raRowICurr['_key']);    // found a row which is probably the right one
+            } else {
+                $this->setRowTopOfView();                        // for some reason there is no row at iCurr anymore e.g. a Search change made the view shorter - reset to top of list
+            }
+            goto done;
+        }
+
+        /* We know that kCurr>0 and iCurr>=0 but not in sync - search for the key in view data
+         */
+        $iCurrNew = $this->findRowFromKey($kCurr);
+        if( $iCurrNew >=0 ) {
+            /* Found kCurr in the view.
+             * This is the same as Case 2) and 3) where the rows are re-arranged but the selected row is still there.
+             */
+            $this->oComp->Set_iCurr($iCurrNew);
+            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
+        } else {
+            /* kCurr is no longer in view
+             */
+            if( $bViewChanged ) {   // *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
+                /* Case 1b) kCurr not in the view because it changed e.g. Search changed so previous kCurr row now not included
+                 *          Reset to top of view
+                 */
+                $this->setRowTopOfView();
+            } else {
+                /* Case 1c) the view didn't change but kCurr's row moved out of view (deleted or searched-value changed)
+                 *      Keep iCurr the same (it is now the previously "next" row) and set kCurr to that row's key
+                 */
+                if( @$raRowICurr['_key'] ) {
+                    $this->oComp->Set_kCurr($raRowICurr['_key']);
+                } else {
+                    // maybe kCurr was the bottom row of the view so there is no "next row" - try moving to previous row
+                    $raRow2 = $this->GetRowData($iCurr - 1);
+                    if( @$raRow2['_key'] ) {
+                        $this->oComp->Set_kCurr($raRow2['_key']);   // move selection to previous row
+                        $this->oComp->Set_iCurr($iCurr - 1);
+                    } else {
+                        $this->setRowTopOfView();                   // whatever, maybe the view is empty; this always does the right thing
                     }
-                    ++$i;
                 }
             }
-            doneSearch:
-
-            // reposition iWO to include the new iCurr row
-            $this->oComp->Set_iWindowOffset( $this->IdealWindowOffset() );
-        }
-
-
-        /* There is a weird case when a relogin is necessary after a session timeout where kCurr and iCurr seem unsynchronized.
-         * At this point, the iCurr row might as well be loaded, so do that and test that it contains kCurr. If not, reset the view.
-         */
-        if( !$this->oComp->bNewRowState &&
-            (!($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) || $raRow['_key'] != $this->oComp->Get_kCurr()) ) {
-            $this->oComp->Set_iCurr(0);
-            $this->oComp->Set_iWindowOffset(0);
-            if( ($raRow = $this->GetRowData( $this->oComp->Get_iCurr() )) ) {
-                $this->oComp->Set_kCurr( @$raRow['_key'] ?: 0 );
-            }
-        }
-
-        if( $this->oComp->bNewRowState ) {
-            // this is correct but probably redundant since it's done where bNewRowState is set, but maybe iCurr changes?
-            $this->oComp->Set_iCurr(-1);
         }
 
         done:;
+if($debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+    }
+
+    private function findRowFromKey( $k )
+    {
+        $iFound = -1;
+
+        // fetch 100 rows at a time
+        for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
+            $rows = $this->GetViewData( $i, 100 );
+            foreach( $rows as $ra ) {
+                if( @$ra['_key'] == $k ) {
+                    $iFound = $i;
+                    goto done;
+                }
+                ++$i;
+            }
+        }
+
+        done:
+        return( $iFound );
+    }
+
+    private function setRowUnselected()
+    {
+        // there will be no selection in the list and an empty form
+        $this->oComp->Set_kCurr(0);
+        $this->oComp->Set_iCurr(-1);
+        // don't change window offset because New button probably doesn't want that
+    }
+
+    private function setRowTopOfView()
+    {
+        if( ($raRow = $this->GetRowData(0)) && @$raRow['_key'] ) {
+            // top row of view
+            $this->oComp->Set_iCurr(0);
+            $this->oComp->Set_kCurr($raRow['_key']);
+            $this->oComp->Set_iWindowOffset(0);
+        } else {
+            $this->setRowUnselected();
+        }
     }
 }
 

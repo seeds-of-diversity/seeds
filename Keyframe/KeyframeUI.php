@@ -34,10 +34,7 @@ class KeyframeUIComponent extends SEEDUIComponent
         /* Now the Component is all set up with its uiparms and widgets, but the oForm is not initialized to
          * the current key (unless it got loaded during Update).
          */
-
-        if( $this->Get_kCurr() && ($kfr = $this->kfrel->GetRecordFromDBKey($this->Get_kCurr())) ) {
-            $this->oForm->SetKFR( $kfr );
-        }
+        $this->oForm->LoadKFR($this->Get_kCurr());
     }
 
     function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
@@ -65,6 +62,30 @@ class KeyframeUIComponent extends SEEDUIComponent
         $raWindowRows = $oView->GetDataWindowRA( $iWindowOffset, $nWindowSize );
 
         return( [$oView, $raWindowRows] );
+    }
+
+    function DeleteRow( int $kDel )
+    /******************************
+        Called when SEEDUIComponent gets a kDel uiParm.
+        Use the component's form to perform fn_DSPreOp and delete, since it's configured for the app.
+     */
+    {
+        $bDeleted = false;
+
+        if( !$kDel )  goto done;
+
+        if( $this->oForm->GetKey() != $kDel )  $this->oForm->LoadKFR($kDel);
+
+        // Component can be configured with 'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreOp'=>[$this,'myPreOp']...
+        if( $this->oForm->DeleteKFRecord() ) {
+            if( !$this->oUI->GetUserMsg() )  $this->oUI->SetUserMsg("Deleted $kDel");           // generic message; don't do this if fn_DSPreOp already did
+            $bDeleted = true;
+        } else {
+            if( !$this->oUI->GetErrMsg() )  $this->oUI->SetErrMsg("Could not delete $kDel");    // generic message; don't do this if fn_DSPreOp already did
+        }
+
+        done:
+        return( $bDeleted );
     }
 }
 
@@ -98,7 +119,7 @@ class KeyframeUIWidget_Form extends SEEDUIWidget_Form
 
 class KeyFrameUI_ListFormUI
 /**************************
-    A UI subsystem comprised of a List, a Form, and a Search Control.
+    A UI subsystem containing a single Component and comprised of a List, a Form, and a Search Control.
 
     Usage: give the config what it needs to know, then:
            Init() any time after construction, but before you want to read any Component state values (e.g. kCurr)

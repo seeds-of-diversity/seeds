@@ -1,6 +1,7 @@
 <?php
 
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
+include_once( SEEDLIB."mbr/MbrIntegrity.php" );
 
 class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console02TabSet_Worker or a flavour that is a KeyframeUI_ListFormUI
 {
@@ -12,7 +13,10 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
         parent::__construct($oApp, $this->getListFormConfig());
     }
 
-    function Init()  { parent::Init(); }
+    function Init()
+    {
+        parent::Init();
+    }
 
     function ControlDraw()
     {
@@ -25,13 +29,28 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
     {
         $cid = $this->oComp->Cid();
 
+        $sMessages = "";
+        if( ($msg = $this->oComp->oUI->GetUserMsg()) )  $sMessages .= "<div class='alert alert-success'>$msg</div>";
+        if( ($msg = $this->oComp->oUI->GetErrMsg()) )   $sMessages .= "<div class='alert alert-danger'>$msg</div>";
+
         $s = $this->DrawStyle()
-           ."<style></style>"
-           ."<div>{$this->DrawList()}</div>"
-           ."<div style='border:1px solid #777; padding:15px'>"
-               ."<div style='margin-bottom:5px'><div style='display:inline-block'>{$this->oComp->ButtonNew()}</div>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
-               ."<div style='width:100%;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>"
-           ."</div>";
+           ."<style>
+             .content-upper-section  { }
+             .content-lower-section  { border:1px solid #777; padding:15px; }
+             .content-button-new     { margin-bottom:5px; float:left; width:10%; clear:both; }
+             .content-messages       { float:left; width:80%; }
+             .content-button-del     { margin-bottom:5px; float:right; width:10%; text-align:right; }
+             .content-form-container { width:100%;padding:20px;border:2px solid #999;clear:both }
+             </style>"
+           ."<div class='content-upper-section'>{$this->DrawList()}</div>"
+           ."<div class='content-lower-section'>
+                 <div>
+                     <div class='content-button-new'>{$this->oComp->ButtonNew()}</div>
+                     <div class='content-messages'>{$sMessages}</div>
+                     <div class='content-button-del'>{$this->oComp->ButtonDelete()}</div>
+                 </div>
+                 <div class='content-form-container'>{$this->DrawForm()}</div>
+             </div>";
 
         return( $s );
     }
@@ -42,7 +61,7 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
             'sessNamespace' => "MbrContacts_Contacts",
             'cid'   => 'M',
             'kfrel' => $this->oContacts->oDB->GetKfrel('M'),
-            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'contactsPreStore']]]],
+            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'contactsPreStore'], 'fn_DSPreOp'=>[$this,'contactsPreOp']]]],
 
             'raListConfig' => [
                 'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
@@ -73,11 +92,48 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
     function contactsPreStore( Keyframe_DataStore $oDS )
     {
         return( true );
-
     }
+
+    function contactsPreOp( Keyframe_DataStore $oDS, $op )
+    {
+        $bOk = false;   // if op=='d' then this is true if it's okay to delete the contact
+
+        if( $op != 'd' && $op != 'h' ) {
+            $bOk = true;
+            goto done;
+        }
+
+        // Don't delete a contact if it's referenced in a table (return false to disallow delete)
+        // This function only tests for fk rows with _status==0 because deletion causes the contact row to be _status=1 so
+        // referential integrity is preserved if all related rows are "deleted"
+
+        $bDelete = false;
+
+        if( $oDS && $oDS->Key() ) {
+            $ra = (new MbrIntegrity($this->oApp))->WhereIsContactReferenced($oDS->Key());
+
+            $sErr = "";
+            if( ($n = $ra['nSBBaskets']) )   { $sErr .= "<li>Has $n orders recorded in the order system</li>"; }
+            if( ($n = $ra['nSProducts']) )   { $sErr .= "<li>Has $n offers in the seed exchange</li>"; }
+            if( ($n = $ra['nDescSites']) )   { $sErr .= "<li>Has $n crop descriptions in their name</li>"; }
+            if( ($n = $ra['nMSD']      ) )   { $sErr .= "<li>Is listed in the seed exchange</li>"; }
+            if( ($n = $ra['nSLAdoptions']) ) { $sErr .= "<li>Has $n seed adoptions in their name</li>"; }
+            if( ($n = $ra['nDonations']) )   { $sErr .= "<li>Has $n donation records in their name</li>"; }
+
+            if( $sErr ) {
+                $this->oComp->oUI->SetErrMsg( "Cannot delete contact {$oDS->Key()}:<br/><ul>$sErr</ul>" );
+            } else {
+                $this->oComp->oUI->SetUserMsg( "Deleted {$oDS->Key()}: {$oDS->Value('firstname')} {$oDS->Value('lastname')} {$oDS->Value('company')}" );
+                $bOk = true;
+            }
+        }
+        done:
+        return( $bOk );
+    }
+
     function contactsFormTemplate()
     {
-        $s = "<h4>Edit Contact</h4>
+        $s = "<h4>".($this->oComp->IsNewRowState() ? "New" : "Edit")." Contact</h4>
               <div style='font-size:x-small;margin-bottom:10px;'>
               The information in this database is private and confidential. It may only be used by Seeds of Diversity staff, and core volunteers.
               </div>";

@@ -43,12 +43,16 @@ class Keyframe_DataStore extends SEEDDataStore
     function DSSetValue( $k, $v ) { if( $this->kfr )  $this->kfr->SetValue( $k, $v ); }
     function DSOp( $op )
     {
+        $ok = false;
+
         if( $this->kfr && in_array($op, array('d','h','r')) ) {
             // delete, hide, or reset the row's _status
-            $this->kfr->StatusSet(  $op=='d' ? KFRECORD_STATUS_DELETED :
-                                   ($op=='h' ? KFRECORD_STATUS_HIDDEN  :
-                                               KFRECORD_STATUS_NORMAL) );
+            $this->kfr->StatusSet(  $op=='d' ? KeyframeRecord::STATUS_DELETED :
+                                   ($op=='h' ? KeyframeRecord::STATUS_HIDDEN  :
+                                               KeyframeRecord::STATUS_NORMAL) );
+            $ok = $this->kfr->PutDBRow();
         }
+        return( $ok );
     }
 
     function DSLoad( $k, $r )

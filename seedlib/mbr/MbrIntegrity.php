@@ -2,7 +2,7 @@
 
 /* MbrIntegrity
  *
- * Copyright 2020-2022 Seeds of Diversity Canada
+ * Copyright 2020-2023 Seeds of Diversity Canada
  *
  * Check / ensure integrity of mbr tables
  */
@@ -14,6 +14,20 @@ class MbrIntegrity
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
+    }
+
+    function WhereIsContactReferenced( $kMbr )
+    {
+        $ra = [];
+
+        $ra['nSBBaskets' ]  = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Baskets  WHERE _status='0' AND uid_buyer='$kMbr'" );
+        $ra['nSProducts']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Products WHERE _status='0' AND uid_seller='$kMbr'" );
+        $ra['nDescSites']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.mbr_sites           WHERE _status='0' AND uid='$kMbr'" );
+        $ra['nMSD']         = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sed_curr_growers    WHERE _status='0' AND mbr_id='$kMbr'" );
+        $ra['nSLAdoptions'] = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sl_adoption         WHERE _status='0' AND fk_mbr_contacts='$kMbr'" );
+        $ra['nDonations']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds2')}.mbr_donations       WHERE _status='0' AND fk_mbr_contacts='$kMbr'" );
+
+        return( $ra );
     }
 
     function AssessDonations()
