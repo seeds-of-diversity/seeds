@@ -188,8 +188,72 @@ class GrowoutsTabGrowers
     {
         $s = "";
 
-        $s = "Growers";
+        if( !$this->oGO->SheetOpen() || !($colEmail = $this->oGO->EmailColNameLoaded()) )  goto done;
 
+        $sTable = "";
+        $colPCode = $this->oGO->GetBucketValue('colPCode') ?: "Unknown postcode col";
+        $colKMbr  = $this->oGO->GetBucketValue('colKMbr') ?: "Unknown member col";
+
+        $nGroundCherry = $nTomSlicer = $nTomCherry = 0;
+
+        foreach( $this->oGO->GetGrowerRows() as $ra ) {
+            $sWarn = "";
+            $sGroundCherry = $sTomSlicer = $sTomCherry = "";
+
+            if( @$ra['Ground Cherry Participation'] == 'Yes' ) {
+                $sGroundCherry = "1";
+                ++$nGroundCherry;
+            }
+            if( ($n = intval(@$ra['Tomato Varieties'])) ) {
+                switch(@$ra['Slicer or Cherry?']) {
+                    case 'Slicer':
+                        if( $n != 1 && $n != 2 )  $sWarn = "Tomatoes don't add up";
+                        $sTomSlicer = $n;
+                        $nTomSlicer += $n;
+                        break;
+                    case 'Cherry':
+                        if( $n != 1 && $n != 2 )  $sWarn = "Tomatoes don't add up";
+                        $sTomCherry = $n;
+                        $nTomCherry += $n;
+                        break;
+                    case 'Slicer, Cherry':
+                        if( $n != 2 )  $sWarn = "Tomatoes don't add up";
+                        $sTomSlicer = 1;    $sTomCherry = 1;
+                        $nTomSlicer += 1;   $nTomCherry += 1;
+                        break;
+                    case null:
+                        if( $n != 0 )  $sWarn = "Tomatoes don't add up";
+                        break;
+                    default:
+                        $sWarn = "Tomato varieties don't make sense";
+                        break;
+                }
+            }
+
+            $sTable .= SEEDCore_ArrayExpand($ra, "<tr><td>[[iRow]]</td> <td>[[{$colEmail}]]</td> <td>[[First Name]] [[Last Name]]</td> <td>[[$colPCode]]</td> <td>[[$colKMbr]]</td>
+                                                      <td>$sGroundCherry</td><td>$sTomSlicer</td><td>$sTomCherry</td>
+                                                      <td style='color:red'>$sWarn</td>
+                                                  </tr>");
+        }
+
+        $sSummary = "<p>$nGroundCherry ground cherries<br/>
+                        $nTomSlicer slicer tomatoes<br/>
+                        $nTomCherry cherry tomatoes
+                     </p>";
+
+        $sInstructions = "<p style='font-size:small'><span style='color:red'>Red emails</span> mean they aren't found in our member database (we'll add them).</p>
+                          <p style='font-size:small'><span style='color:red'>Red postal codes</span> mean the address differs from our records (we'll fix that).</p>";
+
+        $s = "<div class='container-fluid'><div class='row'><div class='col-md-6'>$sSummary</div><div class='col-md-6'>$sInstructions</div></div></div>
+              <table class='table table-striped'>
+                  <tr><th>Row</th><th>$colEmail</th><th>Name</th><th>$colPCode</th><th>$colKMbr</th>
+                      <th>Ground<br/>cherry</th><th>Tomato<br>Slicer</th><th>Tomato<br/>Cherry</th>
+                      <th>&nbsp;</th> <!-- warnings -->
+                  </tr>
+                  $sTable
+              </table>";
+
+        done:
         return( $s );
     }
 }
