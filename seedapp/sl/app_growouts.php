@@ -8,7 +8,7 @@
 
 include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDLIB."google/GoogleSheets.php" );
-//include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
+include_once( SEEDLIB."mbr/MbrContacts.php" );
 
 
 $consoleConfig = [
@@ -190,9 +190,11 @@ class GrowoutsTabGrowers
 
         if( !$this->oGO->SheetOpen() || !($colEmail = $this->oGO->EmailColNameLoaded()) )  goto done;
 
+        $oMbr = new Mbr_Contacts($this->oGO->oApp);
+
         $sTable = "";
         $colPCode = $this->oGO->GetBucketValue('colPCode') ?: "Unknown postcode col";
-        $colKMbr  = $this->oGO->GetBucketValue('colKMbr') ?: "Unknown member col";
+        $colKMbr  = $this->oGO->GetBucketValue('colKMbr') ?: "";
 
         $nGroundCherry = $nTomSlicer = $nTomCherry = 0;
 
@@ -230,7 +232,24 @@ class GrowoutsTabGrowers
                 }
             }
 
-            $sTable .= SEEDCore_ArrayExpand($ra, "<tr><td>[[iRow]]</td> <td>[[{$colEmail}]]</td> <td>[[First Name]] [[Last Name]]</td> <td>[[$colPCode]]</td> <td>[[$colKMbr]]</td>
+            /* Validate the member id, postcode
+             */
+            $sEmail = $ra[$colEmail];
+            $sKMbr = "";
+            $sPCode = @$ra[$colPCode] ?: "";
+            if( !($raMbr = $oMbr->GetBasicValues($sEmail)) ) {
+                $sEmail = "<span style='color:red'>$sEmail</span>";
+            } else {
+                if( ($kMbr = intval(@$ra[$colKMbr])) ) {
+                    $sKMbr = ($kMbr==$raMbr['_key']) ? $kMbr : "<span style='color:red'>$kMbr</span>";
+                }
+                if( $sPCode && !Mbr_Contacts::PostcodesEqual($sPCode, $raMbr['postcode']) ) {
+                    $sPCode = "<span style='color:red'>$sPCode</span>";
+                }
+            }
+
+
+            $sTable .= SEEDCore_ArrayExpand($ra, "<tr><td>[[iRow]]</td> <td>$sEmail</td> <td>[[First Name]] [[Last Name]]</td> <td>$sPCode</td> <td>$sKMbr</td>
                                                       <td>$sGroundCherry</td><td>$sTomSlicer</td><td>$sTomCherry</td>
                                                       <td style='color:red'>$sWarn</td>
                                                   </tr>");
@@ -241,12 +260,18 @@ class GrowoutsTabGrowers
                         $nTomCherry cherry tomatoes
                      </p>";
 
+        $sDups = ""; $raE = [];
+        foreach( $this->oGO->GetGrowerRows() as $ra ) { $raE[] = $ra[$colEmail]; }
+        foreach(array_count_values($raE) as $e => $n) { if( $n > 1 )  $sDups.= "<br/>$e"; }
+        if( $sDups ) $sSummary .= "<p><b>Duplicate emails:</b>$sDups</p>";
+
+
         $sInstructions = "<p style='font-size:small'><span style='color:red'>Red emails</span> mean they aren't found in our member database (we'll add them).</p>
                           <p style='font-size:small'><span style='color:red'>Red postal codes</span> mean the address differs from our records (we'll fix that).</p>";
 
         $s = "<div class='container-fluid'><div class='row'><div class='col-md-6'>$sSummary</div><div class='col-md-6'>$sInstructions</div></div></div>
               <table class='table table-striped'>
-                  <tr><th>Row</th><th>$colEmail</th><th>Name</th><th>$colPCode</th><th>$colKMbr</th>
+                  <tr><th>Row</th><th>$colEmail</th><th>Name</th><th>$colPCode</th><th>Member #</th>
                       <th>Ground<br/>cherry</th><th>Tomato<br>Slicer</th><th>Tomato<br/>Cherry</th>
                       <th>&nbsp;</th> <!-- warnings -->
                   </tr>
