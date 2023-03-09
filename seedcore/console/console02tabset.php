@@ -84,8 +84,10 @@ class Console02TabSet
 
         $sLabelCurr = $raTS['tabs'][$sTabCurr]['label'];
 
+        $oTabInfo = new Console02TabSet_TabInfo( $this, $tsid, $sTabCurr );
+
         // Tell the TabSet to initialize itself on the current tab
-        $this->TabSetInit( $tsid, $sTabCurr );
+        $this->TabSetInit2($oTabInfo);
 
         $s .= "<div class='console02-tabset-frame'>"
              ."<div class='console02-tabset-tabs'>";
@@ -163,16 +165,24 @@ class Console02TabSet
         return( $tabname );
     }
 
+    function TabSetInit2( Console02TabSet_TabInfo $oTab )
+    /****************************************************
+        Applications should override this.
+        Or they might use methods known by findmethod()
+        Older applications might override TabSetInit.
+     */
+    {
+        if( ($m = $this->findmethod( $oTab->tsid, $oTab->tabname, "Init" )) ) {
+            call_user_func( $m, $oTab );
+        } else {
+            // maybe there's an old-fashioned override
+            $this->TabSetInit($oTab->tsid, $oTab->tabname);
+        }
+    }
+
     function TabSetInit( $tsid, $tabname )
     {
-        /* Override this method or define another that findMethod will find
-         */
-
-        $oTabInfo = new Console02TabSet_TabInfo( $this, $tsid, $tabname );
-
-        if( ($m = $this->findmethod( $tsid, $tabname, "Init" )) ) {
-            call_user_func( $m, $oTabInfo );
-        }
+        // obsolete base method; remove when no derivations of this remain
     }
 
     function TabSetExtraLinkParms( $tsid, $tabname, $raParms )
