@@ -45,6 +45,14 @@ if( ($cmd = SEEDInput_Str('cmd')) ) {
 
         echo json_encode($ret);
     }
+
+    if( $cmd == 'putNewMbrInDB' ) {
+        $raMbr = [];
+        foreach(['email','firstname','lastname','address','city','province','postcode'] as $k )  $raMbr[$k] = SEEDInput_Str($k);
+        $ret = (new Mbr_Contacts($oApp))->PutContact( $raMbr, $eDetail = Mbr_Contacts::DETAIL_BASIC, true );
+
+        echo json_encode($ret ? "Added contact $ret" : "Failed");
+    }
     exit;
 }
 
@@ -84,15 +92,22 @@ class MbrContactsSheetUI
 
     function IsAccessible()  { return( $this->oMCS != null ); }
 
-    function DrawForm()
+    function DrawForm( $bAddressFields = true )
     {
         $s = "<form method='post'>
               <div>{$this->oForm->Text('idSpread',  '', ['size'=>60])}&nbsp;Google sheet id</div>
               <div>{$this->oForm->Text('nameSheet', '', ['size'=>60])}&nbsp;sheet name</div>
               <div>{$this->oForm->Text('colEmail', '', ['size'=>60])}&nbsp;email column name (will read only)</div>
               <div>{$this->oForm->Text('colPcode', '', ['size'=>60])}&nbsp;postcode column name (will read only)</div>
-              <div>{$this->oForm->Text('colKMbr', '', ['size'=>60])}&nbsp;kMbr column name (will read only)</div>
-              <div><input type='submit'/></div>
+              <div>{$this->oForm->Text('colKMbr', '', ['size'=>60])}&nbsp;kMbr column name (will read only)</div>"
+            .($bAddressFields ?
+                "<div>{$this->oForm->Text('colFname', '', ['size'=>60])}&nbsp;first name column</div>
+                 <div>{$this->oForm->Text('colLname', '', ['size'=>60])}&nbsp;last name column</div>
+                 <div>{$this->oForm->Text('colAddr', '', ['size'=>60])}&nbsp;address column</div>
+                 <div>{$this->oForm->Text('colCity', '', ['size'=>60])}&nbsp;city column</div>
+                 <div>{$this->oForm->Text('colProv', '', ['size'=>60])}&nbsp;province column</div>"
+               :"")
+            ."<div><input type='submit'/></div>
               </form>";
         return( $s );
     }
@@ -111,6 +126,13 @@ class MbrContactsSheetUI
         $kKMbr  = ($col = $this->oForm->Value('colKMbr')) ? array_search($col, $raColNames) : false;
         $kPcode = ($col = $this->oForm->Value('colPcode')) ? array_search($col, $raColNames) : false;
 
+        $kFname = ($col = $this->oForm->Value('colFname')) ? array_search($col, $raColNames) : false;
+        $kLname = ($col = $this->oForm->Value('colLname')) ? array_search($col, $raColNames) : false;
+        $kAddr  = ($col = $this->oForm->Value('colAddr')) ? array_search($col, $raColNames) : false;
+        $kCity  = ($col = $this->oForm->Value('colCity')) ? array_search($col, $raColNames) : false;
+        $kProv  = ($col = $this->oForm->Value('colProv')) ? array_search($col, $raColNames) : false;
+
+
         if( $kEmail === false ) {
             $s = "Choose Email column";
             $s .= "<br/>".SEEDCore_ArrayExpandSeries($this->oMCS->GetColNames($this->nameSheet), " [[]]," );
@@ -128,12 +150,12 @@ class MbrContactsSheetUI
              ."</div>";
 
         $oGrid = new SEEDGrid( ['type'=>'bootstrap',
-                                'classCols' => ['col-md-3', 'col-md-1', 'col-md-1', 'col-md-5', 'col-md-1', 'col-md-1'],
+                                'classCols' => ['col-md-3', 'col-md-1', 'col-md-1', 'col-md-3', 'col-md-3', 'col-md-1'],
                                 'styleRow' => 'border-bottom:1px solid #aaa'
         ]);
 
         $s .= "<div class='container-fluid'>"
-             .$oGrid->Row( ["email in sheet", "# in sheet", "found # from email", "found addr from email", "postcode in sheet"],
+             .$oGrid->Row( ["email in sheet", "# in sheet", "found # from email", "found addr in db from email", "addr in sheet", "postcode in sheet"],
                            ['styleRow'=>'font-weight:bold;border-bottom:2px solid #aaa'] );
         $iRow = 1;
         foreach( $this->oMCS->GetRows($this->nameSheet) as $raRow ) {
@@ -143,7 +165,7 @@ class MbrContactsSheetUI
             $gEmail = $raRow[$kEmail];
             $raMbr = $oMbr->GetBasicValues($gEmail);
             $kMbrFromDb = @$raMbr['_key'];
-            $addrblock = $raMbr ? $oMbr->DrawAddressBlockFromRA($raMbr) : "";
+            $addrFromDb = $raMbr ? $oMbr->DrawAddressBlockFromRA($raMbr) : "";
             $mbrPcode = @$raMbr['postcode'] ?: "";
 
             // these are optional
@@ -153,7 +175,7 @@ class MbrContactsSheetUI
             $sMbrFromSheet = '';
             if( $kKMbr !== false ) {
                 $sCellKMbrFromSheet = SEEDXls::Index2ColumnName($kKMbr).$iRow;
-                $sMbrFromSheet = (!$kMbrFromSheet && $kMbrFromDb) ? "<button data-kMbr='$kMbrFromDb' data-cell='$sCellKMbrFromSheet'>set $kMbrFromDb</button>"
+                $sMbrFromSheet = (!$kMbrFromSheet && $kMbrFromDb) ? "<button class='buttonSetKMbrInSheet' data-kMbr='$kMbrFromDb' data-cell='$sCellKMbrFromSheet'>set $kMbrFromDb</button>"
                                                                   : $kMbrFromSheet;
             }
 
@@ -162,7 +184,25 @@ class MbrContactsSheetUI
                             : (!$bPostcodeMatch ? 'color:orange' : 'color:green');
 
             $cssPcode = $bPostcodeMatch ? "" : "color:red";
-            $s .= $oGrid->Row( [$gEmail, $sMbrFromSheet, $kMbrFromDb, $addrblock, $gPcode], ['styleCol0'=>$cssEmail,'styleCol4'=>$cssPcode] );
+
+            // if the necessary columns are defined, show the address from the sheet
+            $addrFromSheet = "";
+            if( $kFname && $kLname && $kAddr && $kCity && $kProv ) {
+                $addrFromSheet = SEEDCore_ArrayExpand($raRow, "[[$kFname]] [[$kLname]]<br/>[[$kAddr]]<br/>[[$kCity]] [[$kProv]] [[$kPcode]]");
+                if( !$kMbrFromDb ) {
+                    $addrFromSheet .= "<button class='buttonAddMbrInDb'
+                                               data-fname='".SEEDCore_HSC($raRow[$kFname])."'
+                                               data-lname='".SEEDCore_HSC($raRow[$kLname])."'
+                                               data-addr ='".SEEDCore_HSC($raRow[$kAddr])."'
+                                               data-city ='".SEEDCore_HSC($raRow[$kCity])."'
+                                               data-prov ='".SEEDCore_HSC($raRow[$kProv])."'
+                                               data-pcode='".SEEDCore_HSC($raRow[$kPcode])."'
+                                               data-email='".SEEDCore_HSC($raRow[$kEmail])."'
+                                               >Add to db</button>";
+                }
+            }
+
+            $s .= $oGrid->Row( [$gEmail, $sMbrFromSheet, $kMbrFromDb, $addrFromDb, $addrFromSheet, $gPcode], ['styleCol0'=>$cssEmail,'styleCol4'=>$cssPcode] );
 
             // add to textarea for copying
             $raKMbr[] = $kMbrFromDb;
@@ -177,10 +217,25 @@ class MbrContactsSheetUI
 $s .= <<<JSCRIPT
 <script>
 $(document).ready( function() {
-    $('button').click( function() {
+    $('.buttonSetKMbrInSheet').click( function() {
         let jx = { cmd:'putKMbrInSheet',
                    kMbr: $(this).data('kmbr'),
                    cell: $(this).data('cell')
+                 };
+
+        let rQ = SEEDJXSync('', jx);
+        console.log(rQ);
+    });
+
+    $('.buttonAddMbrInDb').click( function() {
+        let jx = { cmd:'putNewMbrInDB',
+                   firstname: $(this).data('fname'),
+                   lastname:  $(this).data('lname'),
+                   address:   $(this).data('addr'),
+                   city:      $(this).data('city'),
+                   province:  $(this).data('prov'),
+                   postcode:  $(this).data('pcode'),
+                   email:     $(this).data('email')
                  };
 
         let rQ = SEEDJXSync('', jx);

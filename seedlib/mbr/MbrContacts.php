@@ -9,6 +9,10 @@
 
 class Mbr_Contacts
 {
+    const DETAIL_BASIC     = 'basic';
+    const DETAIL_OFFICE    = 'office';
+    const DETAIL_SENSITIVE = 'sensitive';
+
     public  $oDB;
     private $oApp;
 
@@ -222,6 +226,36 @@ class Mbr_Contacts
     {
         return( is_numeric($mbrid) ? $this->oDB->GetKFR( 'M', $mbrid )
                                    : $this->oDB->GetKFRCond( 'M', "email='".addslashes($mbrid)."'", [] ) );
+    }
+
+    function PutContact( $raMbr, $eDetail = self::DETAIL_BASIC, $bInputUTF8 = false )
+    /********************************************************************************
+        Add or update a contact.
+        eDetail restricts what the caller can do - helpful for limiting things like ajax commands
+     */
+    {
+        $ret = false;
+
+        if( ($kMbr = intval(@$raMbr['kMbr'])) || ($kMbr = intval(@$raMbr['_key'])) ) {
+            $kfr = $kfr = $this->oDB->GetKFR('M',$kMbr);
+        } else {
+            $kfr = $this->oDB->KFRel('M')->CreateRecord();
+        }
+        // if new contact require at least a name or email
+        if( $kfr && ($kfr->Key() || @$raMbr['firstname'] || @$raMbr['lastname'] || @$raMbr['company'] || @$raMbr['email'])) {
+            $raFlds = $eDetail==self::DETAIL_OFFICE ? $this->GetOfficeFlds() : $this->GetBasicFlds();  // sensitive not implemented
+            foreach( $raFlds as $k => $raDummy ) {
+                if( isset($raMbr[$k]) ) {
+                    $v = $raMbr[$k];
+                    $v = $bInputUTF8 ? SEEDCore_utf8_decode($v) : $v;
+                    $kfr->SetValue($k, $v);
+                }
+            }
+            if( $kfr->PutDBRow() ) {
+                $ret = $kfr->Key();
+            }
+        }
+        return( $ret );
     }
 
     function EBullSubscribe( $mbrid, $bSubscribe )
