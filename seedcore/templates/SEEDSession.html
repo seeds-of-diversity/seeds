@@ -38,6 +38,7 @@
     [[SetVar: ssaYourEmailAddress   |Your email address]]
     [[SetVar: ssaYourPassword       |Your password]]
     [[SetVar: ssaLogin              |Sign in]]
+    [[SetVar: ssaBackToLogin        |Back to Login]]
     [[SetVar: ssaNeedAnAccount      |Don't have an account?]]
     [[SetVar: ssaCreateAnAccount    |Create an account]]
     [[SetVar: ssaForgotYourPassword |Forgot your password?]]
@@ -47,6 +48,7 @@
     [[SetVar: ssaYourEmailAddress   |Votre adresse de courriel]]
     [[SetVar: ssaYourPassword       |Votre mot de passe]]
     [[SetVar: ssaLogin              |Ouvrez une session]]
+    [[SetVar: ssaBackToLogin        |Ouvrez une session]]
     [[SetVar: ssaNeedAnAccount      |Vous n'avez pas un compte?]]
     [[SetVar: ssaCreateAnAccount    |Cr&eacute;ez un compte]]
     [[SetVar: ssaForgotYourPassword |Oubliez votre mot de passe?]]
@@ -98,6 +100,7 @@
 
 
 %% SEEDSessionUser_Logout
+{% include 'SSA_Local' %}
 <h2>Goodbye {{sUsername}}</h2>
 <p>You are logged out now.</p>
 <div>
@@ -303,7 +306,7 @@ $(document).ready(function(){
 
 
 %% SEEDSessionUser_LinkGoToLogin
-<p style='font-size:10pt;margin-top:2em;'><a href='[[IfDef:[[Var:acctLoginURL]] | [[Var:siteroot_url:]]]]'>[[Local:Back to Login]]</a></p>
+<p style='font-size:10pt;margin-top:2em;'><a href='[[IfDef:[[Var:acctLoginURL]] | [[Var:siteroot_url:]]]]'>[[Var:ssaBackToLogin]]</a></p>
 
 
 %% more
