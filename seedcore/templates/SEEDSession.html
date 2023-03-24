@@ -33,27 +33,38 @@
 
 
 %% SSA_Local
-# Twig variables only exist in scope, so the only way to set variables in an include, embed, extends is to use SEEDTag variables
+# Twig variables only exist in scope, so the only way to set variables inside an include, embed, extends is to use SEEDTag variables
+# Login
+[[SetVar: ssaYourEmailAddress   |[[ifeq:$lang|EN|   Your email address  |   Votre adresse de courriel   ]]]]
+[[SetVar: ssaYourPassword       |[[ifeq:$lang|EN|   Your password       |   Votre mot de passe          ]]]]
+[[SetVar: ssaLogin              |[[ifeq:$lang|EN|   Sign In             |   Ouvrez une session          ]]]]
+
+# Logout
+[[SetVar: ssaBackToLogin        |[[ifeq:$lang|EN|   Back To Login       |   Ouvrez une autre session    ]]]]
+
+# Forgot/Send password
+[[SetVar: ssaForgotYourPassword |[[ifeq:$lang|EN|   Forgot your password? |  Oubliez votre mot de passe?    ]]]]
+[[SetVar: ssaSendMyPassword     |[[ifeq:$lang|EN|   Send me my password   |  Envoyez-moi mon mot de passe   ]]]]
+   
+   
 {% if lang=='EN' %}
-    [[SetVar: ssaYourEmailAddress   |Your email address]]
-    [[SetVar: ssaYourPassword       |Your password]]
-    [[SetVar: ssaLogin              |Sign in]]
-    [[SetVar: ssaBackToLogin        |Back to Login]]
+# Create account    
     [[SetVar: ssaNeedAnAccount      |Don't have an account?]]
     [[SetVar: ssaCreateAnAccount    |Create an account]]
-    [[SetVar: ssaForgotYourPassword |Forgot your password?]]
-    [[SetVar: ssaSendMyPassword     |Send me my password]]
 {% else %}
-    [[SetVar: ssaYourEmailAddress   |Votre adresse de courriel]]
-    [[SetVar: ssaYourEmailAddress   |Votre adresse de courriel]]
-    [[SetVar: ssaYourPassword       |Votre mot de passe]]
-    [[SetVar: ssaLogin              |Ouvrez une session]]
-    [[SetVar: ssaBackToLogin        |Ouvrez une session]]
     [[SetVar: ssaNeedAnAccount      |Vous n'avez pas un compte?]]
     [[SetVar: ssaCreateAnAccount    |Cr&eacute;ez un compte]]
-    [[SetVar: ssaForgotYourPassword |Oubliez votre mot de passe?]]
-    [[SetVar: ssaSendMyPassword     |Envoyez-moi mon mot de passe]]
 {% endif %}
+
+%% errmsg_SendPassword_user_not_registered
+{% if lang=='EN' %}
+<h3>User not registered</h3><p>User '{{uid}}' is not registered. You might be using a different email address than the one that we have on file. Please contact our office if you need help.</p>
+{% else %}
+<h3>User not registered</h3><p>User '{{uid}}' is not registered. You might be using a different email address than the one that we have on file. Please contact our office if you need help.</p>
+{% endif %}
+
+
+
 
 %% SEEDSessionUser_Login
 {% include 'SSA_Local' %}
@@ -283,6 +294,9 @@ $(document).ready(function(){
 
 
 %% SEEDSessionUser_SendPassword-0
+#if SendPassword-1 fails it goes back here with sErrMsg
+[[Include:ssu-ErrMsg]]
+{% include 'SSA_Local' %}
 {% if lang=='EN' %}
     <h2>We'll send your password to you by email</h2>
     <p>Type your email address here and click 'Send me my password'. You will receive an email shortly.</p>
@@ -293,15 +307,16 @@ $(document).ready(function(){
 <form method='post' action=''>
 [[FormHidden: sessioncmd | value:sendPwd-1]]
 <table border='0' cellspacing='0' cellpadding='10'>
-<tr><td valign='top'>[[Local:Your email address]]</td><td valign='top'>[[FormText:sendPwd_uid|class:text]]</td></tr>
+<tr><td valign='top'>[[Var:ssaYourEmailAddress]]</td><td valign='top'>[[FormText:sendPwd_uid|class:text]]</td></tr>
 <tr><td valign='top'>&nbsp;</td>
 <td valign='top'>
-  <input type='submit' value='[[Local:Send me my password]]'>
+  <input type='submit' value='[[Var:ssaSendMyPassword]]'>
   [[Include:SEEDSessionUser_LinkGoToLogin]]
 </td></tr></table></form>
 
 %% SEEDSessionUser_SendPassword-1
-[[Local:SendPassword_success]]
+<h2>Your password has been sent to you by email</h2>
+<p>You should receive an email shortly containing login instructions.</p>
 [[Include:SEEDSessionUser_LinkGoToLogin]]
 
 

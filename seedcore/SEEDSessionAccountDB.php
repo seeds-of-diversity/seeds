@@ -93,6 +93,10 @@ class SEEDSessionAccountDBRead
        userid can be kUser or email (email only works for _status='0' to prevent conflicts with old records)
      */
     {
+        $k = 0; $raUser = []; $raMetadata = [];
+
+        if( !$userid ) goto done;
+
         if( is_numeric($userid) ) {
             $cond = "_key='$userid'".($bIncludeDeletedAndHidden ? "" : " AND _status='0'");
         } else {
@@ -101,14 +105,14 @@ class SEEDSessionAccountDBRead
         }
 
         $raUser = $this->kfdb->QueryRA( "SELECT * FROM {$this->sDB}SEEDSession_Users WHERE $cond" );
-        $raMetadata = array();
 
         // $k is an unambiguous return value for testing success
         $k = intval(@$raUser['_key']);
         if( $k && $bGetMetadata ) {
             $raMetadata = $this->GetUserMetadata( $k );
         }
-        return( array($k, $raUser, $raMetadata) );
+        done:
+        return( [$k, $raUser, $raMetadata] );
     }
 
     function GetUsersFromGroup( $kGroup, $raParms = array() )

@@ -2,7 +2,7 @@
 
 /* SEEDSessionAccountUI
  *
- * Copyright 2015-2022 Seeds of Diversity Canada
+ * Copyright 2015-2023 Seeds of Diversity Canada
  *
  * Extensible and templatable UI for user accounts and login
  */
@@ -15,6 +15,8 @@ class SEEDSessionAccountUI
     private $oApp;
     private $bLoginRequired = true;
     private $oTmpl;
+    private $config_urlSendPasswordSite;
+    private $fnSendMail;
 
     private $bTmpActivate = false;      // remove this when we always activate by default
 
@@ -27,6 +29,10 @@ class SEEDSessionAccountUI
         $this->bLoginRequired = (@$raConfig['bLoginNotRequired'] != true);  // notice this logic is inverted so login required by default
         $this->bTmpActivate = (@$raConfig['bTmpActivate'] == true);         // remove this when we activate by default
 
+        $this->config_urlSendPasswordSite = @$raConfig['urlSendPasswordSite'] ?? "";
+        $this->fnSendMail = @$raConfig['fnSendMail'];
+
+        $this->oAcctDB = new SEEDSessionAccountDBRead2($oApp->kfdb, $oApp->sess->GetUID());
         $this->oTmpl = @$raConfig['oTmpl'] ?: $this->makeTemplate( $raConfig );
     }
 
@@ -436,7 +442,7 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
         Draw the Send my Password form
      */
     {
-        return( $this->oTmpl->ExpandTmpl( "AccountSendPassword-0", array() ) );
+        return( $this->oTmpl->ExpandTmpl( "AccountSendPassword-0", [] ) );
     }
 
     private function sendPwd1()
@@ -444,33 +450,34 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
         Respond to the Send my Password form by checking for the given user and a) sending the password by email, or b) saying why not
      */
     {
-// Sorry, this could be sendPwd0 and it would all work just as well
         $s = "";
         $sErrMsg = "";
         $bOk = false;
 
         // Get the uid from $this->httpNameUID.'1' so the uid can be propagated to the Send Password form's initial value without confusion
-        if( ($sUid = SEEDSafeGPC_GetStrPlain( 'sendPwd_uid', $_POST )) ) {
-            list($k,$raUser,$raMetadata) = $this->oAuthDB->GetUserInfo( $sUid );
+        if( ($sUid = SEEDInput_Str('sendPwd_uid', $_POST)) ) {
+            list($k,$raUser) = $this->oAcctDB->GetUserInfo($sUid);
 
             if( !$k ) {
-                $sErrMsg = $this->oLocal->S( "SendPassword_user_not_registered", array($sUid) );
+                // not giving this information
+                //$sErrMsg = $this->oTmpl->ExpandTmpl('errmsg_SendPassword_user_not_registered', ['uid'=>$sUid]);
             } else if( $raUser['eStatus'] != 'ACTIVE' ) {
-                $sErrMsg = $raUser['eStatus'] == 'PENDING'  ? $this->oLocal->S( "login_err_userstatus_pending", array($sUid) )
-                                                            : $this->oLocal->S( "login_err_userstatus_inactive", array($sUid) );
+                // not giving this information
+                //$sErrMsg = $raUser['eStatus'] == 'PENDING'  ? $this->oLocal->S('login_err_userstatus_pending', [$sUid])
+                //                                            : $this->oLocal->S('login_err_userstatus_inactive', [$sUid]);
             } else {
                 assert( !empty($this->raConfig['urlSendPasswordSite']) );
-                $sMail = $this->oLocal->S( "SendPassword_email_body", array( $this->raConfig['urlSendPasswordSite'], $raUser['email'], $raUser['password'] ) );
+                $sMail = $this->oTmpl->ExpandTmpl('SendPassword_email_body', ['website'=>$this->config_urlSendPasswordSite, 'uid'=>$raUser['email'], 'pwd'=>$raUser['password']] );
 
-                $bOk = $this->SendMail( $raUser['email'], $this->oLocal->S('SendPassword_email_subject'), $sMail );
-                       $this->SendMail( "bob@seeds.ca",   $this->oLocal->S('SendPassword_email_subject'), $sMail );
+                $bOk = $this->SendMail( $raUser['email'], $this->oTmpl->ExpandTmpl('SendPassword_email_subject'), $sMail);
+                       $this->SendMail( "bob@seeds.ca",   $this->oTmpl->ExpandTmpl('SendPassword_email_subject'), $sMail);
             }
         }
 
         if( $bOk ) {
-            $s .= $this->oTmpl->ExpandTmpl( "AccountSendPassword-1", array() );
+            $s .= $this->oTmpl->ExpandTmpl( "AccountSendPassword-1", [] );
         } else {
-            $s .= $this->oTmpl->ExpandTmpl( "AccountSendPassword-0", array( 'sErrMsg'=>$sErrMsg ) );
+            $s .= $this->oTmpl->ExpandTmpl( "AccountSendPassword-0", ['sErrMsg'=>$sErrMsg] );
         }
 
         return( $s );
@@ -559,8 +566,8 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
 
     protected function SendMail( $mailto, $subject, $body )
     {
-        if( @$this->raConfig['fnSendMail'] ) {
-            return( call_user_func( $this->raConfig['fnSendMail'], $mailto, $subject, $body ) );
+        if( @$this->fnSendMail ) {
+            return( call_user_func( $this->fnSendMail, $mailto, $subject, $body ) );
         }
 
         die( "Override SEEDSessionAccount_UI::SendMail" );
@@ -573,6 +580,10 @@ class SEEDSessionAuthUI_Local2
 
     function GetLocalStrings()
     {
+        /* This was the main way that SEEDSessionAuth 1.0 handled localized strings.
+         * SEEDSessionAuth 2.0 has localized strings in the template instead, so choose where you want them.
+         */
+
         $localStrings = array(
         // Cr�ez un compte
         // Votre compte

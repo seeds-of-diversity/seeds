@@ -148,11 +148,12 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
  */
 {
     global $config_KFDB;
+    global $SEEDSessionAuthUI_Config;
 
     $db = @$raConfig['db'] ?: (defined('SEED_DB_DEFAULT') ? SEED_DB_DEFAULT : 'seeds1');
 
     $raP = [
-        'lang'              => @$raConfig['lang'] ?: 'EN',
+        'lang'              => @$raConfig['lang'] ?: SEEDInput_Smart('lang', ['EN','FR']),
         'logdir'            => @$raConfig['logdir'] ?: SEED_LOG_DIR,
         'urlW'              => @$raConfig['urlW'] ?: SEEDW_URL,
         'urlQ'              => @$raConfig['urlQ'] ?: SEEDQ_URL,
@@ -161,7 +162,12 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
                                 // default sessUI requires login, uses the old method temporarily
                                 ?: ['bTmpActivate'=>true,
                                     'bLoginNotRequired'=>false,
-                                    'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'] ],
+                                    'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'],
+// $SEEDSessionAuthUI_Config should be parameterized better - comes from site.php and site2.php
+                                    'urlSendPasswordSite' => @$SEEDSessionAuthUI_Config['urlSendPasswordSite'] ?? "",
+// this should be parameterized externally
+                                    'fnSendMail' => 'klugeMailFromHere',
+                                ],
 
         'consoleConfig'     => @$raConfig['consoleConfig'] ?: [],
     ];
@@ -182,4 +188,9 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
     }
 
     return( $oApp );
+}
+
+function klugeMailFromHere( $mailto, $subject, $body )
+{
+    return( SEEDEmailSend( 'Seeds of Diversity <office@seeds.ca>', $mailto, $subject, $body ) );
 }
