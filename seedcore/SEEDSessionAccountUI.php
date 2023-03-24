@@ -467,7 +467,12 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
                 //                                            : $this->oLocal->S('login_err_userstatus_inactive', [$sUid]);
             } else {
                 assert( !empty($this->raConfig['urlSendPasswordSite']) );
-                $sMail = $this->oTmpl->ExpandTmpl('SendPassword_email_body', ['website'=>$this->config_urlSendPasswordSite, 'uid'=>$raUser['email'], 'pwd'=>$raUser['password']] );
+                //$sMail = $this->oTmpl->ExpandTmpl('SendPassword_email_body', ['website'=>$this->config_urlSendPasswordSite, 'uid'=>$raUser['email'], 'pwd'=>$raUser['password']] );
+                $sMail = "You have requested a password reminder from Seeds of Diversity. Please use the following to login to our web site.\n\n"
+                        ."Web site: {$this->config_urlSendPasswordSite}\n"
+                        ."User:     {$raUser['email']}\n"
+                        ."Password: {$raUser['password']}\n\n"
+                        ."If you have any questions, please contact office@seeds.ca";
 
                 $bOk = $this->SendMail( $raUser['email'], $this->oTmpl->ExpandTmpl('SendPassword_email_subject'), $sMail);
                        $this->SendMail( "bob@seeds.ca",   $this->oTmpl->ExpandTmpl('SendPassword_email_subject'), $sMail);
