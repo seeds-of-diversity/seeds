@@ -458,13 +458,17 @@ function SEEDCore_StartsWith( $haystack, $needle )
 /*************************************************
  */
 {
-     return( substr( $haystack, 0, strlen($needle) ) === $needle );
+    $haystack = $haystack ?? "";
+    $needle = $needle ?? "";
+    return( substr( $haystack, 0, strlen($needle) ) === $needle );
 }
 
 function SEEDCore_EndsWith( $haystack, $needle )
 /***********************************************
  */
 {
+    $haystack = $haystack ?? "";
+    $needle = $needle ?? "";
     $length = strlen($needle);
     return( substr( $haystack, -$length, $length ) === $needle );   // third parameter is for the boundary condition where $needle==''
 }
@@ -473,6 +477,8 @@ function SEEDCore_Contains( $haystack, $needle )
 /***********************************************
  */
 {
+    $haystack = $haystack ?? "";
+    $needle = $needle ?? "";
     return( strpos($haystack,$needle) !== false );
 }
 
@@ -524,7 +530,7 @@ function SEEDCore_ParseRangeStrToRA( $sRange )
 {
     $raRange = array();
 
-    $ra = explode( ',', $sRange );
+    $ra = explode( ',', $sRange ?? "" );
     foreach( $ra as $sN ) {
         $sN = trim($sN);
         if( !$sN )  continue;    // otherwise a blank term becomes a 0
@@ -792,6 +798,8 @@ function SEEDCore_RemoveDirectory( $dir, $bLeaveEmpty = false )
 {
     $ok = false;
 
+    $dir = $dir ?? "";
+
     if( substr($dir,-1) == '/' )  $dir = substr($dir,0,-1);     // remove trailing slash
 
     if( !file_exists($dir) || !is_dir($dir) || !is_readable($dir) )  goto done;
@@ -865,7 +873,9 @@ function SEEDCore_ExpandLinks( string $input, array $raParms )
 {
     $ra = SEEDCore_SplitOnWhitespace($input);       // split into an array of alternating ws and non-ws strings
 
-    if( strpos(@$raParms['eType'], 'EMAIL') !== false ) {
+    $eType = @$raParms['eType'] ?? "";
+
+    if( strpos($eType, 'EMAIL') !== false ) {
         foreach( $ra as &$w ) {
             // if w is a valid email address, make it a link
             if( filter_var($w, FILTER_VALIDATE_EMAIL) ) {
@@ -874,7 +884,7 @@ function SEEDCore_ExpandLinks( string $input, array $raParms )
         }
     }
 
-    if( strpos(@$raParms['eType'], 'URL') !== false ) {
+    if( strpos($eType, 'URL') !== false ) {
         foreach( $ra as &$w ) {
             // if w is a valid url, make it a link
             if( filter_var($w, FILTER_VALIDATE_URL) ) {
