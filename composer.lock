@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2359c5fe5b1872ac0a9a9abfa6db76b7",
+    "content-hash": "30a4aaf4bf8c6ba13486444e1ea0358e",
     "packages": [
         {
             "name": "10bestdesign/jqvmap",
@@ -2768,6 +2768,44 @@
                 }
             ],
             "time": "2023-02-08T07:49:20+00:00"
+        },
+        {
+            "name": "wildbit/postmark-php",
+            "version": "v4.0.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ActiveCampaign/postmark-php.git",
+                "reference": "b71efba061de7cf7e1f853d211b1c5edce4e3c5b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ActiveCampaign/postmark-php/zipball/b71efba061de7cf7e1f853d211b1c5edce4e3c5b",
+                "reference": "b71efba061de7cf7e1f853d211b1c5edce4e3c5b",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^6.0|^7.0",
+                "php": ">=7.0.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.0.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Postmark\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "The officially supported client for Postmark (http://postmarkapp.com)",
+            "support": {
+                "issues": "https://github.com/ActiveCampaign/postmark-php/issues",
+                "source": "https://github.com/ActiveCampaign/postmark-php/tree/v4.0.5"
+            },
+            "time": "2023-02-03T15:00:17+00:00"
         }
     ],
     "packages-dev": [],
