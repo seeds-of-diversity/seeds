@@ -91,6 +91,8 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
 {
     $ok = false;
 
+    $sMessageStream = SEEDCore_ArraySmartVal($raParms,'MessageStream',['broadcast','outbound']);
+
     if( is_string($from) ) {
         $sFromEmail = $from;
         $sFromName = "";
@@ -104,14 +106,13 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
     $oPM = new \Postmark\PostmarkClient(POSTMARK_API_TOKEN);
 
     $message = [
-        'From'     => $from,
-        'To'       => $to,
-        'Subject'  => $subject,
-        'TextBody' => $bodyText,
-        'HtmlBody' => "<html><body>$bodyHTML</body></html>",
-        'Tag'      => "New Year's Email Campaign",
-
-        //'MessageStream' => "outbound" // here you can set your custom Message Stream
+        'From'          => $from,
+        'To'            => $to,
+        'Subject'       => $subject,
+        'TextBody'      => $bodyText,
+        'HtmlBody'      => "<html><body>$bodyHTML</body></html>",
+        //'Tag'           => "New Year's Email Campaign",
+        'MessageStream' => $sMessageStream
     ];
 
 /*
