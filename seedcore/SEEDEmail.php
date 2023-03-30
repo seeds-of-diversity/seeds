@@ -2,7 +2,7 @@
 
 /* SEEDEmail
  *
- * Copyright (c) 2018-2020 Seeds of Diversity Canada
+ * Copyright (c) 2018-2023 Seeds of Diversity Canada
  *
  * Send email
  */
@@ -78,5 +78,86 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
 
         $ok = $oMail->Send();
     }
+    return( $ok );
+}
+
+function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParms = [] )
+/************************************************************************************************
+    $from           = email  OR  [email, screen_name]   e.g. ["webmaster@site.ca", "Webmaster at Site.ca"]
+    $to             = string of one or more emails comma separated
+    $raParms['cc']  = [cc1, cc2, ...]
+    $raParms['bcc'] = [bcc1, bcc2, ...]
+ */
+{
+    $ok = false;
+
+    if( is_string($from) ) {
+        $sFromEmail = $from;
+        $sFromName = "";
+    } else {
+        $sFromEmail = $from[0];
+        $sFromName  = @$from[1] ?? "";
+    }
+
+    if( !defined("POSTMARK_API_TOKEN") )  goto done;
+
+    $oPM = new \Postmark\PostmarkClient(POSTMARK_API_TOKEN);
+
+    $message = [
+        'From'     => $from,
+        'To'       => $to,
+        'Subject'  => $subject,
+        'TextBody' => $bodyText,
+        'HtmlBody' => "<html><body>$bodyHTML</body></html>",
+        'Tag'      => "New Year's Email Campaign",
+
+        //'MessageStream' => "outbound" // here you can set your custom Message Stream
+    ];
+
+/*
+    $body['From'] = $from;
+		$body['To'] = $to;
+		$body['Cc'] = $cc;
+		$body['Bcc'] = $bcc;
+		$body['Tag'] = $tag;
+		$body['ReplyTo'] = $replyTo;
+		$body['Headers'] = $this->fixHeaders($headers);
+		$body['TrackOpens'] = $trackOpens;
+		$body['Attachments'] = $attachments;
+		$body['TemplateModel'] = $templateModel;
+		$body['InlineCss'] = $inlineCss;
+		$body['Metadata'] = $metadata;
+		$body['MessageStream'] = $messageStream;
+*/
+
+    $result = $oPM->sendEmailBatch([$message]);
+
+/*
+    if( @$raParms['cc'] ) {
+        foreach( $raParms['cc'] as $a ) {
+            $oMail->AddCc( $a );
+        }
+    }
+    if( @$raParms['bcc'] ) {
+        foreach( $raParms['bcc'] as $a ) {
+            $oMail->AddBcc( $a );
+        }
+    }
+
+    if( @$raParms['attachments'] ) {
+        foreach( $raParms['attachments'] as $attachmentFilename ) {
+            $oMail->AddAttachLocalFile( $attachmentFilename, '' );  // expecting ezmail to figure out the mimetype
+        }
+    }
+    if( empty($bodyText) ) $bodyText = strip_tags( $bodyHTML );
+    $oMail->SetBodyText( $bodyText );
+    if( !empty( $bodyHTML ) ) {
+        $oMail->SetBodyHTML( $bodyHTML );
+    }
+
+    $ok = $oMail->Send();
+*/
+
+    done:
     return( $ok );
 }
