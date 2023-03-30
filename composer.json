@@ -24,5 +24,10 @@
         "10bestdesign/jqvmap": "1.5.*",
           "jfcherng/php-diff": "^6.11",
           "wildbit/postmark-php": "^4.0"
-    }
+    },
+     "config": {
+          "platform": {
+               "php": "8.0.28"
+          }
+     }
 }
