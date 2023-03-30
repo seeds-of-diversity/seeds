@@ -89,7 +89,9 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
     $raParms['bcc'] = [bcc1, bcc2, ...]
  */
 {
-    $ok = false;
+    $errcode = -1; $sMsg = "POSTMARK_API_TOKEN required";
+
+    if( !defined("POSTMARK_API_TOKEN") )  goto done;
 
     $sMessageStream = SEEDCore_ArraySmartVal($raParms,'MessageStream',['broadcast','outbound']);
 
@@ -101,10 +103,7 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
         $sFromName  = @$from[1] ?? "";
     }
 
-    if( !defined("POSTMARK_API_TOKEN") )  goto done;
-
     $oPM = new \Postmark\PostmarkClient(POSTMARK_API_TOKEN);
-
     $message = [
         'From'          => $from,
         'To'            => $to,
@@ -131,7 +130,11 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
 		$body['MessageStream'] = $messageStream;
 */
 
-    $result = $oPM->sendEmailBatch([$message]);
+    // Email batches take an array of messages, and return an array of results.
+    // This function also has a nice arg format, but if there's a function that takes just one message array we could use that too.
+    $oResult = $oPM->sendEmailBatch([$message]);
+    $errcode = $oResult[0]['ErrorCode'];
+    $sMsg    = $oResult[0]['Message'];
 
 /*
     if( @$raParms['cc'] ) {
@@ -160,5 +163,5 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
 */
 
     done:
-    return( $ok );
+    return( [$errcode==0, $errcode, $sMsg] );
 }
