@@ -370,3 +370,30 @@ class SEEDXlsReadBigFile
         return( $raData );
     }
 }
+
+
+function SEEDXlsx_WriteFileXlsx( $raCols, $raRows, $raParms = [] )
+/*****************************************************************
+    Write a XLSX file from raRows where raCols are the keys in column order and the column headings.
+
+    raParms : sCharsetRows = charset of the raRows data
+ */
+{
+    $sCharsetRows = @$raParms['sCharsetRows'] ?: 'utf-8';
+
+    $oXLSX = new SEEDXlsWrite();
+
+    // row 0 is the column names
+    $oXLSX->WriteRow( 0, 1, $raCols );
+
+    $iRow = 2;
+    foreach( $raRows as $ra ) {
+        if( $sCharsetRows != 'utf-8' ) {
+            $ra = SEEDCore_CharsetConvert( $ra, $sCharsetRows, 'utf-8' );    // convert array of strings
+        }
+        $oXLSX->WriteRow( 0, $iRow++, $ra );
+    }
+
+    $oXLSX->OutputSpreadsheet();
+    exit;
+}

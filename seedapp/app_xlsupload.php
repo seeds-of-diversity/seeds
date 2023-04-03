@@ -213,19 +213,6 @@ function downloadXLS( SEEDAppConsole $oApp, $charset )
 
     $raRows = $oApp->kfdb->QueryRowsRA( "SELECT ".implode( ',', $raCols )." FROM xlsupload", KEYFRAMEDB_RESULT_ASSOC );
 
-    $oXLSX = new SEEDXlsWrite();
-
-    // row 0 is the column names
-    $oXLSX->WriteRow( 0, 1, $raCols );
-
-    $iRow = 2;
-    foreach( $raRows as $ra ) {
-        if( $sCharsetTable != $sCharsetFile ) {
-            $ra = SEEDCore_CharsetConvert( $ra, $sCharsetTable, $sCharsetFile );    // convert array of strings
-        }
-        $oXLSX->WriteRow( 0, $iRow++, $ra );
-    }
-
-    $oXLSX->OutputSpreadsheet();
-    exit;
+    SEEDXlsx_WriteFileXlsx( $raCols, $raRows, ['sCharsetRows'=>$sCharsetTable] );
+    exit; // the function above exits, but to be clear
 }
