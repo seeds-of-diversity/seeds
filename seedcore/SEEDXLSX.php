@@ -376,12 +376,14 @@ function SEEDXlsx_WriteFileXlsx( $raCols, $raRows, $raParms = [] )
 /*****************************************************************
     Write a XLSX file from raRows where raCols are the keys in column order and the column headings.
 
-    raParms : sCharsetRows = charset of the raRows data
+    raParms : sCharsetRows           = charset of the raRows data
+              filename               = filename suggested when downloaded
+              {PHPSpreadsheet parms] = several parms e.g. creator, title, implemented by PHPSpreadsheet
  */
 {
     $sCharsetRows = @$raParms['sCharsetRows'] ?: 'utf-8';
 
-    $oXLSX = new SEEDXlsWrite();
+    $oXLSX = new SEEDXlsWrite( array_merge($raParms,['nSheets'=>1]) );
 
     // row 0 is the column names
     $oXLSX->WriteRow( 0, 1, $raCols );

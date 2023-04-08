@@ -27,9 +27,8 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2', 'sessPermsRequired'=>''] );  
 $s = "";
 
 switch( ($cmd = SEEDInput_Str( 'cmd' )) ) {
-    case 'upload':    // use PHPExcel to upload any spreadsheet file to db table
-    case 'upload':    // use native code to upload a csv file to db table (because large files blow up PHPExcel)
-        $fileFmt = SEEDInput_Str( 'fileFmt' );
+    case 'upload':
+        $fileFmt = SEEDInput_Str( 'fileFmt' );      // xlsx or csv
         $charset = SEEDInput_Str( 'charset' );
 
         $s .= uploadFile( $oApp, $charset, ($fileFmt == 'csv') );
