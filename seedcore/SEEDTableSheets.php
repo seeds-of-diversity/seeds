@@ -343,6 +343,7 @@ class SEEDTableSheetsFile
         $ok = false;
         $sErr = "";
 
+// use SEEDXlsx_WriteFileCSV() to write the first sheet
 
         return( array($ok,$sErr) );
     }
@@ -410,7 +411,7 @@ class SEEDTableSheetsFile
 
 function SEEDTableSheets_LoadFromFile( $filename, $raParms = array() )
 /*********************************************************************
-    Read a spreadsheet file, return an array of rows
+    Read a spreadsheet file, return a SEEDTableSheets object
 
     raSEEDTableSheetsFileParms = the parms for SEEDTableSheetsFile()
     raSEEDTableSheetsLoadParms = the parms for SEEDTableSheetsFile::LoadFromFile()

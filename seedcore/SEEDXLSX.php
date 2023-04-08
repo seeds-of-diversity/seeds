@@ -19,13 +19,9 @@ class SEEDXls
      * @param int - 0-based index
      * @return String - alphabetic column name
      */
-    static function Index2ColumnName( int $index ) : String
+    static function Index2ColumnName( int $iCol ) : String
     {
-        $cols = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-        if($index >= count($cols)){
-            return self::IndexToColumnName(intdiv($index,count($cols))-1) . self::IndexToColumnName($index % count($cols));
-        }
-        return $cols[$index];
+        return( ($iCol >= 26 ? chr(64+intdiv($iCol,26)) : "").chr(65+($iCol%26)) );
     }
 
     /**
@@ -256,7 +252,7 @@ class SEEDXlsWrite
         $c = 'A';
         foreach( $raCols as $dbfield => $label ) {
             $oSheet->setCellValue($c.'1', $label );
-//see SEEDTable for formula to calculate double-char column letters
+//use ColumnName2Index / Index2ColumnName to calculate double-char column letters
             $c = chr(ord($c)+1);    // Change A to B, B to C, etc
         }
 
@@ -266,6 +262,7 @@ class SEEDXlsWrite
             $col = 'A';
             foreach( $raCols as $dbfield => $label ) {
                 $oSheet->setCellValue($col.$row, $ra[$dbfield] );
+//use ColumnName2Index / Index2ColumnName to calculate double-char column letters
                 $col = chr(ord($col)+1);    // Change A to B, B to C, etc
             }
             ++$row;
@@ -378,9 +375,12 @@ function SEEDXlsx_WriteFileXlsx( $raCols, $raRows, $raParms = [] )
 
     raParms : sCharsetRows           = charset of the raRows data
               filename               = filename suggested when downloaded
+              output                 = 'file': save to local filename; otherwise send to browser  (not implemented)
               {PHPSpreadsheet parms] = several parms e.g. creator, title, implemented by PHPSpreadsheet
  */
 {
+    if( !$raCols )  $raCols = array_keys($raRows[0]);   // if columns not defined, use all keys of the first data row
+
     $sCharsetRows = @$raParms['sCharsetRows'] ?: 'utf-8';
 
     $oXLSX = new SEEDXlsWrite( array_merge($raParms,['nSheets'=>1]) );
@@ -396,6 +396,41 @@ function SEEDXlsx_WriteFileXlsx( $raCols, $raRows, $raParms = [] )
         $oXLSX->WriteRow( 0, $iRow++, $ra );
     }
 
+// see CSV variation: raParms['output'] allows choice between saving to filename or sending to browser
     $oXLSX->OutputSpreadsheet();
     exit;
+}
+
+function SEEDXlsx_WriteFileCSV( $raCols, $raRows, $raParms = [] )
+/****************************************************************
+    Same as SEEDXlsx_WriteFileXlsx but in CSV format
+    Maybe it's better to do this with PHPSpreadsheet, maybe not
+
+    raParms : sCharsetRows           = charset of the raRows data
+              sCharsetFile           = charset of the output
+ */
+{
+    if( !$raCols )  $raCols = array_keys($raRows[0]);   // if columns not defined, use all keys of the first data row
+
+    $sCharsetRows = @$raParms['sCharsetRows'] ?: 'utf-8';
+    $sCharsetFile = @$raParms['sCharsetFile'] ?: 'utf-8';
+
+    // if filename not defined, write to stdout
+    $filename = @$raParms['output']=='file' && @$raParms['filename'] ? $raParms['filename'] : 'php://output';
+
+    if( ($f = fopen($filename, 'w')) ) {
+        fputcsv( $f, $raCols );
+        foreach( $raRows as $row ) {
+            if( $sCharsetRows != $sCharsetFile ) {
+                $row = SEEDCore_CharsetConvert( $row, $sCharsetRows, $sCharsetFile );    // convert array of strings
+            }
+            $outRow = [];
+            foreach( $raCols as $col ) {
+                $outRow[] = @$row[$col] ?? '';
+            }
+            fputcsv( $f, $outRow );
+        }
+
+        fclose( $f );
+    }
 }
