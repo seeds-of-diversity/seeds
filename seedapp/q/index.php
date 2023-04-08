@@ -17,7 +17,7 @@ $oApp = SEEDConfig_NewAppConsole_LoginNotRequired(
              'lang' => 'EN' ] );
 
 $qcmd = SEEDInput_Str('qcmd');
-$qfmt = SEEDInput_Smart( 'qfmt', ['json'] );
+$qfmt = SEEDInput_Str('qfmt') ?: 'json';
 
 $oQ = new Q( $oApp, ['bUTF8'=>true] );  // return utf8 data unless this is reversed below
 $sCharset = "utf-8";
@@ -53,12 +53,13 @@ switch( $qfmt ) {
     */
     case 'csv':
         if( $rQ['bOk'] ) {
-//            include_once( STDINC."SEEDTable.php" );
-//            $sCharset = 'utf-8';
-//            header( "Content-Type:text/plain; charset=$sCharset" );
-//            SEEDTable_OutputCSVFromRARows( $rQ['raOut'],
-//                               array( //'columns' => array_keys($rQ['raOut'][0]),  use default columns
-//                                      ) );
+            include_once( SEEDCORE."SEEDXLSX.php" );
+            $sCharset = 'utf-8';
+            header( "Content-Type:text/plain; charset=$sCharset" );     // should this be text/csv ?
+
+            SEEDXlsx_WriteFileCSV( [], $rQ['raOut'],
+                                   ['sCharsetRows'=>$sCharset,
+                                    'sCharsetFile'=>$sCharset ] );
         }
         break;
 
