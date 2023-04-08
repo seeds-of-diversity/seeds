@@ -158,7 +158,7 @@ class SLSourcesAppDownload
         $oForm->Update();
 
         list($sSelect,$sCompanyName) = $this->oSrcLib->DrawCompanySelector( $oForm, 'kSrc' );
-        $sDownloadAction = "https://seeds.ca/app/q/index.php";     // use old Q until the new Q does this
+        $sDownloadAction = $this->oApp->UrlQ('index.php');     // use old Q until the new Q does this
         $sDownloadCtrl = $oForm->Hidden( 'qcmd', ['value'=>'srcCSCI'] )
                         //.$oForm->Hidden( 'qname', "" )
                         .$oForm->Hidden( 'qfmt', ['value'=>'xls'] )

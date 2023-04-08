@@ -159,7 +159,7 @@ $s .= "<script>$sUploadJS</script>";
                       ."</div></form>";
         }
 
-        $urlXLS = "https://seeds.ca/app/q/q2.php?"     // use old Q until the new Q does this
+        $urlXLS = $this->oApp->UrlQ('../q/q2.php')."?"     // use old Q until the new Q does this
                ."qcmd=srcCSCI"
                .($this->kCompany ? "&kSrc={$this->kCompany}" : "")
                ."&qname=".urlencode($this->kCompany ? $this->sCompanyName : "All Companies")
