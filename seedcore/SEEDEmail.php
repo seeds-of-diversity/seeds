@@ -109,7 +109,7 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
         'To'            => $to,
         'Subject'       => $subject,
         'TextBody'      => $bodyText,
-        'HtmlBody'      => "<html><body>$bodyHTML</body></html>",
+        'HtmlBody'      => SEEDCore_utf8_encode("<html><body>$bodyHTML</body></html>"),
         //'Tag'           => "New Year's Email Campaign",
         'MessageStream' => $sMessageStream
     ];
