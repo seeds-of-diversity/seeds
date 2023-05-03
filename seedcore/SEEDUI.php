@@ -1093,9 +1093,13 @@ if($debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get
     {
         $iFound = -1;
 
-        // fetch 100 rows at a time
-        for( $i = 0; $i < ($this->nViewSize ?: 1); ) {  // nViewSize is not known until after the first call to GetViewData so do at least once
+        /* Fetch 100 rows at a time, searching for the key.
+         * nViewSize is not known until after the first call to GetViewData so do that at least once.
+         */
+        $i = 0;
+        do {
             $rows = $this->GetViewData( $i, 100 );
+            if( !$rows ) goto done;     // the nViewSize check below should do the same thing but this seems more reliable to prevent infinite loops if $i doesn't increment
             foreach( $rows as $ra ) {
                 if( @$ra['_key'] == $k ) {
                     $iFound = $i;
@@ -1103,7 +1107,7 @@ if($debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get
                 }
                 ++$i;
             }
-        }
+        } while( $i < $this->nViewSize );   // Now nViewSize is known; note that it could still be 0 but if so it's really 0 now
 
         done:
         return( $iFound );
