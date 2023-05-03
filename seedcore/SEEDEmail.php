@@ -83,10 +83,13 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
 
 function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParms = [] )
 /************************************************************************************************
-    $from           = email  OR  [email, screen_name]   e.g. ["webmaster@site.ca", "Webmaster at Site.ca"]
-    $to             = string of one or more emails comma separated
-    $raParms['cc']  = [cc1, cc2, ...]
-    $raParms['bcc'] = [bcc1, bcc2, ...]
+    $from             = email  OR  [email, screen_name]   e.g. ["webmaster@site.ca", "Webmaster at Site.ca"]
+    $to               = string of one or more emails comma separated
+    $raParms:
+        cc            = [cc1, cc2, ...]
+        bcc           = [bcc1, bcc2, ...]
+        MessageStream = Postmark message stream (default broadcast)
+        bInputNotUTF8 = subject and body must be converted to utf8 (must be set by caller so default assumes utf8 content)
  */
 {
     $errcode = -1; $sMsg = "POSTMARK_API_TOKEN required";
@@ -94,6 +97,11 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
     if( !defined("POSTMARK_API_TOKEN") )  goto done;
 
     $sMessageStream = SEEDCore_ArraySmartVal($raParms,'MessageStream',['broadcast','outbound']);
+    if( @$raParms['bInputNotUTF8'] ) {
+        $subject  = SEEDCore_utf8_encode($subject);
+        $bodyText = SEEDCore_utf8_encode($bodyText);
+        $bodyHTML = SEEDCore_utf8_encode($bodyHTML);
+    }
 
     if( is_string($from) ) {
         $sFromEmail = $from;
@@ -113,6 +121,8 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
         //'Tag'           => "New Year's Email Campaign",
         'MessageStream' => $sMessageStream
     ];
+    if( isset($raParms['cc']) )   $message['Cc']  = implode(",",$raParms['cc']);
+    if( isset($raParms['bcc']) )  $message['Bcc'] = implode(",",$raParms['bcc']);
 
 /*
     $body['From'] = $from;
@@ -137,17 +147,6 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
     $sMsg    = $oResult[0]['Message'];
 
 /*
-    if( @$raParms['cc'] ) {
-        foreach( $raParms['cc'] as $a ) {
-            $oMail->AddCc( $a );
-        }
-    }
-    if( @$raParms['bcc'] ) {
-        foreach( $raParms['bcc'] as $a ) {
-            $oMail->AddBcc( $a );
-        }
-    }
-
     if( @$raParms['attachments'] ) {
         foreach( $raParms['attachments'] as $attachmentFilename ) {
             $oMail->AddAttachLocalFile( $attachmentFilename, '' );  // expecting ezmail to figure out the mimetype
