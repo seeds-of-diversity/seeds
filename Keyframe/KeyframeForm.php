@@ -46,14 +46,6 @@ class KeyframeForm extends SEEDCoreForm
         $this->SetKFR($kfr);
     }
 
-    function Clear()
-    /***************
-        Reset the form to empty contents and a zero key
-     */
-    {
-        $this->SetKFR( $this->kfrel->CreateRecord() );
-    }
-
     // Additional Form Elements that are KeyFrame specific (these should use the same format as SEEDForm Elements)
 
     function HiddenKey()

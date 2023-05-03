@@ -109,18 +109,13 @@ class SEEDDataStore
         }
     }
 
-    function GetValuesRA()
-    /*********************
+    function GetValuesRA() { return( $this->ValuesRA() ); } // deprecate for ValuesRA
+    function ValuesRA()
+    /******************
         Return a simple array containing all values in the data store.
-        This is only implemented for the base implementation so far.
      */
     {
-        $raOut = array();
-
-        foreach( $this->raBaseData as $k => $v ) {
-            $raOut[$k] = $this->Value( $k );    // to get all the urlparm goodness
-        }
-        return( $raOut );
+        return( $this->DSValuesRA() );
     }
 
     function SetValuesRA( $ra )
@@ -140,7 +135,7 @@ class SEEDDataStore
         Remove all values from the datastore.
      */
     {
-        $this->raBaseData = array();
+        $this->DSClear();
     }
 
     function Op( $op )
@@ -218,6 +213,7 @@ class SEEDDataStore
         return( $this->DSGetDataObj() );
     }
 
+    function ValueStr( $k )     { return( $this->Value($k) ?? "" ); }
     function ValueInt( $k )     { return( intval($this->Value($k)) ); }
     function ValueEnt( $k )     { return( SEEDCore_HSC($this->Value($k)) ); }
     function ValueDB( $k )      { return( addslashes($this->Value($k)) ); }
@@ -235,6 +231,17 @@ class SEEDDataStore
     {
         if( $v !== null ) $this->SetValue( $k, $v );
         if( !in_array( $this->Value($k), $raValues ) )  $this->SetValue( $k, $raValues[0] );
+    }
+
+    /* URLParms functionality is also available via SEEDDataStore urlparms config
+     */
+    function ValueURLParm( $u, $k )
+    {
+        return( SEEDCore_ParmsURLGet($this->Value($u), $k) );     // get the value of k out of the url-encoded parm u
+    }
+    function SetValueURLParm( $u, $k, $v )
+    {
+        return( $this->SetValue($u, SEEDCore_ParmsURLAdd($this->Value($u), $k, $v)) );      // put k=v into the url-encoded parm u
     }
 
     function Expand( $sTemplate, $bEnt = true )
@@ -276,7 +283,7 @@ class SEEDDataStore
         $this->raBaseData = array();
         return( true );
     }
-
+    function DSClear()            { $this->raBaseData = []; }
     function DSValue( $k )        { return( @$this->raBaseData[$k] ); }
     function DSSetValue( $k, $v ) { $this->raBaseData[$k] = $v; }
     function DSPreOp( $op )       { return( true ); }               // base implementation doesn't have to do anything
@@ -287,6 +294,13 @@ class SEEDDataStore
     function DSKey()              { return( null ); }               // base implementation has no key
     function DSSetKey( $k )       { }                               // base implementation has no key
     function DSGetDataObj()       { return( $this->raBaseData ); }  // base implementation uses this array to store data
-}
 
-?>
+    function DSValuesRA()
+    {
+        $raOut = array();
+        foreach( $this->raBaseData as $k => $v ) {
+            $raOut[$k] = $this->Value( $k );    // to get all the urlparm goodness
+        }
+        return( $raOut );
+    }
+}

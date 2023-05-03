@@ -35,8 +35,20 @@ class SEEDDataStoreSVA extends SEEDDataStore
         parent::__construct( $raConfig + ['bNoClearOnConstruct'=>true] );
     }
 
-    function GetValuesRA()
-    /*********************
+    /* Override the Data-side methods.
+     * The Application-side methods are normally not overridden.
+     */
+    function DSClear()            { $this->oSVA->VarUnSetAll(); }
+    function DSLoad( $k, $r )     { return( true ); }
+    function DSValue( $k )        { return( $this->oSVA->VarGet( $k ) ); }
+    function DSSetValue( $k, $v ) { $this->oSVA->VarSet( $k, $v ); }
+    function DSOp( $op )          {}
+    function DSPreStore()         { return( true ); }
+    function DSStore()            { return( $this->oSVA ); }
+    function DSGetDataObj()       { return( $this->oSVA ); }
+
+    function DSValuesRA()
+    /********************
         Return a simple array containing all values in the data store.
      */
     {
@@ -48,23 +60,4 @@ class SEEDDataStoreSVA extends SEEDDataStore
         }
         return( $raOut );
     }
-
-    function Clear()
-    /***************
-        Clear all form values
-     */
-    {
-        $this->oSVA->VarUnSetAll();
-    }
-
-    /* Override the Data-side methods.
-     * The Application-side methods are normally not overridden.
-     */
-    function DSLoad( $k, $r )     { return( true ); }
-    function DSValue( $k )        { return( $this->oSVA->VarGet( $k ) ); }
-    function DSSetValue( $k, $v ) { $this->oSVA->VarSet( $k, $v ); }
-    function DSOp( $op )          {}
-    function DSPreStore()         { return( true ); }
-    function DSStore()            { return( $this->oSVA ); }
-    function DSGetDataObj()       { return( $this->oSVA ); }
 }

@@ -25,8 +25,6 @@ class Keyframe_DataStore extends SEEDDataStore
         parent::__construct( $raParms );
     }
 
-    function GetValuesRA() { return( $this->kfr ? $this->kfr->ValuesRA() : array() ); }
-
     // Sometimes forms use auxiliary code that need a kfr, so it isn't enough to just get/set values from this interface.
     // The generic way to access this is via DSGetDataObj(), so base code can do the right thing, but use this in KF-aware code.
     function GetKFR()                       { return( $this->kfr ); }
@@ -38,8 +36,10 @@ class Keyframe_DataStore extends SEEDDataStore
     /* Override the Data-side methods.
      * The Application-side methods are normally not overridden.
      */
-
+    function DSClear()            { $this->kfr = $this->kfrel->CreateRecord(); }
     function DSValue( $k )        { return( $this->kfr ? $this->kfr->Value($k) : "" ); }
+// other implementations of DSValuesRA iterate through keys and use Value() to get urlparm expansions
+    function DSValuesRA()         { return( $this->kfr ? $this->kfr->ValuesRA() : [] ); }
     function DSSetValue( $k, $v ) { if( $this->kfr )  $this->kfr->SetValue( $k, $v ); }
     function DSOp( $op )
     {
