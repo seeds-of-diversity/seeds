@@ -634,7 +634,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             list($ra1,$sRdummy) = SEEDCore_ParseRangeStr( $r );
             $ra = array_merge( $ra, $ra1 );
         }
-        if( ($d = addslashes(@$parms['sSrchS'])) ) {
+        if( ($d = addslashes(@$parms['sSrchS']??'')) ) {
             // add all kSp that match the substring in sl_species and sl_species_syn
             $ra = array_merge( $ra,
                                $this->oSLDBRosetta->Get1List('S', '_key', "name_en like '%$d%' OR name_fr like '%$d%' OR "
@@ -651,7 +651,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             list($raR,$sRdummy) = SEEDCore_ParseRangeStr( $r );
             $ra = array_merge( $ra, $raR );
         }
-        if( ($d = addslashes(@$parms['sSrchP'])) ) {
+        if( ($d = addslashes(@$parms['sSrchP']??'')) ) {
             // add all kPcv that match the substring in sl_pcv and sl_pcv_syn
             $ra = array_merge( $ra,
                                $this->oSLDBRosetta->Get1List('P', '_key', "name like '%$d%'"),
