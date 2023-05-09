@@ -115,9 +115,12 @@ class SoDMasterTemplate
 
         if( $raTag['tag'] != 'SEEDContent' )  goto done;
 
+        $contentName = strtolower($raTag['target']);
+        $lang = ($l = @$raTag['raParms']['1']) ? (strtolower($l)=='fr' ? "FR" : "EN")   // only defined this way for some tags
+                                               : $this->oApp->lang;
         $pathSelf = method_exists('\Drupal\Core\Url', 'fromRoute') ? \Drupal\Core\Url::fromRoute('<current>')->toString() : $this->oApp->PathToSelf();
 
-        switch( strtolower($raTag['target']) ) {
+        switch( $contentName ) {
             case 'home-en':
                 $s .= "Home English";
                 $bHandled = true;
@@ -135,6 +138,7 @@ class SoDMasterTemplate
 
             case 'events-page':
                 include_once(SEEDAPP."events/eventsApp.php");
+// DrawEventsPage uses oApp->lang; pass $lang as a parm to override that, so language can be forced in the tag
                 $s .= (new EventsApp($this->oApp))->DrawEventsPage();
                 $bHandled = true;
                 break;
