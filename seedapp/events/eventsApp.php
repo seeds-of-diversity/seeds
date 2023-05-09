@@ -2,7 +2,7 @@
 
 /* eventsApp.php
  *
- * Copyright (c) 2022 Seeds of Diversity Canada
+ * Copyright (c) 2023 Seeds of Diversity Canada
  *
  * Display events in a UI
  */
@@ -59,6 +59,7 @@ class EventsApp
 
     if( ($kfr = $this->oEventsLib->oDB->GetKFRC('E', $sCond, ['sSortCol'=>'date_start', 'bSortDown'=>0] )) ) {
         while( $kfr->CursorFetch() ) {
+// get list from EventsLib or at least use CreateFromKFR
             $e = Events_event::CreateFromKey( $this->oEventsLib, $kfr->Key() );
             $sList .= "<div style='float:right'>{$e->GetDateNice()}</div>";
             $sList .= $e->DrawEvent();
@@ -213,6 +214,7 @@ function reSizeMap()
         if( $bShowAllEvents ) {
             if( $pSearch || !$pDate2 || $pDate2 < $pDate1 ) {
                 // set pDate2 to the date of the last event
+// put this in EventsLib
                 if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
                     $pDate2 = $kfr->value('date_start');
                 } else {
@@ -226,6 +228,7 @@ function reSizeMap()
 //TODO: to be complete, this test should only happen if there is a NEW search term.
 //      If you search, then change the TO date, that change is ignored.
             if( $pSearch ) {
+// put this in EventsLib
                 if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
                     $pDate2 = $kfr->value('date_start');
                 } else {
@@ -238,6 +241,7 @@ function reSizeMap()
                 $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
 
                 // make sure there's at least one event in the date range, by extending the window to the next event
+// put this in EventsLib
                 if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['sSortCol'=>'date_start','bSortDown'=>false])) ) {
                     $pDate2 = $kfrNext->Value('date_start');
                 }
