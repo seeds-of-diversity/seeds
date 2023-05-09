@@ -417,6 +417,7 @@ class SEEDCoreFormElements
 
     // Get/Set the datasource values (logic is implemented in datasource so methods like PreStore can use it)
     public function Value($k)        { return( $this->oDS->Value($k) ); }
+    public function ValueStr($k)     { return( $this->oDS->ValueStr($k) ); }
     public function ValueEnt($k)     { return( $this->oDS->ValueEnt($k) ); }
     public function ValueDB($k)      { return( $this->oDS->ValueDB($k) ); }
     public function ValueInt($k)     { return( $this->oDS->ValueInt($k) ); }
