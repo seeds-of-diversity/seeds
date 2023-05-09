@@ -196,10 +196,10 @@ function reSizeMap()
          * TO date:   If empty or less than FROM, default is the date of the first event that occurs at least 30 days after FROM date.
          *            If pSearch has just been set, TO date is MAX(date_start) so all events after FROM are searched.
          */
-        $pDate1  = $oForm->Value('pDate1');               // show events >= this date
-        $pDate2  = $oForm->Value('pDate2');               // show events <= this date
-        $pProv   = $oForm->Value('pProv');
-        $pSearch = $oForm->Value('pSearch');
+        $pDate1  = $oForm->ValueStr('pDate1');               // show events >= this date
+        $pDate2  = $oForm->ValueStr('pDate2');               // show events <= this date
+        $pProv   = $oForm->ValueStr('pProv');
+        $pSearch = $oForm->ValueStr('pSearch');
 
 
         /* FROM: Default is today.
