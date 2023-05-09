@@ -2,7 +2,7 @@
 
 /* QServerSources
  *
- * Copyright 2015-2021 Seeds of Diversity Canada
+ * Copyright 2015-2023 Seeds of Diversity Canada
  *
  * Serve queries about sources of cultivars
  * (queries involving sl_sources, sl_cv_sources, sl_cv_sources_archive)
@@ -180,7 +180,7 @@ class QServerSourceCV extends SEEDQ
 
         // cultivars
         $r = $raParms['rngPcv'];
-        $d = addslashes(@$raParms['sSrchPKluge']);
+        $d = addslashes(@$raParms['sSrchPKluge'] ?? "");
         if( $r || $d ) {    // avoid short circuiting the assignment of $d
             // kluge: sSrchP has already been used to populate rngPcv, but only for cultivars indexed in sl_pcv.
             //        Use sSrchPKluge to search ocv.
@@ -482,7 +482,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                 preg_match( "/^([^\s]+) ([^\s]+) ([^\s]+) \| (.*)$/", $line, $ra );
 
                 // only collect data for the given year, 0 = all years
-                if( $year && substr(@$ra[0],0,4) != $year )  continue;
+                if( $year && substr($ra[0] ?? "",0,4) != $year )  continue;
 
                 if( ($kSp = intval($ra[4])) ) {
                     if( !($sp = @$spCache[$kSp]) ) {
@@ -535,11 +535,11 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                 preg_match( "/^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*(.*)$/", $line, $ra );
 
                 // only collect data for the given year, 0 = all years
-                if( $year && substr(@$ra[0],0,4) != $year )  continue;
+                if( $year && substr(@$ra[0] ?? "",0,4) != $year )  continue;
 
                 $cmd = @$ra[5];
                 if( $cmd == 'srcSources' &&
-                    (substr( ($r = @$ra[6]), 0, 5 ) == 'kPcv=') &&
+                    (substr( ($r = @$ra[6] ?? ""), 0, 5 ) == 'kPcv=') &&
                     ($kPCV = intval(substr($r,5))) )
                 {
                     if( $kPCV >= 10000000 ) {
@@ -617,7 +617,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         $raParms = array();
 
         // mode possibly used by command
-        $raParms['sMode'] = @$parms['sMode'];
+        $raParms['sMode'] = @$parms['sMode'] ?? "";
 
         // some commands specify different output formats
         $raParms['outFmt'] = SEEDCore_SmartVal( @$parms['outFmt'], ["Key","Name","KeyName","NameKey"] );
@@ -634,7 +634,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             list($ra1,$sRdummy) = SEEDCore_ParseRangeStr( $r );
             $ra = array_merge( $ra, $ra1 );
         }
-        if( ($d = addslashes(@$parms['sSrchS']??'')) ) {
+        if( ($d = addslashes(@$parms['sSrchS'] ?? "")) ) {
             // add all kSp that match the substring in sl_species and sl_species_syn
             $ra = array_merge( $ra,
                                $this->oSLDBRosetta->Get1List('S', '_key', "name_en like '%$d%' OR name_fr like '%$d%' OR "
@@ -651,7 +651,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             list($raR,$sRdummy) = SEEDCore_ParseRangeStr( $r );
             $ra = array_merge( $ra, $raR );
         }
-        if( ($d = addslashes(@$parms['sSrchP']??'')) ) {
+        if( ($d = addslashes(@$parms['sSrchP'] ?? "")) ) {
             // add all kPcv that match the substring in sl_pcv and sl_pcv_syn
             $ra = array_merge( $ra,
                                $this->oSLDBRosetta->Get1List('P', '_key', "name like '%$d%'"),
@@ -660,7 +660,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         $raParms['rngPcv'] = SEEDCore_MakeRangeStr( $ra );
 
         // pass along the sSrchP so it can be used to search for matching sl_cv_sources.ocv
-        $raParms['sSrchPKluge'] = @$parms['sSrchP'];
+        $raParms['sSrchPKluge'] = @$parms['sSrchP'] ?? "";
 
 
 // kluge: special handler for kPcv that are really sl_cv_sources._key+10000000
