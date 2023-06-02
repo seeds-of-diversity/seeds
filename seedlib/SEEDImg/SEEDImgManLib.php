@@ -161,6 +161,8 @@ class SEEDImgManLib
                 $exec = "convert \"${sFileO}\" "
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
+                       // necessary for animations and seems to be ignored for non-animations
+                       ."-coalesce "
                        ."\"{$sFileR}\""
                        /* To convert in background put & at end of command line.
                         * exec() will wait to collect output unless the output is redirected somewhere
