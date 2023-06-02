@@ -2,7 +2,7 @@
 
 /* SEEDDataStore
  *
- * Copyright 2010-2017 Seeds of Diversity Canada
+ * Copyright 2010-2023 Seeds of Diversity Canada
  *
  * The base class for a virtual data store.  A data store is any structure that can store a set of name-value pairs
  * e.g. a session array, a database record.
