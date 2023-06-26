@@ -14,13 +14,13 @@ include_once( "SEEDFormParms.php" );
 include_once( "SEEDDataStore.php" );
 include_once( "SEEDTag.php" );
 
-class SEEDCoreForm extends SEEDCoreFormElements
-/*************
+class SEEDCoreForm  // extends SEEDCoreFormControls
+/*****************
     SEEDForm creates a direct connection between html form elements and columns in a SEEDDataStore.
     It writes form elements with names encoded using SEEDFormParms (cid and row number), and with values from the data store.
     On Load/Store or Update it deserializes those values from the http parameters, and repopulates the values in the data store.
 
-    SEEDFormElements does the basic drawing of html form elements.
+    SEEDFormControls does the basic drawing of html form elements.
 
     SEEDForm handles load/save/update and get/set of SEEDDataSource
 
@@ -69,9 +69,11 @@ class SEEDCoreForm extends SEEDCoreFormElements
         'fn_DSPreStore'   // function to call in place of DSPreStore - sometimes it's easier to specify a function rather than make a derived class
  */
 {
-    protected $oDS = null;              // SEEDDataStore : derived classes must create this before calling SEEDForm constructor
+    protected $oDS = null;              // SEEDDataStore : derived classes must create this before calling SEEDCoreForm constructor
 
     private $raParms = array();
+
+    private $oCtrl = null;
 
     //internal
     private $raCheckboxes = array();      // list of checkboxes in the formdef
@@ -82,8 +84,10 @@ class SEEDCoreForm extends SEEDCoreFormElements
 
     function __construct( $cid = null, $raParms = array() )
     {
-        parent::__construct( $cid );
+        //parent::__construct($this, $cid);        // deprecate and use oCtrl instead
         $this->raParms = $raParms;
+
+        $this->oCtrl = new SEEDCoreFormControls($this, $cid);
 
         $raDSParms = array();
         if( isset($this->raParms['fields']) ) {
@@ -98,6 +102,20 @@ class SEEDCoreForm extends SEEDCoreFormElements
         if( !$this->oDS )  $this->oDS = new SEEDDataStore( $raDSParms );
     }
 
+
+    // Get/Set the datasource values (logic is implemented in datasource so methods like PreStore can use it)
+    public function Value($k)        { return( $this->oDS->Value($k) ); }
+    public function ValueStr($k)     { return( $this->oDS->ValueStr($k) ); }
+    public function ValueEnt($k)     { return( $this->oDS->ValueEnt($k) ); }
+    public function ValueDB($k)      { return( $this->oDS->ValueDB($k) ); }
+    public function ValueInt($k)     { return( $this->oDS->ValueInt($k) ); }
+    public function GetValuesRA()    { return( $this->oDS->ValuesRA() ); }
+    public function SetValue($k, $v) { return( $this->oDS->SetValue($k, $v) ); }
+    public function Clear()          { $this->oDS->Clear(); }
+
+    // URLParm methods are implemented in SEEDDataStore, and also available via SEEDDataStore urlparms config
+    public function ValueURLParm($u, $k)        { return( $this->oDS->ValueURLParm($u, $k) ); }        // get the value of k out of the url-encoded parm u
+    public function SetValueURLParm($u, $k, $v) { return( $this->oDS->SetValueURLParm($u, $k, $v) ); } // put k=v into the url-encoded parm u
 
 
     function Update( $raParms = array() )
@@ -181,7 +199,7 @@ class SEEDCoreForm extends SEEDCoreFormElements
         $raSerial = (isset($raParms['raSerial']) ? $raParms['raSerial'] : $_REQUEST);   // array of serialized parms to read
         $bGPC     = (isset($raParms['bGPC']) ? $raParms['bGPC'] : true);                // is that array GPC
 
-        return( $this->oFormParms->Deserialize( $raSerial, $bGPC ) );
+        return( $this->oCtrl->GetFormParms()->Deserialize( $raSerial, $bGPC ) );
     }
 
     private function _updateLoad( $r, $raRow )
@@ -340,7 +358,7 @@ class SEEDCoreForm extends SEEDCoreFormElements
         $label = @$elemParms['bDrawLabel'] ? @$def['label'] : "";
 
         if( in_array( $fld, array('_sf_op_d','_sf_op_h','_sf_op_r') ) ) {
-            $s .= "<input type='checkbox' name='".$this->oFormParms->sfParmOp( substr($fld,-1,1), $this->iR )."' value='1'>";
+            $s .= "<input type='checkbox' name='".$this->oCtrl->GetFormParms()->sfParmOp( substr($fld,-1,1), $this->iR )."' value='1'>";
 
             if( $label ) {
                 $s .= "&nbsp;".$label;
@@ -379,10 +397,44 @@ class SEEDCoreForm extends SEEDCoreFormElements
 
         return( $s );
     }
+
+
+    /* Flow-through methods from SEEDFormControls
+     *
+     * SEEDFormControls draws controls which external code tends to access directly from SEEDCoreForm.
+     * It also manages SEEDFormParms on behalf of SEEDCoreForm.
+     */
+    public function GetFormParms()  { return( $this->oCtrl->GetFormParms() ); }
+
+    public function SetRowNum($iR)  { $this->oCtrl->SetRowNum($iR); }
+    public function GetRowNum()     { return($this->oCtrl->GetRowNum()); }
+    public function IncRowNum()     { $this->oCtrl->IncRowNum(); }
+
+    public function Name($k)        { return($this->oCtrl->Name($k)); }
+    public function NameKey()       { return($this->oCtrl->NameKey()); }
+
+    public function SetStickyParms($raParms)                    { return($this->oCtrl->SetStickyParms($raParms)); }
+    public function Hidden($fld, $parms=[])                     { return($this->oCtrl->Hidden($fld, $parms)); }
+    public function HiddenKeyParm($k)                           { return($this->oCtrl->HiddenKeyParm($k)); }
+    public function Text($fld, $label="", $parms=[])            { return($this->oCtrl->Text($fld, $label, $parms)); }
+    public function TextArea($fld, $parms=[])                   { return($this->oCtrl->TextArea($fld, $parms)); }
+    public function Checkbox($fld, $label="", $p=[])            { return($this->oCtrl->Checkbox($fld, $label, $p)); }
+    public function Radio($fld, $value, $label="", $p=[])       { return($this->oCtrl->Radio($fld, $value, $label, $p)); }
+    public function Select($fld, $raValues, $label="", $p=[])   { return($this->oCtrl->Select($fld, $raValues, $label, $p)); }
+    public function Option($fld, $value, $label, $p=[])         { return($this->oCtrl->Option($fld, $value, $label, $p)); }
+    public function Date($fld, $label="", $p=[])                { return($this->oCtrl->Date($fld, $label, $p)); }
+    public function Email($fld, $label="", $p=[])               { return($this->oCtrl->Email($fld, $label, $p)); }
+
+    public function TextTD($fld, $label="", $p=[])              { return($this->oCtrl->TextTD($fld, $label, $p)); }
+    public function TextAreaTD($fld, $label="", $p=[])          { return($this->oCtrl->TextAreaTD($fld, $label, $p)); }
+    public function CheckboxTD($fld, $label="", $p=[])          { return($this->oCtrl->CheckboxTD($fld, $label, $p)); }
+    public function RadioTD($fld, $value, $label="", $p=[])     { return($this->oCtrl->RadioTD($fld, $value, $label, $p)); }
+
+    public function ParseCtrlParms($parms, $label="")           { return($this->oCtrl->ParseCtrlParms($parms, $label)); }
 }
 
-class SEEDCoreFormElements
-/*********************
+class SEEDCoreFormControls
+/*************************
     Draw basic form elements using SEEDFormParms naming conventions
 
     Usage:
@@ -391,49 +443,36 @@ class SEEDCoreFormElements
         call methods to draw form elements
  */
 {
-    protected $oFormParms = null;
-
+    private $oForm;
+    private $oFormParms;                // oFormParms goes with SEEDCoreFormControls, oDS goes with SEEDCoreForm
     private $raStickyParms = array();   // apply these to all elements, overridden by local parms
     private $iR = 0;                    // row counter for multi-record forms
 
-    function __construct( $cid = null )
+    function __construct( SEEDCoreForm $oForm, $cid = null )
     {
+        $this->oForm = $oForm;
         $this->oFormParms = new SEEDFormParms($cid);
     }
 
     // FormParms
-    public function GetSEEDFormParms() { return( $this->oFormParms ); }
-    public function SetCid( $cid )  { $this->oFormParms->SetCid($cid); }
-    public function GetCid()        { return( $this->oFormParms->GetCid() ); }
+    function GetFormParms()  { return($this->oFormParms); }
+    function SetCid( $cid )  { $this->oFormParms->SetCid($cid); }
+    function GetCid()        { return($this->oFormParms->GetCid()); }
 
     // row counter for multi-record forms
-    public function SetRowNum( $iR ){ $this->iR = $iR; }
-    public function GetRowNum()     { return( $this->iR ); }
-    public function IncRowNum()     { $this->iR++; }
+    function SetRowNum( $iR ){ $this->iR = $iR; }
+    function GetRowNum()     { return( $this->iR ); }
+    function IncRowNum()     { $this->iR++; }
 
     // Sometimes you want the actual sfAp_ element name
-    public function Name( $k )     { return( $this->oFormParms->sfParmName( $k, $this->iR ) ); }   // the actual name of the parm
-    public function NameKey()      { return( $this->oFormParms->sfParmKey( $this->iR ) ); }        // the actual name of the key parm
-
-    // Get/Set the datasource values (logic is implemented in datasource so methods like PreStore can use it)
-    public function Value($k)        { return( $this->oDS->Value($k) ); }
-    public function ValueStr($k)     { return( $this->oDS->ValueStr($k) ); }
-    public function ValueEnt($k)     { return( $this->oDS->ValueEnt($k) ); }
-    public function ValueDB($k)      { return( $this->oDS->ValueDB($k) ); }
-    public function ValueInt($k)     { return( $this->oDS->ValueInt($k) ); }
-    public function GetValuesRA()    { return( $this->oDS->ValuesRA() ); }
-    public function SetValue($k, $v) { return( $this->oDS->SetValue($k, $v) ); }
-    public function Clear()          { $this->oDS->Clear(); }
-
-    // URLParm methods are implemented in SEEDDataStore, and also available via SEEDDataStore urlparms config
-    public function ValueURLParm($u, $k)        { return( $this->oDS->ValueURLParm($u, $k) ); }        // get the value of k out of the url-encoded parm u
-    public function SetValueURLParm($u, $k, $v) { return( $this->oDS->SetValueURLParm($u, $k, $v) ); } // put k=v into the url-encoded parm u
+    function Name( $k )     { return( $this->oFormParms->sfParmName( $k, $this->iR ) ); }   // the actual name of the parm
+    function NameKey()      { return( $this->oFormParms->sfParmKey( $this->iR ) ); }        // the actual name of the key parm
 
 
     /**********************************************
      * Form controls
      */
-    public function SetStickyParms( $raParms )
+    function SetStickyParms( $raParms )
     {
         $this->raStickyParms = array();                         // stdParms builds on raStickyParms so clear it first
         $this->raStickyParms = $this->stdParms( "", $raParms);  // normalize raParms and store it
@@ -697,7 +736,7 @@ class SEEDCoreFormElements
         if( $value ) $value = strval($value);   // for purposes of determining SELECTED, '' should match 0 but '20+' should not match 20 (it does)
 
 //TODO : get the standardized 'value' using stdParms() instead of using Value() - so this control can be used in ctrl_global,ctrl_row
-        $attrs = (@$raParms['selected'] || $this->Value($fld)==$value) ? " SELECTED" : "";
+        $attrs = (@$raParms['selected'] || $this->oForm->Value($fld)==$value) ? " SELECTED" : "";
         if( @$raParms['disabled'] )  $attrs .= " disabled";
 
         return( "<OPTION value='".SEEDCore_HSC($value)."' $attrs>$label</OPTION>" );
@@ -902,9 +941,9 @@ class SEEDCoreFormElements
                 $v = $raParms['value'];
             } else {
                 switch( $p['sfParmType'] ) {
-                    case 'ctrl_global': $v = $this->CtrlGlobal($fld);     break;
-                    case 'ctrl_row':    $v = @$this->raCtrlCurrRow($fld); break;
-                    default:            $v = $this->Value($fld);          break;
+                    case 'ctrl_global': $v = $this->oForm->CtrlGlobal($fld);     break;
+                    case 'ctrl_row':    $v = ""; break; // have to get this from $this->oForm but not used apparently $v = @$this->raCtrlCurrRow($fld); break;
+                    default:            $v = $this->oForm->Value($fld);          break;
                 }
             }
             $p['value'] = $v;

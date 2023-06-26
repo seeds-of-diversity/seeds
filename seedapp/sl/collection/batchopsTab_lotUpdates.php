@@ -72,7 +72,7 @@ class CollectionBatchOps_UpdateLots
         /* Reading form parms directly, not through SEEDCoreForm::Update().
          * bDeAcc is not recognized as a checkbox so 0 values will be missing.
          */
-        $raRows = $this->oFormR->GetSEEDFormParms()->Deserialize( $_REQUEST )['rows'];
+        $raRows = $this->oFormR->GetFormParms()->Deserialize($_REQUEST)['rows'];
 
         /* If bCtrlSame, the submitted values apply to all Lots and they are found in row 0
          *         else, every row has its own values
