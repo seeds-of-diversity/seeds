@@ -56,16 +56,18 @@ class EventsApp
             .($pSearch? " AND (title LIKE '%{$dbSearch}%'    OR title_fr LIKE '%{$dbSearch}%' OR
                                city LIKE '%{$dbSearch}%'     OR location LIKE '%{$dbSearch}%' OR
                                details LIKE '%{$dbSearch}%'  OR details_fr LIKE '%{$dbSearch}%')" : "");
-
+    $bFound = false;
     if( ($kfr = $this->oEventsLib->oDB->GetKFRC('E', $sCond, ['sSortCol'=>'date_start', 'bSortDown'=>0] )) ) {
         while( $kfr->CursorFetch() ) {
-// get list from EventsLib or at least use CreateFromKFR
+//  get list from EventsLib or at least use CreateFromKFR
             $e = Events_event::CreateFromKey( $this->oEventsLib, $kfr->Key() );
             $sList .= "<div style='float:right'>{$e->GetDateNice()}</div>";
             $sList .= $e->DrawEvent();
             $sList .= "<hr style='clear:both'/>";
+            $bFound = true;
         }
     }
+    if( !$bFound )  $sList .= "<p style='margin-top:20px;text-align:center'>No events in this range of dates.</p>";
 
     $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->oApp->lang);
     $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->oApp->lang);
@@ -209,15 +211,15 @@ function reSizeMap()
 
         /* TO:  bShowAllEvents = default pDate2 to the date of the last event; also force this if searching
          *     !bShowAllEvents = default pDate2 to the first event after 30 days from now; or the last event if searching
+         *
+         *     But if the last event is prior to the current date, default pDate2 to 30 days after pDate1
          */
         $bShowAllEvents = true;
         if( $bShowAllEvents ) {
             if( $pSearch || !$pDate2 || $pDate2 < $pDate1 ) {
-                // set pDate2 to the date of the last event
-// put this in EventsLib
-                if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
-                    $pDate2 = $kfr->value('date_start');
-                } else {
+                // set pDate2 to the date of the last event or 30 days past pDate1
+                $oLast = Events_event::NewLatest($this->oEventsLib);
+                if( !$oLast || ($pDate2 = $oLast->GetDate()) < $pDate1) {
                     // fallback is 30 days after pDate1 (if there are no events in the future)
                     $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);
                 }
@@ -228,12 +230,7 @@ function reSizeMap()
 //TODO: to be complete, this test should only happen if there is a NEW search term.
 //      If you search, then change the TO date, that change is ignored.
             if( $pSearch ) {
-// put this in EventsLib
-                if( ($kfr = $this->oEventsLib->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true])) ) {
-                    $pDate2 = $kfr->value('date_start');
-                } else {
-                    $pDate2 = "";   // use the default below
-                }
+                $pDate2 = ($oLast = Events_event::NewLatest($this->oEventsLib)) ? $oLast->GetDate() : "";   // if no events use the default below
             }
             /* TO: default is the date of the first event that occurs at least 30 days after FROM (or just 30 days later if there are no future events).
              */
@@ -241,7 +238,7 @@ function reSizeMap()
                 $pDate2 = date("Y-m-d", strtotime($pDate1) + 30*24*3600);   // 30 days after pDate1
 
                 // make sure there's at least one event in the date range, by extending the window to the next event
-// put this in EventsLib
+//  put this in EventsLib
                 if( ($kfrNext = $this->oEventsLib->oDB->GetKFRCond('E', "date_start >= '".addslashes($pDate2)."'", ['sSortCol'=>'date_start','bSortDown'=>false])) ) {
                     $pDate2 = $kfrNext->Value('date_start');
                 }

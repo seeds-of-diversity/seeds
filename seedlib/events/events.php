@@ -94,17 +94,44 @@ class Events_event
     private $oE;
     private $kfr = null;
 
-    public static function CreateFromKey( EventsLib $oE, int $kEvent )
+    /**
+     * Create a new event object from its key
+     *
+     * @param EventsLib $oE
+     * @param int $kEvent
+     * @return Events_event
+     */
+    public static function CreateFromKey( EventsLib $oE, int $kEvent ) : ?Events_event
     {
         $o = new Events_event( $oE, $kEvent );
-        return( $o );
+        return( !$o->IsEmpty() ? $o : null );
     }
 
-    public static function CreateFromKFR( EventsLib $oE, KeyframeRecord $kfrEv )
+    /**
+     * Create a new event object from its kfr
+     *
+     * @param EventsLib $oE
+     * @param KeyframeRecord $kfrEv
+     * @return Events_event
+     */
+    public static function CreateFromKFR( EventsLib $oE, KeyframeRecord $kfrEv ) : Events_event
     {
         $o = new Events_event( $oE, 0 );    // create object with empty kfr
         $o->_setKfr( $kfrEv );
         return( $o );
+    }
+
+    /**
+     * Create a new event object from the record with the latest date_start (last event in the list)
+     *
+     * @param EventsLib $oE
+     * @param string $cond
+     * @return Events_event
+     */
+    public static function NewLatest( EventsLib $oE, string $cond = "" ) : ?Events_event
+    {
+        return( ($kfr = $oE->oDB->GetKFRCond('E', "", ['sSortCol'=>'date_start','bSortDown'=>true]))  // last event in list
+                ? self::CreateFromKFR($oE, $kfr) : null );
     }
 
     private function __construct( EventsLib $oE, int $kEvent )
@@ -115,6 +142,8 @@ class Events_event
 
     // only to be used by CreateFromKFR
     function _setKfr( KeyframeRecord $kfrEv )  { $this->kfr = $kfrEv; }
+
+    function isEmpty()  { return( $this->kfr == null ); }
 
     function SetEvent( $kEvent )
     {
@@ -211,6 +240,7 @@ class Events_event
                 ."<h3>$title</h3>"
                 ."<p><strong>"
                     .$date.SEEDCore_NBSP("",6).$this->kfr->valueEnt("time")."<br/>"
+// can this be geocoded? Probably not reliably, which is worse than not doing it.
                     .($location ? "$location<br/>" : "")
                     .($city     ? "$city<br/>"     : "")
                 ."</strong></p>"
