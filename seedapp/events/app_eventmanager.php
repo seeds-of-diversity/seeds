@@ -19,6 +19,73 @@ if( !defined( "SEEDROOT" ) ) {
     include_once( SEEDROOT."seedConfig.php" );
 }
 
+
+$consoleConfig = [
+    'CONSOLE_NAME' => "eventManager",
+    'HEADER' => "Events",
+    //'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
+    //    array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
+    'TABSETS' => ['main'=> ['tabs' => ['events'     => ['label'=>'Events'],
+                                       'volunteers' => ['label'=>'Volunteers'],
+                                      ],
+                            // this doubles as sessPermsRequired below
+                            'perms' => ['events'    =>  [],     // require login but no particular perms; access is controlled per user/event
+                                        'volunteers' => ['W Events'],
+                                        '|'
+                                       ],
+                           ],
+                 ],
+    'urlLogin'=>'../login/',
+
+    'consoleSkin' => 'green',
+];
+
+$oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds1',
+    'sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
+    'consoleConfig' => $consoleConfig] );
+
+SEEDPRG();
+
+include_once(SEEDLIB.'events/events.php');
+include_once('tab_eventmanager_events.php');
+
+class MyConsole02TabSet extends Console02TabSet
+{
+    private $oApp;
+    private $oW = null;
+    private $oEvLib;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        global $consoleConfig;
+        parent::__construct( $oApp->oC, $consoleConfig['TABSETS'] );
+
+        $this->oApp = $oApp;
+        $this->oEvLib = new EventsLib($oApp);
+    }
+
+    function TabSet_main_events_Init()          { $this->oW = new EventManTabEvents($this->oApp, $this->oEvLib); $this->oW->Init(); }
+    function TabSet_main_events_ControlDraw()   { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_events_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_volunteers_Init()        { $this->oW = new EventManTabVolunteers($this->oApp, $this->oEvLib); $this->oW->Init(); }
+    function TabSet_main_volunteers_ControlDraw() { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_volunteers_ContentDraw() { return( $this->oW->ContentDraw() ); }
+}
+
+$oCTS = new MyConsole02TabSet( $oApp );
+
+$sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
+
+// ev_events data is utf8
+echo Console02Static::HTMLPage( $sBody, "", 'EN', ['consoleSkin'=>'green'] );
+
+
+
+
+
+exit;
+
 include_once( SEEDCORE."SEEDCoreFormSession.php" );
 include_once( SEEDCORE."SEEDXLSX.php" );
 include_once( SEEDLIB."google/GoogleSheets.php" );
