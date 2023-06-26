@@ -126,6 +126,7 @@ class MSEEditAppTabGrower
 // G_M would work although with blank M_*, but kfrGxM will be null
             if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
                 $this->oApp->Log( 'MSEEdit.log', "create grower $kGrower failed, probably mbr_contacts row doesn't exist" );
+                goto done;
             }
         }
         $this->oGrowerForm->SetKFR( $this->kfrGxM );
@@ -149,6 +150,7 @@ class MSEEditAppTabGrower
                 $this->oApp->Log( 'MSEEdit.log', "$eOp {$this->kGrower} by user {$this->oApp->sess->GetUID()} failed: ".$this->kfrGxM->KFRel()->KFDB()->GetErrMsg() );
             }
         }
+        done:;
     }
 
     function ControlDraw_Grower()
