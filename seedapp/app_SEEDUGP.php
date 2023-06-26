@@ -61,24 +61,29 @@ class MyConsole02TabSet extends Console02TabSet
     }
 
     function TabSet_main_users_Init()          { $this->oW = new UGPListForm( $this->oApp, 'users' ); $this->oW->Init(); }
+    function TabSet_main_users_StyleDraw()     { return( $this->oW->StyleDraw() ); }
     function TabSet_main_users_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_users_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 
     function TabSet_main_groups_Init()         { $this->oW = new UGPListForm( $this->oApp, 'groups' ); $this->oW->Init(); }
+    function TabSet_main_groups_StyleDraw()    { return( $this->oW->StyleDraw() ); }
     function TabSet_main_groups_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_groups_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
     function TabSet_main_permissions_Init()          { $this->oW = new UGPListForm( $this->oApp, 'perms' ); $this->oW->Init(); }
+    function TabSet_main_permissions_StyleDraw()     { return( $this->oW->StyleDraw() ); }
     function TabSet_main_permissions_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_permissions_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 
     function TabSet_main_seedpermsclasses_Init()          { $this->oW = new UGPListForm( $this->oApp, 'seedpermsclasses' ); $this->oW->Init(); }
+    function TabSet_main_seedpermsClasses_StyleDraw()     { return( $this->oW->StyleDraw() ); }
     function TabSet_main_seedpermsclasses_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_seedpermsclasses_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 
     function TabSet_main_seedperms_Init()                 { $this->oW = new UGPListForm( $this->oApp, 'seedperms' ); $this->oW->Init(); }
+    function TabSet_main_seedperms_StyleDraw()            { return( $this->oW->StyleDraw() ); }
     function TabSet_main_seedperms_ControlDraw()          { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_seedperms_ContentDraw()         { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_seedperms_ContentDraw()          { return( $this->oW->ContentDraw() ); }
 }
 
 
@@ -97,6 +102,7 @@ class UGPListForm extends KeyframeUI_ListFormUI
 
     function Init()  { parent::Init(); }
 
+    function StyleDraw()    { return( $this->DrawStyle() ); }
     function ControlDraw()  { return( $this->DrawSearch() ); }
 
     function ContentDraw()
@@ -114,9 +120,7 @@ class UGPListForm extends KeyframeUI_ListFormUI
 
         $cid = $this->oComp->Cid();
 
-        $s = $this->DrawStyle()
-           ."<style></style>"
-           ."<div class='container-fluid'>"
+        $s = "<div class='container-fluid'>"
                 ."<div class='row'>"
                     ."<div class='col-md-6'>"
                         ."<div>".$this->DrawList()."</div>"
