@@ -2,7 +2,7 @@
 
 /* mbrApp
  *
- * Copyright 2020-2022 Seeds of Diversity Canada
+ * Copyright 2020-2023 Seeds of Diversity Canada
  *
  * Structures for apps that manage memberships and donations
  */
@@ -27,6 +27,7 @@ class MbrApp
               'donationReceipts2' => ['R MBRDonations', 'A MBR', '|'],
               'donations'        => ['W MBRDonations', 'A MBR', '|'],
               'donationsSL'      => ['W MBRDonations', 'W SLAdopt', 'A MBR', 'A SL', '|'],
+              'integrity'        => ['R MBRDonations', 'A MBR', '|'],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
         // the app that connects MbrContacts with arbitrary google sheets
