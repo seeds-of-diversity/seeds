@@ -290,18 +290,6 @@ class Mbr_Contacts
         }
         return( $kDonation );
     }
-
-    function BuildDonorTable()
-    {
-        include_once( "MbrIntegrity.php" );
-
-        $s = "";
-
-        $oInteg = new MbrIntegrity( $this->oApp );
-        $s = $oInteg->ReportDonations();
-
-        return( $s );
-    }
 }
 
 class Mbr_ContactsDB extends Keyframe_NamedRelations

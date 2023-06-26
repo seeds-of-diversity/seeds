@@ -30,6 +30,7 @@ $consoleConfig = [
                                         'donationReceipts2' => ['label'=>'Donation Receipts2'],
                                         'donations'        => ['label'=>'Donations'],
                                         'donationsSL'      => ['label'=>'Seed Library Adoptions'],
+                                        'integrity'        => ['label'=>'Integrity Tests'],
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' => MbrApp::$raAppPerms['mbrPrint'],
@@ -209,9 +210,7 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_main_donationReceipts_ContentDraw()
     {
-        $s = $this->oContacts->BuildDonorTable();
-
-        $s .= "<form target='_blank'>
+        $s = "<form target='_blank'>
               <input type='hidden' name='cmd' value='printDonationReceipt'>
               <input type='text' name='donorReceiptRange'/>
               <input type='submit' value='Make Receipts'/>
@@ -278,6 +277,10 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donationsSL_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_donationsSL_ControlDraw(){ return( $this->oW->ControlDraw() ); }
     function TabSet_main_donationsSL_ContentDraw(){ return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_integrity_Init()         { $this->oW = new MbrDonationsIntegrity($this->oApp); $this->oW->Init(); }
+    function TabSet_main_integrity_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_integrity_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 }
 
 class MbrDonationsListForm extends KeyframeUI_ListFormUI
@@ -584,6 +587,38 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
         return( $s );
     }
 }
+
+
+class MbrDonationsIntegrity
+{
+    private $oApp;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function Init()
+    {
+    }
+
+    function ControlDraw()
+    {
+        return( "" );
+    }
+
+    function ContentDraw()
+    {
+        include_once( SEEDLIB."mbr/MbrIntegrity.php" );
+
+        $s = "<h3>Donation Integrity Tests</h3>"
+            .(new MbrIntegrity($this->oApp))->ReportDonations();
+
+        return( $s );
+    }
+}
+
+
 
 $oCTS = new MyConsole02TabSet( $oApp );
 

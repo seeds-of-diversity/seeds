@@ -37,6 +37,28 @@ class MbrIntegrity
         $dbname1 = $this->oApp->GetDBName('seeds1');
         $dbname2 = $this->oApp->GetDBName('seeds2');
 
+        /* Find mbr_donations that are in an unpaid SEEDBasket (since 2020-01-01)
+         */
+        $sql = "SELECT D._key as kDonation, D.date_received as dReceived, Pur.kBasket as kBasket, Pur.eStatusBasket as eStatusBasket
+                FROM {$dbname2}.mbr_donations D
+                    "./* join the donations with all Purchases that are donations, and find all baskets that aren't FILLED*/ "
+                     JOIN (SELECT B._key as kBasket, B.eStatus as eStatusBasket, BP.kRef as kRef
+                                FROM {$dbname1}.SEEDBasket_BP BP
+                                     JOIN {$dbname1}.SEEDBasket_Products P ON (P._key=BP.fk_SEEDBasket_Products)
+                                     JOIN {$dbname1}.SEEDBasket_Baskets B ON (B._key=BP.fk_SEEDBasket_Baskets)
+                                WHERE P.product_type='donation') Pur    "./* don't hide deleted because they're a problem  AND P._status='0' AND B._status='0' AND BP._status='0' */ "
+                          ON D._key=Pur.kRef
+                WHERE Pur.eStatusBasket<>'Filled' AND D._status='0' AND D.date_received>='2020-01-01'";
+        $raD['raDonationsWithUnfulfilledBasket'] = $this->oApp->kfdb->QueryRowsRA($sql);
+
+        /* Find duplicate receipt numbers
+         */
+        $sql = "SELECT D1._key as k1,D2._key as k2, D1.receipt_num as receipt_num
+                FROM {$dbname2}.mbr_donations D1,{$dbname2}.mbr_donations D2
+                WHERE D1._key<D2._key and D1.receipt_num>0 and D1.receipt_num=D2.receipt_num
+                ORDER by D1.receipt_num";
+        $raD['raDupReceiptNum'] = $this->oApp->kfdb->QueryRowsRA( $sql );
+
         /* Find donations in mbr_contacts that are not in mbr_donations (we stopped recording these 2019-12-31)
          */
         $sql = "SELECT M._key as kMbr, M.donation_date as date, M.donation as amount, M.donation_receipt as receipt_num
@@ -86,58 +108,74 @@ class MbrIntegrity
                 WHERE Pur.kRef IS NULL AND D._status='0' AND D.date_received>='2020-01-01'";
         $raD['raDonationsWithNoPurchase'] = $this->oApp->kfdb->QueryRowsRA($sql);
 
-        /* Find mbr_donations that are in an unpaid SEEDBasket (since 2020-01-01)
-         */
-        $sql = "SELECT D._key as kDonation, Pur.kBasket as kBasket, Pur.eStatusBasket as eStatusBasket
-                FROM {$dbname2}.mbr_donations D
-                    "./* join the donations with all Purchases that are donations, and find all baskets that aren't FILLED*/ "
-                     JOIN (SELECT B._key as kBasket, B.eStatus as eStatusBasket, BP.kRef as kRef
-                                FROM {$dbname1}.SEEDBasket_BP BP
-                                     JOIN {$dbname1}.SEEDBasket_Products P ON (P._key=BP.fk_SEEDBasket_Products)
-                                     JOIN {$dbname1}.SEEDBasket_Baskets B ON (B._key=BP.fk_SEEDBasket_Baskets)
-                                WHERE P.product_type='donation') Pur    "./* don't hide deleted because they're a problem  AND P._status='0' AND B._status='0' AND BP._status='0' */ "
-                          ON D._key=Pur.kRef
-                WHERE Pur.eStatusBasket<>'Filled' AND D._status='0' AND D.date_received>='2020-01-01'";
-        $raD['raDonationsWithUnfulfilledBasket'] = $this->oApp->kfdb->QueryRowsRA($sql);
-
         return( $raD );
     }
 
     function ReportDonations( $raD = null )
     {
-        $s = "";
+        $s =
+            "<style>
+             .integ_heading {
+                 font-weight:bold;
+             }
+             .integ_result_block {
+                 margin-left:30px;
+                 margin-bottom:30px;
+                 max-height:200px;
+                 overflow-y: scroll;
+                 border: 1px solid #aaa;
+             }
+             </style>";
 
         $raD = $raD ?: $this->AssessDonations();
 
+        /* Report mbr_donations that are linked to a SEEDBasket that is not Filled
+         */
+        $s .= "<div class='integ_heading'>Donations in a Basket that is not Filled (i.e. unpaid or cancelled)</div>"
+             ."<div class='integ_result_block'>"
+             .SEEDCore_ArrayExpandRows( $raD['raDonationsWithUnfulfilledBasket'],
+                                        "<p>[[dReceived]] : kDonation:[[kDonation]], basket:[[kBasket]], basket status:[[eStatusBasket]]" )
+             ."</div>";
+
+        /* Report duplicate receipt_num
+         */
+        $s .= "<div class='integ_heading'>Duplicate Receipt Numbers</div>"
+             ."<div class='integ_result_block'>"
+             .SEEDCore_ArrayExpandRows( $raD['raDupReceiptNum'],
+                                        "<p>receipt #:[[receipt_num]]</p>" )
+             ."</div>";
+
         /* Report orphaned donations found in mbr_contacts (up to 2019-12-31)
          */
-        $s .= "<p style='font-weight:bold'>Missing mbr_donations from mbr_contacts (up to 2019-12-31)</p>"
+        $s .= "<div class='integ_heading'>Missing mbr_donations from mbr_contacts (up to 2019-12-31)</div>"
+             ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raOrphansInMbrContacts'],
-                                        "<p style='margin-left:30px'>mbr:[[kMbr]], received:[[date]], $[[amount]], receipt #:[[receipt_num]]</p>" );
+                                        "<p>mbr:[[kMbr]], received:[[date]], $[[amount]], receipt #:[[receipt_num]]</p>" )
+             ."</div>";
 
         /* Report orphaned donations found in SEEDBasket (starting 2020-01-01)
          */
-        $s .= "<p style='font-weight:bold'>Donations in SEEDBasket that don't appear in mbr_donations (starting 2020-01-01)</p>"
+        $s .= "<div class='integ_heading'>Donations in SEEDBasket that don't appear in mbr_donations (starting 2020-01-01)</div>"
+             ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raOrphansInSEEDBasket'],
-                                        "<p style='margin-left:30px'>order:[[kOrder]], mbr:[[kMbr]], received:[[date]], $[[amount]], type:[[P_name]]</p>" );
+                                        "<p>order:[[kOrder]], mbr:[[kMbr]], received:[[date]], $[[amount]], type:[[P_name]]</p>" )
+             ."</div>";
 
         /* Report mismatched SLAdopt category of otherwise integral donation records
          */
-        $s .= "<p style='font-weight:bold'>Mismatched SLAdopt category (either marked SLAdopt on a general donation, or vice versa)</p>"
+        $s .= "<div class='integ_heading'>Mismatched SLAdopt category (either marked SLAdopt on a general donation, or vice versa)</div>"
+             ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raMismatchedSLAdoptCategory'],
-                                        "<p style='margin-left:30px'>donation:[[kDonation]], mbr:[[kMbr]], received:[[date]], $[[amount]]</p>" );
+                                        "<p>donation:[[kDonation]], mbr:[[kMbr]], received:[[date]], $[[amount]]</p>" )
+             ."</div>";
 
         /* Report mbr_donations that are not linked to a SEEDBasket_Purchase
          */
-        $s .= "<p style='font-weight:bold'>Donations that are not linked to a Purchase</p>"
+        $s .= "<div class='integ_heading'>Donations that are not linked to a Purchase</div>"
+             ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raDonationsWithNoPurchase'],
-                                        "<p style='margin-left:30px'>donation:[[kDonation]]" );
-
-        /* Report mbr_donations that are linked to a SEEDBasket that is not Filled
-         */
-        $s .= "<p style='font-weight:bold'>Donations in a Basket that is not Filled</p>"
-             .SEEDCore_ArrayExpandRows( $raD['raDonationsWithUnfulfilledBasket'],
-                                        "<p style='margin-left:30px'>donation:[[kDonation]], basket:[[kBasket]], basket status:[[eStatusBasket]]" );
+                                        "<p>donation:[[kDonation]]" )
+             ."</div>";
 
         return( $s );
     }
