@@ -2,7 +2,7 @@
 
 /* SEEDFile
  *
- * Copyright 2008-2018 Seeds of Diversity Canada
+ * Copyright 2008-2023 Seeds of Diversity Canada
  *
  * File and filesystem management
  */
@@ -87,18 +87,13 @@ class SEEDFile {
         }
         foreach( $raFile as $k => $r ) {
             // k is the full path, r[0] is the containing dir, r[1] is the filename
-            $bSet = true;
-            if( isset($raParms['raMatchExtension']) ) {
-                $bSet = false;
-                foreach( $raParms['raMatchExtension'] as $ext ) {
-                    $lenExt = strlen($ext);
-                    if( substr($r[1], -$lenExt, $lenExt ) == $ext ) {
-                        $bSet = true;
-                        break;
-                    }
-                }
+            $bAllow = true;
+            if( isset($raParms['raMatchExtension']) &&
+                ($ext = pathinfo($r[1], PATHINFO_EXTENSION)) )
+            {
+                $bAllow = in_array(strtolower($ext), $raParms['raMatchExtension']);     // please encode raMatchExtension to only contain lowercase
             }
-            if( $bSet ) {
+            if( $bAllow ) {
                 if( $this->TraverseItemFile( $r[0], $r[1] ) ) {
                     $this->raTraverseItems[$k] = $r;
                 }
@@ -206,52 +201,49 @@ class SEEDFile {
     }
 }
 
-
-
-function SEEDFile_GetFilenameTree( $dirRoot, $bRecurse = true, $raParms = array() )
-/***********************************************************************************
+function SEEDFile_GetFilenameTree( $dirRoot, $bRecurse = true, $raParms = [] )
+/*****************************************************************************
     Return an array of the filenames rooted at the fully expanded real directory dirRoot.
-    Prepend the dirRootPrefix string to each filename (this is used in recursion).
+    Keys are path names relative to dirRoot; Values are full path names containing dirRoot.
+        e.g. dirRoot = a/b/ : output = [c=>a/b/c, d=>a/b/d, c/e=>a/b/c/e]
+
     raParms: raMatchExtension = array( ".jpg", ".JPG", ".jpeg", ".JPEG" )
              eFetch = "FILE" | "DIR" | "FILE_DIR"  (FILE is default)
-
-MAYBE WANT TO RETURN THE SHORT od_file TOO, SINCE IT MIGHT BE USED IN A UI
 */
 {
-    $eFetch = SEEDCore_ArraySmartVal( $raParms, 'eFetch', array("FILE", "DIR", "FILE_DIR") );
+    $eFetch = SEEDCore_ArraySmartVal( $raParms, 'eFetch', ['FILE', 'DIR', 'FILE_DIR'] );
 
-    $ra = array();
+    $dirRoot = rtrim($dirRoot, '/');        // trim any trailing '/'
+
+    if( !isset($raParms['dirRootOrigLength']) ) {
+        // Before recursion, store the length of the original root so the relative path can be computed in child recursions.
+        $raParms['dirRootOrigLength'] = strlen($dirRoot.'/');
+    }
+
+    $ra = [];
     if( ($od = @opendir($dirRoot)) ) {
         while( ($od_file = readdir($od)) !== false ) {
             if( substr($od_file, 0, 1) == "." )  continue;        // skip . and .. directories, and files starting with . (e.g. .svn)
             $realfile = $dirRoot.'/'.$od_file;
             if( is_dir($realfile) ) {
-                if( in_array( $eFetch, array( "FILE", "FILE_DIR" ) ) ) {
-                    $ra[] = $realfile;
+                if( in_array( $eFetch, ['FILE','FILE_DIR'] ) ) {
+                    $ra[substr($realfile,$raParms['dirRootOrigLength'])] = $realfile;
                 }
                 if( $bRecurse ) {
                     $ra = array_merge( $ra, SEEDFile_GetFilenameTree( $realfile, true, $raParms ) );
                 }
             } else {
-                $bSkip = false;
-                if( isset($raParms['raMatchExtension']) ) {
-                    foreach( $raParms['raMatchExtension'] as $ext ) {
-                        $lenExt = strlen($ext);
-                        if( strlen($od_file) > $lenExt &&
-                            substr($od_file, strlen($od_file)-$lenExt, $lenExt ) == $ext )
-                        {
-                            $bSkip = true;
-                            break;
-                        }
-                    }
+                $bAllow = true;
+                if( isset($raParms['raMatchExtension']) &&
+                    ($ext = pathinfo($od_file, PATHINFO_EXTENSION)) )
+                {
+                    $bAllow = in_array($ext, $raParms['raMatchExtension']);
                 }
-                if( !$bSkip ) {
-                    $ra[] = $realfile;
+                if( $bAllow ) {
+                    $ra[substr($realfile,$raParms['dirRootOrigLength'])] = $realfile;
                 }
             }
         }
     }
     return( $ra );
 }
-
-?>
