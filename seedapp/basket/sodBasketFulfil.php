@@ -629,6 +629,9 @@ class SoDOrder_MbrOrder
             $kfrMbrOrder->PutDBRow();
         }
 
+        // We don't have Open baskets in the MbrOrder Store. They all start out Confirmed.
+        if( $oB->GetEStatus() == 'Open' ) $oB->SetValue( 'eStatus', ($e = $kfrMbrOrder->Value('eStatus')) == 'New' ? 'Confirmed' : $e );
+
         // Copy this field here because the mbrid can be set manually during "Recording" after the basket is created
         $oB->SetValue( 'uid_buyer', $kfrMbrOrder->UrlParmGet('sExtra', 'mbrid') );
         $oB->PutDBRow();
@@ -670,8 +673,10 @@ class SoDOrder_MbrOrder
         }
 
         // Books
-        foreach( ['nPubSSH-EN6' => 'ssh6en',
+        foreach( ['nPubSSH-EN6' => 'ssh6en',        // $15
                   'nPubSSH-FR6' => 'ssh6fr',
+                  'nPubSSH-EN6-20' => 'ssh6en_20',  // $20
+                  'nPubSSH-FR6-20' => 'ssh6fr_20',
                   'nPubEverySeed' => 'everyseed',
                   'nPubSueChan2012' => 'chan2012',
                   'nPubKent2012' => 'kent2012'] as $nameOld => $nameNew )
