@@ -190,17 +190,20 @@ class QServerRosetta extends SEEDQ
             // Get a list of sources for this cultivar
             $raOut['raSrc'] = $this->cultivarOverviewGetSources( "fk_sl_pcv='$kPcv'" );
 
-            $dbname = "seeds_1";
-            $ra['nAcc']    = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_accession WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
-            $ra['nAdopt']  = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_adoption WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
-            $ra['nDesc']   = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_varinst WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
+            /* If these are used to check for pre-delete referential integrity, it's okay to delete a cultivar if any of these are _status<>0 because the cultivar will
+             * also be preserved as _status<>0, retaining referential integrity in Trash.
+             */
+            $dbname = $this->oApp->DBName('seeds1');
+            $raOut['nAcc']    = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_accession WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
+            $raOut['nAdopt']  = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_adoption WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
+            $raOut['nDesc']   = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_varinst WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
 
-            $ra['nSrcCv1'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='1'" );
-            $ra['nSrcCv2'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='2'" );
-            $ra['nSrcCv3'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources>='3'" );
+            $raOut['nSrcCv1'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='1'" );
+            $raOut['nSrcCv2'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources='2'" );
+            $raOut['nSrcCv3'] = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='$kPcv' AND fk_sl_sources>='3'" );
 
-            $ra['nTotal'] = $ra['nAcc'] + $ra['nAdopt'] + $ra['nDesc'] +
-                            $ra['nSrcCv1'] + $ra['nSrcCv2'] + $ra['nSrcCv3'];
+            $raOut['nTotal'] = $raOut['nAcc'] + $raOut['nAdopt'] + $raOut['nDesc'] +
+                               $raOut['nSrcCv1'] + $raOut['nSrcCv2'] + $raOut['nSrcCv3'];
         }
 
         $bOk = true;

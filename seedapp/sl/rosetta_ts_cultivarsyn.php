@@ -122,7 +122,7 @@ class RosettaCultivarSynonyms
         // Get all non-indexed ocv names of this species.
         // To make the query group and also return an ANY_VALUE(_key), GROUP_CONCAT all the _keys together and parse out the first with strtok
         $raNamesSrccv = $this->oApp->kfdb->QueryRowsRA(
-                            "SELECT ocv,GROUP_CONCAT(_key,',') as k FROM seeds_1.sl_cv_sources
+                            "SELECT ocv,GROUP_CONCAT(_key,',') as k FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources
                              WHERE fk_sl_species='$kSpecies' AND _status='0'
                                    AND ocv<>'' AND fk_sl_pcv='0' AND fk_sl_sources>='3'
                              GROUP BY 1
@@ -227,10 +227,10 @@ SCRIPT
                     $kSrccv = SEEDInput_Int('kSrccv');
                     $kPcv = SEEDInput_Int('kPcv');
 
-                    $raCV = $this->oApp->kfdb->QueryRA( "SELECT * from seeds_1.sl_pcv WHERE _key='$kPcv'" );
-                    $raSrccv = $this->oApp->kfdb->QueryRA( "SELECT * from seeds_1.sl_cv_sources WHERE _key='$kSrccv'" );
+                    $raCV = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_pcv WHERE _key='$kPcv'" );
+                    $raSrccv = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _key='$kSrccv'" );
                     $sSynName = addslashes($raSrccv['ocv']);
-                    $this->oApp->kfdb->Execute( "INSERT INTO seeds_1.sl_pcv_syn (fk_sl_pcv,name,notes) VALUES ($kPcv,'$sSynName','')" );
+                    $this->oApp->kfdb->Execute( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv_syn (fk_sl_pcv,name,notes) VALUES ($kPcv,'$sSynName','')" );
 
                     $rQ['sOut'] = $this->drawRowPCV( $raCV );
                     $rQ['bOk'] = true;
