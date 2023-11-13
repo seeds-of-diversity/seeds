@@ -950,8 +950,10 @@ class SEEDUIComponent_ViewWindow
      * 0b) iCurr and kCurr properly set and in sync - good
      *
      * 1a) iCurr>=0 and kCurr==0
-     *     [e.g. Initialization - when iCurr is most likely also 0]
-     *    Set kCurr to the key of iCurr's row
+     *    For some reason we don't have a current row.
+     *    i)  Initialization : when iCurr is most likely also 0, so kCurr is set to the top row.
+     *    ii) Post-delete : kCurr is reset to 0 and iCurr now refers to next row. But if the bottom row was deleted, iCurr has to be moved to new bottom row.
+     *    In general, set kCurr to iCurr's row. If past bottom row, set both to bottom row.
      *
      * 1b) kCurr>0 but not in view - because the view changed       *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
      *    [e.g. SearchControl / List Dropdown parms change]
@@ -1029,9 +1031,17 @@ if($debug) var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->G
             goto done;
         }
 
-        /* We know that iCurr>=0 so get the selected row
+        /* We know that iCurr>=0 so get the selected row.
+         * If iCurr is over the view size, e.g. if you just deleted the bottom row, reset iCurr and fetch again
+         * Have to do GetRowData() first because that sets $this->nViewSize.
          */
-        $raRowICurr = $this->GetRowData($iCurr);     // could be null if the view shrunk
+        $raRowICurr = $this->GetRowData($iCurr);     // could be null if the view shrunk (e.g. deleted bottom row when it was current)
+        if( $iCurr > $this->nViewSize -1 ) {         // nViewSize is initialized by GetRowData()
+            // force iCurr to bottom of view
+            $iCurr = $this->nViewSize - 1;
+            $this->oComp->Set_iCurr($iCurr);
+            $raRowICurr = $this->GetRowData($iCurr); // try again
+        }
 
         /* Case 0b) kCurr and iCurr are in sync - no problem
          */
