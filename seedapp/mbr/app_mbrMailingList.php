@@ -80,6 +80,7 @@ $sLeft .=
                                          "Members and donors of $yMinus2 and greater" => 'membersAndDonors2Years',
                                          "Members and donors of $yMinus2 and greater, no donation in past six months" => 'membersAndDonors2YearsNoDonationInSixMonths',
                                          "Ebulletin subscribers who are not members or donors in $yMinus2 and greater" => 'ebullNotMembersOrDonors2Years',
+                                         "Donors of $year who have not accessed those receipts" => 'donorsNeedReceiptsFromThisYear',
                                          "Donors of $yMinus1 who have not accessed those receipts" => 'donorsNeedReceiptsFromPreviousYear',
                                         ] )
         ."</div><div style='margin-bottom:10px'>"
@@ -207,17 +208,17 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
 
         $raEmail = array_flip($raE);
     }
-    if( $eGroup == 'donorsNeedReceiptsFromPreviousYear' ) {
-        /* Donors from previous year who have not accessed one or more donation receipts from that year
+    if( $eGroup == 'donorsNeedReceiptsFromThisYear' || $eGroup == 'donorsNeedReceiptsFromPreviousYear' ) {
+        /* Donors from current/previous year who have not accessed one or more donation receipts from this/that year
          */
-        $oDon = new MbrDonations($oApp);
-        foreach( $oDon->GetListDonationsNotAccessedByDonor($yMinus1) as $raDR ) {
+        $y = ($eGroup == 'donorsNeedReceiptsFromThisYear') ? $year : $yMinus1;
+        foreach( (new MbrDonations($oApp))->GetListDonationsNotAccessedByDonor($y) as $raDR ) {
             if( ($raM = $oMbr->GetBasicValues($raDR['fk_mbr_contacts'])) && ($email = $raM['email']) ) {
                 $raMbr[] = ['_key'=>$raDR['fk_mbr_contacts'],'email'=>$email];
             }
         }
 
-        $sRight .= "Donors who have not retrieved at least one of their $yMinus1 receipts:<br/><br/>Found ".count($raMbr)." emails<br/><br/>";
+        $sRight .= "Donors who have not retrieved at least one of their $y receipts:<br/><br/>Found ".count($raMbr)." emails<br/><br/>";
     }
 }
 else
