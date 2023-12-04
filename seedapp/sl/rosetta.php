@@ -24,9 +24,9 @@ $consoleConfig = [
                                         'speciessyn'   => ['label'=>'Species Synonyms'],
                                         'admin'        => ['label'=>'Admin']
                                       ],
-                            'perms' =>[ 'species'      => ["W SL"],
-                                        'cultivar'     => ["W SL"],
-                                        'speciessyn'   => ["W SL"],
+                            'perms' =>[ 'species'      => ["W SLbob"],
+                                        'cultivar'     => ["W SLbob"],
+                                        'speciessyn'   => ["W SLbob"],
                                         'cultivarsyn'  => ["W SL"],
                                         'admin'        => ['A notyou'],
                                         '|'  // allows screen-login even if some tabs are ghosted
