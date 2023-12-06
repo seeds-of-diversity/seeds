@@ -260,9 +260,12 @@ SCRIPT
 
                     $raCV = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_pcv WHERE _key='$kPcv'" );
                     $raSrccv = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _key='$kSrccv'" );
-                    $sSynName = addslashes($raSrccv['ocv']);
-                    $this->oApp->kfdb->Execute( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv_syn (fk_sl_pcv,name,notes) VALUES ($kPcv,'$sSynName','')" );
-
+                    $dbSynName = addslashes($raSrccv['ocv']);
+                    $this->oApp->kfdb->Execute( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv_syn (fk_sl_pcv,name,notes) VALUES ($kPcv,'$dbSynName','')" );
+                    // update sl_cv_sources pcv with the new reference
+                    if( ($kSp = $raSrccv['fk_sl_species']) ) {
+                        $this->oApp->kfdb->Execute("UPDATE {$this->oApp->DBName('seeds1')}.sl_cv_sources SET fk_sl_pcv=$kPcv WHERE fk_sl_species=$kSp AND ocv='$dbSynName'");
+                    }
                     $rQ['sOut'] = $this->drawRowPCV( $raCV );
                     $rQ['bOk'] = true;
                     break;
