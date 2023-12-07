@@ -133,7 +133,10 @@ class QServerSourceCV extends SEEDQ
          * All conditions in sCond apply only to SRCCVxSRC.
          * All QCursor fetched fields are only from PxS.
          */
-        $raParms['kfrcParms']['sGroupAliases'] = "P__key,P_name,S_name_en,S_name_fr";
+        $raParms['kfrcParms']['raFieldsOverride'] = ['S__key'=>"S._key", 'S_name_en'=>"S.name_en", 'S_name_fr'=>"S.name_fr",
+                                                     'P__key'=>"P._key", 'P_name'=>"P.name",
+                                                     'nSources'=>"count(*)"];
+        $raParms['kfrcParms']['sGroupAliases'] = "P__key,P_name,S__key,S_name_en,S_name_fr";
         $raParms['kfrcParms']['sSortCol'] = "S.name_en asc,P.name";
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond." AND fk_sl_pcv<>'0'", $raParms['kfrcParms'] )) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raParms );
