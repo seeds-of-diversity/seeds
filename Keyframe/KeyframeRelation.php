@@ -84,6 +84,7 @@ class KeyFrame_Relation
     private $raColA2NBase = [];      // map base alias names to their column names [alias => col]
     // deprecate for raColA2N which is identical
 private $raColAlias = [];        // store all field names for reference ( array of colAlias => tableAlias.col )
+    private $raExtraAliases = [];    // e.g. "count(*) as c" stored here as 'c'=>"count(*)".  makeSelect can create read-only aliases which are only used for loading values from the db query.
 
     private $qSelect = null;            // cache the constant part of the SELECT query (with the fields clause substitutable)
     private $qSelectFieldsClause = "";  // cache the default fields clause (caller can override)
@@ -96,6 +97,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
     function UID()                      { return( $this->uid ); }       // just nice to be able to get this for random stuff sometimes
     function BaseTableName()            { return( $this->baseTable['Table'] ); }
     function BaseTableFields()          { return( $this->baseTable['Fields'] ); }
+    function ExtraAliases()             { return( $this->raExtraAliases ); }
     function TablesDef()                { return( $this->kfrdef['Tables'] ); }
 
     function __construct( KeyframeDatabase $kfdb, $kfrdef, int $uid, $raKfrelParms = array() )
@@ -710,9 +712,21 @@ private $raColAlias = [];        // store all field names for reference ( array 
         if( isset($parms['raFieldsOverride']) ) {
             foreach( $parms['raFieldsOverride'] as $alias=>$fld ) {
                 $sFieldsClause .= ($sFieldsClause ? "," : "");
-                $sFieldsClause .= SEEDCore_StartsWith($alias,'VERBATIM') ? $fld : "$fld as $alias";
+                if( SEEDCore_StartsWith($alias,'VERBATIM') ) {
+                    // 'VERBATIMx'=>'123' just adds ,123, to the field list
+                    // N.B. there is no way for kfr to load this, because it has no alias (see raExtraAliases below)
+                    $sFieldsClause .= $fld;
+                } else {
+                    // 'a'="b" writes "b as a" to the field list.
+                    $sFieldsClause .= "$fld as $alias";
+                    /* If a is not in the alias list, add it to the extra aliases list. Otherwise kfr won't load it into ValuesRA.
+                     * e.g. we did something like "c"=>"count(*)" or 'nMax'=>"max(iValue)" and need the alias value to be loaded in the kfr
+                     */
+                    if( !$this->GetColNameFromColAlias($alias) ) {
+                        $this->raExtraAliases[$alias] = $fld;
+                    }
+                }
             }
-
         }
         if( $sGroupAliases ) {
             // alias1,alias2,... identify the group cols and if !raFieldsOverride then also all of the select cols/aliases.
@@ -1285,7 +1299,8 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
      */
     {
         $this->getBaseValuesFromRA( $ra, true );    // get base values, set defaults(why?), not gpc
-        $this->getFKValuesFromArray( $ra );        // get all fk values
+        $this->getFKValuesFromArray( $ra );         // get all fk values
+        $this->getExtraValuesFromRA( $ra );         // get additional values named as aliases in makeSelect
         $this->snapValues();
     }
 
@@ -1313,7 +1328,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         $bForceDefaults should be false when the record already contains values and $ra is a subset
      */
     {
-//if @kfrdef['bFetchFullBaseAliases']  also put base table values in $f['alias_full']
+// if @kfrdef['bFetchFullBaseAliases']  also put base table values in $f['alias_full']
 
         if( isset($ra['_key']) ) {          // _key won't necessarily be in ra if these are values posted from a form
             $this->key = intval($ra['_key']);
@@ -1324,6 +1339,18 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             $this->getValFromRA( $f, $ra, $bForceDefaults );
         }
     }
+
+    private function getExtraValuesFromRA( $ra )
+    /*******************************************
+        makeSelect can define extra aliases that have to be loaded from the db. These will not be re-written by PutDBRow.
+        They're typically things like "count(*) as c", and we have to define c as an extra value so this method will load it from the db row.
+     */
+    {
+        foreach( $this->kfrel->ExtraAliases() as $alias => $fld ) {  // e.g. "c"=>"count(*)"
+            $this->values[$alias] = @$ra[$alias] ?? "";
+        }
+    }
+
 
     private function getValFromRA( $f, $ra, $bForceDefaults )
     /********************************************************
