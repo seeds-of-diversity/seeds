@@ -133,10 +133,11 @@ class QServerSourceCV extends SEEDQ
          * All conditions in sCond apply only to SRCCVxSRC.
          * All QCursor fetched fields are only from PxS.
          */
+        $raParms['kfrcParms']['sGroupAliases'] = "P__key,P_name,S__key,S_name_en,S_name_fr";
         $raParms['kfrcParms']['raFieldsOverride'] = ['S__key'=>"S._key", 'S_name_en'=>"S.name_en", 'S_name_fr'=>"S.name_fr",
                                                      'P__key'=>"P._key", 'P_name'=>"P.name",
                                                      'nSources'=>"count(*)"];
-        $raParms['kfrcParms']['sGroupAliases'] = "P__key,P_name,S__key,S_name_en,S_name_fr";
+        $raParms['kfrcParms']['sHaving'] = $raParms['bBulk'] ? "COUNT(CASE WHEN bulk THEN 1 END)>=1" : "";
         $raParms['kfrcParms']['sSortCol'] = "S.name_en asc,P.name";
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond." AND fk_sl_pcv<>'0'", $raParms['kfrcParms'] )) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raParms );
@@ -156,6 +157,7 @@ class QServerSourceCV extends SEEDQ
         $raParms['kfrcParms']['raFieldsOverride'] = ['fk_sl_species'=>'fk_sl_species','ocv'=>'ocv',
                                                      'nSources'=>"count(*)",            // generates "count(*) as nSources"
                                                      'anyKSrccv'=>"MIN(SRCCV._key)"];   // arbitrary kSrccv to represent this ocv
+        $raParms['kfrcParms']['sHaving'] = $raParms['bBulk'] ? "COUNT(CASE WHEN bulk THEN 1 END)>=1" : "";
         $raParms['kfrcParms']['sSortCol'] = "ocv";
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRC", $sCond." AND fk_sl_pcv='0'", $raParms['kfrcParms'] )) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRowKluge"], $raParms );
@@ -415,6 +417,9 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                  'P__key'    => $oCursor->kfrc->Value('P__key'),
                  'nSources'  => intval($oCursor->kfrc->Value('nSources')),
                 ]);
+        // if this option is set, only cultivars with at least one bulk source are added
+        if( $raParms['bBulk'] ) $ra['bulk']=1;
+
         return( $ra );
     }
 
@@ -450,6 +455,8 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                  'P__key'    => $kPcvKluge,
                  'nSources'  => intval($oCursor->kfrc->Value('nSources')),
                 ]);
+        // if this option is set, only cultivars with at least one bulk source are added
+        if( $raParms['bBulk'] ) $ra['bulk']=1;
 
         return( $ra );
     }
