@@ -148,14 +148,11 @@ class QServerSourceCV extends SEEDQ
          *
          * This query is only applied to rows where fk_sl_pcv=0; this value is obtained by sl_cv_sources._key+10,000,000
          * ANY_VALUE of kSrccv will do (using MIN because MariaDB doesn't support ANY_VALUE).
-         *
-         * N.B. Since KF only reads a defined set of cols it is not possible to get a VERBATIM from kfr (though you can make the db read it).
-         *      So the ANY_VALUE is placed in fk_sl_pcv because we know it isn't used.
          */
         $raParms['kfrcParms']['sGroupAliases'] = "fk_sl_species,ocv";
-// deficiency in KF: you can make a select that returns novel aliases (using raFieldsOverride) but KF doesn't copy those into the kfr
         $raParms['kfrcParms']['raFieldsOverride'] = ['fk_sl_species'=>'fk_sl_species','ocv'=>'ocv',
-                                                     'VERBATIM-k'=>"MIN(SRCCV._key) as fk_sl_pcv"];   // put ANY_VALUE in fk_sl_pcv; this is horrible
+                                                     'nSources'=>"count(*)",            // generates "count(*) as nSources"
+                                                     'anyKSrccv'=>"MIN(SRCCV._key)"];   // arbitrary kSrccv to represent this ocv
         $raParms['kfrcParms']['sSortCol'] = "ocv";
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRC", $sCond." AND fk_sl_pcv='0'", $raParms['kfrcParms'] )) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRowKluge"], $raParms );
@@ -413,6 +410,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                  'S_name_fr' => $oCursor->kfrc->Value('S_name_fr'),
                  'P_name'    => $oCursor->kfrc->Value('P_name'),
                  'P__key'    => $oCursor->kfrc->Value('P__key'),
+                 'nSources'  => intval($oCursor->kfrc->Value('nSources')),
                 ]);
         return( $ra );
     }
@@ -428,9 +426,8 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
     {
         $spCache = [];
 
-        // N.B. Since KF only reads a defined set of cols it is not possible to get a VERBATIM from kfr (though you can make the db read it).
-        //      So the ANY_VALUE is placed in fk_sl_pcv because we know it isn't used.
-        $kPcvKluge = $oCursor->kfrc->Value('fk_sl_pcv') + 10000000;
+        // anyKSrccv is an arbitrary row to identify the ocv. Using MIN because MariaDB doesn't support ANY_VALUE
+        $kPcvKluge = $oCursor->kfrc->Value('anyKSrccv') + 10000000;
 
         $spEn = $spFr = "";
         if( ($kSp = $oCursor->kfrc->Value('fk_sl_species')) ) {
@@ -448,6 +445,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                  'S_name_fr' => $spFr,
                  'P_name'    => $oCursor->kfrc->Value('ocv'),
                  'P__key'    => $kPcvKluge,
+                 'nSources'  => intval($oCursor->kfrc->Value('nSources')),
                 ]);
 
         return( $ra );
