@@ -672,6 +672,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         $sGroupAliases = @$parms['sGroupCols'];     // deprecate in favour of sGroupAliases
         if( !$sGroupAliases )
         $sGroupAliases = @$parms['sGroupAliases'];  // unpack colalias1,colalias2,... and use those for GROUP BY as well as SELECT cols
+        $sHaving   = @$parms['sHaving'];            // GROUP BY ... HAVING $sHaving ...
         $sSortCol  = @$parms['sSortCol'];
         $bSortDown = intval(@$parms['bSortDown']);
         $iOffset   = intval(@$parms['iOffset']);
@@ -754,6 +755,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         }
 
         if( $sGroupCols ) $q .= " GROUP BY $sGroupCols";
+        if( $sHaving )    $q .= " HAVING $sHaving";
         if( $sSortCol )   $q .= " ORDER BY $sSortCol". ($bSortDown ? " DESC" : " ASC");
 
         if( $iLimit > 0 || $iOffset > 0 ) {
