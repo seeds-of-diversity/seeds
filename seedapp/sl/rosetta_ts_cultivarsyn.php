@@ -22,6 +22,13 @@ class RosettaCultivarSynonyms
         $this->oFormSpecies = new SEEDCoreFormSVA( $this->oSVA, 'S' );
         $this->oFormSpecies->Update();
 
+        if( SEEDInput_Str('cmd') == 'reindex' ) {
+            /* Reindex sl_cv_sources.fk_sl_pcv before drawing anything
+             */
+
+
+        }
+
         $this->DoJX();
     }
 
@@ -65,8 +72,8 @@ class RosettaCultivarSynonyms
               .cvName { display:inline-block; background-color:#eff;border:1px solid #aaa; padding:3px; margin: 2px 0; }
               </style>
               <div class='container-fluid'><div class='row'>
-                   <div class='col-md-6 grid-striped'>$sLeft</div>
-                   <div class='col-md-6'><div id='fixed_scrolling_nonindex_list'>$sRight</div></div>
+                   <div class='col-xs-6 grid-striped'>$sLeft</div>
+                   <div class='col-xs-6'><div id='fixed_scrolling_nonindex_list'>$sRight</div></div>
                </div></div>"
 
              ."<button id='buttonMakeThisPrimary' style='position:fixed;top:0;right:0;padding:10px;border:2px solid green;display:none'>Make This a Primary Cultivar</button>"
