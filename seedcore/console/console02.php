@@ -252,22 +252,22 @@ class Console02Static
          *   Because 1) if Apache sends a different default charset in http header, the browser could/will trust that (chrome, at least, does)
          *           2) if someone downloads the html to file, there is no http header to define charset
          */
-        $sHead = "<meta charset='$sCharset'>".$sHead;
+        $sH = "<meta charset='$sCharset'>";
         if( $bCTHeader ) {
             header( "Content-Type:text/html; charset=$sCharset" );
         }
 
         if( @$raConfig['sTitle'] ) {
-            $sHead = "<title>{$raConfig['sTitle']}</title>".$sHead;
+            $sH .= "<title>".SEEDCore_HSC($raConfig['sTitle'])."</title>";
         }
 
         if( $bJQuery ) {
             // prepend jQuery so it precedes any jQuery code in our header script (otherwise $ is not known)
-            $sHead = "<script src='".W_CORE_JQUERY."'></script>".$sHead;
+            $sH .= "<script src='".W_CORE_JQUERY."'></script>";
         }
 
         if( $bBootstrap ) {
-            $sHead .= "<link rel='stylesheet' type='text/css' href='".W_CORE_URL."os/bootstrap3/dist/css/bootstrap.min.css'></link>"
+            $sH .= "<link rel='stylesheet' type='text/css' href='".W_CORE_URL."os/bootstrap3/dist/css/bootstrap.min.css'></link>"
                      ."<script src='".W_CORE_URL."os/bootstrap3/dist/js/bootstrap.min.js'></script>"
                      ."<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
                      ."<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->\n"
@@ -280,28 +280,27 @@ class Console02Static
 
         /* Set shortcut icon
          */
-        $sIcon = @$raConfig['icon'] ?: "/favicon.ico";
-        $sHead .= "<link rel='shortcut icon' href='$sIcon'/>";
+        $sH .= "<link rel='shortcut icon' href='".(@$raConfig['icon'] ?: "/favicon.ico")."'/>";
 
         /* Set the css and js for the requested console skin, and add extra css and js files too.
          */
         if( @$raConfig['consoleSkin'] == 'green' ) {
-            $sHead .= "<link rel='stylesheet' type='text/css' href='".W_CORE."css/console02.css'></link>";
+            $sH .= "<link rel='stylesheet' type='text/css' href='".W_CORE."css/console02.css'></link>";
         }
         if( @$raConfig['raCSSFiles'] ) {
             foreach( $raConfig['raCSSFiles'] as $v ) {
-                $sHead .= "<link rel='stylesheet' type='text/css' href='$v'></link>";
+                $sH .= "<link rel='stylesheet' type='text/css' href='$v'></link>";
             }
         }
         if( @$raConfig['raScriptFiles'] ) {
             foreach( $raConfig['raScriptFiles'] as $v ) {
-                $sHead .= "<script src='$v' type='text/javascript'></script>";
+                $sH .= "<script src='$v' type='text/javascript'></script>";
             }
         }
 
         $s = "<!DOCTYPE html>"
              ."<html lang='".($lang == 'FR' ? 'fr' : 'en')."'>"
-             ."<head>".$sHead."</head>"
+             ."<head>".$sH.$sHead."</head>"                                                // put user-specified head last so e.g. js vars override defaults in files
              ."<body $sBodyAttr>"
              .($cssBodyStyle ? ("<div style='$cssBodyStyle'>$sBody</div>") : $sBody)       // div is easier than trying to parse style in sBodyAttr
              ."</body>"
@@ -310,5 +309,3 @@ class Console02Static
         return( $s );
     }
 }
-
-?>
