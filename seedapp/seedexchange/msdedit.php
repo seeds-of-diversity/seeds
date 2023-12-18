@@ -207,7 +207,7 @@ class MSEEditAppTabGrower
 
         done:
 
-        $s = "<div class='container-fluid><div class='row'>"
+        $s = "<div class='container-fluid'><div class='row'>"
             ."<div class='col-lg-6'>$sLeft</div>"
             ."<div class='col-lg-6'>$sRight</div>"
             ."</div></div>";

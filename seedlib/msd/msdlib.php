@@ -26,6 +26,12 @@ class MSDLib
         $this->oMSDCore = new MSDCore( $oApp, ['sbdb' => @$raConfig['sbdb']] );
         $this->dbname1 = $this->oApp->GetDBName('seeds1');                              // except if sbdb is not seeds1, but it always is so far
         $this->oL = new SEED_Local(  $this->SLocalStrs(), $this->oApp->lang, 'mse' );
+        $this->oTmpl = SEEDTemplateMaker2(
+                        ['fTemplates' => [SEEDAPP."templates/msd.html", SEEDAPP."templates/msd-edit.html"],
+                         'sFormCid'   => 'Plain',
+                         //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
+                         'raVars' => ['lang'=>$this->oApp->lang]
+                        ]);
     }
 
     function PermOfficeW()  { return( $this->oMSDCore->PermOfficeW() ); }
