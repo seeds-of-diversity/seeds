@@ -20,8 +20,11 @@
 
 include_once( SEEDCORE."SEEDBasket.php" );
 include_once( SEEDAPP."basket/basketProductHandlers_seeds.php" );
-include_once( SEEDAPP."seedexchange/msdedit.php" );
-include_once( SEEDAPP."seedexchange/msdadmin.php" );
+include_once( SEEDAPP."seedexchange/mse-edit_common.php" );
+include_once( SEEDAPP."seedexchange/mse-edit_ts_growers.php");
+include_once( SEEDAPP."seedexchange/mse-edit_ts_seeds.php");
+include_once( SEEDAPP."seedexchange/mse-edit_ts_edit.php");
+include_once( SEEDAPP."seedexchange/mse-edit_ts_admin.php");
 include_once( SEEDLIB."msd/msdlib.php" );
 
 
@@ -51,7 +54,8 @@ class MyConsole02TabSet extends Console02TabSet
     private $oApp;
     private $oMSDLib;
     private $oW = null;
-    private $oContacts;
+    private $kCurrGrower = 0;
+    private $kCurrSpecies = 0;
 
     function __construct(SEEDAppConsole $oApp, MSDLib $oMSDLib)
     {
@@ -60,15 +64,11 @@ class MyConsole02TabSet extends Console02TabSet
 
         $this->oApp = $oApp;
         $this->oMSDLib = $oMSDLib;
-        //$this->oContacts = new Mbr_Contacts( $oApp );
 
         if( $this->oMSDLib->PermOfficeW() ) {
-//            $this->oSed->bOffice = true;
-
             $this->kCurrGrower = $this->oApp->oC->oSVA->SmartGPC( 'selectGrower', [0] );
         } else {
             $this->kCurrGrower = $this->oApp->sess->GetUID();
-            $this->kCurrSpecies = 0;   // all species
         }
         $this->kCurrSpecies = $this->oApp->oC->oSVA->SmartGPC( 'selectSpecies', [0] );    // normally an int, but can be tomatoAC, tomatoDH, etc
     }
@@ -95,11 +95,11 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_seeds_ControlDraw()      { return( $this->oW->ControlDraw_Seeds() ); }
     function TabSet_main_seeds_ContentDraw()      { return( $this->oW->ContentDraw_Seeds() ); }
 
-    function TabSet_main_edit_Init()              { $this->oW = new MSDOfficeEditTab( $this->oMSDLib ); }
+    function TabSet_main_edit_Init()              { $this->oW = new MSEEditAppTabOffice( $this->oMSDLib ); }
     function TabSet_main_edit_ControlDraw()       { return( $this->oMSDLib->PermOfficeW() ? $this->oW->DrawControl() : "" ); }         // MSDOfficeEditTab or MSDAdminTab
     function TabSet_main_edit_ContentDraw()       { return( $this->oMSDLib->PermOfficeW() ? $this->oW->DrawContent() : "" ); }
 
-    function TabSet_main_office_Init()            { $this->oW = new MSDAdminTab( $this->oMSDLib ); }
+    function TabSet_main_office_Init()            { $this->oW = new MSEEditAppAdminTab( $this->oMSDLib ); }
     function TabSet_main_office_ControlDraw()     { return( $this->oMSDLib->PermOfficeW() ? $this->oW->DrawControl() : "" ); }         // MSDOfficeEditTab or MSDAdminTab
     function TabSet_main_office_ContentDraw()     { return( $this->oMSDLib->PermOfficeW() ? $this->oW->DrawContent() : "" ); }
 
