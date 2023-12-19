@@ -6,6 +6,7 @@
  *
  */
 
+include_once(SEEDCORE."SEEDCoreFormSession.php");
 
 class MSEEditAppTabGrower
 /************************
@@ -82,6 +83,9 @@ class MSEEditAppTabGrower
     {
         $s = "";
 
+        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA);
+        $oForm->Update();
+
         // move this to StyleDraw_Grower() when this is drawn by Console02
         $s .= "
             <style>
@@ -91,9 +95,22 @@ class MSEEditAppTabGrower
         ";
 
         if( $this->oMSDLib->PermOfficeW() ) {
-            $s .= $this->oMEApp->MakeSelectGrowerNames( $this->kGrower, false );    // kluge to convert names to utf8, required for seeds tab but not growers tab
+            $s .= "<div class='container-fluid'><div class='row'>
+                   <div class='col-md-6'>"
+                 .$this->oMEApp->MakeSelectGrowerNames( $this->kGrower, $oForm->Value('sort'), false )     // kluge to convert names to utf8, required for seeds tab but not growers tab
+                 ."</div>
+                   <div class='col-md-3'>
+                       X Done<br/>
+                       X Skipped<br/>
+                       X Deleted
+                   </div>
+                   <div class='col-md-3'>
+                       <form method='post'>"
+                     .$oForm->Select('sort', ['First name'=>'firstname', 'Last name'=>'lastname', 'Mbr code'=>'mbrcode'], "Sort", ['attrs'=>"onchange='submit()'"])
+                     ."</form>
+                   </div>
+                   </div></div>";
         }
-
         return( $s );
     }
 
@@ -188,11 +205,11 @@ class MSEEditAppTabGrower
 
         try {
             // days since GUpdate
-            if( (new DateTime())->diff(new DateTime($dGUpdated))->days < 90 ) {
+            if( $dGUpdated && (new DateTime())->diff(new DateTime($dGUpdated))->days < 90 ) {
                 $dGUpdated = "<span style='color:green;background-color:#cdc'>$dGUpdated</span>";
             }
             // days since SUpdate
-            if( (new DateTime())->diff(new DateTime($dSUpdated))->days < 90 ) {
+            if( $dSUpdated && (new DateTime())->diff(new DateTime($dSUpdated))->days < 90 ) {
                 $dSUpdated = "<span style='color:green;background-color:#cdc'>$dSUpdated</span>";
             }
         } catch (Exception $e) {}

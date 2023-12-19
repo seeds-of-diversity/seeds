@@ -54,10 +54,17 @@ class MSEEditApp
         return( $oMbr->GetContactName($kGrower) );
     }
 
-    function MakeSelectGrowerNames( int $kCurrGrower, bool $klugeEncodeUTF8 )
+    function MakeSelectGrowerNames( int $kCurrGrower, string $sSortCol, bool $klugeEncodeUTF8 )
     {
-//use GxM to make this more efficient
-        $raG = $this->oApp->kfdb->QueryRowsRA( "SELECT mbr_id,bSkip,bDelete,bDone FROM {$this->oApp->GetDBName('seeds1')}.sed_curr_growers WHERE _status='0'" );
+        $oMbr = new Mbr_Contacts($this->oApp);
+
+        switch($sSortCol) {
+            default:
+            case 'firstname':   $sSortCol = 'M.firstname,M.lastname';   break;
+            case 'lastname':    $sSortCol = 'M.lastname,M.firstname';   break;
+            case 'mbrcode':     $sSortCol = 'mbr_code';                 break;
+        }
+        $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA("",['sSortCol'=>$sSortCol]);   // all growers with _status=0
         $raG2 = array( '-- All Growers --' => 0 );
         foreach( $raG as $ra ) {
             $kMbr = $ra['mbr_id'];
@@ -65,15 +72,15 @@ class MSEEditApp
             $bDelete = $ra['bDelete'];
             $bDone = $ra['bDone'];
 
-            $name = $this->GetGrowerName( $kMbr )
-                   ." ($kMbr)"
+            $name = $oMbr->GetContactNameFromMbrRA( $ra, ['fldPrefix'=>'M_'] )
+                   ." ($kMbr {$ra['mbr_code']})"
                    .($bDone ? " - Done" : "")
                    .($bSkip ? " - Skipped" : "")
                    .($bDelete ? " - Deleted" : "");
             if( $klugeEncodeUTF8 )  $name = SEEDCore_utf8_encode(trim($name));    // Seeds is utf8 but Growers isn't
             $raG2[$name] = $kMbr;
         }
-        ksort($raG2);
+        //ksort($raG2);
         $oForm = new SEEDCoreForm( 'Plain' );
         return( "<form method='post'>".$oForm->Select( 'selectGrower', $raG2, "", ['selected'=>$kCurrGrower, 'attrs'=>"onChange='submit();'"] )."</form>" );
     }
