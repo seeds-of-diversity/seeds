@@ -284,7 +284,7 @@ class SEEDDataStore
         return( true );
     }
     function DSClear()            { $this->raBaseData = []; }
-    function DSValue( $k )        { return( @$this->raBaseData[$k] ); }
+    function DSValue( $k )        { return( @$this->raBaseData[$k] ?? ""); }
     function DSSetValue( $k, $v ) { $this->raBaseData[$k] = $v; }
     function DSPreOp( $op )       { return( true ); }               // base implementation doesn't have to do anything
     function DSOp( $op )          { }                               // no operations are defined in the base implementation

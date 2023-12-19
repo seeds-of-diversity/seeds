@@ -2,7 +2,7 @@
 
 /* SEEDSession
  *
- * Copyright 2006-2019 Seeds of Diversity Canada
+ * Copyright 2006-2023 Seeds of Diversity Canada
  *
  * A wrapper for PHP sessions, with variable access
  */
@@ -24,7 +24,7 @@ class SEEDSessionVarAccessor
 
     function SetNamespace($ns) { $this->ns = $ns; }
 
-    function VarGet($k)        { return( empty($this->ns) ? @$_SESSION[$k] : @$_SESSION[$this->ns][$k] ); }
+    function VarGet($k)        { return( (empty($this->ns) ? @$_SESSION[$k] : @$_SESSION[$this->ns][$k]) ?? "" ); }
     function VarGetEnt($k)     { return( SEEDStd_HSC($this->VarGet($k)) ); }
     function VarGetInt($k)     { return( intval($this->VarGet($k)) ); }
     function VarGetBool($k)    { return( !$this->VarEmpty($k) ); }  // false if 0, "", NULL, false, or !isset
