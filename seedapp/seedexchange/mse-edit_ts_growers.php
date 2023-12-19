@@ -83,8 +83,25 @@ class MSEEditAppTabGrower
     {
         $s = "";
 
-        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA);
+        $raChk = ['bExpired','bNoChange'];
+        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A',
+                                     ['fields'=>['bExpired' =>['control'=>'checkbox'],
+                                                 'bNoChange'=>['control'=>'checkbox'],
+                                     ]]);
         $oForm->Update();
+
+        // check boxes that are checked
+        $raChecked = [];
+        foreach($raChk as $v) {
+            if( $oForm->Value($v) ) $raChecked[$v] = true;
+        }
+        foreach(['bDone','bSkip','bDel'] as $k ) {
+            switch($oForm->Value($k)) {
+                case 1: $raChecked[$k] = true;  break;     // only show growers with $k
+                case 0: $raChecked[$k] = false; break;     // only show growers with !$k
+                default:                                   // !isset means all growers
+            }
+        }
 
         // move this to StyleDraw_Grower() when this is drawn by Console02
         $s .= "
@@ -96,18 +113,23 @@ class MSEEditAppTabGrower
 
         if( $this->oMSDLib->PermOfficeW() ) {
             $s .= "<div class='container-fluid'><div class='row'>
-                   <div class='col-md-6'>"
-                 .$this->oMEApp->MakeSelectGrowerNames( $this->kGrower, $oForm->Value('sort'), false )     // kluge to convert names to utf8, required for seeds tab but not growers tab
+                   <div class='col-md-4'>"
+                 .$this->oMEApp->MakeSelectGrowerNames( $this->kGrower, $oForm->Value('sort'), $raChecked, false )     // kluge to convert names to utf8, required for seeds tab but not growers tab
                  ."</div>
-                   <div class='col-md-3'>
-                       X Done<br/>
-                       X Skipped<br/>
-                       X Deleted
-                   </div>
-                   <div class='col-md-3'>
+                   <div class='col-md-2'>
                        <form method='post'>"
                      .$oForm->Select('sort', ['First name'=>'firstname', 'Last name'=>'lastname', 'Mbr code'=>'mbrcode'], "Sort", ['attrs'=>"onchange='submit()'"])
                      ."</form>
+                   </div>
+                   <div class='col-md-2'>
+                       <form method='post'>"
+                      .$oForm->Select('bDone', ['Done and Not Done'=>-1,      'Done'=>1,   'Not Done'=>0],    "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                      .$oForm->Select('bSkip', ['Skipped and Not Skipped'=>-1,'Skipped'=>1,'Not Skipped'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                      .$oForm->Select('bDel',  ['Deleted and Not Deleted'=>-1,'Deleted'=>1,'Not Deleted'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
+                   </div>
+                   <div class='col-md-2'>"
+                      .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
+                      .$oForm->Checkbox('bNoChange', "Change &lt; last April (slow)", ['attrs'=>"onchange='submit()'"])."<br/>
                    </div>
                    </div></div>";
         }

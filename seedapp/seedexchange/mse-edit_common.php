@@ -54,17 +54,27 @@ class MSEEditApp
         return( $oMbr->GetContactName($kGrower) );
     }
 
-    function MakeSelectGrowerNames( int $kCurrGrower, string $sSortCol, bool $klugeEncodeUTF8 )
+    function MakeSelectGrowerNames( int $kCurrGrower, string $sSortCol, array $raChecked, bool $klugeEncodeUTF8 )
     {
         $oMbr = new Mbr_Contacts($this->oApp);
 
+        // sort list by sSortCol
         switch($sSortCol) {
             default:
             case 'firstname':   $sSortCol = 'M.firstname,M.lastname';   break;
             case 'lastname':    $sSortCol = 'M.lastname,M.firstname';   break;
             case 'mbrcode':     $sSortCol = 'mbr_code';                 break;
         }
-        $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA("",['sSortCol'=>$sSortCol]);   // all growers with _status=0
+
+        // filter list by raChecked
+        $raCond = [];
+        if(isset($raChecked['bDone'])) { $raCond[] = $raChecked['bDone'] ? "bDone"   : "NOT bDone"; }
+        if(isset($raChecked['bSkip'])) { $raCond[] = $raChecked['bSkip'] ? "bSkip"   : "NOT bSkip"; }
+        if(isset($raChecked['bDel']))  { $raCond[] = $raChecked['bDel']  ? "bDelete" : "NOT bDelete"; }
+        if(@$raChecked['bExpired'])    { $raCond[] = "year(M.expires)<2022"; }
+        if(@$raChecked['bNoChange'])   { $raCond[] = "_updated_by_mbr<'2023-09-01'"; }
+
+        $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA(implode(' AND ',$raCond),['sSortCol'=>$sSortCol]);   // all growers with _status=0
         $raG2 = array( '-- All Growers --' => 0 );
         foreach( $raG as $ra ) {
             $kMbr = $ra['mbr_id'];
