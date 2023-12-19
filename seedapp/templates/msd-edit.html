@@ -5,3 +5,60 @@
 
 %% MSEEdit_tablabel_S
 [[ifeq:$lang|EN| My Seeds | Mes semences]]
+
+%% MSEEdit_css
+<style>
+.sed_grower                         { font-family:verdana,helvetica,sans-serif; font-size:10pt; width:80%; }"
+.sed_edit_form                      { padding:0px 1em; }
+.sed_edit_form, .sed_edit_form td   { font-family:verdana,helvetica,sans-serif; font-size:9pt; }
+.sed_edit_form input                { font-size:8pt;}
+.sed_edit_form h3                   { font-size:12pt; }
+
+.sed_type                           {}
+.sed_type h3                        { font-family: helvetica,arial,sans-serif; }
+.sed_seed                           {}    /* font-family: helvetica,arial,sans-serif;font-size:10pt; margin-bottom:15pt; } */
+.sed_seed_skip                      { color: #444; background-color:#ee9; }
+.sed_seed_delete                    { color: red; background-color:#fdf }
+.sed_seed_change                    { background-color: #99dd99 }
+.sed_seed_mc                        { font-weight:bold;text-align:right }
+.sed_seed_offer                     { font-family: helvetica,arial,sans-serif;font-size:10pt; padding:2px; float:right; background-color:#fff; }
+.sed_seed_offer_member              { color: #484; border:2px solid #484 }
+.sed_seed_offer_growermember        { color: #08f; border:2px solid #08f }
+.sed_seed_offer_public              { color: #f80; border:2px solid #f80 }
+</style>
+
+
+%% MSEEdit_js_popovers
+<style>
+.popover { width: 20%; }    /* when container:'body' specified ths makes the popover 20% of the window width */
+</style>
+<script type='text/javascript'>
+$(document).ready( function() {
+    SEEDPopover();
+});
+
+var SEEDPopover_Def = {
+    mbr_code:
+        { placement:'right', trigger: 'hover', container: 'body',
+          title:   "Member Code",
+          content: "We use this in the printed seed directory as a shorthand code to identify you. If you don't have one yet, our office will set it up for you."
+        },
+    unlisted:
+        { placement:'right', trigger: 'hover', container: 'body',
+          title:   "Unlisted email/phone",
+          content: "You can keep your email address or phone number hidden from other members. Remember that you might want them to contact you though."
+        },
+    frost_free:
+        { placement:'right', trigger: 'hover', container: 'body',
+          title:   "Frost free days",
+          content: "Estimate the typical length of your season from last spring frost to first fall frost. This helps other members know whether their season is compatible."
+        },
+    organic:
+        { placement:'right', trigger: 'hover', container: 'body',
+          title:   "Organic seeds",
+          content: "Your seeds don't necessarily have to be certified organic. Members just want to know if you avoid chemicals in your garden."
+        }
+};
+
+</script>
+
