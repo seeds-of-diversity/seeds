@@ -97,19 +97,17 @@ class MSEEditAppTabGrower
 
         if( !$this->oMSDLib->PermOfficeW() )  goto done;
 
-        $raChk = ['bExpired','bNoChange'];
-        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A',
-                                     ['fields'=>['bExpired' =>['control'=>'checkbox'],
-                                                 'bNoChange'=>['control'=>'checkbox'],
-                                     ]]);
+        $raChk = ['bExpired'  =>['control'=>'checkbox'],
+                  'bNoChange' =>['control'=>'checkbox'] ];
+        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A', ['fields'=>$raChk]);
         $oForm->Update();
 
         // check boxes that are checked
         $raChecked = [];
-        foreach($raChk as $v) {
-            if( $oForm->Value($v) ) $raChecked[$v] = true;
+        foreach($raChk as $k=>$v) {
+            if( $oForm->Value($k) ) $raChecked[$k] = true;
         }
-        foreach(['bDone','bSkip','bDel'] as $k ) {
+        foreach(['bDone','bSkip','bDel','bZeroSeeds'] as $k ) {
             switch($oForm->Value($k)) {
                 case 1: $raChecked[$k] = true;  break;     // only show growers with $k
                 case 0: $raChecked[$k] = false; break;     // only show growers with !$k
@@ -126,14 +124,24 @@ class MSEEditAppTabGrower
                  ."</form>
                </div>
                <div class='col-md-2'>
-                   <form method='post'>"
-                  .$oForm->Select('bDone', ['Done and Not Done'=>-1,      'Done'=>1,   'Not Done'=>0],    "", ['attrs'=>"onchange='submit()'"])."<br/>"
-                  .$oForm->Select('bSkip', ['Skipped and Not Skipped'=>-1,'Skipped'=>1,'Not Skipped'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
-                  .$oForm->Select('bDel',  ['Deleted and Not Deleted'=>-1,'Deleted'=>1,'Not Deleted'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
+                   <form method='post'>
+                   <table><tr><td><b>Done<br/>Skipped&nbsp;</br>Deleted&nbsp;</b></td>
+                     </td><td>"
+                    .$oForm->Select('bDone', ['--'=>-1, 'Done'=>1,    'Not Done'=>0],    "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bSkip', ['--'=>-1, 'Skipped'=>1, 'Not Skipped'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bDel',  ['--'=>-1, 'Deleted'=>1, 'Not Deleted'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
+                   </td></tr></table>
+                   </form>
                </div>
-               <div class='col-md-2'>"
-                  .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
-                  .$oForm->Checkbox('bNoChange', "Change &lt; last April (slow)", ['attrs'=>"onchange='submit()'"])."<br/>
+               <div class='col-md-2'>
+                   <form method='post'>
+                   <table><tr><td><b><br/>&nbsp;</br>#Seeds&nbsp;</b></td>
+                     </td><td>"
+                    .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Checkbox('bNoChange', "Change &lt; last April (slow)", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bZeroSeeds',  ['--'=>-1, 'Zero'=>1, 'Not Zero'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
+                   </td></tr></table>
+                   </form>
                </div>
                </div></div>";
 
@@ -189,11 +197,14 @@ class MSEEditAppTabGrower
         $kfrG = $this->kfrGxM;
         $kGrower = $kfrG->Value('mbr_id');
 
+        $raD = [];
+
         $nSActive = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.SEEDBasket_Products
                                                 WHERE product_type='seeds' AND _status='0' AND
                                                       uid_seller='$kGrower' AND eStatus='ACTIVE'" );
 
         $dMbrExpiry = $this->oApp->kfdb->Query1( "SELECT expires FROM {$this->oApp->DBName('seeds2')}.mbr_contacts WHERE _key='$kGrower'" );
+        $raD['dLastLogin'] = $this->oApp->kfdb->Query1( "SELECT left(MAX(_created),10) FROM {$this->oApp->DBName('seeds1')}.SEEDSession WHERE uid='$kGrower'" );
 
         $sSkip = $kfrG->Value('bSkip')
                     ? ("<div style='background-color:#ee9'><span style='font-size:12pt'>Skipped</span>"
@@ -214,11 +225,11 @@ class MSEEditAppTabGrower
         $raD['dSUpdatedByMbr'] = substr( $kfrG->Value('_updated_S_mbr'), 0, 10 );      // latest update of seed records that were updated by the member (can be "")
         $kSUpdatedBy           = $kfrG->Value('_updated_S_by');                        // who made the latest update of any seed records
 
-        foreach(['dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
+        foreach(['dLastLogin','dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
             if( ($d = $raD[$k]) ) {
                 // highlight dates that are within 90 days of today
                 try {
-                    if( (new DateTime())->diff(new DateTime($d))->days < 90 ) {
+                    if( (new DateTime())->diff(new DateTime($d))->days < 120 ) {
                         $raD[$k] = "<span style='color:green;background-color:#cdc'>$d</span>";
                     }
                 } catch (Exception $e) {}
@@ -229,6 +240,7 @@ class MSEEditAppTabGrower
         $s = "<div style='border:1px solid black; margin:10px; padding:10px'>"
             ."<p>Seeds active: $nSActive</p>"
             ."<p>Membership expiry: $dMbrExpiry</p>"
+            ."<p>Last login: {$raD['dLastLogin']}</p>"
             ."<p>Last grower record change: <b>{$raD['dGUpdatedByMbr']} by member</b>".($kGUpdatedBy <> $kGrower ? " ({$raD['dGUpdated']} by $kGUpdatedBy)" : "")."</p>"
             ."<p>Last seed record change: <b>{$raD['dSUpdatedByMbr']} by member</b>".($kSUpdatedBy <> $kGrower ? " ({$raD['dSUpdated']} by $kSUpdatedBy)" : "")."</p>"
             .$sSkip
