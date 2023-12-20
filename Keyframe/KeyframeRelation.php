@@ -1083,12 +1083,15 @@ class KeyframeRecord
     }
 
 
-    function PutDBRow( $bUpdateTS = false )
-    /**************************************
+    function PutDBRow( $raParms = [] )
+    /*********************************
         Insert/Update the row as needed.  The choice is based on $this->key==0.
 
-        This does NOT automatically update $this->_values('_created') and ('_updated'), since that requires an extra fetch.
-        $bUpdateTS==true causes this fetch
+        This does NOT automatically update $this->_values('_created') and ('_updated'), since that requires an extra fetch. Use bFetchTS.
+
+        $raParms:
+            bFetchTS    - fetch _created and _updated after the row is written (default false)
+            bNoChangeTS - on UPDATE don't change _updated,_update_by (default false). Ignored for INSERT.
      */
     {
         $ok = false;
@@ -1118,15 +1121,15 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
              * _key doesn't change unless $this->keyForce
              * _created* never change
              */
-            $bDo = false;
             $bSnap = isset($this->dbValSnap['_key']) && $this->dbValSnap['_key'] == $this->key;
             $bKeyForce = $this->keyForce && $this->keyForce != $this->key;
 
-            $s = "UPDATE $kfBaseTableName SET _updated=NOW(),_updated_by='$kfUid'";
-            $sClause = "";
+            $raSet = [];
             if( $bKeyForce ) {
-                $sClause .= ",_key='{$this->keyForce}'";
-                $bDo = true;
+                $raSet[] = "_key='{$this->keyForce}'";
+            }
+            if( !@$raParms['bNoChangeTS'] ) {
+                $raSet[] = "_updated=NOW(),_updated_by='$kfUid'";
             }
             foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( in_array( $f['col'], ["_key", "_created", "_created_by", "_updated", "_updated_by"] ) ) continue;
@@ -1146,20 +1149,18 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
 
                 // write changed fields to db
                 if( $this->IsNull($a) ) {
-                    $sClause .= ",{$f['col']}=NULL";
-                    $bDo = true;
+                    $raSet[] = "{$f['col']}=NULL";
                 } else {
-                    $sClause .= ",{$f['col']}=".$this->putFmtVal( $this->values[$a], $f['type'] );
-                    $bDo = true;
+                    $raSet[] = "{$f['col']}=".$this->putFmtVal( $this->values[$a], $f['type'] );
                 }
             }
-            if( $bDo ) {
-                $s .= $sClause." WHERE _key='{$this->key}'";
-                $ok = $this->kfrel->KFDB()->Execute( $s );
+            if( count($raSet) ) {
+                $sSetClause = implode(',', $raSet);
+                $ok = $this->kfrel->KFDB()->Execute( "UPDATE $kfBaseTableName SET $sSetClause WHERE _key='{$this->key}'" );
 
                 // Log U table _key uid: update clause {{err}}
                 // Do this before SetKey(keyForce) so it shows the old key
-                $this->kfrel->_Log( "U $kfBaseTableName {$this->key} $kfUid: $sClause", $ok );
+                $this->kfrel->_Log( "U $kfBaseTableName {$this->key} $kfUid: $sSetClause", $ok );
 
                 if( $ok && $bKeyForce ) {
                     $this->SetKey( $this->keyForce );
@@ -1199,7 +1200,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             $this->kfrel->_Log( "I $kfBaseTableName {$sKey}->{$kNew} $kfUid: ($sk) ($sv)", $ok );
         }
         if( $ok ) {
-            if( $bUpdateTS ) {
+            if( @$raParms['bFetchTS'] ) {
                 if( ($ra = $this->kfrel->KFDB()->QueryRA( "SELECT _created,_updated FROM $kfBaseTableName WHERE _key='{$this->key}'" )) ) {
                     $this->values['_created'] = $ra['_created'];
                     $this->values['_updated'] = $ra['_updated'];
