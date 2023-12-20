@@ -632,7 +632,7 @@ class MSDCore
         return( $o->GetBasicValues($kGrower) );
     }
 
-    function GetLastUpdated( $cond )  { return( $this->oSBDB->ProductLastUpdated( $cond ) ); }
+    function GetLastUpdated( $cond, $raParms = [] )  { return( $this->oSBDB->ProductLastUpdated( $cond, $raParms ) ); }
 
     function KFRelG()
     {
@@ -741,3 +741,114 @@ class MSDBasketCore extends SEEDBasketCore
         }
     }
 }
+
+
+/*  We never create these tables from scratch anymore, but it's good to have the definition
+
+CREATE TABLE sed_growers (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    mbr_id          INTEGER NOT NULL,                   -- could be fk_mbr_contacts (no impact on kfrel that don't involve mbr_contacts)
+    mbr_code        CHAR(10),                           -- keep this here instead of mbr_contacts so sed_seeds has a record of province
+    frostfree       VARCHAR(200),
+    soiltype        VARCHAR(200),
+    organic         BOOL        DEFAULT 0,
+    zone            VARCHAR(200),
+    notes           TEXT,
+    unlisted_phone  BOOL        DEFAULT 0,
+    unlisted_email  BOOL        DEFAULT 0,
+    cutoff          VARCHAR(200),
+    pay_cash        BOOL        DEFAULT 0,
+    pay_cheque      BOOL        DEFAULT 0,
+    pay_stamps      BOOL        DEFAULT 0,
+    pay_ct          BOOL        DEFAULT 0,
+    pay_mo          BOOL        DEFAULT 0,              -- money order
+    pay_etransfer   tinyint     not null default 0,
+    pay_paypal      tinyint     not null default 0,
+    pay_other       VARCHAR(200),
+
+    nTotal          INTEGER     DEFAULT 0,
+    nFlower         INTEGER     DEFAULT 0,
+    nFruit          INTEGER     DEFAULT 0,
+    nGrain          INTEGER     DEFAULT 0,
+    nHerb           INTEGER     DEFAULT 0,
+    nTree           INTEGER     DEFAULT 0,
+    nVeg            INTEGER     DEFAULT 0,
+    nMisc           INTEGER     DEFAULT 0,
+
+    year            INTEGER,
+
+    eReqClass       enum('mail_email','mail','email') not null default 'mail_email',
+
+    eDateRange      enum('use_range','all_year') not null default 'use_range',
+    dDateRangeStart date not null default '2021-01-01',     -- want these to be year-independent
+    dDateRangeEnd   date not null default '2021-05-31',     -- want these to be year-independent
+
+
+-- Uncomment for sed_curr_seeds
+--  bSkip           BOOL         DEFAULT 0,
+--  bDelete         BOOL         DEFAULT 0,
+--  bChanged        BOOL         DEFAULT 0,
+-- // obsolete  bDone           BOOL         DEFAULT 0,
+--  bDoneMbr        BOOL         DEFAULT 0,  -- the member clicked Done themselves
+--  bDoneOffice     BOOL         DEFAULT 0,  -- we clicked Done in the office
+-- // obsolete  _updated_by_mbr VARCHAR(100),
+
+--  _updated_G_mbr  VARCHAR(100),               -- last time the grower updated their own sed_growers record
+--  _updated_S_mbr  VARCHAR(100),               -- last time the grower updated their own seed-product records
+--  _updated_S      VARCHAR(100),               -- last time anybody updated a seed-product record owned by this grower
+--  _updated_S_by   INTEGER DEFAULT 0,          -- who made the most recent change to a seed-product record owned by this grower
+
+
+
+    INDEX sed_growers_mbr_id   (mbr_id),
+    INDEX sed_growers_mbr_code (mbr_code)
+);
+
+alter table sed_curr_growers rename column _updated_by_mbr to _updated_G_mbr;
+alter table sed_curr_growers add _updated_S_mbr varchar(100);
+alter table sed_curr_growers add _updated_S varchar(100);
+alter table sed_curr_growers add _updated_S_by integer default 0;
+
+DROP TABLE IF EXISTS sed_seeds;
+CREATE TABLE sed_seeds (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    mbr_id          INTEGER NOT NULL,                   -- not fk_sed_curr_growers because that won't work with sed_seeds
+    category        VARCHAR(200) NOT NULL DEFAULT '',
+    type            VARCHAR(200) NOT NULL DEFAULT '',
+    variety         VARCHAR(200) NOT NULL DEFAULT '',
+    bot_name        VARCHAR(200) NOT NULL DEFAULT '',
+    days_maturity   VARCHAR(200) NOT NULL DEFAULT '',
+    quantity        VARCHAR(200) NOT NULL DEFAULT '',
+    origin          VARCHAR(200) NOT NULL DEFAULT '',
+    year_1st_listed INTEGER NOT NULL DEFAULT 0,
+    description     TEXT,
+    year            INTEGER NOT NULL DEFAULT 0,         -- the year of this SED
+
+
+-- Uncomment for sed_curr_seeds
+--  OBSOLETE  bSkip           BOOL         DEFAULT 0,
+--  OBSOLETE  bDelete         BOOL         DEFAULT 0,
+--  OBSOLETE  bChanged        BOOL         DEFAULT 0,
+--  OBSOLETE  _updated_by_mbr DATETIME,
+
+
+    INDEX sed_seeds_mbr_id     (mbr_id),
+    INDEX sed_seeds_catgy      (category(20)),
+    INDEX sed_seeds_type       (type(20)),
+    INDEX sed_seeds_variety    (variety(20)),
+);
+
+*/
+
