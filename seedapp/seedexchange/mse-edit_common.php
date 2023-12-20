@@ -72,7 +72,7 @@ class MSEEditApp
         if(isset($raChecked['bSkip'])) { $raCond[] = $raChecked['bSkip'] ? "bSkip"   : "NOT bSkip"; }
         if(isset($raChecked['bDel']))  { $raCond[] = $raChecked['bDel']  ? "bDelete" : "NOT bDelete"; }
         if(@$raChecked['bExpired'])    { $raCond[] = "year(M.expires)<2022"; }
-        if(@$raChecked['bNoChange'])   { $raCond[] = "_updated_by_mbr<'2023-09-01'"; }
+        if(@$raChecked['bNoChange'])   { $raCond[] = "_updated_G_mbr<'2023-09-01'"; }
 
         $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA(implode(' AND ',$raCond),['sSortCol'=>$sSortCol]);   // all growers with _status=0
         $raG2 = array( '-- All Growers --' => 0 );

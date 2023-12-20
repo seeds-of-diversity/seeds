@@ -30,7 +30,11 @@ class MSEEditAppAdminTab
 
         if( !$this->oMSDLib->PermOfficeW() )  goto done;
 
+
         $Y = date('Y');     // typically better than oMSDLib->GetCurrYear() unless you want a forward-looking date in late fall
+
+        $s .= "<div class='alert alert-success'>{$this->oMSDLib->AdminNormalizeStuff()}</div>";
+
 
         /* Show statistics box
          */
@@ -65,8 +69,6 @@ class MSEEditAppAdminTab
 
         if( $this->oMSDLib->PermAdmin() ) {
             $s .= "<h4>Admin</h4>";
-
-            $s .= $this->oMSDLib->AdminNormalizeStuff();
 
             /* Integrity tests
              */

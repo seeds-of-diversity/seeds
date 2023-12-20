@@ -33,6 +33,7 @@ class MSEEditAppTabGrower
     {
         list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kGrower, 'grower');
         $kGrower = $this->kGrower;  // be sure not to use the old value below
+        $bKGrowerIsMe = $this->kGrower == $this->oApp->sess->GetUID();
 
 // Activate your seed list -- Done! should be Active (summary of seeds active, skipped, deleted)
 
@@ -72,7 +73,10 @@ class MSEEditAppTabGrower
             $eOp = 'gdelete';
         }
         if( $eOp ) {
-            if( !$this->kfrGxM->PutDBRow() ) {
+            if( $bKGrowerIsMe ) {
+                $this->kfrGxM->SetValue( '_updated_G_mbr', date("Y-m-d") );  // record that you changed this in your own record
+            }
+            if( !$this->kfrGxM->PutDBRow( $bKGrowerIsMe ? [] : ['bNoChangeTS'=>true] ) ) {  // bDone,bSkip,bDelete shouldn't change _updated unless it's your own record
                 $this->oApp->Log( 'MSEEdit.log', "$eOp {$this->kGrower} by user {$this->oApp->sess->GetUID()} failed: ".$this->kfrGxM->KFRel()->KFDB()->GetErrMsg() );
             }
         }
@@ -82,6 +86,16 @@ class MSEEditAppTabGrower
     function ControlDraw_Grower()
     {
         $s = "";
+
+        // move this to StyleDraw_Grower() when this is drawn by Console02
+        $s .= "
+            <style>
+            .mse-edit-grower-block      { border:1px solid #aaa; padding:5px; }
+            .mse-edit-grower-block-done { color:green; background:#cdc; }
+            </style>
+        ";
+
+        if( !$this->oMSDLib->PermOfficeW() )  goto done;
 
         $raChk = ['bExpired','bNoChange'];
         $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A',
@@ -102,37 +116,28 @@ class MSEEditAppTabGrower
                 default:                                   // !isset means all growers
             }
         }
+        $s .= "<div class='container-fluid'><div class='row'>
+               <div class='col-md-4'>"
+             .$this->oMEApp->MakeSelectGrowerNames( $this->kGrower, $oForm->Value('sort'), $raChecked, false )     // kluge to convert names to utf8, required for seeds tab but not growers tab
+             ."</div>
+               <div class='col-md-2'>
+                   <form method='post'>"
+                 .$oForm->Select('sort', ['First name'=>'firstname', 'Last name'=>'lastname', 'Mbr code'=>'mbrcode'], "Sort", ['attrs'=>"onchange='submit()'"])
+                 ."</form>
+               </div>
+               <div class='col-md-2'>
+                   <form method='post'>"
+                  .$oForm->Select('bDone', ['Done and Not Done'=>-1,      'Done'=>1,   'Not Done'=>0],    "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                  .$oForm->Select('bSkip', ['Skipped and Not Skipped'=>-1,'Skipped'=>1,'Not Skipped'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                  .$oForm->Select('bDel',  ['Deleted and Not Deleted'=>-1,'Deleted'=>1,'Not Deleted'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
+               </div>
+               <div class='col-md-2'>"
+                  .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
+                  .$oForm->Checkbox('bNoChange', "Change &lt; last April (slow)", ['attrs'=>"onchange='submit()'"])."<br/>
+               </div>
+               </div></div>";
 
-        // move this to StyleDraw_Grower() when this is drawn by Console02
-        $s .= "
-            <style>
-            .mse-edit-grower-block      { border:1px solid #aaa; padding:5px; }
-            .mse-edit-grower-block-done { color:green; background:#cdc; }
-            </style>
-        ";
-
-        if( $this->oMSDLib->PermOfficeW() ) {
-            $s .= "<div class='container-fluid'><div class='row'>
-                   <div class='col-md-4'>"
-                 .$this->oMEApp->MakeSelectGrowerNames( $this->kGrower, $oForm->Value('sort'), $raChecked, false )     // kluge to convert names to utf8, required for seeds tab but not growers tab
-                 ."</div>
-                   <div class='col-md-2'>
-                       <form method='post'>"
-                     .$oForm->Select('sort', ['First name'=>'firstname', 'Last name'=>'lastname', 'Mbr code'=>'mbrcode'], "Sort", ['attrs'=>"onchange='submit()'"])
-                     ."</form>
-                   </div>
-                   <div class='col-md-2'>
-                       <form method='post'>"
-                      .$oForm->Select('bDone', ['Done and Not Done'=>-1,      'Done'=>1,   'Not Done'=>0],    "", ['attrs'=>"onchange='submit()'"])."<br/>"
-                      .$oForm->Select('bSkip', ['Skipped and Not Skipped'=>-1,'Skipped'=>1,'Not Skipped'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
-                      .$oForm->Select('bDel',  ['Deleted and Not Deleted'=>-1,'Deleted'=>1,'Not Deleted'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
-                   </div>
-                   <div class='col-md-2'>"
-                      .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
-                      .$oForm->Checkbox('bNoChange', "Change &lt; last April (slow)", ['attrs'=>"onchange='submit()'"])."<br/>
-                   </div>
-                   </div></div>";
-        }
+        done:
         return( $s );
     }
 
@@ -184,32 +189,6 @@ class MSEEditAppTabGrower
         $kfrG = $this->kfrGxM;
         $kGrower = $kfrG->Value('mbr_id');
 
-        // Grower record
-        $dGUpdated = substr( $kfrG->Value('_updated'), 0, 10 );
-        $kGUpdatedBy = $kfrG->Value('_updated_by');
-
-        // Seed records
-/*
-        $ra = $this->oC->oApp->kfdb->QueryRA(
-                "SELECT _updated,_updated_by FROM
-                     (
-                     (SELECT _updated,_updated_by FROM seeds_1.SEEDBasket_Products
-                         WHERE product_type='seeds' AND _status='0' AND
-                               uid_seller='$kGrower' ORDER BY _updated DESC LIMIT 1)
-                     UNION
-                     (SELECT PE._updated,PE._updated_by FROM seeds_1.SEEDBasket_ProdExtra PE,seeds_1.SEEDBasket_Products P
-                         WHERE P.product_type='seeds' AND _status='0' AND
-                               P.uid_seller='$kGrower' AND P._key=PE.fk_SEEDBasket_Products ORDER BY 1 DESC LIMIT 1)
-                     ) as A
-                 ORDER BY 1 DESC LIMIT 1" );
-        $dSUpdated = @$ra['_updated'];
-        $kSUpdatedBy = @$ra['_updated_by'];
-*/
-
-// oSB is in MSDLib
-        $oSB = new SEEDBasketCore( null, null, $this->oApp, SEEDBasketProducts_SoD::$raProductTypes, [] );
-        list($kP_dummy,$dSUpdated,$kSUpdatedBy) = $oSB->oDB->ProductLastUpdated( "P.product_type='seeds' AND P.uid_seller='$kGrower'" );
-
         $nSActive = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.SEEDBasket_Products
                                                 WHERE product_type='seeds' AND _status='0' AND
                                                       uid_seller='$kGrower' AND eStatus='ACTIVE'" );
@@ -225,22 +204,33 @@ class MSEEditAppTabGrower
                       ." <a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>UnDelete this grower</a></div>")
                     : ("<div><a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>Delete this grower</a></div>");
 
-        try {
-            // days since GUpdate
-            if( $dGUpdated && (new DateTime())->diff(new DateTime($dGUpdated))->days < 90 ) {
-                $dGUpdated = "<span style='color:green;background-color:#cdc'>$dGUpdated</span>";
-            }
-            // days since SUpdate
-            if( $dSUpdated && (new DateTime())->diff(new DateTime($dSUpdated))->days < 90 ) {
-                $dSUpdated = "<span style='color:green;background-color:#cdc'>$dSUpdated</span>";
-            }
-        } catch (Exception $e) {}
+        // Grower record
+        $raD['dGUpdated']      = substr( $kfrG->Value('_updated'), 0, 10 );            // latest update of this record
+        $raD['dGUpdatedByMbr'] = substr( $kfrG->Value('_updated_G_mbr'), 0, 10 );      // latest update of this record by the member (can be "")
+        $kGUpdatedBy           = $kfrG->Value('_updated_by');
 
+        // Seed records - includes INACTIVE and DELETED because we want to know if someone set those states
+        $raD['dSUpdated']      = substr( $kfrG->Value('_updated_S'), 0, 10 );          // latest update of any seed records (can be "" if no seeds)
+        $raD['dSUpdatedByMbr'] = substr( $kfrG->Value('_updated_S_mbr'), 0, 10 );      // latest update of seed records that were updated by the member (can be "")
+        $kSUpdatedBy           = $kfrG->Value('_updated_S_by');                        // who made the latest update of any seed records
+
+        foreach(['dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
+            if( ($d = $raD[$k]) ) {
+                // highlight dates that are within 90 days of today
+                try {
+                    if( (new DateTime())->diff(new DateTime($d))->days < 90 ) {
+                        $raD[$k] = "<span style='color:green;background-color:#cdc'>$d</span>";
+                    }
+                } catch (Exception $e) {}
+            } else {
+                $raD[$k] = "?";
+            }
+        }
         $s = "<div style='border:1px solid black; margin:10px; padding:10px'>"
             ."<p>Seeds active: $nSActive</p>"
             ."<p>Membership expiry: $dMbrExpiry</p>"
-            ."<p>Last grower record change: $dGUpdated by $kGUpdatedBy</p>"
-            ."<p>Last seed record change: $dSUpdated by $kSUpdatedBy</p>"
+            ."<p>Last grower record change: <b>{$raD['dGUpdatedByMbr']} by member</b>".($kGUpdatedBy <> $kGrower ? " ({$raD['dGUpdated']} by $kGUpdatedBy)" : "")."</p>"
+            ."<p>Last seed record change: <b>{$raD['dSUpdatedByMbr']} by member</b>".($kSUpdatedBy <> $kGrower ? " ({$raD['dSUpdated']} by $kSUpdatedBy)" : "")."</p>"
             .$sSkip
             .$sDel
             ."</div>";
@@ -311,7 +301,7 @@ $this->oL = $this->oMSDLib->oL;
 
 // *** Do this for seeds too
             // record when the member saved the record because office changes overwrite _updated
-            $oDS->SetValue( '_updated_by_mbr', date("y-m-d") );  // this really should be the new _updated but that's hard to get
+            $oDS->SetValue( '_updated_G_mbr', date("Y-m-d") );  // this really should be the new _updated but that's hard to get
         }
 
         if( !$oDS->Value('year') )  $oDS->SetValue( 'year', $this->oMSDLib->GetCurrYear() );
