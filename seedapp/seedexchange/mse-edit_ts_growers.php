@@ -284,7 +284,7 @@ $this->oL = $this->oMSDLib->oL;
                   ];
 
         // KFForm is created with KFRelG for purpose of form updates, but SetKGrower() can put a kfrGxM in the form for convenience
-        parent::__construct( $this->oMSDLib->KFRelG(), null, ['fields'=>$fields, 'DSParms'=> ['fn_DSPreStore'=>[$this,'growerForm_DSPreStore']]] );
+        parent::__construct( $this->oMSDLib->KFRelG(), 'G', ['fields'=>$fields, 'DSParms'=> ['fn_DSPreStore'=>[$this,'growerForm_DSPreStore']]] );
     }
 
 
