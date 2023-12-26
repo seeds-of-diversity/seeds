@@ -122,6 +122,7 @@ class SEEDSession {
     function VarGetInt($k)  { return( $this->oSVA->VarGetInt($k) ); }
     function VarGetBool($k) { return( $this->oSVA->VarGetBool($k) ); }
     function VarEmpty($k)   { return( $this->oSVA->VarEmpty($k) ); }
+    function VarIsSet($k)   { return( $this->oSVA->VarIsSet($k) ); }
     function VarSet($k,$v)  { $this->oSVA->VarSet($k,$v); }
     function VarUnSet($k)   { $this->oSVA->VarUnSet($k); }
     function SmartGPC( $k, $raVal = array() )  { return( $this->oSVA->SmartGPC( $k, $raVal ) ); }
