@@ -170,7 +170,7 @@ class SEEDAppImgManager
 
         $s .= ($realDir=realPath($currDir)) ? "<h3>Files under $realDir</h3>" : "<h3 style='color:red'>Can't find $currDir</h3>";
 
-        list($sFileList,$totalWhatYouSaved) = $this->DrawFiles( $raFiles );
+        list($sFileList,$totalWhatYouSaved,$sStatsTable) = $this->DrawFiles( $raFiles );
 
         $s .= "<style>
                #imgman_actionButtons_div       { float:right;margin-right:20px; }
@@ -182,6 +182,9 @@ class SEEDAppImgManager
                #imgman_actionButtons_keep    a { color:green; }
                #imgman_actionButtons_delete    { margin:10px 0px 0px 0px; padding:5px; border:1px solid red; }
                #imgman_actionButtons_delete  a { color:red }
+
+               #imgman_table_files_size_stats th { padding:5px }
+               #imgman_table_files_size_stats td { padding:5px }
                </style>
                <div id='imgman_actionButtons_div'>
                <div id='imgman_actionButtons_reload'><a href='?'>Reload</a></div>";
@@ -196,6 +199,7 @@ class SEEDAppImgManager
             $s .= "<div id='imgman_actionButtons_delete'><a href='?cmd=multidelete'>Delete $nActionDelete files to<br/>save ".SEEDCore_HumanFileSize($totalWhatYouSaved)."</a></div>";
         }
         $s .= "</div>"
+             .$sStatsTable
              .$sFileList;
 
         $s .= "<style>
@@ -251,6 +255,9 @@ class SEEDAppImgManager
     {
         $totalWhatYouSaved = 0;
 
+        // Initialize counters for total files/size table, only used in !bShowOnlyIncomplete mode
+        $nFilesO = $nFilesR = $totalFileSizeO = $totalFileSizeR = 0;
+
         $s = "<style>#drawfilestable td { padding-right:20px }</style>
               <table id='drawfilestable' style='border:none'>";
 
@@ -276,6 +283,10 @@ class SEEDAppImgManager
                         (isset($raExts['png']) || isset($raExts['mp4']) || isset($raExts['webm']) || isset($raExts['gif']) ) &&
                         substr($filebase,-7) == 'reduced' )          continue;    // don't show png or mpg files that have been manually reduced
 */
+                } else {
+                    // collect stats about reduced vs unreduced files
+                    if( $raFVar['r']['filename'] ) { ++$nFilesR;  $totalFileSizeR += $raFVar['r']['info']['filesize']; }
+                    if( $raFVar['o']['filename'] ) { ++$nFilesO;  $totalFileSizeO += $raFVar['o']['info']['filesize']; }
                 }
 
                 // this dir has files to show so draw it
@@ -414,6 +425,19 @@ $fScalePercentThreshold = 90.0;
 
         $s .= "</table>";
 
-        return( [$s,$totalWhatYouSaved] );
+        $sStatsTable = "";
+        if( !$this->bShowOnlyIncomplete ) {
+            // Draw the files/size table
+            $totalFSize = ($totalFileSizeO + $totalFileSizeR) ?: 1;  // prevent divide by zero
+            $totalNFiles = ($nFilesO + $nFilesR)              ?: 1;
+            $sStatsTable =
+                "<table border='1' id='imgman_table_files_size_stats'>
+                     <tr><th>&nbsp;</th><th>Reduced</th><th>Unreduced</th></tr>
+                     <tr><td>Files</td><td>$nFilesR (".intval($nFilesR *100 / $totalNFiles)."%)</td><td>$nFilesO (".intval($nFilesO *100 / $totalNFiles)."%)</td></tr>
+                     <tr><td>Size</td><td>".SEEDCore_HumanFileSize($totalFileSizeR)." (".intval($totalFileSizeR *100 / $totalFSize)."%)</td><td>".SEEDCore_HumanFileSize($totalFileSizeO)." (".intval($totalFileSizeO *100 / $totalFSize)."%)</td></tr>
+                 </table>";
+        }
+
+        return( [$s,$totalWhatYouSaved,$sStatsTable] );
     }
 }
