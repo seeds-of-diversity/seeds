@@ -1,4 +1,4 @@
-# Make all descendant directories visible / invisible
+# Make all descendant directories writable / visible / invisible
 
 if [ "$1" == "show" ]
 then 
@@ -6,8 +6,11 @@ PERMS=755
 elif [ "$1" = "hide" ]
 then 
 PERMS=750
+elif [ "$1" = "write" ]
+then 
+PERMS=757
 else
-echo "dirperms show|hide"
+echo "dirperms write|show|hide"
 exit
 fi
 
