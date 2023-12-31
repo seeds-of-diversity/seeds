@@ -156,6 +156,13 @@ class MSDQ extends SEEDQ
             'nSpecies' => 0, 'nFlowers' => 0, 'nVeg' => 0, 'nFruit' => 0, 'nHerbs' => 0, 'nGrain' => 0, 'nTrees' => 0, 'nMisc' => 0,
         ];
 
+
+// since some species are categorized strangely you could approximate with
+// nSpecies = select count(distinct left(PE1.v,6)) from SEEDBasket_Products P,SEEDBasket_ProdExtra PE1,SEEDBasket_ProdExtra PE2
+//                  where PE1.fk_SEEDBasket_Products=P._key and PE2.fk_SEEDBasket_Products=P._key and PE1.k='species' and PE2.k='variety' and P.eStatus='ACTIVE';
+// nCultivars = select count(distinct left(PE1.v,6),PE2.v) from SEEDBasket_Products P,SEEDBasket_ProdExtra PE1,SEEDBasket_ProdExtra PE2
+//                  where PE1.fk_SEEDBasket_Products=P._key and PE2.fk_SEEDBasket_Products=P._key and PE1.k='species' and PE2.k='variety' and P.eStatus='ACTIVE';
+
         $raSpList = $this->oMSDCore->oMSDSB->oDB->GetList( "PxPE2",
                                                            "product_type='seeds' AND eStatus='ACTIVE' "
                                                           ."AND PE1.k='category' AND PE2.k='species'",
@@ -489,7 +496,7 @@ class MSDQ extends SEEDQ
                     $dUpdate = strtotime($d);
                     $dThreshold = strtotime( date('Y-m-d')." -10 months");   // 10 months ago from right now
                     if( $dUpdate > $dThreshold ) {
-                        $sOut = "<div class='sed_seed_change'><b><i>".($this->oApp->lang=='FR' ? "Enregistr&eacute;" : "Saved")." ".substr($rLastUpdate[1],0,10)."</i></b>"
+                        $sOut = "<div><b class='sed_seed_change'><i>".($this->oApp->lang=='FR' ? "Enregistr&eacute;" : "Changed")." ".substr($rLastUpdate[1],0,10)."</i></b>"
                                ."<br/>$sOut</div>";
                     }
                 }

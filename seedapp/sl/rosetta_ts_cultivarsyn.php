@@ -22,6 +22,13 @@ class RosettaCultivarSynonyms
         $this->oFormSpecies = new SEEDCoreFormSVA( $this->oSVA, 'S' );
         $this->oFormSpecies->Update();
 
+        if( SEEDInput_Str('cmd') == 'reindex' ) {
+            /* Reindex sl_cv_sources.fk_sl_pcv before drawing anything
+             */
+
+
+        }
+
         $this->DoJX();
     }
 
@@ -65,8 +72,8 @@ class RosettaCultivarSynonyms
               .cvName { display:inline-block; background-color:#eff;border:1px solid #aaa; padding:3px; margin: 2px 0; }
               </style>
               <div class='container-fluid'><div class='row'>
-                   <div class='col-md-6 grid-striped'>$sLeft</div>
-                   <div class='col-md-6'><div id='fixed_scrolling_nonindex_list'>$sRight</div></div>
+                   <div class='col-xs-6 grid-striped'>$sLeft</div>
+                   <div class='col-xs-6'><div id='fixed_scrolling_nonindex_list'>$sRight</div></div>
                </div></div>"
 
              ."<button id='buttonMakeThisPrimary' style='position:fixed;top:0;right:0;padding:10px;border:2px solid green;display:none'>Make This a Primary Cultivar</button>"
@@ -122,7 +129,7 @@ class RosettaCultivarSynonyms
         // Get all non-indexed ocv names of this species.
         // To make the query group and also return an ANY_VALUE(_key), GROUP_CONCAT all the _keys together and parse out the first with strtok
         $raNamesSrccv = $this->oApp->kfdb->QueryRowsRA(
-                            "SELECT ocv,GROUP_CONCAT(_key,',') as k FROM seeds_1.sl_cv_sources
+                            "SELECT ocv,GROUP_CONCAT(_key,',') as k FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources
                              WHERE fk_sl_species='$kSpecies' AND _status='0'
                                    AND ocv<>'' AND fk_sl_pcv='0' AND fk_sl_sources>='3'
                              GROUP BY 1
@@ -144,13 +151,16 @@ class RosettaCultivarSynonyms
       $(document).ready( function() {
             $(".itemNonindex").click( function() {
                 if( !jCurrNonindex ) {
-                    jCurrNonindex = $(this); // $(this).attr('data-key');
-                    jCurrNonindex.css( {'border': '2px solid green', 'margin':'5px'} );
-                    
-                    let buttonTop = $(this).offset().top - $(window).scrollTop() + 35;
-                    let buttonLeft = $(this).offset().left; 
-                    $("#buttonMakeThisPrimary").css( {'top' : buttonTop, 'left' : buttonLeft } );
-                    $("#buttonMakeThisPrimary").show();
+                    let jItem = $(this);
+                    if( jItem.attr('data-ksrccv') != 0 ) {
+                        jCurrNonindex = jItem;
+                        jCurrNonindex.css( {'border': '2px solid green', 'margin':'5px'} );
+                        
+                        let buttonTop = $(this).offset().top - $(window).scrollTop() + 35;
+                        let buttonLeft = $(this).offset().left; 
+                        $("#buttonMakeThisPrimary").css( {'top' : buttonTop, 'left' : buttonLeft } );
+                        $("#buttonMakeThisPrimary").show();
+                    }
                 } else {
                     clearNonindexCtrl();
                 }
@@ -164,7 +174,7 @@ class RosettaCultivarSynonyms
 
             $("#buttonMakeThisPrimary").click( function() {
                 if( jCurrNonindex ) {
-                    alert( "Make "+jCurrNonindex.html()+" a primary cultivar" );
+                    addPrimary( $(this) );
                 }
             });
 
@@ -182,6 +192,27 @@ class RosettaCultivarSynonyms
                 jCurrNonindex = null;
             }
             $("#buttonMakeThisPrimary").hide();
+        }
+
+        function addPrimary( jRowPcv )
+        /*****************************
+            Add the ocv as a primary cultivar
+         */
+        {
+            if( !jCurrNonindex ) return;
+
+            let kSrccv = jCurrNonindex.attr('data-kSrccv');
+            let jxData = { jx   : 'addPcv',
+                           kSrccv : kSrccv,
+                         };
+    
+            SEEDJXAsync2( "rosetta.php", jxData, function(o) {
+                    if( o['bOk'] ) {
+                        jCurrNonindex.html("");       // remove the non-index name item
+                        jCurrNonindex.attr('data-ksrccv',0);
+                        clearNonindexCtrl();
+                    }
+                });
         }
 
         function makeSynonym( jRowPcv )
@@ -223,18 +254,6 @@ SCRIPT
             /* Readonly commands
              */
             switch( $jx ) {
-                case 'makeSynonym':
-                    $kSrccv = SEEDInput_Int('kSrccv');
-                    $kPcv = SEEDInput_Int('kPcv');
-
-                    $raCV = $this->oApp->kfdb->QueryRA( "SELECT * from seeds_1.sl_pcv WHERE _key='$kPcv'" );
-                    $raSrccv = $this->oApp->kfdb->QueryRA( "SELECT * from seeds_1.sl_cv_sources WHERE _key='$kSrccv'" );
-                    $sSynName = addslashes($raSrccv['ocv']);
-                    $this->oApp->kfdb->Execute( "INSERT INTO seeds_1.sl_pcv_syn (fk_sl_pcv,name,notes) VALUES ($kPcv,'$sSynName','')" );
-
-                    $rQ['sOut'] = $this->drawRowPCV( $raCV );
-                    $rQ['bOk'] = true;
-                    break;
             }
 
 //            if( !$oUI->bCanWrite )  goto jxDone;
@@ -242,7 +261,40 @@ SCRIPT
             /* Write commands
              */
             switch( $jx ) {
-                case "changeStatusToPaid":
+                case 'makeSynonym':
+                    $kSrccv = SEEDInput_Int('kSrccv');
+                    $kPcv = SEEDInput_Int('kPcv');
+
+                    $raCV = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_pcv WHERE _key='$kPcv'" );
+                    $raSrccv = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _key='$kSrccv'" );
+                    $dbSynName = addslashes($raSrccv['ocv']);
+                    $this->oApp->kfdb->Execute( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv_syn (fk_sl_pcv,name,notes) VALUES ($kPcv,'$dbSynName','')" );
+                    // update sl_cv_sources pcv with the new reference
+                    if( ($kSp = $raSrccv['fk_sl_species']) ) {
+                        $this->oApp->kfdb->Execute("UPDATE {$this->oApp->DBName('seeds1')}.sl_cv_sources SET fk_sl_pcv=$kPcv WHERE fk_sl_species=$kSp AND ocv='$dbSynName'");
+                    }
+                    $rQ['sOut'] = $this->drawRowPCV( $raCV );
+                    $rQ['bOk'] = true;
+                    break;
+
+                case "addPcv":
+                    $kSrccv = SEEDInput_Int('kSrccv');
+                    $raSrccv = $this->oApp->kfdb->QueryRA( "SELECT * from {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _key='$kSrccv'" );
+                    if( !($kSp = $raSrccv['fk_sl_species']) ) {
+                        $rQ['sErr'] = "Species not defined in this srccv";
+                        goto jxDone;
+                    }
+                    $dbName = addslashes($raSrccv['ocv']);
+                    $kPcv = $this->oApp->kfdb->InsertAutoInc( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv (fk_sl_species,name,notes,old_sl_pcv,packetLabel) VALUES ($kSp,'$dbName','','','')" );
+                    if( $kPcv ) {
+                        $rQ['bOk'] = true;
+                        $rQ['sOut'] = "Worked but you have to reload";
+                        // update sl_cv_sources pcv with the new reference
+                        $this->oApp->kfdb->Execute("UPDATE {$this->oApp->DBName('seeds1')}.sl_cv_sources SET fk_sl_pcv=$kPcv WHERE fk_sl_species=$kSp AND ocv='$dbName'");
+                    } else {
+                        $rQ['sErr'] = "Failed to add new primary cultivar";
+                        goto jxDone;
+                    }
                     break;
             }
 

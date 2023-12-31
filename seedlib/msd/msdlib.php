@@ -26,6 +26,12 @@ class MSDLib
         $this->oMSDCore = new MSDCore( $oApp, ['sbdb' => @$raConfig['sbdb']] );
         $this->dbname1 = $this->oApp->GetDBName('seeds1');                              // except if sbdb is not seeds1, but it always is so far
         $this->oL = new SEED_Local(  $this->SLocalStrs(), $this->oApp->lang, 'mse' );
+        $this->oTmpl = SEEDTemplateMaker2(
+                        ['fTemplates' => [SEEDAPP."templates/msd.html", SEEDAPP."templates/msd-edit.html"],
+                         'sFormCid'   => 'Plain',
+                         //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
+                         'raVars' => ['lang'=>$this->oApp->lang]
+                        ]);
     }
 
     function PermOfficeW()  { return( $this->oMSDCore->PermOfficeW() ); }
@@ -113,7 +119,7 @@ var_dump($sql);
 
         /* Update offer counts in grower table (should happen after every edit)
          */
-        $i = 0;
+        $nG = 0;
         if( ($dbc = $this->oMSDCore->oApp->kfdb->CursorOpen( "SELECT mbr_id FROM {$this->dbname1}.sed_curr_growers" )) ) {
             while( $ra = $this->oMSDCore->oApp->kfdb->CursorFetch($dbc) ) {
                 $sCond = "mbr_id='{$ra['mbr_id']}' AND _status='0' AND NOT bSkip AND NOT bDelete";
@@ -136,12 +142,29 @@ var_dump($sql);
                        ."SET nTotal='$nTotal',nFlower='$nFlower',nFruit='$nFruit',"
                        ."nGrain='$nGrain',nHerb='$nHerb',nTree='$nTree',nVeg='$nVeg',nMisc='$nMisc' "
                        ."WHERE mbr_id='{$ra['mbr_id']}'");
-                ++$i;
+                ++$nG;
             }
             $this->oMSDCore->oApp->kfdb->CursorClose($dbc);
         }
 
-        $s = "<p>Removed NULLs, trimmed and upper-cased strings. Updated offer counts for $i growers.</p>";
+        /* Update sed_curr_growers._updated_S     : the latest _update in a seed-product owned by each grower
+         * Update sed_curr_growers._updated_S_mbr : the latest _update in a seed-product owned by each grower, where _updated_by==mbr_id
+         */
+        if( ($kfrc = $this->oMSDCore->KFRelG()->CreateRecordCursor()) ) {
+            while( $ra = $kfrc->CursorFetch() ) {
+                if( !($mbrid = $kfrc->Value('mbr_id')) ) continue;
+
+                list($kP,$dLatest,$uidLatestBy)            = $this->oMSDCore->GetLastUpdated("P.product_type='seeds'", ['uid_seller'=>$mbrid]);
+                list($kPByOwner,$dLatestByOwner,$uidOwner) = $this->oMSDCore->GetLastUpdated("P.product_type='seeds'", ['uid_seller'=>$mbrid,'bUpdatedByOwner'=>true]);
+
+                $kfrc->SetValue('_updated_S',     $dLatest);
+                $kfrc->SetValue('_updated_S_by',  $uidLatestBy);
+                $kfrc->SetValue('_updated_S_mbr', $dLatestByOwner);
+                $kfrc->PutDBRow( ['bNoChangeTS'=>true] );               // don't change sed_curr_growers._updated because we depend on that to know when real edits happened
+            }
+        }
+
+        $s = "<p>Trimmed and upper-cased species strings. Updated seed counts and _updated* for $nG growers.</p>";
 
         done:
         return( $s );
@@ -264,7 +287,7 @@ var_dump($sql);
         $bRequestable = ($eRequestable==MSDCore::REQUESTABLE_YES);
 
         // make this false to prevent people from ordering
-        $bEnableAddToBasket = true;
+        $bEnableAddToBasket = false;
 
         $sMbrCode = $kfrGxM->Value('mbr_code');
         $sButton1Attr = $bRequestable && $bEnableAddToBasket ? "onclick='AddToBasket_Name($kP);'"

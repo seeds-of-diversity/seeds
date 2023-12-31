@@ -1021,12 +1021,12 @@ class SEEDFormBasic
     Non-intelligent form element helpers
  */
 {
-    static function DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts )
-    /**********************************************************************
+    static function DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts, $raParms = [] )
+    /*************************************************************************************
         Make a <select> SEEDTemplate string from a given array of options
      */
     {
-        $s = "<select name='$name_sf'>";
+        $s = "<select name='$name_sf' ".(@$raParms['sSelAttrs'] ?? "").">";
         foreach( $raOpts as $label => $val ) {
             $s .= "<option value='$val' [[ifeq:[[value:$name]]|$val|selected| ]]>$label</option>";
         }

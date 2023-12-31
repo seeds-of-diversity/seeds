@@ -195,6 +195,39 @@ class KeyFrameUI_ListFormUI
     {
         return( "<div style='padding:15px'>".$this->oSrch->Draw()."</div>" );   // put this padding in the search control css (see DrawStyle method)
     }
+
+    /* Call this from ContentDraw() to implement a ListForm with New and Delete buttons, with Messages between them
+     */
+    function ContentDraw_NewDelete()
+    {
+        $cid = $this->oComp->Cid();
+
+        $sMessages = "";
+        if( ($msg = $this->oComp->oUI->GetUserMsg()) )  $sMessages .= "<div class='alert alert-success'>$msg</div>";
+        if( ($msg = $this->oComp->oUI->GetErrMsg()) )   $sMessages .= "<div class='alert alert-danger'>$msg</div>";
+
+        $s = $this->DrawStyle()
+           ."<style>
+             .content-upper-section  { }
+             .content-lower-section  { border:1px solid #777; padding:15px; }
+             .content-button-new     { margin-bottom:5px; float:left; width:10%; clear:both; }
+             .content-messages       { float:left; width:80%; }
+             .content-button-del     { margin-bottom:5px; float:right; width:10%; text-align:right; }
+             .content-form-container { width:100%;padding:20px;border:2px solid #999;clear:both }
+             </style>"
+           ."<div class='content-upper-section'>{$this->DrawList()}</div>"
+           ."<div class='content-lower-section'>
+                 <div>
+                     <div class='content-button-new'>{$this->oComp->ButtonNew()}</div>
+                     <div class='content-messages'>{$sMessages}</div>
+                     <div class='content-button-del'>{$this->oComp->ButtonDelete()}</div>
+                 </div>
+                 <div class='content-form-container'>{$this->DrawForm()}</div>
+             </div>";
+
+        return( $s );
+    }
+
 }
 
 class KeyFrameUI_ListFormUI_Config

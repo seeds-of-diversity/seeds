@@ -84,6 +84,7 @@ class KeyFrame_Relation
     private $raColA2NBase = [];      // map base alias names to their column names [alias => col]
     // deprecate for raColA2N which is identical
 private $raColAlias = [];        // store all field names for reference ( array of colAlias => tableAlias.col )
+    private $raExtraAliases = [];    // e.g. "count(*) as c" stored here as 'c'=>"count(*)".  makeSelect can create read-only aliases which are only used for loading values from the db query.
 
     private $qSelect = null;            // cache the constant part of the SELECT query (with the fields clause substitutable)
     private $qSelectFieldsClause = "";  // cache the default fields clause (caller can override)
@@ -96,6 +97,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
     function UID()                      { return( $this->uid ); }       // just nice to be able to get this for random stuff sometimes
     function BaseTableName()            { return( $this->baseTable['Table'] ); }
     function BaseTableFields()          { return( $this->baseTable['Fields'] ); }
+    function ExtraAliases()             { return( $this->raExtraAliases ); }
     function TablesDef()                { return( $this->kfrdef['Tables'] ); }
 
     function __construct( KeyframeDatabase $kfdb, $kfrdef, int $uid, $raKfrelParms = array() )
@@ -670,6 +672,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         $sGroupAliases = @$parms['sGroupCols'];     // deprecate in favour of sGroupAliases
         if( !$sGroupAliases )
         $sGroupAliases = @$parms['sGroupAliases'];  // unpack colalias1,colalias2,... and use those for GROUP BY as well as SELECT cols
+        $sHaving   = @$parms['sHaving'];            // GROUP BY ... HAVING $sHaving ...
         $sSortCol  = @$parms['sSortCol'];
         $bSortDown = intval(@$parms['bSortDown']);
         $iOffset   = intval(@$parms['iOffset']);
@@ -710,9 +713,21 @@ private $raColAlias = [];        // store all field names for reference ( array 
         if( isset($parms['raFieldsOverride']) ) {
             foreach( $parms['raFieldsOverride'] as $alias=>$fld ) {
                 $sFieldsClause .= ($sFieldsClause ? "," : "");
-                $sFieldsClause .= SEEDCore_StartsWith($alias,'VERBATIM') ? $fld : "$fld as $alias";
+                if( SEEDCore_StartsWith($alias,'VERBATIM') ) {
+                    // 'VERBATIMx'=>'123' just adds ,123, to the field list
+                    // N.B. there is no way for kfr to load this, because it has no alias (see raExtraAliases below)
+                    $sFieldsClause .= $fld;
+                } else {
+                    // 'a'="b" writes "b as a" to the field list.
+                    $sFieldsClause .= "$fld as $alias";
+                    /* If a is not in the alias list, add it to the extra aliases list. Otherwise kfr won't load it into ValuesRA.
+                     * e.g. we did something like "c"=>"count(*)" or 'nMax'=>"max(iValue)" and need the alias value to be loaded in the kfr
+                     */
+                    if( !$this->GetColNameFromColAlias($alias) ) {
+                        $this->raExtraAliases[$alias] = $fld;
+                    }
+                }
             }
-
         }
         if( $sGroupAliases ) {
             // alias1,alias2,... identify the group cols and if !raFieldsOverride then also all of the select cols/aliases.
@@ -740,6 +755,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         }
 
         if( $sGroupCols ) $q .= " GROUP BY $sGroupCols";
+        if( $sHaving )    $q .= " HAVING $sHaving";
         if( $sSortCol )   $q .= " ORDER BY $sSortCol". ($bSortDown ? " DESC" : " ASC");
 
         if( $iLimit > 0 || $iOffset > 0 ) {
@@ -1067,12 +1083,15 @@ class KeyframeRecord
     }
 
 
-    function PutDBRow( $bUpdateTS = false )
-    /**************************************
+    function PutDBRow( $raParms = [] )
+    /*********************************
         Insert/Update the row as needed.  The choice is based on $this->key==0.
 
-        This does NOT automatically update $this->_values('_created') and ('_updated'), since that requires an extra fetch.
-        $bUpdateTS==true causes this fetch
+        This does NOT automatically update $this->_values('_created') and ('_updated'), since that requires an extra fetch. Use bFetchTS.
+
+        $raParms:
+            bFetchTS    - fetch _created and _updated after the row is written (default false)
+            bNoChangeTS - on UPDATE don't change _updated,_update_by (default false). Ignored for INSERT.
      */
     {
         $ok = false;
@@ -1102,15 +1121,15 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
              * _key doesn't change unless $this->keyForce
              * _created* never change
              */
-            $bDo = false;
             $bSnap = isset($this->dbValSnap['_key']) && $this->dbValSnap['_key'] == $this->key;
             $bKeyForce = $this->keyForce && $this->keyForce != $this->key;
 
-            $s = "UPDATE $kfBaseTableName SET _updated=NOW(),_updated_by='$kfUid'";
-            $sClause = "";
+            $raSet = [];
             if( $bKeyForce ) {
-                $sClause .= ",_key='{$this->keyForce}'";
-                $bDo = true;
+                $raSet[] = "_key='{$this->keyForce}'";
+            }
+            if( !@$raParms['bNoChangeTS'] ) {
+                $raSet[] = "_updated=NOW(),_updated_by='$kfUid'";
             }
             foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( in_array( $f['col'], ["_key", "_created", "_created_by", "_updated", "_updated_by"] ) ) continue;
@@ -1130,20 +1149,18 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
 
                 // write changed fields to db
                 if( $this->IsNull($a) ) {
-                    $sClause .= ",{$f['col']}=NULL";
-                    $bDo = true;
+                    $raSet[] = "{$f['col']}=NULL";
                 } else {
-                    $sClause .= ",{$f['col']}=".$this->putFmtVal( $this->values[$a], $f['type'] );
-                    $bDo = true;
+                    $raSet[] = "{$f['col']}=".$this->putFmtVal( $this->values[$a], $f['type'] );
                 }
             }
-            if( $bDo ) {
-                $s .= $sClause." WHERE _key='{$this->key}'";
-                $ok = $this->kfrel->KFDB()->Execute( $s );
+            if( count($raSet) ) {
+                $sSetClause = implode(',', $raSet);
+                $ok = $this->kfrel->KFDB()->Execute( "UPDATE $kfBaseTableName SET $sSetClause WHERE _key='{$this->key}'" );
 
                 // Log U table _key uid: update clause {{err}}
                 // Do this before SetKey(keyForce) so it shows the old key
-                $this->kfrel->_Log( "U $kfBaseTableName {$this->key} $kfUid: $sClause", $ok );
+                $this->kfrel->_Log( "U $kfBaseTableName {$this->key} $kfUid: $sSetClause", $ok );
 
                 if( $ok && $bKeyForce ) {
                     $this->SetKey( $this->keyForce );
@@ -1183,7 +1200,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             $this->kfrel->_Log( "I $kfBaseTableName {$sKey}->{$kNew} $kfUid: ($sk) ($sv)", $ok );
         }
         if( $ok ) {
-            if( $bUpdateTS ) {
+            if( @$raParms['bFetchTS'] ) {
                 if( ($ra = $this->kfrel->KFDB()->QueryRA( "SELECT _created,_updated FROM $kfBaseTableName WHERE _key='{$this->key}'" )) ) {
                     $this->values['_created'] = $ra['_created'];
                     $this->values['_updated'] = $ra['_updated'];
@@ -1285,7 +1302,8 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
      */
     {
         $this->getBaseValuesFromRA( $ra, true );    // get base values, set defaults(why?), not gpc
-        $this->getFKValuesFromArray( $ra );        // get all fk values
+        $this->getFKValuesFromArray( $ra );         // get all fk values
+        $this->getExtraValuesFromRA( $ra );         // get additional values named as aliases in makeSelect
         $this->snapValues();
     }
 
@@ -1313,7 +1331,7 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         $bForceDefaults should be false when the record already contains values and $ra is a subset
      */
     {
-//if @kfrdef['bFetchFullBaseAliases']  also put base table values in $f['alias_full']
+// if @kfrdef['bFetchFullBaseAliases']  also put base table values in $f['alias_full']
 
         if( isset($ra['_key']) ) {          // _key won't necessarily be in ra if these are values posted from a form
             $this->key = intval($ra['_key']);
@@ -1324,6 +1342,18 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             $this->getValFromRA( $f, $ra, $bForceDefaults );
         }
     }
+
+    private function getExtraValuesFromRA( $ra )
+    /*******************************************
+        makeSelect can define extra aliases that have to be loaded from the db. These will not be re-written by PutDBRow.
+        They're typically things like "count(*) as c", and we have to define c as an extra value so this method will load it from the db row.
+     */
+    {
+        foreach( $this->kfrel->ExtraAliases() as $alias => $fld ) {  // e.g. "c"=>"count(*)"
+            $this->values[$alias] = @$ra[$alias] ?? "";
+        }
+    }
+
 
     private function getValFromRA( $f, $ra, $bForceDefaults )
     /********************************************************

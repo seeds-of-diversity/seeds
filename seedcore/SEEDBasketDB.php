@@ -107,8 +107,8 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     }
 
 
-    function ProductLastUpdated( $cond, $raParms = array() )
-    /*******************************************************
+    function ProductLastUpdated( $cond, $raParms = [] )
+    /**************************************************
         Return P._key, _updated, _updated_by of the most recent update to a product.
         _key is always product key
         _updated* is either the product record or a prodextra record, whichever is newer
@@ -120,17 +120,39 @@ class SEEDBasketDB extends Keyframe_NamedRelations
             cond=>"P.uid_seller='456' and P.product_type='widget'
 
         raParms:
-            iStatus = filter _status (default 0; -1 means no filter)
+            iStatus         = filter _status (default 0; -1 means no filter)
+            uid_seller      = filter to products owned by P.uid_seller
+            uid_updated_by  = filter to products updated by a particular user
+            bUpdatedByOwner = filter to products updated by their P.uid_seller
      */
     {
         if( !$cond )  $cond = "1=1";
 
+        // iStatus
         $iStatus = intval(@$raParms['iStatus']);
         if( $iStatus == -1 ) {
             $cond1 = $cond2 = $cond;
         } else {
             $cond1 = $cond." AND P._status='$iStatus'";
             $cond2 = $cond." AND P._status='$iStatus' AND PE._status='$iStatus'";
+        }
+
+        // uid_seller
+        if( $uid_seller = intval(@$raParms['uid_seller']) ) {
+            $cond1 .= " AND P.uid_seller=$uid_seller";
+            $cond2 .= " AND P.uid_seller=$uid_seller";
+        }
+
+        // uid_updated_by
+        if( $uid_by = intval(@$raParms['uid_updated_by']) ) {
+            $cond1 .= " AND P._updated_by=$uid_by";
+            $cond2 .= " AND PE._updated_by=$uid_by";
+        }
+
+        // bUpdatedByOwner
+        if( @$raParms['bUpdatedByOwner'] ) {
+            $cond1 .= " AND P._updated_by=P.uid_seller";
+            $cond2 .= " AND PE._updated_by=P.uid_seller";
         }
 
         $ra = $this->kfdb->QueryRA(
@@ -147,7 +169,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
                      ) as A
                  ORDER BY 1 DESC LIMIT 1" );
 
-        return( array(@$ra['_key'], @$ra['_updated'], @$ra['_updated_by']) );
+        return( [@$ra['_key'], @$ra['_updated'], @$ra['_updated_by']] );
     }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )

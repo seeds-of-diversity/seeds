@@ -200,7 +200,7 @@ private $_lastType = "";
                     .$sButtons2
                     ."<br/>$s</div>";
             } else if( $kfrS->value('bChanged') ) {
-                $s = "<div class='sed_seed_change'>$s</div>";
+                //$s = "<div class='sed_seed_change'>$s</div>";
             }
         }
 
