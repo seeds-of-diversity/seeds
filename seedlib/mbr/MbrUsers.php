@@ -62,7 +62,7 @@ class MbrUsers
         //$bOk = $this->kfdb1->Execute(
         //        "INSERT INTO {$this->dbname1}.SEEDSession_Users (_key,_created,_created_by,_status,"
         //                                            ."email,password,realname,gid1,eStatus,dSentmsd)"
-        //       ." VALUES ".SEEDStd_ArrayExpand($raMbr, "('[[_key]]',now(),0,0,'[[email]]',left(md5('[[email]]'),6),"
+        //       ." VALUES ".SEEDCore_ArrayExpand($raMbr, "('[[_key]]',now(),0,0,'[[email]]',left(md5('[[email]]'),6),"
         //                                              ."trim('[[firstname]] [[lastname]] [[company]]'),2,'ACTIVE',0)") );
         if( !$bOk ) {
             $sErr = "Database error adding login account for member $kMbr : ".$this->kfdb->GetErrMsg();

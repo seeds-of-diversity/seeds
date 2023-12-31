@@ -25,7 +25,7 @@ class SEEDSessionVarAccessor
     function SetNamespace($ns) { $this->ns = $ns; }
 
     function VarGet($k)        { return( (empty($this->ns) ? @$_SESSION[$k] : @$_SESSION[$this->ns][$k]) ?? "" ); }
-    function VarGetEnt($k)     { return( SEEDStd_HSC($this->VarGet($k)) ); }
+    function VarGetEnt($k)     { return( SEEDCore_HSC($this->VarGet($k)) ); }
     function VarGetInt($k)     { return( intval($this->VarGet($k)) ); }
     function VarGetBool($k)    { return( !$this->VarEmpty($k) ); }  // false if 0, "", NULL, false, or !isset
     function VarEmpty($k)      { return( empty($this->ns) ? empty($_SESSION[$k]) : empty($_SESSION[$this->ns][$k]) ); }
