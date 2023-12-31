@@ -135,6 +135,7 @@ class QServerSourceCV extends SEEDQ
          */
         $raParms['kfrcParms']['sGroupAliases'] = "P__key,P_name,S_name_en,S_name_fr";
         $raParms['kfrcParms']['sSortCol'] = "S.name_en asc,P.name";
+// this means only sl_pcv-indexed cultivars are shown in SeedFinder
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond." AND fk_sl_pcv<>'0'", $raParms['kfrcParms'] )) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raParms );
             while( ($ra = $oCursor->GetNextRow()) ) {
@@ -232,6 +233,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                      ];
 
         $sCond = "fk_sl_sources >= 3";
+// this means only sl_pcv-indexed cultivars are shown in SeedFinder
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond, $kfrcparms )) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $dummyQCursorParms = [] );
             while( ($ra = $oCursor->GetNextRow()) ) {
@@ -369,6 +371,8 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
     function GetSrcCVRow( SEEDQCursor $oCursor, $raParms )
     /*****************************************************
         Return rows of SRCCVxSRC fetched from a SEEDQCursor
+
+support SRCCVxSRC_PxS on SRC.fk_sl_pcv=P._key
      */
     {
         $ra = array();
@@ -408,6 +412,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         Return PxS info for rows of SRCCVxSRCxPxS, grouped by fk_sl_pcv, fetched from a SEEDQCursor
      */
     {
+// support SRCCVxSRCxS_P by getting P_name=SRCCV.ocv
         $ra = $this->QCharsetFromLatin(
                 ['S_name_en' => $oCursor->kfrc->Value('S_name_en'),
                  'S_name_fr' => $oCursor->kfrc->Value('S_name_fr'),
