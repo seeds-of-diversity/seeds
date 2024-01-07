@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for seeds tab
  *
- * Copyright (c) 2018-2023 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  *
  */
 
@@ -35,7 +35,7 @@ class MSEEditAppTabSeeds
         $s = "";
 
         if( $this->bOffice ) {
-            $s .= $this->oMEApp->MakeSelectGrowerNames($this->kGrower, 'firstname', [], true);    // grower names have to be encoded to utf8 on seeds tab
+            $s .= $this->oMEApp->MakeGrowerNamesSelect($this->oMEApp->GetGrowerList('firstname', []), $this->kGrower, true);    // grower names have to be encoded to utf8 on seeds tab
         }
         if( $this->kSpecies ) {
             $sSpecies = is_numeric($this->kSpecies) ? $this->oMEApp->oMSDLib->GetSpeciesNameFromKey($this->kSpecies) : $this->kSpecies; // normally int but can be tomatoAC,tomatoDH,etc
