@@ -97,6 +97,7 @@ class SEEDSessionAccount extends SEEDSession
 
     private $kfrelSess = null;
     private $kfrSession = null;
+    private $oAuth;
 
     private $logfile = "";
 
