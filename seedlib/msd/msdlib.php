@@ -319,7 +319,8 @@ var_dump($sql);
         $bRequestable = ($eRequestable==MSDCore::REQUESTABLE_YES);
 
         // make this false to prevent people from ordering
-        $bEnableAddToBasket = false;
+//use bShutdown
+        $bEnableAddToBasket = true;
 
         $sMbrCode = $kfrGxM->Value('mbr_code');
         $sButton1Attr = $bRequestable && $bEnableAddToBasket ? "onclick='AddToBasket_Name($kP);'"
