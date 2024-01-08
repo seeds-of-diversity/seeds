@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for seeds tab
  *
- * Copyright (c) 2018-2023 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  *
  */
 
@@ -54,10 +54,8 @@ class MSEEditApp
         return( $oMbr->GetContactName($kGrower) );
     }
 
-    function MakeSelectGrowerNames( int $kCurrGrower, string $sSortCol, array $raChecked, bool $klugeEncodeUTF8 )
+    function GetGrowerList( string $sSortCol, array $raChecked )
     {
-        $oMbr = new Mbr_Contacts($this->oApp);
-
         // sort list by sSortCol
         switch($sSortCol) {
             default:
@@ -75,10 +73,17 @@ class MSEEditApp
         if(@$raChecked['bNoChange'])   { $raCond[] = "(_updated_G_mbr IS NULL OR _updated_G_mbr='' OR _updated_G_mbr<'2023-09-01') AND (_updated_S_mbr IS NULL OR _updated_S_mbr='' OR _updated_S_mbr AND _updated_S_mbr<'2023-09-01')"; }
         if(isset($raChecked['bZeroSeeds'])) { $raCond[] = $raChecked['bZeroSeeds'] ? "nTotal=0" : "nTotal>0"; }
 
-
         $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA(implode(' AND ',$raCond),['sSortCol'=>$sSortCol]);   // all growers with _status=0
+
+        return( $raG );
+    }
+
+    function MakeGrowerNamesSelect( array $raGrowerList, int $kCurrGrower, bool $klugeEncodeUTF8 )   // get this array from GetGrowerList()
+    {
+        $oMbr = new Mbr_Contacts($this->oApp);
+
         $raG2 = array( '-- All Growers --' => 0 );
-        foreach( $raG as $ra ) {
+        foreach( $raGrowerList as $ra ) {
             $kMbr = $ra['mbr_id'];
             $bSkip = $ra['bSkip'];
             $bDelete = $ra['bDelete'];
@@ -95,6 +100,37 @@ class MSEEditApp
         //ksort($raG2);
         $oForm = new SEEDCoreForm( 'Plain' );
         return( "<form method='post'>".$oForm->Select( 'selectGrower', $raG2, "", ['selected'=>$kCurrGrower, 'attrs'=>"onChange='submit();'"] )."</form>" );
+    }
+
+    function MakeGrowerNamesTable( array $raGrowerList, int $kCurrGrower, bool $klugeEncodeUTF8 )   // get this array from GetGrowerList()
+    {
+        $s = "";
+
+        $oMbr = new Mbr_Contacts($this->oApp);
+
+        foreach( $raGrowerList as $ra ) {
+            $kMbr = $ra['mbr_id'];
+            $bSkip = $ra['bSkip'];
+            $bDelete = $ra['bDelete'];
+            $bDone = $ra['bDone'];
+
+            $name = $oMbr->GetContactNameFromMbrRA( $ra, ['fldPrefix'=>'M_'] )
+                   ." ($kMbr {$ra['mbr_code']})"
+                   .($bDone ? " - <span style='color:green'>Done</span>" : "")
+                   .($bSkip ? " - <span style='color:orange'>Skipped</span>" : "")
+                   .($bDelete ? " - <span style='color:red'>Deleted</span>" : "");
+
+            if( $klugeEncodeUTF8 )  $name = SEEDCore_utf8_encode(trim($name));    // Seeds is utf8 but Growers isn't
+
+            $cssName = "padding:3px;";
+            if( $bDelete ) $cssName .= "background-color:#fdf;";
+            else if( $bDone )   $cssName .= "background-color:#cdc;";
+            $name = "<span style='$cssName'>$name</span>";
+
+            if( $kMbr==$kCurrGrower ) $name = "<div style='font-weight:bold;border:1px solid #777;padding:3px'>$name</div>";
+            $s .= "<form action='' method='post'><p onclick='this.parentElement.submit();' style='margin:0'>$name <input type='hidden' name='selectGrower' value='$kMbr'/></p></form>";
+        }
+        return( $s );
     }
 }
 

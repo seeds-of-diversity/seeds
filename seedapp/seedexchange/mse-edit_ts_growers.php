@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for growers tab
  *
- * Copyright (c) 2018-2023 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  *
  */
 
@@ -20,6 +20,7 @@ class MSEEditAppTabGrower
 
     private   $kGrower = 0;         // the current grower
     private   $bOffice = false;     // activate office features
+    private   $raGrowerList = [];   // bOffice list of growers that match the filter controls
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -29,10 +30,9 @@ class MSEEditAppTabGrower
         $this->oMSDLib->oL->AddStrs($this->sLocalStrs());
     }
 
-    function Init_Grower( int $kGrower )
+    function Init_Grower( int $kGTmp )
     {
-        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kGrower, 'grower');
-        $kGrower = $this->kGrower;  // be sure not to use the old value below
+        list($this->bOffice, $this->kGrower) = $this->oMEApp->NormalizeParms($kGTmp, 'grower');     // this can change kGrower so don't use kGTmp below
         $bKGrowerIsMe = $this->kGrower == $this->oApp->sess->GetUID();
 
 // Activate your seed list -- Done! should be Active (summary of seeds active, skipped, deleted)
@@ -43,16 +43,16 @@ class MSEEditAppTabGrower
         $this->oGrowerForm = new MSDAppGrowerForm( $this->oMSDLib );
         $this->oGrowerForm->Update();
 
-        if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
+        if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='{$this->kGrower}'" )) ) {
             // create the Grower Record
             $tmpkfr = $this->oMSDLib->KFRelG()->CreateRecord();
-            $tmpkfr->SetValue( 'mbr_id', $kGrower );
+            $tmpkfr->SetValue( 'mbr_id', $this->kGrower );
             $tmpkfr->PutDBRow();
             // now fetch with with the Member data joined
 // this is not going to work if mbr_contacts record is not there.
 // G_M would work although with blank M_*, but kfrGxM will be null
-            if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='$kGrower'" )) ) {
-                $this->oApp->Log( 'MSEEdit.log', "create grower $kGrower failed, probably mbr_contacts row doesn't exist" );
+            if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='{$this->kGrower}'" )) ) {
+                $this->oApp->Log( 'MSEEdit.log', "create grower {$this->kGrower} failed, probably mbr_contacts row doesn't exist" );
                 goto done;
             }
         }
@@ -114,13 +114,15 @@ class MSEEditAppTabGrower
                 default:                                   // !isset means all growers
             }
         }
+        // Get the list of growers that matches the controls. This array is used in ControlDraw too.
+        $this->raGrowerList = $this->oMEApp->GetGrowerList($oForm->Value('sort'), $raChecked);
         $s .= "<div class='container-fluid'><div class='row'>
-               <div class='col-md-4'>"
-             .$this->oMEApp->MakeSelectGrowerNames( $this->kGrower, $oForm->Value('sort'), $raChecked, false )     // kluge to convert names to utf8, required for seeds tab but not growers tab
+               <div class='col-md-5'>"
+             .$this->oMEApp->MakeGrowerNamesSelect($this->raGrowerList, $this->kGrower, false)     // kluge to convert names to utf8, required for seeds tab but not growers tab
              ."</div>
                <div class='col-md-2'>
                    <form method='post'>"
-                 .$oForm->Select('sort', ['First name'=>'firstname', 'Last name'=>'lastname', 'Mbr code'=>'mbrcode'], "Sort", ['attrs'=>"onchange='submit()'"])
+                 .$oForm->Select('sort', ['First name'=>'firstname', 'Last name'=>'lastname', 'Mbr code'=>'mbrcode'], "Sort&nbsp;", ['attrs'=>"onchange='submit()'"])
                  ."</form>
                </div>
                <div class='col-md-2'>
@@ -138,7 +140,7 @@ class MSEEditAppTabGrower
                    <table><tr><td><b><br/>&nbsp;</br>#Seeds&nbsp;</b></td>
                      </td><td>"
                     .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
-                    .$oForm->Checkbox('bNoChange', "Change &lt; last April (slow)", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Checkbox('bNoChange', "Change &lt; last April",        ['attrs'=>"onchange='submit()'"])."<br/>"
                     .$oForm->Select('bZeroSeeds',  ['--'=>-1, 'Zero'=>1, 'Not Zero'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
                    </td></tr></table>
                    </form>
@@ -188,6 +190,12 @@ class MSEEditAppTabGrower
             ."<div class='col-lg-6'>$sLeft</div>"
             ."<div class='col-lg-6'>$sRight</div>"
             ."</div></div>";
+
+        if( $this->bOffice ) {
+            $s = "<div class='container-fluid'><div class='row'>
+                   <div class='col-md-3'>".$this->oMEApp->MakeGrowerNamesTable($this->raGrowerList, $this->kGrower, false)."</div><div class='col-md-9'>$s</div>
+                   </div></div>";
+        }
 
         return( $s );
     }
