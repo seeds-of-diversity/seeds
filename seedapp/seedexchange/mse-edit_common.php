@@ -66,11 +66,12 @@ class MSEEditApp
 
         // filter list by raChecked
         $raCond = [];
-        if(isset($raChecked['bDone'])) { $raCond[] = $raChecked['bDone'] ? "bDone"   : "NOT bDone"; }
-        if(isset($raChecked['bSkip'])) { $raCond[] = $raChecked['bSkip'] ? "bSkip"   : "NOT bSkip"; }
-        if(isset($raChecked['bDel']))  { $raCond[] = $raChecked['bDel']  ? "bDelete" : "NOT bDelete"; }
-        if(@$raChecked['bExpired'])    { $raCond[] = "year(M.expires)<2022"; }
-        if(@$raChecked['bNoChange'])   { $raCond[] = "(_updated_G_mbr IS NULL OR _updated_G_mbr='' OR _updated_G_mbr<'2023-09-01') AND (_updated_S_mbr IS NULL OR _updated_S_mbr='' OR _updated_S_mbr AND _updated_S_mbr<'2023-09-01')"; }
+        if(isset($raChecked['bDone'])) { $raCond[] = ($raChecked['bDone'] ? '' : 'NOT ')."({$this->oMSDLib->GetIsGrowerDoneCond()})"; }
+        if(isset($raChecked['bSkip'])) { $raCond[] = ($raChecked['bSkip'] ? '' : 'NOT ')."bSkip"; }
+        if(isset($raChecked['bDel']))  { $raCond[] = ($raChecked['bDel']  ? '' : 'NOT ')."bDelete"; }
+        if(@$raChecked['bExpired'])    { $raCond[] = "year(M.expires)<".(intval($this->oMSDLib->GetCurrYear())-2); }    // e.g. for 2025 MSE the member's expiry is 2023 or less
+        if(@$raChecked['bNoChange'])   { $raCond[] = "(_updated_G_mbr='' OR _updated_G_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}') AND
+                                                      (_updated_S_mbr='' OR _updated_S_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}')"; }
         if(isset($raChecked['bZeroSeeds'])) { $raCond[] = $raChecked['bZeroSeeds'] ? "nTotal=0" : "nTotal>0"; }
 
         $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA(implode(' AND ',$raCond),['sSortCol'=>$sSortCol]);   // all growers with _status=0
@@ -112,7 +113,7 @@ class MSEEditApp
             $kMbr = $ra['mbr_id'];
             $bSkip = $ra['bSkip'];
             $bDelete = $ra['bDelete'];
-            $bDone = $ra['bDone'];
+            $bDone = $this->oMSDLib->IsGrowerDoneFromDate($ra['dDone']);
 
             $name = $oMbr->GetContactNameFromMbrRA( $ra, ['fldPrefix'=>'M_'] )
                    ." ($kMbr {$ra['mbr_code']})"

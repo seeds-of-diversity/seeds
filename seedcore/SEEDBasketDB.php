@@ -169,7 +169,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
                      ) as A
                  ORDER BY 1 DESC LIMIT 1" );
 
-        return( [@$ra['_key'], @$ra['_updated'], @$ra['_updated_by']] );
+        return( [intval(@$ra['_key']), @$ra['_updated'] ?? '', intval(@$ra['_updated_by'])] );
     }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )

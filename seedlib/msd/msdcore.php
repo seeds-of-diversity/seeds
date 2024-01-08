@@ -50,7 +50,7 @@ class MSDCore
                                           'fnInitKfrel' => [$this,'mseInitKfrel'],      // initKfrel calls this to define additional Named Relations
                                           'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'
                                          ] );
-        $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
+        $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*150 );  // year of 150 days from now (so Aug-Dec,Jan-Jul is same year as Jan)
     }
 
     function mseInitKfrel()
@@ -82,9 +82,11 @@ class MSDCore
                               'Fields' => "Auto"] ] );
     }
 
-
-
-    function GetCurrYear()  { return( $this->currYear ); }
+    /* Current year can be set at constructor, default is the year that would apply to Aug-Dec,Jan-Jun (which is the year of Jan in this range).
+     * FirstDayForCurrYear is Aug 1 of the year prior to CurrYear.
+     */
+    function GetCurrYear()            { return( $this->currYear ); }
+    function GetFirstDayForCurrYear() { return( (intval($this->currYear)-1)."-08-01" ); }
 
     /* Permissions are defined by MSD = what each member can do with their own listings
      *                            MSDOffice = what office volunteers and staff can do with the whole directory
@@ -799,12 +801,12 @@ CREATE TABLE sed_growers (
 --  bDoneOffice     BOOL         DEFAULT 0,  -- we clicked Done in the office
 -- // obsolete  _updated_by_mbr VARCHAR(100),
 
---  _updated_G_mbr  VARCHAR(100),               -- last time the grower updated their own sed_growers record
---  _updated_S_mbr  VARCHAR(100),               -- last time the grower updated their own seed-product records
---  _updated_S      VARCHAR(100),               -- last time anybody updated a seed-product record owned by this grower
---  _updated_S_by   INTEGER DEFAULT 0,          -- who made the most recent change to a seed-product record owned by this grower
-
-
+--  _updated_G_mbr  VARCHAR(100) NOT NULL DEFAULT '',   -- last time the grower updated their own sed_growers record
+--  _updated_S_mbr  VARCHAR(100) NOT NULL DEFAULT '',   -- last time the grower updated their own seed-product records
+--  _updated_S      VARCHAR(100) NOT NULL DEFAULT '',   -- last time anybody updated a seed-product record owned by this grower
+--  _updated_S_by   INTEGER NOT NULL DEFAULT 0,         -- who made the most recent change to a seed-product record owned by this grower
+--  dDone           VARCHAR(100) NOT NULL DEFAULT '',   -- date when the Done button was clicked (revert to '' if reversed)
+--  dDone_by        INTEGER NOT NULL DEFAULT 0,         -- who clicked or unclicked the Done button
 
     INDEX sed_growers_mbr_id   (mbr_id),
     INDEX sed_growers_mbr_code (mbr_code)
@@ -814,6 +816,15 @@ alter table sed_curr_growers rename column _updated_by_mbr to _updated_G_mbr;
 alter table sed_curr_growers add _updated_S_mbr varchar(100);
 alter table sed_curr_growers add _updated_S varchar(100);
 alter table sed_curr_growers add _updated_S_by integer default 0;
+
+update sed_curr_growers set _updated_G_mbr ='' WHERE _updated_G_mbr is null;
+update sed_curr_growers set _updated_S_mbr ='' WHERE _updated_S_mbr is null;
+update sed_curr_growers set _updated_S     ='' WHERE _updated_S is null;
+alter table sed_curr_growers change _updated_G_mbr _updated_G_mbr  VARCHAR(100) NOT NULL DEFAULT '';
+alter table sed_curr_growers change _updated_S_mbr _updated_S_mbr  VARCHAR(100) NOT NULL DEFAULT '';
+alter table sed_curr_growers change _updated_S     _updated_S      VARCHAR(100) NOT NULL DEFAULT '';
+alter table sed_curr_growers change _updated_S_by  _updated_S_by   INTEGER NOT NULL DEFAULT 0;
+
 
 DROP TABLE IF EXISTS sed_seeds;
 CREATE TABLE sed_seeds (

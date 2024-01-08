@@ -2,7 +2,7 @@
 
 /* msdlib
  *
- * Copyright (c) 2009-2022 Seeds of Diversity
+ * Copyright (c) 2009-2024 Seeds of Diversity
  *
  * Support for MSD app-level code that shouldn't know about MSDCore but can't get what it needs from MSDQ.
  *
@@ -37,7 +37,8 @@ class MSDLib
     function PermOfficeW()  { return( $this->oMSDCore->PermOfficeW() ); }
     function PermAdmin()    { return( $this->oMSDCore->PermAdmin() ); }
 
-    function GetCurrYear()  { return( $this->oMSDCore->GetCurrYear() ); }
+    function GetCurrYear()            { return( $this->oMSDCore->GetCurrYear() ); }
+    function GetFirstDayForCurrYear() { return( $this->oMSDCore->GetFirstDayForCurrYear() ); }
 
     function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
 
@@ -62,6 +63,29 @@ class MSDLib
 
     function KFRelG()   { return( $this->oMSDCore->KFRelG() ); }
     function KFRelGxM() { return( $this->oMSDCore->KFRelGxM() ); }
+
+    function IsGrowerDone( KeyframeRecord $kfrG )
+    /********************************************
+        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
+     */
+    {
+        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneFromDate($kfrG->Value('dDone')) );
+    }
+    function IsGrowerDoneFromDate( string $dDone )
+    /*********************************************
+        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
+     */
+    {
+        return( $dDone && $dDone > $this->oMSDCore->GetFirstDayForCurrYear() );
+    }
+    function GetIsGrowerDoneCond()
+    /*****************************
+        sql cond for testing if Done status is set in a grower record
+     */
+    {
+        return( "dDone<>'' AND dDone>'{$this->oMSDCore->GetFirstDayForCurrYear()}'" );
+    }
+
 
     function BulkRenameSpecies( int $klugeKey2From, int $klugeKey2To )
     /*****************************************************************
@@ -107,64 +131,72 @@ var_dump($sql);
         return( [$ok,$sMsg] );
     }
 
+    function RecordGrowerStats( KeyframeRecord $kfrG )
+    /*************************************************
+        Update seed counts and dates for the given grower.
+
+        Dates when the grower made changes (_updated_G_mbr, _updated_S_mbr) are only updated when the grower is logged in,
+        so if another person makes later changes the date _updated doesn't obscure that history.
+     */
+    {
+        if( !($mbrid = $kfrG->Value('mbr_id')) ) goto done;
+
+        /* Update seed counts in grower record
+         */
+        $sql = "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products P,{$this->dbname1}.SEEDBasket_ProdExtra PE "
+              ."WHERE P._key=PE.fk_SEEDBasket_Products AND P._status='0' AND P.product_type='seeds' AND "
+                    ."P.uid_seller='$mbrid' AND P.eStatus='ACTIVE' AND PE.k='category' ";
+
+        $kfrG->SetValue('nTotal',  $this->oMSDCore->oApp->kfdb->Query1($sql));
+        $kfrG->SetValue('nFlower', $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='flowers'"));
+        $kfrG->SetValue('nFruit',  $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='fruit'"));
+        $kfrG->SetValue('nGrain',  $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='grain'"));
+        $kfrG->SetValue('nHerb',   $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='herbs'"));
+        $kfrG->SetValue('nTree',   $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='trees'"));
+        $kfrG->SetValue('nVeg',    $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='vegetables'"));
+        $kfrG->SetValue('nMisc',   $this->oMSDCore->oApp->kfdb->Query1($sql."  AND v='misc'"));
+
+
+        /* Update dates in grower record
+         * sed_curr_growers._updated_S     : the latest _updated in a seed-product owned by this grower
+         * sed_curr_growers._updated_S_by  : who made that change
+         * sed_curr_growers._updated_S_mbr : the latest _update in a seed-product owned by this grower, made by owner themselves i.e. where _updated_by==mbr_id
+         */
+        list($kP,$dLatest,$uidLatestBy) = $this->oMSDCore->GetLastUpdated("P.product_type='seeds'", ['uid_seller'=>$mbrid]);
+        $kfrG->SetValue('_updated_S',     $dLatest);
+        $kfrG->SetValue('_updated_S_by',  $uidLatestBy);
+
+        if( $this->oApp->sess->GetUID() == $mbrid ) {
+            /* If a different user updates the product that was the current grower's most recent product, then this computation will return the grower's second most recent product.
+             * Therefore only store this computation when the grower is updating their own records.
+             */
+            list($kPByOwner,$dLatestByOwner,$uidOwner) = $this->oMSDCore->GetLastUpdated("P.product_type='seeds'", ['uid_seller'=>$mbrid,'bUpdatedByOwner'=>true]);
+            $kfrG->SetValue('_updated_S_mbr', $dLatestByOwner);
+        }
+
+        $kfrG->PutDBRow( ['bNoChangeTS'=>true] );               // don't change sed_curr_growers._updated because we depend on that to know when real edits happened
+
+        done:
+        return;
+    }
+
     function AdminNormalizeStuff()
     {
         $s = "";
 
         if( !$this->PermAdmin() ) goto done;
 
+        $s = "<p>Trimmed and upper-cased species strings. Updated seed counts and _updated* for all growers.</p>";
+
         $this->oApp->kfdb->Execute( "UPDATE {$this->dbname1}.SEEDBasket_Products P,{$this->dbname1}.SEEDBasket_ProdExtra PE "
                                    ."SET PE.v=UPPER(TRIM(v)) "
                                    ."WHERE P.product_type='seeds' AND P._key=PE.fk_SEEDBasket_Products AND PE.k='species'" );
 
-        /* Update offer counts in grower table (should happen after every edit)
-         */
-        $nG = 0;
-        if( ($dbc = $this->oMSDCore->oApp->kfdb->CursorOpen( "SELECT mbr_id FROM {$this->dbname1}.sed_curr_growers" )) ) {
-            while( $ra = $this->oMSDCore->oApp->kfdb->CursorFetch($dbc) ) {
-                $sCond = "mbr_id='{$ra['mbr_id']}' AND _status='0' AND NOT bSkip AND NOT bDelete";
-
-                $sql = "SELECT count(*) FROM {$this->dbname1}.SEEDBasket_Products P,{$this->dbname1}.SEEDBasket_ProdExtra PE "
-                      ."WHERE P._key=PE.fk_SEEDBasket_Products AND P._status='0' AND P.product_type='seeds' AND "
-                            ."P.uid_seller='{$ra['mbr_id']}' AND P.eStatus='ACTIVE' AND PE.k='category' ";
-
-                $nTotal  = $this->oMSDCore->oApp->kfdb->Query1( $sql );
-                $nFlower = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='flowers'" );
-                $nFruit  = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='fruit'" );
-                $nGrain  = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='grain'" );
-                $nHerb   = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='herbs'" );
-                $nTree   = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='trees'" );
-                $nVeg    = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='vegetables'" );
-                $nMisc   = $this->oMSDCore->oApp->kfdb->Query1( $sql."  AND v='misc'" );
-
-                $this->oMSDCore->oApp->kfdb->Execute(
-                        "UPDATE {$this->dbname1}.sed_curr_growers "
-                       ."SET nTotal='$nTotal',nFlower='$nFlower',nFruit='$nFruit',"
-                       ."nGrain='$nGrain',nHerb='$nHerb',nTree='$nTree',nVeg='$nVeg',nMisc='$nMisc' "
-                       ."WHERE mbr_id='{$ra['mbr_id']}'");
-                ++$nG;
-            }
-            $this->oMSDCore->oApp->kfdb->CursorClose($dbc);
-        }
-
-        /* Update sed_curr_growers._updated_S     : the latest _update in a seed-product owned by each grower
-         * Update sed_curr_growers._updated_S_mbr : the latest _update in a seed-product owned by each grower, where _updated_by==mbr_id
-         */
         if( ($kfrc = $this->oMSDCore->KFRelG()->CreateRecordCursor()) ) {
-            while( $ra = $kfrc->CursorFetch() ) {
-                if( !($mbrid = $kfrc->Value('mbr_id')) ) continue;
-
-                list($kP,$dLatest,$uidLatestBy)            = $this->oMSDCore->GetLastUpdated("P.product_type='seeds'", ['uid_seller'=>$mbrid]);
-                list($kPByOwner,$dLatestByOwner,$uidOwner) = $this->oMSDCore->GetLastUpdated("P.product_type='seeds'", ['uid_seller'=>$mbrid,'bUpdatedByOwner'=>true]);
-
-                $kfrc->SetValue('_updated_S',     $dLatest);
-                $kfrc->SetValue('_updated_S_by',  $uidLatestBy);
-                $kfrc->SetValue('_updated_S_mbr', $dLatestByOwner);
-                $kfrc->PutDBRow( ['bNoChangeTS'=>true] );               // don't change sed_curr_growers._updated because we depend on that to know when real edits happened
+            while( $kfrc->CursorFetch() ) {
+                $this->RecordGrowerStats($kfrc);
             }
         }
-
-        $s = "<p>Trimmed and upper-cased species strings. Updated seed counts and _updated* for $nG growers.</p>";
 
         done:
         return( $s );
