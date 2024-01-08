@@ -66,12 +66,12 @@ class MSEEditApp
 
         // filter list by raChecked
         $raCond = [];
-        if(isset($raChecked['bDone'])) { $raCond[] = ($raChecked['bDone'] ? '' : 'NOT ')."({$this->oMSDLib->GetIsGrowerDoneCond()})"; }
-        if(isset($raChecked['bSkip'])) { $raCond[] = ($raChecked['bSkip'] ? '' : 'NOT ')."bSkip"; }
-        if(isset($raChecked['bDel']))  { $raCond[] = ($raChecked['bDel']  ? '' : 'NOT ')."bDelete"; }
-        if(@$raChecked['bExpired'])    { $raCond[] = "year(M.expires)<".(intval($this->oMSDLib->GetCurrYear())-2); }    // e.g. for 2025 MSE the member's expiry is 2023 or less
-        if(@$raChecked['bNoChange'])   { $raCond[] = "(_updated_G_mbr='' OR _updated_G_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}') AND
-                                                      (_updated_S_mbr='' OR _updated_S_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}')"; }
+        if(isset($raChecked['bDone']))     { $raCond[] = ($raChecked['bDone'] ? '' : 'NOT ')."({$this->oMSDLib->GetIsGrowerDoneCond()})"; }
+        if(isset($raChecked['bSkip']))     { $raCond[] = ($raChecked['bSkip'] ? '' : 'NOT ')."bSkip"; }
+        if(isset($raChecked['bDel']))      { $raCond[] = ($raChecked['bDel']  ? '' : 'NOT ')."bDelete"; }
+        if(isset($raChecked['bExpired']))  { $raCond[] = ($raChecked['bExpired']  ? '' : 'NOT ')."(year(M.expires)<".(intval($this->oMSDLib->GetCurrYear())-2).")"; }    // e.g. for 2025 MSE the member's expiry is 2023 or less
+        if(isset($raChecked['bNoChange'])) { $raCond[] = ($raChecked['bNoChange'] ? '' : 'NOT ')."((_updated_G_mbr='' OR _updated_G_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}') AND
+                                                                                                   (_updated_S_mbr='' OR _updated_S_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}'))"; }
         if(isset($raChecked['bZeroSeeds'])) { $raCond[] = $raChecked['bZeroSeeds'] ? "nTotal=0" : "nTotal>0"; }
 
         $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA(implode(' AND ',$raCond),['sSortCol'=>$sSortCol]);   // all growers with _status=0

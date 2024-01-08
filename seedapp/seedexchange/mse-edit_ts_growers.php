@@ -102,17 +102,12 @@ class MSEEditAppTabGrower
 
         if( !$this->oMSDLib->PermOfficeW() )  goto done;
 
-        $raChk = ['bExpired'  =>['control'=>'checkbox'],
-                  'bNoChange' =>['control'=>'checkbox'] ];
-        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A', ['fields'=>$raChk]);
+        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A');
         $oForm->Update();
 
         // check boxes that are checked
         $raChecked = [];
-        foreach($raChk as $k=>$v) {
-            if( $oForm->Value($k) ) $raChecked[$k] = true;
-        }
-        foreach(['bDone','bSkip','bDel','bZeroSeeds'] as $k ) {
+        foreach(['bDone','bSkip','bDel','bExpired','bNoChange','bZeroSeeds'] as $k ) {
             switch($oForm->Value($k)) {
                 case 1: $raChecked[$k] = true;  break;     // only show growers with $k
                 case 0: $raChecked[$k] = false; break;     // only show growers with !$k
@@ -142,10 +137,10 @@ class MSEEditAppTabGrower
                </div>
                <div class='col-md-2'>
                    <form method='post'>
-                   <table><tr><td><b><br/>&nbsp;</br>#Seeds&nbsp;</b></td>
+                   <table><tr><td><b>Member Expiry&nbsp;<br/>Changes by mbr&nbsp;</br>#Seeds</b></td>
                      </td><td>"
-                    .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
-                    .$oForm->Checkbox('bNoChange', "Change &lt; last April",        ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bExpired',    ['--'=>-1, '< 2022'=>1, '>= 2022'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bNoChange',   ['--'=>-1, '< Aug 2023'=>1, '>= Aug 2023'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
                     .$oForm->Select('bZeroSeeds',  ['--'=>-1, 'Zero'=>1, 'Not Zero'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
                    </td></tr></table>
                    </form>
