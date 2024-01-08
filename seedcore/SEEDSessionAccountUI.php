@@ -17,6 +17,7 @@ class SEEDSessionAccountUI
     private $oTmpl;
     private $config_urlSendPasswordSite;
     private $fnSendMail;
+    private $oAcctDB;
 
     private $bTmpActivate = false;      // remove this when we always activate by default
 
