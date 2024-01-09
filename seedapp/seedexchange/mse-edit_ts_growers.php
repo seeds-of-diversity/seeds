@@ -179,7 +179,7 @@ class MSEEditAppTabGrower
                                             <div class='alert alert-danger'>
                                             <h3>Your seed listings are not active yet</h3>
                                             <p>Click here when you are ready (you can undo this)</p>
-                                            <p><input type='submit' value='Done for {$this->oMSDLib->GetCurrYear()}'/></p></div>
+                                            <p><input type='submit' value='Ready for {$this->oMSDLib->GetCurrYear()}'/></p></div>
                         </form>")
                 .($this->bOffice ? $this->drawGrowerOfficeSummary() : "");
 
