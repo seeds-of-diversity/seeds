@@ -32,12 +32,14 @@
 <br/>
 Receipt # / No. de re&ccedil;u<br/>
 Donation received / R&eacute;ception<br/>
-Receipt issued / &Eacute;mission<br/>&nbsp;&nbsp;in Waterloo ON
+{% if donorPurpose|trim is not empty %} Purpose<br/> {% endif %}
+Receipt issued / &Eacute;mission<br/>&nbsp;&nbsp;in Waterloo ON<br/>
 </td>
 <td valign='top' style='text-align:right'>
 <br/>
 {{donorReceiptNum}}<br/>
 {{donorDateReceived}}<br/>
+{% if donorPurpose|trim is not empty %} {{donorPurpose}}<br/> {% endif %}
 {{donorDateIssued}}<br/>
 </td>
 </tr></table>

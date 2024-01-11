@@ -2,7 +2,7 @@
 
 /* MbrContacts
  *
- * Copyright 2021-2023 Seeds of Diversity Canada
+ * Copyright 2021-2024 Seeds of Diversity Canada
  *
  * Keep track of our contacts, members, donors.
  */
@@ -564,6 +564,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             receipt_num          INTEGER NOT NULL DEFAULT 0,      # set any time; 0=not set yet, -1=non-receiptable, -2=below threshold
             date_issued          DATE NULL,                       # set when the receipt is actually sent
             category             VARCHAR(200) NOT NULL DEFAULT '',# e.g. SLAdoption, SFG
+            purpose              VARCHAR(200) NOT NULL DEFAULT '',# Purpose to be shown on receipt
             notes                TEXT,
 
             INDEX (fk_mbr_contacts)

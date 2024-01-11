@@ -2,7 +2,7 @@
 
 /* MbrDonations
  *
- * Copyright 2023 Seeds of Diversity Canada
+ * Copyright 2023-2024 Seeds of Diversity Canada
  *
  * Information about member donations
  */
@@ -136,6 +136,7 @@ class MbrDonations
                 'donorAmount'  => $kfrD->Value('amount'),
                 'donorDateReceived' => $kfrD->Value('date_received'),
                 'donorDateIssued' => $kfrD->Value('date_issued'),
+                'donorPurpose'    => $kfrD->Value('purpose'),
                 'taxYear' => substr($kfrD->Value('date_received'), 0, 4)     // should be the year for which the donation applies
             ];
             $vars['donorName'] = SEEDCore_utf8_encode($vars['donorName']);

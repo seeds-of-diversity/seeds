@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2023 Seeds of Diversity Canada
+ * Copyright 2020-2024 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -369,7 +369,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         $s = "|||TABLE( || class='donationFormTable' width='100%' border='0')"
             ."||| *Member*     || [[text:fk_mbr_contacts|size=30]]"
             ." || *Amount*     || [[text:amount|size=30]]"
-            ." || *Category*   || [[text:category|size=30]]"
+            ." || *Cat / Purpose* || [[text:category|size=10]] [[text:purpose|size=16]]"
             ." || {colspan='1' rowspan='3'}".$jsShow
             ."||| &nbsp        || &nbsp;"
             ." || *Received*   || [[text:date_received|size=30]]"
