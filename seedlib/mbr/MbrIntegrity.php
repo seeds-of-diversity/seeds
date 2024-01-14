@@ -16,19 +16,57 @@ class MbrIntegrity
         $this->oApp = $oApp;
     }
 
-    function WhereIsContactReferenced( $kMbr )
+    function WhereIsContactReferenced( $kMbr, $bIncludeCancelled = false )
     {
         $ra = [];
 
-        $ra['nSBBaskets' ]  = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Baskets  WHERE _status='0' AND uid_buyer='$kMbr'" );
+        $ra['nSBBaskets' ]  = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Baskets  WHERE _status='0' AND uid_buyer='$kMbr'"
+                                .($bIncludeCancelled ? "" : " AND eStatus<>'Cancelled'" ) );    // want to be able to delete mbr_contacts for spam memberships after their orders cancelled
         $ra['nSProducts']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Products WHERE _status='0' AND uid_seller='$kMbr'" );
         $ra['nDescSites']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.mbr_sites           WHERE _status='0' AND uid='$kMbr'" );
-        $ra['nMSD']         = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sed_curr_growers    WHERE _status='0' AND mbr_id='$kMbr'" );
+        $ra['nMSE']         = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sed_curr_growers    WHERE _status='0' AND mbr_id='$kMbr'" );
         $ra['nSLAdoptions'] = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sl_adoption         WHERE _status='0' AND fk_mbr_contacts='$kMbr'" );
         $ra['nDonations']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds2')}.mbr_donations       WHERE _status='0' AND fk_mbr_contacts='$kMbr'" );
 
+        $ra['nTotal'] = $ra['nSBBaskets'] + $ra['nSProducts'] + $ra['nDescSites'] + $ra['nMSE'] + $ra['nSLAdoptions'] + $ra['nDonations'];
+
         return( $ra );
     }
+
+    /**
+     * @param array $ra - output from WhereIsContactReferenced
+     * @return string - explanation of contact references
+     */
+    function ExplainContactReferencesLong( array $ra )
+    {
+        $s = "";
+        if( ($n = $ra['nSBBaskets']) )   { $s .= "<li>Has $n orders recorded in the order system</li>"; }
+        if( ($n = $ra['nSProducts']) )   { $s .= "<li>Has $n offers in the seed exchange</li>"; }
+        if( ($n = $ra['nDescSites']) )   { $s .= "<li>Has $n crop descriptions in their name</li>"; }
+        if( ($n = $ra['nMSE']      ) )   { $s .= "<li>Is listed in the seed exchange</li>"; }
+        if( ($n = $ra['nSLAdoptions']) ) { $s .= "<li>Has $n seed adoptions in their name</li>"; }
+        if( ($n = $ra['nDonations']) )   { $s .= "<li>Has $n donation records in their name</li>"; }
+
+        return($s);
+    }
+
+    /**
+     * @param array $ra - output from WhereIsContactReferenced
+     * @return string - explanation of contact references
+     */
+    function ExplainContactReferencesShort( array $ra )
+    {
+        $s = "";
+        if( ($n = $ra['nSBBaskets']) )   { $s .= "$n orders<br/>"; }
+        if( ($n = $ra['nSProducts']) )   { $s .= "$n seed exchange offers<br/>"; }
+        if( ($n = $ra['nDescSites']) )   { $s .= "$n crop descriptions<br/>"; }
+        if( ($n = $ra['nMSE']      ) )   { $s .= "Listed in MSE<br/>"; }
+        if( ($n = $ra['nSLAdoptions']) ) { $s .= "$n seed adoptions<br/>"; }
+        if( ($n = $ra['nDonations']) )   { $s .= "$n donation records<br/>"; }
+
+        return($s);
+    }
+
 
     function AssessDonations()
     {

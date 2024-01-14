@@ -85,18 +85,10 @@ class MbrContactsTabContacts extends KeyframeUI_ListFormUI // implements Console
         $bDelete = false;
 
         if( $oDS && $oDS->Key() ) {
-            $ra = (new MbrIntegrity($this->oApp))->WhereIsContactReferenced($oDS->Key());
-
-            $sErr = "";
-            if( ($n = $ra['nSBBaskets']) )   { $sErr .= "<li>Has $n orders recorded in the order system</li>"; }
-            if( ($n = $ra['nSProducts']) )   { $sErr .= "<li>Has $n offers in the seed exchange</li>"; }
-            if( ($n = $ra['nDescSites']) )   { $sErr .= "<li>Has $n crop descriptions in their name</li>"; }
-            if( ($n = $ra['nMSD']      ) )   { $sErr .= "<li>Is listed in the seed exchange</li>"; }
-            if( ($n = $ra['nSLAdoptions']) ) { $sErr .= "<li>Has $n seed adoptions in their name</li>"; }
-            if( ($n = $ra['nDonations']) )   { $sErr .= "<li>Has $n donation records in their name</li>"; }
-
-            if( $sErr ) {
-                $this->oComp->oUI->SetErrMsg( "Cannot delete contact {$oDS->Key()}:<br/><ul>$sErr</ul>" );
+            $oMI = new MbrIntegrity($this->oApp);
+            $ra = $oMI->WhereIsContactReferenced($oDS->Key());
+            if( $ra['nTotal'] ) {
+                $this->oComp->oUI->SetErrMsg( "Cannot delete contact {$oDS->Key()}:<br/><ul>{$oMI->ExplainContactReferencesLong($ra)}</ul>" );
             } else {
                 $this->oComp->oUI->SetUserMsg( "Deleted {$oDS->Key()}: {$oDS->Value('firstname')} {$oDS->Value('lastname')} {$oDS->Value('company')}" );
                 $bOk = true;
