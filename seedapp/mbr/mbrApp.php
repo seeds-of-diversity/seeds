@@ -17,6 +17,7 @@ class MbrApp
               'addcontacts' => ['W MBR'],
               'logins'      => ['W MBR'],
               'ebulletin'   => ['W BULL', 'A MBR', '|'],
+              'manage'      => ['W MBR'],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
         // the app that prints 3-up renewal and donation slips, and donation receipts
