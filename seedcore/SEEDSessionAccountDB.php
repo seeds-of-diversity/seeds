@@ -1227,8 +1227,8 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
         $kUser       = intval(@$raParms['k']);      // 0 means use the next auto-increment
         $sdbEmail    = addslashes($sEmail);
         $sdbPwd      = addslashes($sPwd);
-        $sdbRealname = addslashes(@$raParms['realname']);
-        $sdbExtra    = addslashes(@$raParms['sExtra']);
+        $sdbRealname = addslashes(@$raParms['realname']??"");
+        $sdbExtra    = addslashes(@$raParms['sExtra']??"");
         $eStatus     = SEEDCore_ArraySmartVal( $raParms, 'eStatus', array('PENDING','ACTIVE','INACTIVE') );
         $eLang       = SEEDCore_ArraySmartVal( $raParms, 'lang', array('E','F','B') );
         $gid1        = intval(@$raParms['gid1']);

@@ -15,11 +15,13 @@ class Mbr_Contacts
 
     public  $oDB;
     private $oApp;
+    private $yCurrent;
 
-    function __construct( SEEDAppSessionAccount $oApp )
+    function __construct( SEEDAppSessionAccount $oApp, array $raConfig = [] )
     {
         $this->oApp = $oApp;
         $this->oDB = new Mbr_ContactsDB( $oApp );
+        $this->yCurrent = @$raConfig['yCurrent'] ?: date('Y');
     }
 
     function GetBasicFlds()   { return( $this->raFldsBasic ); }
@@ -196,6 +198,12 @@ class Mbr_Contacts
             $text .= $lnbreak.$leftMargin.$country;
         }
         return( $text );
+    }
+
+    function IsCurrentFromExpires( $sExpires )
+    {
+        $yExpires = intval(substr($sExpires, 0, 4));
+        return( $yExpires >= $this->yCurrent );
     }
 
     static function PostcodesEqual( String $pc1, String $pc2 ) : bool
