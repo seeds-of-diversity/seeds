@@ -14,10 +14,6 @@ class MbrContactsTabManage
     private $oContacts;
     private $oForm;
 
-    private $kMbrFrom;
-    private $kfrMbrFrom = null;
-    private $kMbrTo;
-    private $kfrMbrTo = null;
     private $raMbr = [0 => ['k'=>0, 'kfr'=>null, 'refs'=>[]],       // left hand column (member to be removed)
                       1 => ['k'=>0, 'kfr'=>null, 'refs'=>[]] ];     // right hand column (member to receive moved records)
 
@@ -82,11 +78,6 @@ class MbrContactsTabManage
     function ContentDraw()
     {
         $s = $sCol1 = $sCol2 = $sCol3 = "";
-
-        $this->kMbrFrom = $this->raMbr[0]['k'];
-        $this->kMbrTo = $this->raMbr[1]['k'];
-        $this->kfrMbrFrom = $this->raMbr[0]['kfr'];
-        $this->kfrMbrTo = $this->raMbr[1]['kfr'];
 
         /* State 0: draw form to choose the member number that will be removed
          */
