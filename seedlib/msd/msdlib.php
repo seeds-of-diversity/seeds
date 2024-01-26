@@ -293,9 +293,9 @@ var_dump($sql);
 
         if( $bRequestable ) {   // this also verifies that the current user can access grower contact info
             if( $kfrGxM->Value('M_firstname') || $kfrGxM->Value('M_lastname') ) {
-                $who = $kfrGxM->Expand( "[[M_firstname]] [[M_lastname]] in [[M_city]] [[M_province]]" );
+                $who = $kfrGxM->Expand( "[[M_firstname]] [[M_lastname]] in [[M_province]]" );  // left out city for privacy of email-only growers
             } else {
-                $who = $kfrGxM->Expand( "[[M_company]] in [[M_city]] [[M_province]]" );
+                $who = $kfrGxM->Expand( "[[M_company]] in [[M_province]]" );
             }
         } else {
             $who = $kfrGxM->Expand( "a Seeds of Diversity member in [[M_province]]" );
