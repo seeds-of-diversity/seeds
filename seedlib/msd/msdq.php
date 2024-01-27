@@ -194,7 +194,12 @@ class MSDQ extends SEEDQ
             kProduct
             kUidSeller
             kSp
-            bAll  :  must specify to force unfiltered list
+            bAll  :  must specify to force unfiltered list  (deprecated)
+
+            eFilter : LISTABLE            = seeds ACTIVE, growers Done & not Skip|Delete|Hold
+                      REQUESTABLE         = LISTABLE, in season
+                      REQUESTABLE_BY_USER = REQUESTABLE, available to given user
+                      ALL                 = must specify to force unfiltered list
 
         Secondary filter by:
             eStatus  :  any combination of quoted and comma-separated 'ACTIVE','INACTIVE','DELETED' or ALL
@@ -218,10 +223,11 @@ class MSDQ extends SEEDQ
             || ($uid = intval(@$raParms['uid_seller'])) ) { // deprecated
             $raCond[] = "P.uid_seller='$uid'";
         }
-// kSp is normally int but it can be tomatoAC,tomatoDH,etc
-        if( ($kSp = intval(@$raParms['kSp'])) ) {
-            $raCond[] = "PEspecies.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
-        } else if( SEEDCore_StartsWith(@$raParms['kSp'], 'tomato')) {
+
+        /* kSp is normally int but it can be tomatoAC,tomatoDH,etc
+         */
+        $kSp = @$raParms['kSp'];
+        if( SEEDCore_StartsWith($kSp, 'tomato') ) {
             // kluge tomatoAC, tomatoDH, etc
             $cond = "PEspecies.v LIKE 'TOMATO%'";
             switch( $kSp ) {
@@ -233,6 +239,8 @@ class MSDQ extends SEEDQ
                 case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) >= 'S'";               break;
             }
             $raCond[] = $cond;
+        } else if( ($kSp = intval($kSp)) ) {
+            $raCond[] = "PEspecies.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
         }
 
         if( !count($raCond) && !@$raParms['bAll'] ) {       // this is why eStatus is a secondary parameter; it is required but at least one primary filter is also required
@@ -264,13 +272,13 @@ class MSDQ extends SEEDQ
             eStatusOk:;
         }
 
-//$this->oApp->kfdb->SetDebug(2);
-        // PE1.k='category'
-        // PE2.k='species'
-        // PE3.k='variety'
-        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond) )) ) {
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>"PEvariety_v"] )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
+                if( ($e = @$raParms['eDrawMode']) ) {
+                    list($bOkDummy,$sSeedDraw,$sErrDummy) = $this->seedDraw( $kfrc, $e );
+                    $raOut[$kfrc->Key()]['sSeedDraw'] = $sSeedDraw;
+                }
             }
         }
 

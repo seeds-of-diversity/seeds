@@ -315,14 +315,16 @@ class MSDCore
                  $kfr ? $kfr->Value('PEcategory_v') : ""] );
     }
 
-    function SeedCursorOpen( $cond )
+    function SeedCursorOpen( $cond, $raParms = [] )
     {
+        $sSortCol = @$raParms['sSortCol'] ?: "PEcategory_v,PEspecies_v,PEvariety_v";
+
         $kfrcP = $this->oSBDB->GetKFRC( "PxGxCATEGORYxSPECIESxVARIETY",
                                         "product_type='seeds' ".($cond ? "AND $cond " : "")
                                        ."AND PEcategory.k='category' "
                                        ."AND PEspecies.k='species' "
                                        ."AND PEvariety.k='variety' ",
-                                       ['sSortCol'=>'PEcategory_v,PEspecies_v,PEvariety_v'] );
+                                       ['sSortCol'=>$sSortCol] );
         return( $kfrcP );
     }
 
