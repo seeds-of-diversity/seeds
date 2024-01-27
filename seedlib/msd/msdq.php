@@ -2,7 +2,7 @@
 
 /* Member Seed Directory Q Layer
  *
- * Copyright (c) 2018-2021 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  */
 
 include_once( SEEDLIB."msd/msdcore.php" );
@@ -220,17 +220,17 @@ class MSDQ extends SEEDQ
         }
 // kSp is normally int but it can be tomatoAC,tomatoDH,etc
         if( ($kSp = intval(@$raParms['kSp'])) ) {
-            $raCond[] = "PE2.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
+            $raCond[] = "PEspecies.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
         } else if( SEEDCore_StartsWith(@$raParms['kSp'], 'tomato')) {
             // kluge tomatoAC, tomatoDH, etc
-            $cond = "PE2.v LIKE 'TOMATO%'";
+            $cond = "PEspecies.v LIKE 'TOMATO%'";
             switch( $kSp ) {
                 default: // fall to tomatoAC
-                case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PE3.v,1)) <= 'C'";               break;
-                case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'D' AND 'H'";  break;
-                case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'I' AND 'M'";  break;
-                case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'N' AND 'R'";  break;
-                case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PE3.v,1)) >= 'S'";               break;
+                case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) <= 'C'";               break;
+                case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'D' AND 'H'";  break;
+                case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'I' AND 'M'";  break;
+                case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'N' AND 'R'";  break;
+                case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) >= 'S'";               break;
             }
             $raCond[] = $cond;
         }
@@ -242,13 +242,26 @@ class MSDQ extends SEEDQ
 
         // eStatus is combinations of quoted and comma-separated 'ACTIVE','INACTIVE','DELETED' or ALL
         if( $bCheckEStatus ) {
+            if( ($eFilter = @$raParms['eFilter']) ) {   // eFilter will replace eStatus with a more general criteria
+                switch($eFilter) {
+                    case 'LISTABLE':
+                        $raCond[] = "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->oMSDCore->GetIsGrowerDoneCond('G')}";
+                        goto eStatusOk;
+                    case 'ALL':
+                        $eStatus = 'ALL';
+                        goto eStatusOk;
+                }
+            }
+
             if( !($eStatus = @$raParms['eStatus']) ) {
                 $sErr = "eStatus required";
                 goto done;
             }
+
             if( $eStatus != 'ALL' ) {
                 $raCond[] = "eStatus IN ($eStatus)";
             }
+            eStatusOk:;
         }
 
 //$this->oApp->kfdb->SetDebug(2);
@@ -260,6 +273,8 @@ class MSDQ extends SEEDQ
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
             }
         }
+
+// raParm['eDrawMode'] could cause msdSeed-Draw to be done in each item, because that is frequently done with refetching
 
         $bOk = true;
 
@@ -287,12 +302,21 @@ class MSDQ extends SEEDQ
 
         $ok = true;
 
+//$raGrowers = $this->oApp->kfdb->QueryRowsRA("SELECT * from {$this->oApp->DBName('seeds1')}.sed_curr_growers WHERE _status=0");
+
         $sBetween = @$raParms['sBetween'];  // string to put between each seed listing
         foreach( $rQ['raOut'] as $ra ) {
             if( !($kfrS = $this->oMSDCore->GetSeedKfr($ra['_key'])) || !$this->canReadSeed($kfrS) ) {
                 $sErr .= "<p>Cannot read seed {$ra['_key']}</p>";
                 continue;
             }
+
+//if( ($k = array_search($kfrS->Value('uid_seller'), array_column($raGrowers, 'mbr_id')) === false) )  continue;
+//if( !($raG = @$raGrowers[$k]) ) continue;
+//if( $raG['bDelete'] || $raG['bSkip'] || @$raG['bHold'] ) continue;
+//if( $raG['mbr_code'] =="NS WO M" ) continue;
+
+
             list($okTmp,$sTmp,$sErrTmp) = $this->seedDraw( $kfrS, "REVIEW VIEW_SHOWSPECIES" );
 
             if( $okTmp ) {

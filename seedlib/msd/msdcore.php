@@ -62,18 +62,24 @@ class MSDCore
 
 
     {
-        // relation-name => kfdef
-        $kdef = [];
-        $kdef['PxCATEGORY'] = ['Tables' => ['P' => ['Table' => "{$this->dbname1}.SEEDBasket_Products",
-                                                      'Fields' => "Auto"] ]
-                                            + $this->mseInitKfrel_def('category') ];
+        $pdef = ['P' => ['Table' => "{$this->dbname1}.SEEDBasket_Products",
+                         'Fields' => "Auto"] ];
+        $gdef = ['G' => ['Table' => "{$this->dbname1}.sed_curr_growers",
+                         'JoinOn' => "P.uid_seller=G.mbr_id",
+                         'Fields' => "Auto"] ];
 
-        $kdef['PxCATEGORYxSPECIES'] = $kdef['PxCATEGORY'];
-        $kdef['PxCATEGORYxSPECIES']['Tables'] += $this->mseInitKfrel_def('species');
+        // relation-name => kfdef
+        $kdef = ['PxCATEGORY'                   => ['Tables' => $pdef + $this->_kdef('category') ],
+                 'PxCATEGORYxSPECIES'           => ['Tables' => $pdef + $this->_kdef('category') + $this->_kdef('species') ],
+                 'PxCATEGORYxSPECIESxVARIETY'   => ['Tables' => $pdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ],
+                 'PxG'                          => ['Tables' => $pdef + $gdef ],
+                 'PxGxCATEGORYxSPECIES'         => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') ],
+                 'PxGxCATEGORYxSPECIESxVARIETY' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ]
+        ];
 
         return( $kdef );
     }
-    private function mseInitKfrel_def( $k )
+    private function _kdef( $k )
     {
         // table-alias => table-def
         return( ["PE{$k}" => ['Table' => "{$this->dbname1}.SEEDBasket_ProdExtra",
@@ -311,17 +317,18 @@ class MSDCore
 
     function SeedCursorOpen( $cond )
     {
-        $kfrcP = $this->oSBDB->GetKFRC( "PxPE3", "product_type='seeds' ".($cond ? "AND $cond " : "")
-                                       ."AND PE1.k='category' "
-                                       ."AND PE2.k='species' "
-                                       ."AND PE3.k='variety' ",
-                                       array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
+        $kfrcP = $this->oSBDB->GetKFRC( "PxGxCATEGORYxSPECIESxVARIETY",
+                                        "product_type='seeds' ".($cond ? "AND $cond " : "")
+                                       ."AND PEcategory.k='category' "
+                                       ."AND PEspecies.k='species' "
+                                       ."AND PEvariety.k='variety' ",
+                                       ['sSortCol'=>'PEcategory_v,PEspecies_v,PEvariety_v'] );
         return( $kfrcP );
     }
 
-    function SeedCursorFetch( KeyframeRecord &$kfrP )
-    /************************************************
-        kfrP is a SEEDBasket_Product
+    function SeedCursorFetch( KeyframeRecord $kfrP )
+    /***********************************************
+        kfrP is a SEEDBasket_Product x sed_curr_growers x PRODEXTRA
      */
     {
         if( ($ok = $kfrP->CursorFetch()) ) {
@@ -337,7 +344,7 @@ class MSDCore
 
     function TranslateCategory( $sCat )
     {
-        return( @$this->raCategories[$sCat][$this->oApp->lang] );
+        return(@$this->raCategories[$sCat][$this->oApp->lang] ?? "");
     }
 
 
@@ -633,6 +640,16 @@ class MSDCore
         $o = new Mbr_Contacts($this->oApp);
         return( $o->GetBasicValues($kGrower) );
     }
+
+    function GetIsGrowerDoneCond( string $prefix = '' )
+    /**************************************************
+        sql cond for testing if Done status is set in a grower record
+     */
+    {
+        if( $prefix )  $prefix = "{$prefix}.";
+        return( "{$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}'" );
+    }
+
 
     function GetLastUpdated( $cond, $raParms = [] )  { return( $this->oSBDB->ProductLastUpdated( $cond, $raParms ) ); }
 

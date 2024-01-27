@@ -83,7 +83,7 @@ class MSDLib
         sql cond for testing if Done status is set in a grower record
      */
     {
-        return( "dDone<>'' AND dDone>'{$this->oMSDCore->GetFirstDayForCurrYear()}'" );
+        return( $this->oMSDCore->GetIsGrowerDoneCond() );
     }
 
 
