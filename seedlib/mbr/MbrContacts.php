@@ -330,7 +330,13 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             ]];
         $defA =
             ["Tables" => [
-                "A" => ["Table" => "{$dbname1}.sl_adoptions",
+                "A" => ["Table" => "{$dbname1}.sl_adoption",
+                        "Type"  => 'Base',
+                        "Fields" => 'Auto'],
+            ]];
+        $defR =
+            ["Tables" => [
+                "R" => ["Table" => "{$dbname2}.mbr_donation_receipts_accessed",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
             ]];
@@ -409,6 +415,8 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
         $raKfrel['M'] = new Keyframe_Relation( $kfdb, $defM, $uid, $parms );
         $raKfrel['D'] = new Keyframe_Relation( $kfdb, $defD, $uid, $parms );
+        $raKfrel['R'] = new Keyframe_Relation( $kfdb, $defR, $uid, $parms );
+        $raKfrel['A'] = new Keyframe_Relation( $kfdb, $defA, $uid, $parms );
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
         $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
@@ -555,6 +563,25 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         return( $this->oApp->kfdb->QueryRowsRA($sql) );
     }
 
+
+    /**
+     * Store an mbr_donation_receipt_accessed record
+     * @param int $kDon
+     * @param int $uid - who accessed it
+     */
+    function StoreDonationReceiptAccessed( int $kDon, int $uid )
+    {
+        if( ($kfr = $this->KFRel('R')->CreateRecord()) ) {
+            $kfr->SetValue('uid_accessor', $uid );
+            $kfr->SetValue('fk_mbr_donations', $kDon );
+            $kfr->SetVerbatim('time', 'NOW()');
+            $kfr->PutDBRow();
+        }
+
+//        $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
+//                            (_key,_created,_created_by,_updated,_updated_by,_status,uid_accessor,fk_mbr_donations,time)
+//                            VALUES (NULL,NOW(),{$uid},NOW(),{$uid},0,{$uid},{$kfrD->Key()},NOW())");
+    }
 
     const SqlCreate_Donations = "
         CREATE TABLE IF NOT EXISTS seeds_2.mbr_donations (
