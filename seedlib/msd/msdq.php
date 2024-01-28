@@ -272,7 +272,7 @@ class MSDQ extends SEEDQ
             eStatusOk:;
         }
 
-        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>"PEvariety_v"] )) ) {
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>"PEcategory_v,PEspecies_v,PEvariety_v"] )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
                 if( ($e = @$raParms['eDrawMode']) ) {
