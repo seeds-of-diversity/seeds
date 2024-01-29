@@ -25,7 +25,7 @@ class MSDCore
     private $dbname1;
     private $dbname2;
 
-    private $bShutdown = false;      // can't order seeds right now
+    private $bShutdown = false;      // can't order seeds right now; also set mseClosed variable in msd.php
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
