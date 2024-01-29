@@ -110,6 +110,38 @@ class MSDCore
     function PermOfficeW()  { return( $this->oApp->sess->CanWrite('MSDOffice') || $this->PermAdmin() ); }
     function PermAdmin()    { return( $this->oApp->sess->CanAdmin('MSDOffice') ); }
 
+    /**
+     * SQL condition on a PxGx* relation to return only seeds that are listable (i.e. to be shown to people viewing the list; might not be requestable)
+     * @return string
+     */
+    function CondIsListable()
+    {
+        return( "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->CondIsGrowerDone('G')}" );
+    }
+
+
+    /*********************************************
+        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
+     */
+    function IsGrowerDone( KeyframeRecord $kfrG )
+    {
+        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneFromDate($kfrG->Value('dDone')) );
+    }
+    function IsGrowerDoneFromDate( string $dDone )
+    {
+        return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );
+    }
+    function CondIsGrowerDone( string $prefix = '' )
+    /***********************************************
+        sql cond for testing if Done status is set in a grower record
+     */
+    {
+        if( $prefix )  $prefix = "{$prefix}.";
+        return( "{$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}'" );
+    }
+
+
+
     // deprecate, use the indirection instead because this is a low-level (even oSBDB kind of thing)
     function GetSeedKeys( $set = "" ) { return( $this->oMSDSB->GetSeedKeys($set) ); }
 
@@ -220,6 +252,7 @@ class MSDCore
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
         if( false
+            // also code this into CondIsListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
             // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
             ) {
             $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
@@ -641,15 +674,6 @@ class MSDCore
     {
         $o = new Mbr_Contacts($this->oApp);
         return( $o->GetBasicValues($kGrower) );
-    }
-
-    function GetIsGrowerDoneCond( string $prefix = '' )
-    /**************************************************
-        sql cond for testing if Done status is set in a grower record
-     */
-    {
-        if( $prefix )  $prefix = "{$prefix}.";
-        return( "{$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}'" );
     }
 
 

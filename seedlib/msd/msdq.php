@@ -197,8 +197,8 @@ class MSDQ extends SEEDQ
             bAll  :  must specify to force unfiltered list  (deprecated)
 
             eFilter : LISTABLE            = seeds ACTIVE, growers Done & not Skip|Delete|Hold
-                      REQUESTABLE         = LISTABLE, in season
-                      REQUESTABLE_BY_USER = REQUESTABLE, available to given user
+                      REQUESTABLE         = LISTABLE and in season
+                      REQUESTABLE_BY_USER = REQUESTABLE and allowed to given user
                       ALL                 = must specify to force unfiltered list
 
         Secondary filter by:
@@ -253,7 +253,7 @@ class MSDQ extends SEEDQ
             if( ($eFilter = @$raParms['eFilter']) ) {   // eFilter will replace eStatus with a more general criteria
                 switch($eFilter) {
                     case 'LISTABLE':
-                        $raCond[] = "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->oMSDCore->GetIsGrowerDoneCond('G')}";
+                        $raCond[] = $this->oMSDCore->CondIsListable();
                         goto eStatusOk;
                     case 'ALL':
                         $eStatus = 'ALL';

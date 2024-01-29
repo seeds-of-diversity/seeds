@@ -64,27 +64,10 @@ class MSDLib
     function KFRelG()   { return( $this->oMSDCore->KFRelG() ); }
     function KFRelGxM() { return( $this->oMSDCore->KFRelGxM() ); }
 
-    function IsGrowerDone( KeyframeRecord $kfrG )
-    /********************************************
-        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
-     */
-    {
-        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneFromDate($kfrG->Value('dDone')) );
-    }
-    function IsGrowerDoneFromDate( string $dDone )
-    /*********************************************
-        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
-     */
-    {
-        return( $dDone && $dDone > $this->oMSDCore->GetFirstDayForCurrYear() );
-    }
-    function GetIsGrowerDoneCond()
-    /*****************************
-        sql cond for testing if Done status is set in a grower record
-     */
-    {
-        return( $this->oMSDCore->GetIsGrowerDoneCond() );
-    }
+    function IsGrowerDone( KeyframeRecord $kfrG )  { return( $this->oMSDCore->IsGrowerDone($kfrG) ); }
+    function IsGrowerDoneFromDate( string $dDone ) { return( $this->oMSDCore->IsGrowerDoneFromDate($dDone) ); }
+
+    function CondIsGrowerDone()                    { return( $this->oMSDCore->CondIsGrowerDone() ); }
 
 
     function BulkRenameSpecies( int $klugeKey2From, int $klugeKey2To )
