@@ -40,7 +40,7 @@ class MSDLib
     function GetCurrYear()            { return( $this->oMSDCore->GetCurrYear() ); }
     function GetFirstDayForCurrYear() { return( $this->oMSDCore->GetFirstDayForCurrYear() ); }
 
-    function GetSpeciesNameFromKey( $kSp ) { return( $this->oMSDCore->GetKlugeSpeciesNameFromKey( $kSp ) ); }
+    function GetSpeciesNameFromKey($kSp) { return( $this->oMSDCore->GetSpeciesNameFromKlugeKey2($kSp) ); }
 
     function GetSpeciesSelectOpts( string $sCond = "", array $raParms = [] )
     {
@@ -84,6 +84,7 @@ class MSDLib
             goto done;
         }
 
+// you could just do this in a query with the ints
         list($sFromSp,$sFromCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($klugeKey2From);
         list($sToSp,$sToCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($klugeKey2To);
 

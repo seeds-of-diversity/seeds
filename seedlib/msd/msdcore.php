@@ -309,6 +309,7 @@ class MSDCore
         Return [category, species, klugeKey2]... for all distinct category,species
 
         raParms: category   = limit to a category
+                 bListable  = limit to species that have LISTABLE seeds
 
         N.B. klugeKey2 is totally different than the older kluge keys used in other methods
      */
@@ -316,7 +317,11 @@ class MSDCore
         $raOut = [];
 
         if( ($cat = @$raParms['category']) ) {
-            $sCond = ($sCond ? " AND " : "")."PEcategory.v='".addslashes($cat)."'";
+            $sCond .= ($sCond ? " AND " : "")."PEcategory.v='".addslashes($cat)."'";
+        }
+
+        if( @$raParms['bListable'] ) {
+            $sCond .= ($sCond ? " AND " : "").$this->CondIsListable('G');
         }
 
         /* kluge 1: klugeKey is one random key of a Product that has a given category,species
@@ -329,7 +334,7 @@ class MSDCore
          *          Until then, the code below uses the existing but unused v_i1 column. Note that this does not alter v_i1 in the db, just in the kfr.
          *          Don't re-write these records to the db.
          */
-        $raSp = $this->oSBDB->GetList( 'PxCATEGORYxSPECIES', $sCond,
+        $raSp = $this->oSBDB->GetList( 'PxGxCATEGORYxSPECIES', $sCond,
                                        ['sGroupAliases'=>'PEcategory_v,PEspecies_v',
                                         'raFieldsOverride'=>['PEcategory_v'=>'PEcategory.v','PEspecies_v'=>'PEspecies.v',
                                                              'v_i1'=>'MAX(P._key)']     // v_i1 is a kluge to retrieve a novel alias's value
@@ -337,6 +342,7 @@ class MSDCore
         foreach( $raSp as $ra ) {
             $raOut[] = ['category'=>$ra['PEcategory_v'], 'species'=>$ra['PEspecies_v'], 'klugeKey2'=>$ra['v_i1']];   // now throw away $ra containing v_i1 because it's a bad kluge
         }
+
         return( $raOut );
     }
 
@@ -395,20 +401,20 @@ class MSDCore
         return( @$this->raSpecies[$sSpecies]['FR'] );
     }
 
-    function TranslateSpeciesList( $raSpecies )
-    /******************************************
+    function TranslateSpeciesList( $raSpList )
+    /*****************************************
         Given a list of species names, translate to current language and sort
 
-        Input: array( spname1, spname2, ... )
+        Input: array( array('klugeKey2'=>kProd1, 'species'=>sSpecies, 'category'=>sCategory), ...)
         Output: array( array('kSpecies'=>kSp1, 'label'=>spname1_translated), array('kSpecies'=>kSp2, 'label'=>spname2_translated), ... )
      */
     {
         $raOut = array();
 
-        foreach( $raSpecies as $k ) {
-            $kKlugeSpeciesKey = $this->getKlugeSpeciesKey( $k );
+        foreach( $raSpList as $ra ) {
+            $kKlugeSpeciesKey = $ra['klugeKey2'];
 
-            if( $this->oApp->lang == 'FR' && isset($this->raSpecies[$k]['FR']) ) {
+            if( $this->oApp->lang == 'FR' && isset($this->raSpecies[$ra['species']]['FR']) ) {
                 // This would be great except for words like &Eacute;pinards (spinach) that start with a '&' which sorts to the top.
                 // Something like $k = html_entity_decode( $this->raTypesCanon[$v]['FR'], ENT_COMPAT, 'ISO8859-1' );
                 // would be great, to collapse the entity back to a latin-1 character except you have to set a French collation using setlocale
@@ -418,25 +424,17 @@ class MSDCore
                 // accented letters at or near the first char.
 
                 // use a non-accented version of the name for sorting, and accented version for display
-                $kSort = @$this->raSpecies[$k]['FR_sort'] ?: $this->raSpecies[$k]['FR'];
-                $label = $this->raSpecies[$k]['FR'];
+                $kSort = @$this->raSpecies[$ra['species']]['FR_sort'] ?: $this->raSpecies[$ra['species']]['FR'];
+                $label = $this->raSpecies[$ra['species']]['FR'];
             } else {
-                $kSort = $k;
-                $label = $k;
+                $kSort = $ra['species'];
+                $label = $ra['species'];
             }
             $raOut[$kSort] = array( 'label' => $label, 'kSpecies' => $kKlugeSpeciesKey );
         }
         ksort( $raOut );
         return( $raOut );
     }
-
-    private function getKlugeSpeciesKey( $sp )
-    {
-        // this is a cheater way to pass a "species" value as a number
-        $k = $this->oApp->kfdb->Query1( "SELECT _key FROM {$this->dbname1}.SEEDBasket_ProdExtra WHERE k='species' AND v='".addslashes($sp)."'" );
-        return( $k );
-    }
-
 
     function GetKlugeSpeciesNameFromKey( $kSp )
     {

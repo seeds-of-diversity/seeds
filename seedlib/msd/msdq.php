@@ -240,7 +240,8 @@ class MSDQ extends SEEDQ
             }
             $raCond[] = $cond;
         } else if( ($kSp = intval($kSp)) ) {
-            $raCond[] = "PEspecies.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
+            list($sSpecies,$sCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($kSp);
+            $raCond[] = "PEcategory.v='".addslashes($sCat)."' AND PEspecies.v='".addslashes($sSpecies)."'";
         }
 
         if( !count($raCond) && !@$raParms['bAll'] ) {       // this is why eStatus is a secondary parameter; it is required but at least one primary filter is also required
