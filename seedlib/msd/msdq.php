@@ -213,6 +213,7 @@ class MSDQ extends SEEDQ
         $raOut = array();
         $sErr = "";
         $bCheckEStatus = true;
+        $bIsTomato = false;
 
         $raCond = [];
         if( ($kProduct = intval(@$raParms['kProduct'])) ) {
@@ -229,6 +230,7 @@ class MSDQ extends SEEDQ
         $kSp = @$raParms['kSp'];
         if( SEEDCore_StartsWith($kSp, 'tomato') ) {
             // kluge tomatoAC, tomatoDH, etc
+            $bIsTomato = true;
             $cond = "PEspecies.v LIKE 'TOMATO%'";
             switch( $kSp ) {
                 default: // fall to tomatoAC
@@ -273,7 +275,8 @@ class MSDQ extends SEEDQ
             eStatusOk:;
         }
 
-        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>"PEcategory_v,PEspecies_v,PEvariety_v"] )) ) {
+        $sSortCol = $bIsTomato ? "PEvariety_v" : "PEcategory_v,PEspecies_v,PEvariety_v";    // when only listing tomatoAC don't sort by sp or the varieties appear out of order
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>$sSortCol] )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
                 if( ($e = @$raParms['eDrawMode']) ) {
