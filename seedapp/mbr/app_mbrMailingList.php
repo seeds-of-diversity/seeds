@@ -291,7 +291,7 @@ if( SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers') ) {
                "M.email IS NOT NULL AND M.email <> ''"];
     if( $p_lang == "EN" )  $raCond[] = "M.lang IN ('','B','E')";
     if( $p_lang == "FR" )  $raCond[] = "M.lang IN ('B','F')";
-    if( $p_mbrFilter1=='mseGrowersNotDone' )  $raCond[] = "(NOT {$oMSDLib->CondIsGrowerDone()})";
+    if( $p_mbrFilter1=='mseGrowersNotDone' )  $raCond[] = "(NOT ({$oMSDLib->CondIsGrowerDone()}))";
 
     $sCond = "(".implode( " AND ", $raCond ).")";
 
