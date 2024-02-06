@@ -151,6 +151,8 @@ var_dump($sql);
         $kfrG->SetValue('_updated_S_by',  $uidLatestBy);
 
         if( $this->oApp->sess->GetUID() == $mbrid ) {
+            $kfrG->SetVerbatim('tsGLogin', "NOW()" );
+
             /* If a different user updates the product that was the current grower's most recent product, then this computation will return the grower's second most recent product.
              * Therefore only store this computation when the grower is updating their own records.
              */

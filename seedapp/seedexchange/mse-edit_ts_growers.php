@@ -85,6 +85,7 @@ class MSEEditAppTabGrower
 
         // Kind of brute force to put this here - make sure seed counts and _updated_S* are up to date
         $this->oMSDLib->RecordGrowerStats($this->kfrGxM);   // stores record with bNoChangeTS
+
         done:;
     }
 
@@ -227,10 +228,14 @@ class MSEEditAppTabGrower
                     : ("<div><a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>Delete this grower</a></div>");
 
         // Grower record
+        $raD['dGLogin']        = substr( $kfrG->Value('tsGLogin'), 0, 10 );            // latest read or write of this record by the member (can be '')
         $raD['dGUpdated']      = substr( $kfrG->Value('_updated'), 0, 10 );            // latest update of this record
         $raD['dGUpdatedByMbr'] = substr( $kfrG->Value('_updated_G_mbr'), 0, 10 );      // latest update of this record by the member (can be "")
         $kGUpdatedBy           = $kfrG->Value('_updated_by');
 
+if($kfrG->Value('mbr_id')==$this->oApp->sess->GetUID()) {
+    $raD['dGLogin'] = "_unavailable_";  // if this is you, the db field was set to NOW() above so the kfr value is blank
+}
         // Seed records - includes INACTIVE and DELETED because we want to know if someone set those states
         $raD['dSUpdated']      = substr( $kfrG->Value('_updated_S'), 0, 10 );          // latest update of any seed records (can be "" if no seeds)
         $raD['dSUpdatedByMbr'] = substr( $kfrG->Value('_updated_S_mbr'), 0, 10 );      // latest update of seed records that were updated by the member (can be "")
@@ -240,7 +245,7 @@ class MSEEditAppTabGrower
         $raD['dDone']          = substr( $kfrG->Value('dDone'), 0, 10 );
         $kDone                 = $kfrG->Value('dDone_by');
 
-        foreach(['dLastLogin','dDone','dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
+        foreach(['dGLogin','dLastLogin','dDone','dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
             if( ($d = $raD[$k]) ) {
                 // highlight dates that are within 120 days of today
                 try {
@@ -255,7 +260,7 @@ class MSEEditAppTabGrower
         $s = "<div style='border:1px solid black; margin:10px; padding:10px'>"
             ."<p>Seeds active: $nSActive</p>"
             ."<p>Membership expiry: $dMbrExpiry</p>"
-            ."<p>Last login: {$raD['dLastLogin']}</p>"
+            ."<p>Last mse edit login: {$raD['dGLogin']}   Last general login: {$raD['dLastLogin']}</p>"
             ."<p>Last grower record change: <b>{$raD['dGUpdatedByMbr']} by member</b>".($kGUpdatedBy <> $kGrower ? " ({$raD['dGUpdated']} by $kGUpdatedBy)" : "")."</p>"
             ."<p>Last seed record change: <b>{$raD['dSUpdatedByMbr']} by member</b>".($kSUpdatedBy <> $kGrower ? " ({$raD['dSUpdated']} by $kSUpdatedBy)" : "")."</p>"
             ."<p>Done: <b>{$raD['dDone']}</b> ".($kDone == $kGrower ? "<b>by member</b>" : "by $kDone")."</p>"

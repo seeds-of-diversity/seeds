@@ -833,7 +833,7 @@ CREATE TABLE sed_growers (
     dDateRangeEnd   date not null default '2021-05-31',     -- want these to be year-independent
 
 
--- Uncomment for sed_curr_seeds
+-- Uncomment for sed_curr_grower
 --  bSkip           BOOL         DEFAULT 0,
 --  bDelete         BOOL         DEFAULT 0,
 --  bChanged        BOOL         DEFAULT 0,
@@ -848,6 +848,7 @@ CREATE TABLE sed_growers (
 --  _updated_S_by   INTEGER NOT NULL DEFAULT 0,         -- who made the most recent change to a seed-product record owned by this grower
 --  dDone           VARCHAR(100) NOT NULL DEFAULT '',   -- date when the Done button was clicked (revert to '' if reversed)
 --  dDone_by        INTEGER NOT NULL DEFAULT 0,         -- who clicked or unclicked the Done button
+--  tsGLogin        TIMESTAMP NULL,                     -- last time the grower was in the mse-edit application (reading or writing)
 
     INDEX sed_growers_mbr_id   (mbr_id),
     INDEX sed_growers_mbr_code (mbr_code)
