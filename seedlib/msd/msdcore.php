@@ -294,6 +294,27 @@ class MSDCore
         return( $eReq );
     }
 
+    function GetMSEStats( array $raOut )
+    {
+        $raSpList = $this->LookupSpeciesList( "", ['bListable'=>true] );
+
+        $raOut['nSpecies'] = count($raSpList);
+        foreach( $raSpList as $ra ) {
+            if( $ra['category'] == 'flowers' )     ++$raOut['nFlowers'];
+            if( $ra['category'] == 'vegetables' )  ++$raOut['nVeg'];
+            if( $ra['category'] == 'fruit' )       ++$raOut['nFruit'];
+            if( $ra['category'] == 'herbs' )       ++$raOut['nHerbs'];
+            if( $ra['category'] == 'grain' )       ++$raOut['nGrain'];
+            if( $ra['category'] == 'trees' )       ++$raOut['nTrees'];
+            if( $ra['category'] == 'misc' )        ++$raOut['nMisc'];
+        }
+
+        $raOut['nVarieties'] = $this->oSBDB->GetCount( 'PxGxCATEGORYxSPECIESxVARIETY', $this->CondIsListable('G'),
+                                                       ['sGroupAliases'=>'PEcategory_v,PEspecies_v,PEvariety_v'] );
+
+        return( $raOut );
+    }
+
     function LookupCategoryList( string $sCond = "" )
     {
         $raOut = [];

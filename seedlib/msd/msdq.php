@@ -137,10 +137,12 @@ class MSDQ extends SEEDQ
     /**************************
      */
     {
-        $dbname = $this->oMSDCore->oApp->GetDBName('seeds1');
+        $dbname = $this->oMSDCore->oApp->DBName('seeds1');
         $raOut = [
-            'nGrowersActive' => $this->oMSDCore->oApp->kfdb->Query1(
+            'nGrowersActive'  => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete" ),
+            'nGrowersDone'    => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete AND ({$this->oMSDCore->CondIsGrowerDone()})" ),
             'nGrowersSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND bSkip AND NOT bDelete" ),
             'nGrowersDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -148,6 +150,12 @@ class MSDQ extends SEEDQ
 
             'nSeedsActive' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.SEEDBasket_Products WHERE _status='0' AND product_type='seeds' AND eStatus='ACTIVE'" ),
+            'nSeedsListed' => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*)
+                                     FROM {$dbname}.SEEDBasket_Products P, {$dbname}.sed_curr_growers G
+                                     WHERE P.uid_seller=G.mbr_id AND
+                                           P._status='0' AND G._status='0' AND
+                                           P.product_type='seeds' AND ({$this->oMSDCore->CondIsListable()})" ),
             'nSeedsSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.SEEDBasket_Products WHERE _status='0' AND product_type='seeds' AND eStatus='INACTIVE'" ),
             'nSeedsDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -163,25 +171,7 @@ class MSDQ extends SEEDQ
 // nCultivars = select count(distinct left(PE1.v,6),PE2.v) from SEEDBasket_Products P,SEEDBasket_ProdExtra PE1,SEEDBasket_ProdExtra PE2
 //                  where PE1.fk_SEEDBasket_Products=P._key and PE2.fk_SEEDBasket_Products=P._key and PE1.k='species' and PE2.k='variety' and P.eStatus='ACTIVE';
 
-        $raSpList = $this->oMSDCore->oMSDSB->oDB->GetList( "PxPE2",
-                                                           "product_type='seeds' AND eStatus='ACTIVE' "
-                                                          ."AND PE1.k='category' AND PE2.k='species'",
-                                                           ['sGroupAliases'=>'PE1_v,PE2_v', 'sSortCol'=>'PE1_v,PE2_v'] );
-        $raCvList = $this->oMSDCore->oMSDSB->oDB->GetList( "PxPE3",
-                                                           "product_type='seeds' AND eStatus='ACTIVE' "
-                                                          ."AND PE1.k='category' AND PE2.k='species' AND PE3.k='variety'",
-                                                           ['sGroupAliases'=>'PE1_v,PE2_v,PE3_v', 'sSortCol'=>'PE1_v,PE2_v,PE3_v'] );
-        $raOut['nSpecies'] = count($raSpList);
-        $raOut['nVarieties'] = count($raCvList);
-        foreach( $raSpList as $ra ) {
-            if( $ra['PE1_v'] == 'flowers' )     ++$raOut['nFlowers'];
-            if( $ra['PE1_v'] == 'vegetables' )  ++$raOut['nVeg'];
-            if( $ra['PE1_v'] == 'fruit' )       ++$raOut['nFruit'];
-            if( $ra['PE1_v'] == 'herbs' )       ++$raOut['nHerbs'];
-            if( $ra['PE1_v'] == 'grain' )       ++$raOut['nGrain'];
-            if( $ra['PE1_v'] == 'trees' )       ++$raOut['nTrees'];
-            if( $ra['PE1_v'] == 'misc' )        ++$raOut['nMisc'];
-        }
+        $raOut = $this->oMSDCore->GetMSEStats($raOut);
 
         return( $raOut );
     }

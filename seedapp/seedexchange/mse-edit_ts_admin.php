@@ -49,9 +49,12 @@ class MSEEditAppAdminTab
              ."Skipped seed offers: {$raQStats['raOut']['nSeedsSkipped']}<br/>"
              ."Deleted seed offers: {$raQStats['raOut']['nSeedsDeleted']}<br/>"
              ."<br/>"
-             ."Species: {$raQStats['raOut']['nSpecies']}<br/>"
-             ."Varieties: {$raQStats['raOut']['nVarieties']}<br/>"
-             ."</div>";
+             ."<b>Listed (Done)</b><br/>
+               Growers: {$raQStats['raOut']['nGrowersDone']}<br/>
+               Seed offers: {$raQStats['raOut']['nSeedsListed']}<br/>
+               Species: {$raQStats['raOut']['nSpecies']}<br/>
+               Varieties: {$raQStats['raOut']['nVarieties']}<br/>
+               </div>";
 
 
         $s .= "<h4>Printed Directory</h4>"
