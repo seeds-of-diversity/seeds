@@ -215,6 +215,9 @@ class MSDLibReport
                 $lastCat = $sCat;
                 $lastSp = "";   // in case this code is used in a search on a species that appears in more than one category
             }
+            /* raS['species'] and raS['sSeedDraw'] are utf8
+             * TranslateSpecies2() should only contain entities not accented chars
+             */
             if( $bShowSpecies && ($sSp = $raS['species']) != $lastSp ) {
                 /* Start a new species
                  */
@@ -222,10 +225,10 @@ class MSDLibReport
                 if( ($sFR = $this->oMSDLib->TranslateSpecies2( $sSp )) ) {
                     $sSp .= " @T@ $sFR";
                 }
-                $s .= SEEDCore_utf8_encode("<div class='sed_type'><h3><b>$sSp</b></h3></div>");
+                $s .= "<div class='sed_type'><h3><b>$sSp</b></h3></div>";
             }
 
-            $s .= $raS['sSeedDraw'];    // this is in utf8
+            $s .= $raS['sSeedDraw'];
         }
 
         done:
