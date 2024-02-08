@@ -116,6 +116,7 @@ class MSDCore
      */
     function CondIsListable()
     {
+                                      // this is CondIsGrowerListable('G')
         return( "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->CondIsGrowerDone('G')}" );
     }
 
@@ -137,9 +138,16 @@ class MSDCore
      */
     {
         if( $prefix )  $prefix = "{$prefix}.";
-        return( "{$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}'" );
+        return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}' )" );
     }
-
+    function CondIsGrowerListable( string $prefix = '' )
+    /***************************************************
+        sql condition for testing if a grower should appear in a public Growers list
+     */
+    {
+        if( $prefix )  $prefix = "{$prefix}.";
+        return( "( NOT (G.bHold OR G.bSkip OR G.bDelete) AND G.nTotal<>0 AND {$this->CondIsGrowerDone('G')} )" );
+    }
 
 
     // deprecate, use the indirection instead because this is a low-level (even oSBDB kind of thing)
@@ -648,6 +656,9 @@ class MSDCore
             'ONION/GREEN' => array( 'FR' => 'Oignons verts' ),
             'ONION/MULTIPLIER/ROOT' => array( 'FR' => 'Oignons' ),
             'ONION/MULTIPLIER/TOP' => array( 'FR' => 'Oignons &eacute;gyptiens' ),
+            'ONION/SHALLOT' => ['FR'=>'&Eacute;chalote', 'FR_sort' => 'Echalote'],
+            'ONION/TOPSET' => ['FR'=>'Oignons &eacute;gyptiens'],
+            'ONION/WELSH' => ['FR'=>'Ciboule'],
             'ORACH' => array( 'FR' => 'Arroche' ),
             'PARSNIP' => array( 'FR' => 'Panais' ),
             'PEA' => array( 'FR' => 'Pois' ),

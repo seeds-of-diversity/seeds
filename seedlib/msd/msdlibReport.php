@@ -63,7 +63,7 @@ class MSDLibReport
 
         $sStyle = "style='font-size:8pt;font-family:Minion Pro;padding-bottom:2pt'";
 
-        $gCond = "NOT G.bSkip AND NOT G.bDelete AND G._status='0'";
+        $gCond = $this->oMSDLib->CondIsGrowerListable('G');
 
         // SoD
         if( ($kfrGxM = $this->oMSDLib->KFRelGxM()->CreateRecordCursor( "G.mbr_id=1 AND $gCond" )) ) {

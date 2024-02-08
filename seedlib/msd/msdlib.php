@@ -68,6 +68,7 @@ class MSDLib
     function IsGrowerDoneFromDate( string $dDone ) { return( $this->oMSDCore->IsGrowerDoneFromDate($dDone) ); }
 
     function CondIsGrowerDone()                    { return( $this->oMSDCore->CondIsGrowerDone() ); }
+    function CondIsGrowerListable( string $prefix) { return( $this->oMSDCore->CondIsGrowerListable($prefix) ); }
 
 
     function BulkRenameSpecies( int $klugeKey2From, int $klugeKey2To )
@@ -205,6 +206,7 @@ var_dump($sql);
         $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,eDateRange,dDateRangeStart,dDateRangeEnd,eReqClass,notes, _created,_created_by,_updated,_updated_by";
         $sql = "INSERT INTO {$this->dbname1}.sed_growers (_key,_status, year, $fields )"
               ."SELECT NULL,0, '$year', $fields "
+// CondIsListable()
               ."FROM {$this->dbname1}.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
         if( $this->oApp->kfdb->Execute($sql) ) {
             $s .= "<h4 style='color:green'>Growers Successfully Archived</h4>"
