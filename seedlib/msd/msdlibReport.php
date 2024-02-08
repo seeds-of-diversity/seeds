@@ -28,7 +28,7 @@ class MSDLibReport
                 break;
 
             case 'JanSeeds':
-                header( "Content-type: text/html; charset=ISO-8859-1");
+                header( "Content-type: text/html; charset=utf-8");
                 $s .= $this->styleReport()
                      .$this->janSeeds();
                 break;
@@ -93,6 +93,7 @@ class MSDLibReport
     private function janSeeds()
     {
         $s = "";
+        $kfrP = null;
 
 // replace this with MSDQ::msdSeedList-GetData
 // Even faster is to make MSDQ::msdSeedList-DrawList (using SEEDCursor like msdSeedList-GetData does) with different draw modes, but don't call back to DrawProduct because it just calls
@@ -101,6 +102,8 @@ class MSDLibReport
 
         $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
                                    SEEDBasketProducts_SoD::$raProductTypes );
+
+        if( SEEDInput_Int('doOld') ) {
 
         if( !SEEDInput_Int('doTomato') ) {
             // Everything that isn't tomatoes
@@ -134,15 +137,31 @@ class MSDLibReport
                 $s .= $this->janSeedsDrawList( $oSB, $kfrP, false );
             }
         }
+        goto done;
+        }
 
+        //var_dump($rQ);
+        //var_dump(count($rQ['raOut']),$rQ['raOut']);
+        if( !SEEDInput_Int('doTomato') ) {
+            $rQ = $this->oMSDQ->Cmd('msdSeedList-GetData', ['eFilter'=>'LISTABLE','eDrawMode'=>MSDQ::SEEDDRAW_PRINT,'bAllButTomato'=>true]);
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP, true, $rQ['raOut'] );
+        } else {
+            $rQ = $this->oMSDQ->Cmd('msdSeedList-GetData', ['eFilter'=>'LISTABLE','eDrawMode'=>MSDQ::SEEDDRAW_PRINT,'bAllTomato'=>true]);
+            $s .= "<div class='sed_type'><h3><b>TOMATO</b></h3></div>";
+            $s .= $this->janSeedsDrawList( $oSB, $kfrP, false, $rQ['raOut'] );
+        }
+
+
+        done:
         return( $s );
     }
 
-    private function janSeedsDrawList( $oSB, $kfrP, $bShowSpecies )
+    private function janSeedsDrawList( $oSB, $kfrP, $bShowSpecies, $raSeeds = [] )
     {
         $s = "";
         $lastCat = $lastSp = "";
 
+        if( !$raSeeds ) {
         while( $kfrP->CursorFetch() ) {
 
             if( $bShowSpecies && ($sCat = $kfrP->Value('PE1_v')) != $lastCat ) {
@@ -174,7 +193,42 @@ class MSDLibReport
 
             $s .= $oSB->DrawProduct( $kfrP, SEEDBasketProductHandler_Seeds::DETAIL_PRINT_NO_SPECIES, ['bUTF8'=>false] );
         }
+        goto done;
+        }
 
+        foreach( $raSeeds as $raS ) {
+
+            if( $bShowSpecies && ($sCat = $raS['category']) != $lastCat ) {
+                /* Start a new category
+                 */
+                /*
+                if( $this->oMSDLib->oApp->lang == 'FR' ) {
+                    foreach( $this->raCategories as $ra ) {
+                        if( $ra['db'] == $kfrS->value('category') ) {
+                            $sCat = $ra['FR'];
+                            break;
+                        }
+                    }
+                }
+                */
+                $s .= "<div class='sed_category'><h2>$sCat</h2></div>";
+                $lastCat = $sCat;
+                $lastSp = "";   // in case this code is used in a search on a species that appears in more than one category
+            }
+            if( $bShowSpecies && ($sSp = $raS['species']) != $lastSp ) {
+                /* Start a new species
+                 */
+                $lastSp = $sSp;
+                if( ($sFR = $this->oMSDLib->TranslateSpecies2( $sSp )) ) {
+                    $sSp .= " @T@ $sFR";
+                }
+                $s .= SEEDCore_utf8_encode("<div class='sed_type'><h3><b>$sSp</b></h3></div>");
+            }
+
+            $s .= $raS['sSeedDraw'];    // this is in utf8
+        }
+
+        done:
         return( $s );
     }
 

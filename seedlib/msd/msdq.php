@@ -184,7 +184,9 @@ class MSDQ extends SEEDQ
             kProduct
             kUidSeller
             kSp
-            bAll  :  must specify to force unfiltered list  (deprecated)
+            bAll           : must specify to force unfiltered list
+            bAllButTomato  : used in print seeds report
+            bAllTomato     : used in print seeds report to get all tomato "species" sorted by variety
 
             eFilter : LISTABLE            = seeds ACTIVE, growers Done & not Skip|Delete|Hold
                       REQUESTABLE         = LISTABLE and in season
@@ -215,25 +217,33 @@ class MSDQ extends SEEDQ
             $raCond[] = "P.uid_seller='$uid'";
         }
 
-        /* kSp is normally int but it can be tomatoAC,tomatoDH,etc
-         */
-        $kSp = @$raParms['kSp'];
-        if( SEEDCore_StartsWith($kSp, 'tomato') ) {
-            // kluge tomatoAC, tomatoDH, etc
+        if( @$raParms['bAllButTomato'] ) {
+            // Get all species except the tomatoes
+            $raCond[] = "NOT (PEcategory.v = 'vegetables' AND PEspecies.v like 'TOMATO%')";
+        } else if( @$raParms['bAllTomato'] ) {
+            $raCond[] = "(PEcategory.v = 'vegetables' AND PEspecies.v like 'TOMATO%')";
             $bIsTomato = true;
-            $cond = "PEspecies.v LIKE 'TOMATO%'";
-            switch( $kSp ) {
-                default: // fall to tomatoAC
-                case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) <= 'C'";               break;
-                case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'D' AND 'H'";  break;
-                case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'I' AND 'M'";  break;
-                case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'N' AND 'R'";  break;
-                case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) >= 'S'";               break;
+        } else {
+            /* kSp is normally int but it can be tomatoAC,tomatoDH,etc
+             */
+            $kSp = @$raParms['kSp'];
+            if( SEEDCore_StartsWith($kSp, 'tomato') ) {
+                // kluge tomatoAC, tomatoDH, etc
+                $bIsTomato = true;
+                $cond = "PEspecies.v LIKE 'TOMATO%'";
+                switch( $kSp ) {
+                    default: // fall to tomatoAC
+                    case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) <= 'C'";               break;
+                    case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'D' AND 'H'";  break;
+                    case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'I' AND 'M'";  break;
+                    case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'N' AND 'R'";  break;
+                    case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) >= 'S'";               break;
+                }
+                $raCond[] = $cond;
+            } else if( ($kSp = intval($kSp)) ) {
+                list($sSpecies,$sCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($kSp);
+                $raCond[] = "PEcategory.v='".addslashes($sCat)."' AND PEspecies.v='".addslashes($sSpecies)."'";
             }
-            $raCond[] = $cond;
-        } else if( ($kSp = intval($kSp)) ) {
-            list($sSpecies,$sCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($kSp);
-            $raCond[] = "PEcategory.v='".addslashes($sCat)."' AND PEspecies.v='".addslashes($sSpecies)."'";
         }
 
         if( !count($raCond) && !@$raParms['bAll'] ) {       // this is why eStatus is a secondary parameter; it is required but at least one primary filter is also required
@@ -265,7 +275,7 @@ class MSDQ extends SEEDQ
             eStatusOk:;
         }
 
-        $sSortCol = $bIsTomato ? "PEvariety_v" : "PEcategory_v,PEspecies_v,PEvariety_v";    // when only listing tomatoAC don't sort by sp or the varieties appear out of order
+        $sSortCol = $bIsTomato ? "PEvariety_v" : "PEcategory_v,PEspecies_v,PEvariety_v";    // when listing tomatoes don't sort by sp or the varieties appear out of order
         if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>$sSortCol] )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
@@ -451,10 +461,9 @@ class MSDQ extends SEEDQ
 
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
         if( SEEDCore_StartsWith(($sp = $kfrS->value('species')), 'TOMATO') ) {
+            $sType = strtolower(trim(substr($sp,6), " /-,"));   // trim off leading spaces and characters used to denote different tomato categories
             $tag = ($eView=='PRINT' ? "<br/>" : "&nbsp;&nbsp;&nbsp;")
-                  ."<span style='color:gray;font-size:".($eView=='PRINT' ? '8pt;' : '9pt;')."'>("
-                  .strtolower(trim(substr($sp,6), " /-,"))   // trim off leading spaces and characters used to denote different tomato categories
-                  .")</span>"
+                  .($sType ? ("<span style='color:gray;font-size:".($eView=='PRINT' ? '8pt;' : '9pt;')."'>($sType)</span>") : "")
                   .($eView=='PRINT' ? "" : "&nbsp;&nbsp;&nbsp;");
         } else {
             $tag = "";

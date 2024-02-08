@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for admin tab
  *
- * Copyright (c) 2018-2023 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  *
  */
 
