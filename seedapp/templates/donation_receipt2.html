@@ -31,14 +31,17 @@
 <td valign='top' style='font-size:9pt'>
 <br/>
 Receipt # / No. de re&ccedil;u<br/>
-Donation received / R&eacute;ception<br/>
-Receipt issued / &Eacute;mission<br/>&nbsp;&nbsp;in Waterloo ON
+Date&nbsp;received&nbsp;/&nbsp;R&eacute;ception<br/>
+Issued / D&eacute;livr&eacute;, Waterloo ON<br/>
+# put purpose at the bottom in case it line wraps
+{% if donorPurpose|trim is not empty %} Purpose / But<br/> {% endif %}
 </td>
 <td valign='top' style='text-align:right'>
 <br/>
 {{donorReceiptNum}}<br/>
 {{donorDateReceived}}<br/>
 {{donorDateIssued}}<br/>
+{% if donorPurpose|trim is not empty %} {{donorPurpose}}<br/> {% endif %}
 </td>
 </tr></table>
 {% endblock %}

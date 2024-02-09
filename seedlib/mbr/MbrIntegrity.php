@@ -16,18 +16,81 @@ class MbrIntegrity
         $this->oApp = $oApp;
     }
 
-    function WhereIsContactReferenced( $kMbr )
+    function WhereIsContactReferenced( $kMbr, $bIncludeCancelled = false )
     {
         $ra = [];
 
-        $ra['nSBBaskets' ]  = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Baskets  WHERE _status='0' AND uid_buyer='$kMbr'" );
+        $ra['nSBBaskets' ]  = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Baskets  WHERE _status='0' AND uid_buyer='$kMbr'"
+                                .($bIncludeCancelled ? "" : " AND eStatus<>'Cancelled'" ) );    // want to be able to delete mbr_contacts for spam memberships after their orders cancelled
         $ra['nSProducts']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.SEEDBasket_Products WHERE _status='0' AND uid_seller='$kMbr'" );
         $ra['nDescSites']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.mbr_sites           WHERE _status='0' AND uid='$kMbr'" );
-        $ra['nMSD']         = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sed_curr_growers    WHERE _status='0' AND mbr_id='$kMbr'" );
+        $ra['nMSE']         = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sed_curr_growers    WHERE _status='0' AND mbr_id='$kMbr'" );
         $ra['nSLAdoptions'] = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds1')}.sl_adoption         WHERE _status='0' AND fk_mbr_contacts='$kMbr'" );
         $ra['nDonations']   = $this->oApp->kfdb->Query1( "SELECT count(*) from {$this->oApp->DBName('seeds2')}.mbr_donations       WHERE _status='0' AND fk_mbr_contacts='$kMbr'" );
 
+        $ra['nTotal'] = $ra['nSBBaskets'] + $ra['nSProducts'] + $ra['nDescSites'] + $ra['nMSE'] + $ra['nSLAdoptions'] + $ra['nDonations'];
+
         return( $ra );
+    }
+
+    /**
+     * @param array $ra - output from WhereIsContactReferenced
+     * @return string - explanation of contact references
+     */
+    function ExplainContactReferencesLong( array $ra )
+    {
+        $s = "";
+        if( ($n = $ra['nSBBaskets']) )   { $s .= "<li>Has $n orders recorded in the order system</li>"; }
+        if( ($n = $ra['nSProducts']) )   { $s .= "<li>Has $n offers in the seed exchange</li>"; }
+        if( ($n = $ra['nDescSites']) )   { $s .= "<li>Has $n crop descriptions in their name</li>"; }
+        if( ($n = $ra['nMSE']      ) )   { $s .= "<li>Is listed in the seed exchange</li>"; }
+        if( ($n = $ra['nSLAdoptions']) ) { $s .= "<li>Has $n seed adoptions in their name</li>"; }
+        if( ($n = $ra['nDonations']) )   { $s .= "<li>Has $n donation records in their name</li>"; }
+
+        return($s);
+    }
+
+    /**
+     * @param array $ra - output from WhereIsContactReferenced
+     * @return string - explanation of contact references
+     */
+    function ExplainContactReferencesShort( array $ra )
+    {
+        $s = "";
+        if( ($n = $ra['nSBBaskets']) )   { $s .= "$n orders<br/>"; }
+        if( ($n = $ra['nSProducts']) )   { $s .= "$n seed exchange offers<br/>"; }
+        if( ($n = $ra['nDescSites']) )   { $s .= "$n crop descriptions<br/>"; }
+        if( ($n = $ra['nMSE']      ) )   { $s .= "Listed in MSE<br/>"; }
+        if( ($n = $ra['nSLAdoptions']) ) { $s .= "$n seed adoptions<br/>"; }
+        if( ($n = $ra['nDonations']) )   { $s .= "$n donation records<br/>"; }
+
+        return($s);
+    }
+
+    /**
+     * Change all references to a contact (fk_mbr_contacts) to a different contact number
+     * @param int $kMbrFrom - change this fk_mbr_contact...
+     * @param int $kMbrTo   - ...to this value
+     */
+    function MoveContactReferences( int $kMbrFrom, int $kMbrTo )
+    {
+        // mbrid in mbr_order_pending is encoded in sExtra
+        foreach( $this->oApp->kfdb->QueryRowsRA("SELECT * FROM {$this->oApp->DBName('seeds1')}.mbr_order_pending
+                                                 WHERE sExtra LIKE '%mbrid={$kMbrFrom}&%' OR sExtra LIKE '%mbrid={$kMbrFrom}'") as $row )
+        {
+            $sExtra = SEEDCore_ParmsURLAdd($row['sExtra'], 'mbrid', $kMbrTo);
+            $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_order_pending SET sExtra='".addslashes($sExtra)."' WHERE _key={$row['_key']}" );
+        }
+        $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.SEEDBasket_Baskets  SET uid_buyer=$kMbrTo WHERE uid_buyer=$kMbrFrom" );
+        $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.SEEDBasket_Products SET uid_seller=$kMbrTo WHERE uid_seller=$kMbrFrom" );
+
+        $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.mbr_sites        SET uid=$kMbrTo WHERE uid=$kMbrFrom" );
+        $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.sed_curr_growers SET mbr_id=$kMbrTo WHERE mbr_id=$kMbrFrom" );
+        $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds1')}.sl_adoption      SET fk_mbr_contacts=$kMbrTo WHERE fk_mbr_contacts=$kMbrFrom" );
+        $this->oApp->kfdb->Execute( "UPDATE {$this->oApp->DBName('seeds2')}.mbr_donations    SET fk_mbr_contacts=$kMbrTo WHERE fk_mbr_contacts=$kMbrFrom" );
+
+//sl_collection.uid_owner
+//sl_accession.member_x
     }
 
     function AssessDonations()
@@ -39,7 +102,7 @@ class MbrIntegrity
 
         /* Find mbr_donations that are in an unpaid SEEDBasket (since 2020-01-01)
          */
-        $sql = "SELECT D._key as kDonation, D.date_received as dReceived, Pur.kBasket as kBasket, Pur.eStatusBasket as eStatusBasket
+        $sql = "SELECT D._key as kDonation, D.date_received as dReceived, D.receipt_num as receipt_num, Pur.kBasket as kBasket, Pur.eStatusBasket as eStatusBasket
                 FROM {$dbname2}.mbr_donations D
                     "./* join the donations with all Purchases that are donations, and find all baskets that aren't FILLED*/ "
                      JOIN (SELECT B._key as kBasket, B.eStatus as eStatusBasket, BP.kRef as kRef
@@ -48,7 +111,8 @@ class MbrIntegrity
                                      JOIN {$dbname1}.SEEDBasket_Baskets B ON (B._key=BP.fk_SEEDBasket_Baskets)
                                 WHERE P.product_type='donation') Pur    "./* don't hide deleted because they're a problem  AND P._status='0' AND B._status='0' AND BP._status='0' */ "
                           ON D._key=Pur.kRef
-                WHERE Pur.eStatusBasket<>'Filled' AND D._status='0' AND D.date_received>='2020-01-01'";
+                WHERE Pur.eStatusBasket<>'Filled' AND D._status='0' AND D.date_received>='2020-01-01'
+                ORDER BY D.date_received DESC";
         $raD['raDonationsWithUnfulfilledBasket'] = $this->oApp->kfdb->QueryRowsRA($sql);
 
         /* Find duplicate receipt numbers
@@ -56,7 +120,7 @@ class MbrIntegrity
         $sql = "SELECT D1._key as k1,D2._key as k2, D1.receipt_num as receipt_num
                 FROM {$dbname2}.mbr_donations D1,{$dbname2}.mbr_donations D2
                 WHERE D1._key<D2._key and D1.receipt_num>0 and D1.receipt_num=D2.receipt_num
-                ORDER by D1.receipt_num";
+                ORDER by D1.receipt_num DESC";
         $raD['raDupReceiptNum'] = $this->oApp->kfdb->QueryRowsRA( $sql );
 
         /* Find donations in mbr_contacts that are not in mbr_donations (we stopped recording these 2019-12-31)
@@ -72,7 +136,7 @@ class MbrIntegrity
 
            Need O._created because baskets have been generated by admin process (that process should copy _created from mbr_order_pending
          */
-        $sql = "SELECT O._key as kOrder, B.uid_buyer as kMbr, DATE(O._created) as date, BP.f as amount, P.name as P_name
+        $sql = "SELECT O._key as kOrder, B.uid_buyer as kMbr, DATE(O._created) as date, O.eStatus as eStatusOrder, B.eStatus as eStatusBasket, BP.f as amount, P.name as P_name
                 FROM {$dbname1}.mbr_order_pending O
                      JOIN {$dbname1}.SEEDBasket_Baskets B ON (O.kBasket=B._key)
                      JOIN {$dbname1}.SEEDBasket_BP BP ON (B._key=BP.fk_SEEDBasket_Baskets)
@@ -80,7 +144,8 @@ class MbrIntegrity
                      LEFT JOIN {$dbname2}.mbr_donations D ON (D.fk_mbr_contacts=B.uid_buyer AND D.date_received=DATE(B._created) )
                 WHERE D.fk_mbr_contacts IS NULL AND
                       B.eStatus<>'Cancelled' AND
-                      YEAR(B._created)>=2020 AND P.uid_seller='1' AND P.product_type='donation'";
+                      YEAR(B._created)>=2020 AND P.uid_seller='1' AND P.product_type='donation'
+                ORDER BY date DESC";
         $raD['raOrphansInSEEDBasket'] = $this->oApp->kfdb->QueryRowsRA($sql);
 
         /* Find otherwise integral donations in (SEEDBasket,mbr_donations) where category='SLAdopt' is wrong (either way)
@@ -108,6 +173,16 @@ class MbrIntegrity
                 WHERE Pur.kRef IS NULL AND D._status='0' AND D.date_received>='2020-01-01'";
         $raD['raDonationsWithNoPurchase'] = $this->oApp->kfdb->QueryRowsRA($sql);
 
+        /* Find receipted donations from people who have email but not logins (so they can't download their receipts)
+         */
+        $sql = "SELECT D._key as kDonation, C._key as kMbr, D.date_received as date, D.receipt_num as receipt_num
+                FROM {$dbname2}.mbr_donations D
+                    JOIN {$dbname2}.mbr_contacts C on (C._key=D.fk_mbr_contacts)
+                    LEFT JOIN {$dbname1}.SEEDSession_Users U on (fk_mbr_contacts=U._key)
+                WHERE year(D.date_received)>=2021 AND receipt_num>0 AND C.email<>'' AND U._key IS NULL
+                ORDER BY date DESC";
+        $raD['raReceiptWithNoLogin'] = $this->oApp->kfdb->QueryRowsRA($sql);
+
         return( $raD );
     }
 
@@ -134,7 +209,7 @@ class MbrIntegrity
         $s .= "<div class='integ_heading'>Donations in a Basket that is not Filled (i.e. unpaid or cancelled)</div>"
              ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raDonationsWithUnfulfilledBasket'],
-                                        "<p>[[dReceived]] : kDonation:[[kDonation]], basket:[[kBasket]], basket status:[[eStatusBasket]]" )
+                                        "<p>[[dReceived]] : kDonation:[[kDonation]], receipt #:[[receipt_num]] basket:[[kBasket]], basket status:[[eStatusBasket]]" )
              ."</div>";
 
         /* Report duplicate receipt_num
@@ -145,20 +220,20 @@ class MbrIntegrity
                                         "<p>receipt #:[[receipt_num]]</p>" )
              ."</div>";
 
-        /* Report orphaned donations found in mbr_contacts (up to 2019-12-31)
-         */
-        $s .= "<div class='integ_heading'>Missing mbr_donations from mbr_contacts (up to 2019-12-31)</div>"
-             ."<div class='integ_result_block'>"
-             .SEEDCore_ArrayExpandRows( $raD['raOrphansInMbrContacts'],
-                                        "<p>mbr:[[kMbr]], received:[[date]], $[[amount]], receipt #:[[receipt_num]]</p>" )
-             ."</div>";
-
         /* Report orphaned donations found in SEEDBasket (starting 2020-01-01)
          */
         $s .= "<div class='integ_heading'>Donations in SEEDBasket that don't appear in mbr_donations (starting 2020-01-01)</div>"
              ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raOrphansInSEEDBasket'],
-                                        "<p>order:[[kOrder]], mbr:[[kMbr]], received:[[date]], $[[amount]], type:[[P_name]]</p>" )
+                                        "<p>order:[[kOrder]], mbr:[[kMbr]], received:[[date]], $[[amount]], type:[[P_name]], eStatus order/basket:[[eStatusOrder]]/[[eStatusBasket]]</p>" )
+             ."</div>";
+
+        /* Report receipted donations from people who have email but not logins (so they can't download their receipts)
+         */
+        $s .= "<div class='integ_heading'>Receipted donations from people who have email but not logins so they can't download receipts from our emails</div>"
+             ."<div class='integ_result_block'>"
+             .SEEDCore_ArrayExpandRows( $raD['raReceiptWithNoLogin'],
+                                        "<p>donation:[[kDonation]], mbr:[[kMbr]], received:[[date]], receipt_num:[[receipt_num]]</p>" )
              ."</div>";
 
         /* Report mismatched SLAdopt category of otherwise integral donation records
@@ -175,6 +250,14 @@ class MbrIntegrity
              ."<div class='integ_result_block'>"
              .SEEDCore_ArrayExpandRows( $raD['raDonationsWithNoPurchase'],
                                         "<p>donation:[[kDonation]]" )
+             ."</div>";
+
+        /* Report orphaned donations found in mbr_contacts (up to 2019-12-31)
+         */
+        $s .= "<div class='integ_heading'>Missing mbr_donations from mbr_contacts (up to 2019-12-31)</div>"
+             ."<div class='integ_result_block'>"
+             .SEEDCore_ArrayExpandRows( $raD['raOrphansInMbrContacts'],
+                                        "<p>mbr:[[kMbr]], received:[[date]], $[[amount]], receipt #:[[receipt_num]]</p>" )
              ."</div>";
 
         return( $s );

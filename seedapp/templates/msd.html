@@ -108,8 +108,8 @@
         <div class='col-xs-3 col-sm-2 msd-list-col'>[[Var:msdList]]</div>
         <!-- ***** middle column: body -->
         <div class='col-xs-6 col-sm-7 msd-body'>
-            <div class='msd-body-title'></div>
             [[Include:msdSeasonalNotice]]
+            <div class='msd-body-title'></div>
             <div class='msd-body-varieties'></div>
             <div style='width:100%;margin-top:20px;padding-top:5px;border-top:1px solid #bbb;text-align:center;font-size:8pt;'>Member Seed Exchange {{msdYear}}<br/>Powered by SeedLiving<br/><br/><a href='https://seeds.ca'>Seeds of Diversity Canada</a></div>
         </div>
@@ -299,7 +299,7 @@ function getVarietyList( kSp )
                 if( rq['bOk'] ) {
                     sVarList = rq['sOut'];
                 } else {
-//                    sVarList = "No varieties are available for this type";
+                    sVarList = "No varieties are available for this type";
                 }
             }
             $(".msd-body-varieties").html( sVarList );
@@ -468,18 +468,26 @@ function msdResizeList()
 
 <div style="border: 1px solid #aaa; margin-bottom:20px; padding: 15px; width: 100%;">
   {% if lang == 'EN' %}
-    <h3>The Seed Exchange will open on January 8, 2024</h3>
-    <p>Our seed saver members are still updating their seed lists, so requests are disabled right now. But you can look through the lists here to see what our members are planning to offer.</p>
-    <h3>Meanwhile, you can list your seeds in the 2024 Seed Exchange!</h3>
+    {% if mseClosed %}
+      <h3>The Seed Exchange will open on January 8, 2025</h3>
+      <p>Our seed saver members are still updating their seed lists, so requests are disabled right now. But you can look through the lists here to see what our members are planning to offer.</p>
+      <h3>Meanwhile, you can list your seeds in the Seed Exchange!</h3>
+    {% else %}
+      <h3>You can list your seeds in the Seed Exchange at any time!</h3>
+    {% endif %}
     <p>Step 1 is to get an account on this site by <a href="https://seeds.ca/member">joining Seeds of Diversity</a>.
     Membership is free so if you haven't yet, sign up today.</p>
     <p>Step 2 is to <a href="https://seeds.ca/seedexchange-edit">list your seeds in the seed exchange!</a></p>
     <p>Thanks for sharing!</p>
   {% else %}
-    <h3>L'&eacutechange des semences ouvrira le 8 janvier 2023</h3>
-    <p>Nos membres producteurs de semences mettent &agrave; jour leurs listes de semences, les demandes sont donc d&eacute;sactiv&eacute;es pour le moment. 
-    Mais vous pouvez consulter les listes ici pour voir ce que nos membres pr&eacute;voient d'offrir.</p>
-    <h3>En attendant, vous pouvez lister vos semences dans l'&eacute;change 2022 !</h3>
+    {% if mseClosed %}
+      <h3>L'&eacutechange des semences ouvrira le 8 janvier 2024</h3>
+      <p>Nos membres producteurs de semences mettent &agrave; jour leurs listes de semences, les demandes sont donc d&eacute;sactiv&eacute;es pour le moment. 
+      Mais vous pouvez consulter les listes ici pour voir ce que nos membres pr&eacute;voient d'offrir.</p>
+      <h3>En attendant, vous pouvez lister vos semences dans l'&eacute;change !</h3>
+    {% else %}
+      <h3>Vous pouvez lister vos semences dans l'&eacute;change !</h3>
+    {% endif %}
     <p>Vous pouvez obtenir un compte sur ce site <a href="https://semences.ca/membre">en rejoignant Semences du patrimoine</a>. 
     L'adh&eacute;sion est gratuite, donc si vous ne l'avez pas encore fait, inscrivez-vous d&egrave;s aujourd'hui.</p>
     <p>Alors vous &ecirc;tes pr&ecirc;t &agrave; <a href="https://semences.ca/app/mbr/msd-edit.php">inscrire vos semences dans l'&eacute;change</a> !</p>

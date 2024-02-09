@@ -25,7 +25,7 @@ class MSDCore
     private $dbname1;
     private $dbname2;
 
-    private $bShutdown = false;      // can't order seeds right now
+    private $bShutdown = false;      // can't order seeds right now; also set mseClosed variable in msd.php
 
     function __construct( SEEDAppConsole $oApp, $raConfig = array() )
     /****************************************************************
@@ -50,7 +50,7 @@ class MSDCore
                                           'fnInitKfrel' => [$this,'mseInitKfrel'],      // initKfrel calls this to define additional Named Relations
                                           'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'
                                          ] );
-        $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*120 );  // year of 120 days from now
+        $this->currYear = @$raConfig['currYear'] ?: date("Y", time()+3600*24*150 );  // year of 150 days from now (so Aug-Dec,Jan-Jul is same year as Jan)
     }
 
     function mseInitKfrel()
@@ -62,18 +62,24 @@ class MSDCore
 
 
     {
-        // relation-name => kfdef
-        $kdef = [];
-        $kdef['PxCATEGORY'] = ['Tables' => ['P' => ['Table' => "{$this->dbname1}.SEEDBasket_Products",
-                                                      'Fields' => "Auto"] ]
-                                            + $this->mseInitKfrel_def('category') ];
+        $pdef = ['P' => ['Table' => "{$this->dbname1}.SEEDBasket_Products",
+                         'Fields' => "Auto"] ];
+        $gdef = ['G' => ['Table' => "{$this->dbname1}.sed_curr_growers",
+                         'JoinOn' => "P.uid_seller=G.mbr_id",
+                         'Fields' => "Auto"] ];
 
-        $kdef['PxCATEGORYxSPECIES'] = $kdef['PxCATEGORY'];
-        $kdef['PxCATEGORYxSPECIES']['Tables'] += $this->mseInitKfrel_def('species');
+        // relation-name => kfdef
+        $kdef = ['PxCATEGORY'                   => ['Tables' => $pdef + $this->_kdef('category') ],
+                 'PxCATEGORYxSPECIES'           => ['Tables' => $pdef + $this->_kdef('category') + $this->_kdef('species') ],
+                 'PxCATEGORYxSPECIESxVARIETY'   => ['Tables' => $pdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ],
+                 'PxG'                          => ['Tables' => $pdef + $gdef ],
+                 'PxGxCATEGORYxSPECIES'         => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') ],
+                 'PxGxCATEGORYxSPECIESxVARIETY' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ]
+        ];
 
         return( $kdef );
     }
-    private function mseInitKfrel_def( $k )
+    private function _kdef( $k )
     {
         // table-alias => table-def
         return( ["PE{$k}" => ['Table' => "{$this->dbname1}.SEEDBasket_ProdExtra",
@@ -82,9 +88,11 @@ class MSDCore
                               'Fields' => "Auto"] ] );
     }
 
-
-
-    function GetCurrYear()  { return( $this->currYear ); }
+    /* Current year can be set at constructor, default is the year that would apply to Aug-Dec,Jan-Jun (which is the year of Jan in this range).
+     * FirstDayForCurrYear is Aug 1 of the year prior to CurrYear.
+     */
+    function GetCurrYear()            { return( $this->currYear ); }
+    function GetFirstDayForCurrYear() { return( (intval($this->currYear)-1)."-08-01" ); }
 
     /* Permissions are defined by MSD = what each member can do with their own listings
      *                            MSDOffice = what office volunteers and staff can do with the whole directory
@@ -101,6 +109,46 @@ class MSDCore
     //function PermOfficeR()
     function PermOfficeW()  { return( $this->oApp->sess->CanWrite('MSDOffice') || $this->PermAdmin() ); }
     function PermAdmin()    { return( $this->oApp->sess->CanAdmin('MSDOffice') ); }
+
+    /**
+     * SQL condition on a PxGx* relation to return only seeds that are listable (i.e. to be shown to people viewing the list; might not be requestable)
+     * @return string
+     */
+    function CondIsListable()
+    {
+                                      // this is CondIsGrowerListable('G')
+        return( "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->CondIsGrowerDone('G')}" );
+    }
+
+
+    /*********************************************
+        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
+     */
+    function IsGrowerDone( KeyframeRecord $kfrG )
+    {
+        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneFromDate($kfrG->Value('dDone')) );
+    }
+    function IsGrowerDoneFromDate( string $dDone )
+    {
+        return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );
+    }
+    function CondIsGrowerDone( string $prefix = '' )
+    /***********************************************
+        sql cond for testing if Done status is set in a grower record
+     */
+    {
+        if( $prefix )  $prefix = "{$prefix}.";
+        return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}' )" );
+    }
+    function CondIsGrowerListable( string $prefix = '' )
+    /***************************************************
+        sql condition for testing if a grower should appear in a public Growers list
+     */
+    {
+        if( $prefix )  $prefix = "{$prefix}.";
+        return( "( NOT (G.bHold OR G.bSkip OR G.bDelete) AND G.nTotal<>0 AND {$this->CondIsGrowerDone('G')} )" );
+    }
+
 
     // deprecate, use the indirection instead because this is a low-level (even oSBDB kind of thing)
     function GetSeedKeys( $set = "" ) { return( $this->oMSDSB->GetSeedKeys($set) ); }
@@ -212,6 +260,7 @@ class MSDCore
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
         if( false
+            // also code this into CondIsListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
             // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
             ) {
             $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
@@ -253,6 +302,27 @@ class MSDCore
         return( $eReq );
     }
 
+    function GetMSEStats( array $raOut )
+    {
+        $raSpList = $this->LookupSpeciesList( "", ['bListable'=>true] );
+
+        $raOut['nSpecies'] = count($raSpList);
+        foreach( $raSpList as $ra ) {
+            if( $ra['category'] == 'flowers' )     ++$raOut['nFlowers'];
+            if( $ra['category'] == 'vegetables' )  ++$raOut['nVeg'];
+            if( $ra['category'] == 'fruit' )       ++$raOut['nFruit'];
+            if( $ra['category'] == 'herbs' )       ++$raOut['nHerbs'];
+            if( $ra['category'] == 'grain' )       ++$raOut['nGrain'];
+            if( $ra['category'] == 'trees' )       ++$raOut['nTrees'];
+            if( $ra['category'] == 'misc' )        ++$raOut['nMisc'];
+        }
+
+        $raOut['nVarieties'] = $this->oSBDB->GetCount( 'PxGxCATEGORYxSPECIESxVARIETY', $this->CondIsListable('G'),
+                                                       ['sGroupAliases'=>'PEcategory_v,PEspecies_v,PEvariety_v'] );
+
+        return( $raOut );
+    }
+
     function LookupCategoryList( string $sCond = "" )
     {
         $raOut = [];
@@ -268,6 +338,7 @@ class MSDCore
         Return [category, species, klugeKey2]... for all distinct category,species
 
         raParms: category   = limit to a category
+                 bListable  = limit to species that have LISTABLE seeds
 
         N.B. klugeKey2 is totally different than the older kluge keys used in other methods
      */
@@ -275,7 +346,11 @@ class MSDCore
         $raOut = [];
 
         if( ($cat = @$raParms['category']) ) {
-            $sCond = ($sCond ? " AND " : "")."PEcategory.v='".addslashes($cat)."'";
+            $sCond .= ($sCond ? " AND " : "")."PEcategory.v='".addslashes($cat)."'";
+        }
+
+        if( @$raParms['bListable'] ) {
+            $sCond .= ($sCond ? " AND " : "").$this->CondIsListable('G');
         }
 
         /* kluge 1: klugeKey is one random key of a Product that has a given category,species
@@ -288,7 +363,7 @@ class MSDCore
          *          Until then, the code below uses the existing but unused v_i1 column. Note that this does not alter v_i1 in the db, just in the kfr.
          *          Don't re-write these records to the db.
          */
-        $raSp = $this->oSBDB->GetList( 'PxCATEGORYxSPECIES', $sCond,
+        $raSp = $this->oSBDB->GetList( 'PxGxCATEGORYxSPECIES', $sCond,
                                        ['sGroupAliases'=>'PEcategory_v,PEspecies_v',
                                         'raFieldsOverride'=>['PEcategory_v'=>'PEcategory.v','PEspecies_v'=>'PEspecies.v',
                                                              'v_i1'=>'MAX(P._key)']     // v_i1 is a kluge to retrieve a novel alias's value
@@ -296,6 +371,7 @@ class MSDCore
         foreach( $raSp as $ra ) {
             $raOut[] = ['category'=>$ra['PEcategory_v'], 'species'=>$ra['PEspecies_v'], 'klugeKey2'=>$ra['v_i1']];   // now throw away $ra containing v_i1 because it's a bad kluge
         }
+
         return( $raOut );
     }
 
@@ -307,19 +383,22 @@ class MSDCore
                  $kfr ? $kfr->Value('PEcategory_v') : ""] );
     }
 
-    function SeedCursorOpen( $cond )
+    function SeedCursorOpen( $cond, $raParms = [] )
     {
-        $kfrcP = $this->oSBDB->GetKFRC( "PxPE3", "product_type='seeds' ".($cond ? "AND $cond " : "")
-                                       ."AND PE1.k='category' "
-                                       ."AND PE2.k='species' "
-                                       ."AND PE3.k='variety' ",
-                                       array('sSortCol'=>'PE1_v,PE2_v,PE3_v') );
+        $sSortCol = @$raParms['sSortCol'] ?: "PEcategory_v,PEspecies_v,PEvariety_v";
+
+        $kfrcP = $this->oSBDB->GetKFRC( "PxGxCATEGORYxSPECIESxVARIETY",
+                                        "product_type='seeds' ".($cond ? "AND $cond " : "")
+                                       ."AND PEcategory.k='category' "
+                                       ."AND PEspecies.k='species' "
+                                       ."AND PEvariety.k='variety' ",
+                                       ['sSortCol'=>$sSortCol] );
         return( $kfrcP );
     }
 
-    function SeedCursorFetch( KeyframeRecord &$kfrP )
-    /************************************************
-        kfrP is a SEEDBasket_Product
+    function SeedCursorFetch( KeyframeRecord $kfrP )
+    /***********************************************
+        kfrP is a SEEDBasket_Product x sed_curr_growers x PRODEXTRA
      */
     {
         if( ($ok = $kfrP->CursorFetch()) ) {
@@ -335,7 +414,7 @@ class MSDCore
 
     function TranslateCategory( $sCat )
     {
-        return( @$this->raCategories[$sCat][$this->oApp->lang] );
+        return(@$this->raCategories[$sCat][$this->oApp->lang] ?? "");
     }
 
 
@@ -351,20 +430,20 @@ class MSDCore
         return( @$this->raSpecies[$sSpecies]['FR'] );
     }
 
-    function TranslateSpeciesList( $raSpecies )
-    /******************************************
+    function TranslateSpeciesList( $raSpList )
+    /*****************************************
         Given a list of species names, translate to current language and sort
 
-        Input: array( spname1, spname2, ... )
+        Input: array( array('klugeKey2'=>kProd1, 'species'=>sSpecies, 'category'=>sCategory), ...)
         Output: array( array('kSpecies'=>kSp1, 'label'=>spname1_translated), array('kSpecies'=>kSp2, 'label'=>spname2_translated), ... )
      */
     {
         $raOut = array();
 
-        foreach( $raSpecies as $k ) {
-            $kKlugeSpeciesKey = $this->getKlugeSpeciesKey( $k );
+        foreach( $raSpList as $ra ) {
+            $kKlugeSpeciesKey = $ra['klugeKey2'];
 
-            if( $this->oApp->lang == 'FR' && isset($this->raSpecies[$k]['FR']) ) {
+            if( $this->oApp->lang == 'FR' && isset($this->raSpecies[$ra['species']]['FR']) ) {
                 // This would be great except for words like &Eacute;pinards (spinach) that start with a '&' which sorts to the top.
                 // Something like $k = html_entity_decode( $this->raTypesCanon[$v]['FR'], ENT_COMPAT, 'ISO8859-1' );
                 // would be great, to collapse the entity back to a latin-1 character except you have to set a French collation using setlocale
@@ -374,25 +453,17 @@ class MSDCore
                 // accented letters at or near the first char.
 
                 // use a non-accented version of the name for sorting, and accented version for display
-                $kSort = @$this->raSpecies[$k]['FR_sort'] ?: $this->raSpecies[$k]['FR'];
-                $label = $this->raSpecies[$k]['FR'];
+                $kSort = @$this->raSpecies[$ra['species']]['FR_sort'] ?: $this->raSpecies[$ra['species']]['FR'];
+                $label = $this->raSpecies[$ra['species']]['FR'];
             } else {
-                $kSort = $k;
-                $label = $k;
+                $kSort = $ra['species'];
+                $label = $ra['species'];
             }
             $raOut[$kSort] = array( 'label' => $label, 'kSpecies' => $kKlugeSpeciesKey );
         }
         ksort( $raOut );
         return( $raOut );
     }
-
-    private function getKlugeSpeciesKey( $sp )
-    {
-        // this is a cheater way to pass a "species" value as a number
-        $k = $this->oApp->kfdb->Query1( "SELECT _key FROM {$this->dbname1}.SEEDBasket_ProdExtra WHERE k='species' AND v='".addslashes($sp)."'" );
-        return( $k );
-    }
-
 
     function GetKlugeSpeciesNameFromKey( $kSp )
     {
@@ -585,6 +656,9 @@ class MSDCore
             'ONION/GREEN' => array( 'FR' => 'Oignons verts' ),
             'ONION/MULTIPLIER/ROOT' => array( 'FR' => 'Oignons' ),
             'ONION/MULTIPLIER/TOP' => array( 'FR' => 'Oignons &eacute;gyptiens' ),
+            'ONION/SHALLOT' => ['FR'=>'&Eacute;chalote', 'FR_sort' => 'Echalote'],
+            'ONION/TOPSET' => ['FR'=>'Oignons &eacute;gyptiens'],
+            'ONION/WELSH' => ['FR'=>'Ciboule'],
             'ORACH' => array( 'FR' => 'Arroche' ),
             'PARSNIP' => array( 'FR' => 'Panais' ),
             'PEA' => array( 'FR' => 'Pois' ),
@@ -631,6 +705,7 @@ class MSDCore
         $o = new Mbr_Contacts($this->oApp);
         return( $o->GetBasicValues($kGrower) );
     }
+
 
     function GetLastUpdated( $cond, $raParms = [] )  { return( $this->oSBDB->ProductLastUpdated( $cond, $raParms ) ); }
 
@@ -790,7 +865,7 @@ CREATE TABLE sed_growers (
     dDateRangeEnd   date not null default '2021-05-31',     -- want these to be year-independent
 
 
--- Uncomment for sed_curr_seeds
+-- Uncomment for sed_curr_grower
 --  bSkip           BOOL         DEFAULT 0,
 --  bDelete         BOOL         DEFAULT 0,
 --  bChanged        BOOL         DEFAULT 0,
@@ -799,12 +874,13 @@ CREATE TABLE sed_growers (
 --  bDoneOffice     BOOL         DEFAULT 0,  -- we clicked Done in the office
 -- // obsolete  _updated_by_mbr VARCHAR(100),
 
---  _updated_G_mbr  VARCHAR(100),               -- last time the grower updated their own sed_growers record
---  _updated_S_mbr  VARCHAR(100),               -- last time the grower updated their own seed-product records
---  _updated_S      VARCHAR(100),               -- last time anybody updated a seed-product record owned by this grower
---  _updated_S_by   INTEGER DEFAULT 0,          -- who made the most recent change to a seed-product record owned by this grower
-
-
+--  _updated_G_mbr  VARCHAR(100) NOT NULL DEFAULT '',   -- last time the grower updated their own sed_growers record
+--  _updated_S_mbr  VARCHAR(100) NOT NULL DEFAULT '',   -- last time the grower updated their own seed-product records
+--  _updated_S      VARCHAR(100) NOT NULL DEFAULT '',   -- last time anybody updated a seed-product record owned by this grower
+--  _updated_S_by   INTEGER NOT NULL DEFAULT 0,         -- who made the most recent change to a seed-product record owned by this grower
+--  dDone           VARCHAR(100) NOT NULL DEFAULT '',   -- date when the Done button was clicked (revert to '' if reversed)
+--  dDone_by        INTEGER NOT NULL DEFAULT 0,         -- who clicked or unclicked the Done button
+--  tsGLogin        TIMESTAMP NULL,                     -- last time the grower was in the mse-edit application (reading or writing)
 
     INDEX sed_growers_mbr_id   (mbr_id),
     INDEX sed_growers_mbr_code (mbr_code)
@@ -814,6 +890,15 @@ alter table sed_curr_growers rename column _updated_by_mbr to _updated_G_mbr;
 alter table sed_curr_growers add _updated_S_mbr varchar(100);
 alter table sed_curr_growers add _updated_S varchar(100);
 alter table sed_curr_growers add _updated_S_by integer default 0;
+
+update sed_curr_growers set _updated_G_mbr ='' WHERE _updated_G_mbr is null;
+update sed_curr_growers set _updated_S_mbr ='' WHERE _updated_S_mbr is null;
+update sed_curr_growers set _updated_S     ='' WHERE _updated_S is null;
+alter table sed_curr_growers change _updated_G_mbr _updated_G_mbr  VARCHAR(100) NOT NULL DEFAULT '';
+alter table sed_curr_growers change _updated_S_mbr _updated_S_mbr  VARCHAR(100) NOT NULL DEFAULT '';
+alter table sed_curr_growers change _updated_S     _updated_S      VARCHAR(100) NOT NULL DEFAULT '';
+alter table sed_curr_growers change _updated_S_by  _updated_S_by   INTEGER NOT NULL DEFAULT 0;
+
 
 DROP TABLE IF EXISTS sed_seeds;
 CREATE TABLE sed_seeds (

@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2023 Seeds of Diversity Canada
+ * Copyright 2020-2024 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -346,15 +346,40 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         return( true );
     }
 
-    function Init()         { parent::Init(); }
+    function Init()
+    {
+        parent::Init();
+
+        // Add record to mbr_donation_receipts_accessed saying that the donor viewed their receipt (use this when sending them a receipt manually)
+        if( SEEDInput_Str('cmd') == 'addReceiptAccess' &&
+            ($kMbr = $this->oComp->oForm->Value('fk_mbr_contacts')) && ($kDonation = $this->oComp->oForm->GetKey()) )
+        {
+            $this->oMbrDB->StoreDonationReceiptAccessed($kDonation, $kMbr);
+        }
+
+        // Delete mbr_donation_receipts_accessed record
+        // ** the time column has CURRENT_TIMESTAMP_ON_UPDATE so this actually updates the time
+        if( SEEDInput_Str('cmd') == 'deleteReceiptAccess' && ($kR = SEEDInput_Int('kR')) ) {
+            if( ($kfr = $this->oMbrDB->GetKFR('R',$kR)) ) {
+                $kfr->StatusSet(KeyframeRecord::STATUS_DELETED);
+                $kfr->PutDBRow();
+            }
+        }
+    }
+
     function ControlDraw()  { return( $this->DrawSearch() ); }
 
     function ContentDraw()
     {
         $s = $this->DrawStyle()
-           ."<style>.donationFormTable td { padding:3px;}</style>"
-           ."<div>".$this->DrawList()."</div>"
-           ."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
+           ."<style>.donationFormTable td { padding:3px;}</style>
+             <div>{$this->DrawList()}</div>
+             <div style='margin-top:20px;padding:20px;border:2px solid #999'>
+                 {$this->DrawForm()}
+                 <br/><br/>"
+                 // this goes outside of the oComp form so it can have its own <form> elements
+                 .$this->donationData($this->oComp->oForm->GetKey(), $this->oComp->oForm->ValueInt('fk_mbr_contacts'))
+           ."</div>";
 
         return( $s );
     }
@@ -369,7 +394,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         $s = "|||TABLE( || class='donationFormTable' width='100%' border='0')"
             ."||| *Member*     || [[text:fk_mbr_contacts|size=30]]"
             ." || *Amount*     || [[text:amount|size=30]]"
-            ." || *Category*   || [[text:category|size=30]]"
+            ." || *Cat / Purpose* || [[text:category|size=10]] [[text:purpose|size=16]]"
             ." || {colspan='1' rowspan='3'}".$jsShow
             ."||| &nbsp        || &nbsp;"
             ." || *Received*   || [[text:date_received|size=30]]"
@@ -383,9 +408,6 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
             ." || <input type='submit' value='Save'>"
             ."|||ENDTABLE"
             ."[[hiddenkey:]]"
-            .""
-            ."<br/><br/>"
-            .$this->donationData( $oForm->ValueInt('_key'), $oForm->ValueInt('fk_mbr_contacts') )
             .$jsScript;
 
         return( $s );
@@ -457,13 +479,19 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         /* Show the receipt views
          */
         $sAccessed = "<h4>Receipt viewed by</h4>";
-
         if( ($kfrR = $this->oMbrDB->GetKFRC('RxD_M', "D._key=$kDonation",['sSortCol'=>'R.time'])) ) {
             while( $kfrR->CursorFetch() ) {
                 $sColour = $kfrR->Value('uid_accessor')==$kMbr ? 'green' : 'red';   // green if the access was by the donor
-                $sAccessed .= $kfrR->Expand( "<span style='color:$sColour'>[[uid_accessor]]</span> at [[time]]<br/>" );
+                $sDelete = "<form method='post' style='display:inline-block'>
+                                <input type='hidden' name='cmd' value='deleteReceiptAccess'/>
+                                <input type='hidden' name='kR' value='{$kfrR->Key()}'/>
+                                <input type='submit' value='delete' style='font-size:x-small'/> </form>";
+                $sAccessed .= $kfrR->Expand("<span style='color:$sColour'>[[uid_accessor]]</span> at [[time]]&nbsp;&nbsp;&nbsp;")."{$sDelete}<br/>";
             }
         }
+        $sAccessed .= "<form method='post'><input type='submit' value='Add viewed by $kMbr now'/>
+                                           <input type='hidden' name='cmd' value='addReceiptAccess'/>
+                                           <input type='hidden' name='kMbr' value='$kMbr'/></form>";
 
         $s = "<table><tr><td valign='top' style='padding-right:20px'>$sTicket</td>
                          <td valign='top'>$sAccessed</td>

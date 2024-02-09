@@ -2,7 +2,7 @@
 
 /* Mailing List Generator
  *
- * Copyright 2013-2023 Seeds of Diversity Canada
+ * Copyright 2013-2024 Seeds of Diversity Canada
  *
  * Generates mail and email lists for various categories of members and subscribers
  */
@@ -89,8 +89,8 @@ $sLeft .=
                                          "Who receive donation appeals"           => 'getDonorAppeals',
                                          "Who receive the magazine"               => 'getMagazine',
                                          "Who receive the printed Seed Directory" => 'getPrintedMSD',
-                                         "Who list seeds in the Seed Directory (active or skipped)" => 'msdGrowers',
-                                         "Who list seeds in the Seed Directory (active or skipped) but are not Done this year" => 'msdGrowersNotDone'] )
+                                         "Who list seeds in the Seed Exchange (active or skipped)" => 'mseGrowers',
+                                         "Who list seeds in the Seed Exchange (active or skipped) but are not Done this year" => 'mseGrowersNotDone'] )
 // Implemented within eMbrGroup-membersAndDonors2Years only
 //        ."</div><div style='margin-bottom:10px'>"
 //        .$oForm->Select( 'eMbrFilter2', ["-- AND (No filter) --" => 0,
@@ -223,7 +223,7 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
 }
 else
 if( ($yMbrExpires = $oForm->Value('yMbrExpires')) &&
-     !SEEDCore_StartsWith($p_mbrFilter1,'msdGrowers' ) )       // msdGrower filters are handled below
+     !SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers' ) )       // mseGrower filters are handled below
 {
     /* Look up mbr_contacts
      */
@@ -283,19 +283,19 @@ if( $oForm->Value('chkEbulletin') ) {
 /* Look up sed_grower_curr
  * This does not implement expiry dates nor spreadsheet output
  */
-if( SEEDCore_StartsWith($p_mbrFilter1,'msdGrowers') ) {
+if( SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers') ) {
     include( SEEDLIB."msd/msdlib.php" );
+    $oMSDLib = new MSDLib( $oApp );
 
     $raCond = ["NOT G.bDelete",
                "M.email IS NOT NULL AND M.email <> ''"];
     if( $p_lang == "EN" )  $raCond[] = "M.lang IN ('','B','E')";
     if( $p_lang == "FR" )  $raCond[] = "M.lang IN ('B','F')";
-    if( $p_mbrFilter1=='msdGrowersNotDone' )  $raCond[] = "(NOT G.bDone)";
+    if( $p_mbrFilter1=='mseGrowersNotDone' )  $raCond[] = "(NOT ({$oMSDLib->CondIsGrowerDone()}))";
 
     $sCond = "(".implode( " AND ", $raCond ).")";
 
     $n = 0;
-    $oMSDLib = new MSDLib( $oApp );
     if( ($kfr = $oMSDLib->KFRelGxM()->CreateRecordCursor($sCond)) ) {
         while( $kfr->CursorFetch() ) {
             if( $p_outFormat == 'mbrid' ) {

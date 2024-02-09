@@ -34,28 +34,18 @@ class MSDCommonDraw
         $sMSDList = "";
         $bTomatoFound = false;
 
-        // Get all distinct categories (distinct prodextra-values for prodextra-key=='category' and product-type='seeds'),
-        // and for each category get all distinct species (distinct prodextra-values for prodextra-key=='species').
-        // The second query needs a double-join on prodextra, to fetch category and species together.
-        $raCat = $this->oSB->oDB->GetList( "PxPE", "product_type='seeds' AND PE.k='category'",
-                                           ['sGroupAliases'=>'PE_v', 'sSortCol'=>'PE_v'] );
-        foreach( $raCat as $ra ) {
-            $raSpList = $this->oSB->oDB->GetList( "PxPE2", "product_type='seeds' AND PE1.k='category' "
-                                                 ."AND PE1.v='".addslashes($ra['PE_v'])."' AND PE2.k='species'",
-                                                  ['sGroupAliases'=>'PE2_v', 'sSortCol'=>'PE2_v'] );
+        // Get all distinct categories; for each category get all distinct species
+        $raCat = $this->oMSDCore->LookupCategoryList();
+        foreach( $raCat as $cat ) {
+            $raSpList = $this->oMSDCore->LookupSpeciesList( "", ['category'=>$cat,'bListable'=>true] );
 
-            $sCat = $this->oMSDCore->TranslateCategory( $ra['PE_v'] );
-            // get all the species names and translate them
-            $raSp = array();
-            foreach( $raSpList as $ra2 ) {
-                $raSp[] = $ra2['PE2_v'];
-            }
+            $sCat = $this->oMSDCore->TranslateCategory($cat);
 
             $bTomatoFound = false;
             $sMSDList .= "<div class='msd-list-category'>"
                             ."<div class='msd-list-category-title'>$sCat</div>"
                             ."<div class='msd-list-species-group'>";
-            foreach( $this->oMSDCore->TranslateSpeciesList( $raSp ) as $ra3 ) {
+            foreach( $this->oMSDCore->TranslateSpeciesList($raSpList) as $ra3 ) {
                 if( SEEDCore_StartsWith( $ra3['label'], "TOMATO" ) || SEEDCore_StartsWith( $ra3['label'], "Tomates" ) ) {
                     if( !$bTomatoFound ) {
                         $l = $this->oMSDCore->oApp->lang =='FR' ? "Tomates" : "TOMATO";

@@ -2,7 +2,7 @@
 
 /* MbrContacts
  *
- * Copyright 2021-2023 Seeds of Diversity Canada
+ * Copyright 2021-2024 Seeds of Diversity Canada
  *
  * Keep track of our contacts, members, donors.
  */
@@ -15,11 +15,13 @@ class Mbr_Contacts
 
     public  $oDB;
     private $oApp;
+    private $yCurrent;
 
-    function __construct( SEEDAppSessionAccount $oApp )
+    function __construct( SEEDAppSessionAccount $oApp, array $raConfig = [] )
     {
         $this->oApp = $oApp;
         $this->oDB = new Mbr_ContactsDB( $oApp );
+        $this->yCurrent = @$raConfig['yCurrent'] ?: date('Y');
     }
 
     function GetBasicFlds()   { return( $this->raFldsBasic ); }
@@ -198,6 +200,12 @@ class Mbr_Contacts
         return( $text );
     }
 
+    function IsCurrentFromExpires( $sExpires )
+    {
+        $yExpires = intval(substr($sExpires, 0, 4));
+        return( $yExpires >= $this->yCurrent );
+    }
+
     static function PostcodesEqual( String $pc1, String $pc2 ) : bool
     {
         // case-insensitive compare with whitespace removal
@@ -322,7 +330,13 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             ]];
         $defA =
             ["Tables" => [
-                "A" => ["Table" => "{$dbname1}.sl_adoptions",
+                "A" => ["Table" => "{$dbname1}.sl_adoption",
+                        "Type"  => 'Base',
+                        "Fields" => 'Auto'],
+            ]];
+        $defR =
+            ["Tables" => [
+                "R" => ["Table" => "{$dbname2}.mbr_donation_receipts_accessed",
                         "Type"  => 'Base',
                         "Fields" => 'Auto'],
             ]];
@@ -401,6 +415,8 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
         $raKfrel['M'] = new Keyframe_Relation( $kfdb, $defM, $uid, $parms );
         $raKfrel['D'] = new Keyframe_Relation( $kfdb, $defD, $uid, $parms );
+        $raKfrel['R'] = new Keyframe_Relation( $kfdb, $defR, $uid, $parms );
+        $raKfrel['A'] = new Keyframe_Relation( $kfdb, $defA, $uid, $parms );
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
         $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
@@ -548,6 +564,25 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
     }
 
 
+    /**
+     * Store an mbr_donation_receipt_accessed record
+     * @param int $kDon
+     * @param int $uid - who accessed it
+     */
+    function StoreDonationReceiptAccessed( int $kDon, int $uid )
+    {
+        if( ($kfr = $this->KFRel('R')->CreateRecord()) ) {
+            $kfr->SetValue('uid_accessor', $uid );
+            $kfr->SetValue('fk_mbr_donations', $kDon );
+            $kfr->SetVerbatim('time', 'NOW()');
+            $kfr->PutDBRow();
+        }
+
+//        $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
+//                            (_key,_created,_created_by,_updated,_updated_by,_status,uid_accessor,fk_mbr_donations,time)
+//                            VALUES (NULL,NOW(),{$uid},NOW(),{$uid},0,{$uid},{$kfrD->Key()},NOW())");
+    }
+
     const SqlCreate_Donations = "
         CREATE TABLE IF NOT EXISTS seeds_2.mbr_donations (
 
@@ -564,6 +599,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
             receipt_num          INTEGER NOT NULL DEFAULT 0,      # set any time; 0=not set yet, -1=non-receiptable, -2=below threshold
             date_issued          DATE NULL,                       # set when the receipt is actually sent
             category             VARCHAR(200) NOT NULL DEFAULT '',# e.g. SLAdoption, SFG
+            purpose              VARCHAR(200) NOT NULL DEFAULT '',# Purpose to be shown on receipt
             notes                TEXT,
 
             INDEX (fk_mbr_contacts)

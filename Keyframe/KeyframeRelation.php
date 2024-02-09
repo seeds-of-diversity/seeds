@@ -70,6 +70,8 @@ class KeyFrame_Relation
 /*********************
  */
 {
+    const   stdFields          = ['_key', '_created', '_created_by', '_updated', '_updated_by'];
+    const   stdFieldsAndStatus = ['_key', '_created', '_created_by', '_updated', '_updated_by', '_status'];
     private $kfdb;
     private $kfrdef;
     private $uid;
@@ -134,8 +136,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
 
                 $ra = $kfdb->GetFields( $t['Table'] );
                 foreach( $ra as $fld => $raFld ) {
-                    if( in_array( $fld, array("_key","_created","_created_by","_updated","_updated_by","_status") ) )  continue;
-
+                    if( in_array($fld, self::stdFieldsAndStatus) )  continue;   // define these below
                     $t['Fields'][] = array( 'type'=>$raFld['kf_type'], 'col'=>$fld, 'default'=>$raFld['kf_default'] );
                 }
             }
@@ -863,6 +864,7 @@ class KeyframeRecord
     private $key;
     private $values;
     private $valuesNull;       // PutDBRow sets these values to NULL in db
+    private $valuesVerbatim;   // only used for setting verbatim values for PutDBRow() e.g. NOW() - does not get snapped and should not be read (after PutDBRow, re-load to get true value)
     private $dbValSnap;        // a snapshot of the values most recently retrieved from the db.  For change detection.
     private $dbNullSnap;       // a snapshot of the valuesNull most recently retrieved from the db.  For change detection.
     private $keyForce = 0;
@@ -885,6 +887,7 @@ class KeyframeRecord
         $this->key = 0;
         $this->values = array();
         $this->valuesNull = [];
+        $this->valuesVerbatim = [];
         $this->dbValSnap = array();
         $this->dbNullSnap = array();
         $this->keyForce = 0;
@@ -904,6 +907,7 @@ class KeyframeRecord
          $kfr->key = $this->key;
          $kfr->values = $this->values;
          $kfr->valuesNull = $this->valuesNull;
+         $kfr->valuesVerbatim = $this->valuesVerbatim;
          $kfr->dbValSnap = $this->dbValSnap;
          $kfr->dbNullSnap = $this->dbNullSnap;
          $kfr->keyForce = 0;  // don't copy this
@@ -947,6 +951,7 @@ class KeyframeRecord
 */
         $this->values[$k] = $v;
         unset($this->valuesNull[$k]);
+        unset($this->valuesVerbatim[$k]);
     }
     function SetNull( $k )
     /*********************
@@ -955,6 +960,18 @@ class KeyframeRecord
     {
         $this->values[$k] = '';     // so Value() will return an empty string because that's what happens when a NULL is read from the db
         $this->valuesNull[$k] = true;
+        unset($this->valuesVerbatim[$k]);
+    }
+    function SetVerbatim( string $k, string $v )
+    /*******************************************
+        Set this field to a verbatim value such as NOW().
+        This is only used for PutDBRow - use raFieldOverride for verbatim fields in SELECT.
+        These values are not snapped or read back. After PutDBRow, re-load the record to get the true value.
+     */
+    {
+        $this->values[$k] = '';     // the true value is unknown
+        $this->valuesVerbatim[$k] = $v;
+        unset($this->valuesNull[$k]);
     }
     function IsNull( $k )
     {
@@ -1132,11 +1149,11 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
                 $raSet[] = "_updated=NOW(),_updated_by='$kfUid'";
             }
             foreach( $this->kfrel->BaseTableFields() as $f ) {
-                if( in_array( $f['col'], ["_key", "_created", "_created_by", "_updated", "_updated_by"] ) ) continue;
+                if( in_array($f['col'], KeyFrame_Relation::stdFields) ) continue;   // this does not include _status because StatusSet() can change it
 
                 $a = $f['alias'];
 
-                if( $bSnap ) {
+                if( $bSnap && !@$this->valuesVerbatim[$a] ) {
                     /* Use the dbVal snapshot to inhibit update of unchanged fields. Though the db engine would do this
                      * anyway, this makes kfr log files much more readable.
                      */
@@ -1148,7 +1165,9 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
                 }
 
                 // write changed fields to db
-                if( $this->IsNull($a) ) {
+                if( @$this->valuesVerbatim[$a] ) {
+                    $raSet[] = "{$f['col']}={$this->valuesVerbatim[$a]}";
+                } else if( $this->IsNull($a) ) {
                     $raSet[] = "{$f['col']}=NULL";
                 } else {
                     $raSet[] = "{$f['col']}=".$this->putFmtVal( $this->values[$a], $f['type'] );
@@ -1175,9 +1194,12 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             $sk = "";
             $sv = "";
             foreach( $this->kfrel->BaseTableFields() as $f ) {
-                if( !in_array( $f['col'], array("_key", "_created", "_created_by","_updated","_updated_by") ) ) {
+                if( !in_array($f['col'], KeyFrame_Relation::stdFields) ) {   // this does not include _status so it can be set via StatusSet() though normally it just defaults to 0
                     $sk .= ",".$f['col'];
-                    if( @$this->valuesNull[$f['alias']] ) {
+
+                    if( @$this->valuesVerbatim[$f['alias']] ) {
+                        $sv .= ",{$this->valuesVerbatim[$f['alias']]}";
+                    } else if( @$this->valuesNull[$f['alias']] ) {
                         $sv .= ",NULL";
                     } else {
                         $sv .= ",".$this->putFmtVal( $this->values[$f['alias']], $f['type'] );
@@ -1301,6 +1323,8 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         Copy the values in the given array into the Record
      */
     {
+        $this->valuesNull = [];
+        $this->valuesVerbatim = [];
         $this->getBaseValuesFromRA( $ra, true );    // get base values, set defaults(why?), not gpc
         $this->getFKValuesFromArray( $ra );         // get all fk values
         $this->getExtraValuesFromRA( $ra );         // get additional values named as aliases in makeSelect

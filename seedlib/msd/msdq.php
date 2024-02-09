@@ -2,7 +2,7 @@
 
 /* Member Seed Directory Q Layer
  *
- * Copyright (c) 2018-2021 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  */
 
 include_once( SEEDLIB."msd/msdcore.php" );
@@ -137,10 +137,12 @@ class MSDQ extends SEEDQ
     /**************************
      */
     {
-        $dbname = $this->oMSDCore->oApp->GetDBName('seeds1');
+        $dbname = $this->oMSDCore->oApp->DBName('seeds1');
         $raOut = [
-            'nGrowersActive' => $this->oMSDCore->oApp->kfdb->Query1(
+            'nGrowersActive'  => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete" ),
+            'nGrowersDone'    => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete AND ({$this->oMSDCore->CondIsGrowerDone()})" ),
             'nGrowersSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND bSkip AND NOT bDelete" ),
             'nGrowersDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -148,6 +150,12 @@ class MSDQ extends SEEDQ
 
             'nSeedsActive' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.SEEDBasket_Products WHERE _status='0' AND product_type='seeds' AND eStatus='ACTIVE'" ),
+            'nSeedsListed' => $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*)
+                                     FROM {$dbname}.SEEDBasket_Products P, {$dbname}.sed_curr_growers G
+                                     WHERE P.uid_seller=G.mbr_id AND
+                                           P._status='0' AND G._status='0' AND
+                                           P.product_type='seeds' AND ({$this->oMSDCore->CondIsListable()})" ),
             'nSeedsSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.SEEDBasket_Products WHERE _status='0' AND product_type='seeds' AND eStatus='INACTIVE'" ),
             'nSeedsDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -163,25 +171,7 @@ class MSDQ extends SEEDQ
 // nCultivars = select count(distinct left(PE1.v,6),PE2.v) from SEEDBasket_Products P,SEEDBasket_ProdExtra PE1,SEEDBasket_ProdExtra PE2
 //                  where PE1.fk_SEEDBasket_Products=P._key and PE2.fk_SEEDBasket_Products=P._key and PE1.k='species' and PE2.k='variety' and P.eStatus='ACTIVE';
 
-        $raSpList = $this->oMSDCore->oMSDSB->oDB->GetList( "PxPE2",
-                                                           "product_type='seeds' AND eStatus='ACTIVE' "
-                                                          ."AND PE1.k='category' AND PE2.k='species'",
-                                                           ['sGroupAliases'=>'PE1_v,PE2_v', 'sSortCol'=>'PE1_v,PE2_v'] );
-        $raCvList = $this->oMSDCore->oMSDSB->oDB->GetList( "PxPE3",
-                                                           "product_type='seeds' AND eStatus='ACTIVE' "
-                                                          ."AND PE1.k='category' AND PE2.k='species' AND PE3.k='variety'",
-                                                           ['sGroupAliases'=>'PE1_v,PE2_v,PE3_v', 'sSortCol'=>'PE1_v,PE2_v,PE3_v'] );
-        $raOut['nSpecies'] = count($raSpList);
-        $raOut['nVarieties'] = count($raCvList);
-        foreach( $raSpList as $ra ) {
-            if( $ra['PE1_v'] == 'flowers' )     ++$raOut['nFlowers'];
-            if( $ra['PE1_v'] == 'vegetables' )  ++$raOut['nVeg'];
-            if( $ra['PE1_v'] == 'fruit' )       ++$raOut['nFruit'];
-            if( $ra['PE1_v'] == 'herbs' )       ++$raOut['nHerbs'];
-            if( $ra['PE1_v'] == 'grain' )       ++$raOut['nGrain'];
-            if( $ra['PE1_v'] == 'trees' )       ++$raOut['nTrees'];
-            if( $ra['PE1_v'] == 'misc' )        ++$raOut['nMisc'];
-        }
+        $raOut = $this->oMSDCore->GetMSEStats($raOut);
 
         return( $raOut );
     }
@@ -194,7 +184,14 @@ class MSDQ extends SEEDQ
             kProduct
             kUidSeller
             kSp
-            bAll  :  must specify to force unfiltered list
+            bAll           : must specify to force unfiltered list
+            bAllButTomato  : used in print seeds report
+            bAllTomato     : used in print seeds report to get all tomato "species" sorted by variety
+
+            eFilter : LISTABLE            = seeds ACTIVE, growers Done & not Skip|Delete|Hold
+                      REQUESTABLE         = LISTABLE and in season
+                      REQUESTABLE_BY_USER = REQUESTABLE and allowed to given user
+                      ALL                 = must specify to force unfiltered list
 
         Secondary filter by:
             eStatus  :  any combination of quoted and comma-separated 'ACTIVE','INACTIVE','DELETED' or ALL
@@ -208,6 +205,7 @@ class MSDQ extends SEEDQ
         $raOut = array();
         $sErr = "";
         $bCheckEStatus = true;
+        $bIsTomato = false;
 
         $raCond = [];
         if( ($kProduct = intval(@$raParms['kProduct'])) ) {
@@ -218,21 +216,34 @@ class MSDQ extends SEEDQ
             || ($uid = intval(@$raParms['uid_seller'])) ) { // deprecated
             $raCond[] = "P.uid_seller='$uid'";
         }
-// kSp is normally int but it can be tomatoAC,tomatoDH,etc
-        if( ($kSp = intval(@$raParms['kSp'])) ) {
-            $raCond[] = "PE2.v='".addslashes($this->oMSDCore->GetKlugeSpeciesNameFromKey($kSp))."'";
-        } else if( SEEDCore_StartsWith(@$raParms['kSp'], 'tomato')) {
-            // kluge tomatoAC, tomatoDH, etc
-            $cond = "PE2.v LIKE 'TOMATO%'";
-            switch( $kSp ) {
-                default: // fall to tomatoAC
-                case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PE3.v,1)) <= 'C'";               break;
-                case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'D' AND 'H'";  break;
-                case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'I' AND 'M'";  break;
-                case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PE3.v,1)) BETWEEN 'N' AND 'R'";  break;
-                case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PE3.v,1)) >= 'S'";               break;
+
+        if( @$raParms['bAllButTomato'] ) {
+            // Get all species except the tomatoes
+            $raCond[] = "NOT (PEcategory.v = 'vegetables' AND PEspecies.v like 'TOMATO%')";
+        } else if( @$raParms['bAllTomato'] ) {
+            $raCond[] = "(PEcategory.v = 'vegetables' AND PEspecies.v like 'TOMATO%')";
+            $bIsTomato = true;
+        } else {
+            /* kSp is normally int but it can be tomatoAC,tomatoDH,etc
+             */
+            $kSp = @$raParms['kSp'];
+            if( SEEDCore_StartsWith($kSp, 'tomato') ) {
+                // kluge tomatoAC, tomatoDH, etc
+                $bIsTomato = true;
+                $cond = "PEspecies.v LIKE 'TOMATO%'";
+                switch( $kSp ) {
+                    default: // fall to tomatoAC
+                    case 'tomatoAC':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) <= 'C'";               break;
+                    case 'tomatoDH':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'D' AND 'H'";  break;
+                    case 'tomatoIM':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'I' AND 'M'";  break;
+                    case 'tomatoNR':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) BETWEEN 'N' AND 'R'";  break;
+                    case 'tomatoSZ':    $cond .= " AND UPPER(LEFT(PEvariety.v,1)) >= 'S'";               break;
+                }
+                $raCond[] = $cond;
+            } else if( ($kSp = intval($kSp)) ) {
+                list($sSpecies,$sCat) = $this->oMSDCore->GetSpeciesNameFromKlugeKey2($kSp);
+                $raCond[] = "PEcategory.v='".addslashes($sCat)."' AND PEspecies.v='".addslashes($sSpecies)."'";
             }
-            $raCond[] = $cond;
         }
 
         if( !count($raCond) && !@$raParms['bAll'] ) {       // this is why eStatus is a secondary parameter; it is required but at least one primary filter is also required
@@ -242,24 +253,40 @@ class MSDQ extends SEEDQ
 
         // eStatus is combinations of quoted and comma-separated 'ACTIVE','INACTIVE','DELETED' or ALL
         if( $bCheckEStatus ) {
+            if( ($eFilter = @$raParms['eFilter']) ) {   // eFilter will replace eStatus with a more general criteria
+                switch($eFilter) {
+                    case 'LISTABLE':
+                        $raCond[] = $this->oMSDCore->CondIsListable();
+                        goto eStatusOk;
+                    case 'ALL':
+                        $eStatus = 'ALL';
+                        goto eStatusOk;
+                }
+            }
+
             if( !($eStatus = @$raParms['eStatus']) ) {
                 $sErr = "eStatus required";
                 goto done;
             }
+
             if( $eStatus != 'ALL' ) {
                 $raCond[] = "eStatus IN ($eStatus)";
             }
+            eStatusOk:;
         }
 
-//$this->oApp->kfdb->SetDebug(2);
-        // PE1.k='category'
-        // PE2.k='species'
-        // PE3.k='variety'
-        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond) )) ) {
+        $sSortCol = $bIsTomato ? "PEvariety_v" : "PEcategory_v,PEspecies_v,PEvariety_v";    // when listing tomatoes don't sort by sp or the varieties appear out of order
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen( implode(' AND ', $raCond), ['sSortCol'=>$sSortCol] )) ) {
             while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
                 $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, array('bUTF8'=>$this->bUTF8) );
+                if( ($e = @$raParms['eDrawMode']) ) {
+                    list($bOkDummy,$sSeedDraw,$sErrDummy) = $this->seedDraw( $kfrc, $e );
+                    $raOut[$kfrc->Key()]['sSeedDraw'] = $sSeedDraw;
+                }
             }
         }
+
+// raParm['eDrawMode'] could cause msdSeed-Draw to be done in each item, because that is frequently done with refetching
 
         $bOk = true;
 
@@ -287,12 +314,21 @@ class MSDQ extends SEEDQ
 
         $ok = true;
 
+//$raGrowers = $this->oApp->kfdb->QueryRowsRA("SELECT * from {$this->oApp->DBName('seeds1')}.sed_curr_growers WHERE _status=0");
+
         $sBetween = @$raParms['sBetween'];  // string to put between each seed listing
         foreach( $rQ['raOut'] as $ra ) {
             if( !($kfrS = $this->oMSDCore->GetSeedKfr($ra['_key'])) || !$this->canReadSeed($kfrS) ) {
                 $sErr .= "<p>Cannot read seed {$ra['_key']}</p>";
                 continue;
             }
+
+//if( ($k = array_search($kfrS->Value('uid_seller'), array_column($raGrowers, 'mbr_id')) === false) )  continue;
+//if( !($raG = @$raGrowers[$k]) ) continue;
+//if( $raG['bDelete'] || $raG['bSkip'] || @$raG['bHold'] ) continue;
+//if( $raG['mbr_code'] =="NS WO M" ) continue;
+
+
             list($okTmp,$sTmp,$sErrTmp) = $this->seedDraw( $kfrS, "REVIEW VIEW_SHOWSPECIES" );
 
             if( $okTmp ) {
@@ -425,10 +461,9 @@ class MSDQ extends SEEDQ
 
         // The variety line has a clickable look in the basket view, a plain look in other views, and a different format for print
         if( SEEDCore_StartsWith(($sp = $kfrS->value('species')), 'TOMATO') ) {
+            $sType = strtolower(trim(substr($sp,6), " /-,"));   // trim off leading spaces and characters used to denote different tomato categories
             $tag = ($eView=='PRINT' ? "<br/>" : "&nbsp;&nbsp;&nbsp;")
-                  ."<span style='color:gray;font-size:".($eView=='PRINT' ? '8pt;' : '9pt;')."'>("
-                  .strtolower(trim(substr($sp,6), " /-,"))   // trim off leading spaces and characters used to denote different tomato categories
-                  .")</span>"
+                  .($sType ? ("<span style='color:gray;font-size:".($eView=='PRINT' ? '8pt;' : '9pt;')."'>($sType)</span>") : "")
                   .($eView=='PRINT' ? "" : "&nbsp;&nbsp;&nbsp;");
         } else {
             $tag = "";

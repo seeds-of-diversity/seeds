@@ -1227,8 +1227,8 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
         $kUser       = intval(@$raParms['k']);      // 0 means use the next auto-increment
         $sdbEmail    = addslashes($sEmail);
         $sdbPwd      = addslashes($sPwd);
-        $sdbRealname = addslashes(@$raParms['realname']);
-        $sdbExtra    = addslashes(@$raParms['sExtra']);
+        $sdbRealname = addslashes(@$raParms['realname']??"");
+        $sdbExtra    = addslashes(@$raParms['sExtra']??"");
         $eStatus     = SEEDCore_ArraySmartVal( $raParms, 'eStatus', array('PENDING','ACTIVE','INACTIVE') );
         $eLang       = SEEDCore_ArraySmartVal( $raParms, 'lang', array('E','F','B') );
         $gid1        = intval(@$raParms['gid1']);
@@ -1314,6 +1314,30 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
             $ok = $kfr->PutDBRow();
         }
         return( $ok );
+    }
+
+    function DeleteUser( $kUser )
+    /****************************
+        Delete the given user and all of its metadata records.
+Todo: Does not remove from groups.uid
+     */
+    {
+        $bOk = false;
+
+        if( ($kfr = $this->GetKfrel('U')->GetRecordFromDBKey($kUser)) ) {
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );    // if the account has been deleted or hidden, undelete it
+            $bOk = $kfr->PutDBRow();
+        }
+
+        // Fetch iStatus==-1 so any hidden records are found, and replaced with the DELETED status
+        if( ($kfr = $this->GetKfrel('UM')->CreateRecordCursor("uid='$kUser'", ['iStatus'=>-1] )) ) {
+            while( $kfr->CursorFetch() ) {
+                $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
+                $bOk = $kfr->PutDBRow() && $bOk;
+            }
+        }
+
+        return( $bOk );
     }
 
     function DeleteUserMetadata( $kUser, $k )

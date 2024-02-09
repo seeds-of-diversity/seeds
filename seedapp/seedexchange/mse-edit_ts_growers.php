@@ -60,8 +60,10 @@ class MSEEditAppTabGrower
 
         $eOp = '';
         if( ($k = SEEDInput_Int( 'gdone' )) && $k == $this->kGrower ) {
-            $this->kfrGxM->SetValue( 'bDone', !$this->kfrGxM->value('bDone') );
-            $this->kfrGxM->SetValue( 'bDoneMbr', $this->kfrGxM->value('bDone') );  // make this match bDone
+//            $this->kfrGxM->SetValue( 'bDone', !$this->kfrGxM->value('bDone') );
+//            $this->kfrGxM->SetValue( 'bDoneMbr', $this->kfrGxM->value('bDone') );  // make this match bDone
+            $this->kfrGxM->SetValue( 'dDone', $this->oMSDLib->IsGrowerDone($this->kfrGxM) ? '' : date('Y-m-d') );
+            $this->kfrGxM->SetValue( 'dDone_by', $this->oApp->sess->GetUID() );
             $eOp = 'gdone';
         }
         if( ($k = SEEDInput_Int( 'gskip' )) && $k == $this->kGrower ) {
@@ -76,10 +78,14 @@ class MSEEditAppTabGrower
             if( $bKGrowerIsMe ) {
                 $this->kfrGxM->SetValue( '_updated_G_mbr', date("Y-m-d") );  // record that you changed this in your own record
             }
-            if( !$this->kfrGxM->PutDBRow( $bKGrowerIsMe ? [] : ['bNoChangeTS'=>true] ) ) {  // bDone,bSkip,bDelete shouldn't change _updated unless it's your own record
+            if( !$this->kfrGxM->PutDBRow( $bKGrowerIsMe ? [] : ['bNoChangeTS'=>true] ) ) {  // dDone,bSkip,bDelete shouldn't change _updated unless it's your own record
                 $this->oApp->Log( 'MSEEdit.log', "$eOp {$this->kGrower} by user {$this->oApp->sess->GetUID()} failed: ".$this->kfrGxM->KFRel()->KFDB()->GetErrMsg() );
             }
         }
+
+        // Kind of brute force to put this here - make sure seed counts and _updated_S* are up to date
+        $this->oMSDLib->RecordGrowerStats($this->kfrGxM);   // stores record with bNoChangeTS
+
         done:;
     }
 
@@ -97,17 +103,12 @@ class MSEEditAppTabGrower
 
         if( !$this->oMSDLib->PermOfficeW() )  goto done;
 
-        $raChk = ['bExpired'  =>['control'=>'checkbox'],
-                  'bNoChange' =>['control'=>'checkbox'] ];
-        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A', ['fields'=>$raChk]);
+        $oForm = new SEEDCoreFormSVA($this->oApp->oC->oSVA, 'A');
         $oForm->Update();
 
         // check boxes that are checked
         $raChecked = [];
-        foreach($raChk as $k=>$v) {
-            if( $oForm->Value($k) ) $raChecked[$k] = true;
-        }
-        foreach(['bDone','bSkip','bDel','bZeroSeeds'] as $k ) {
+        foreach(['bDone','bSkip','bDel','bExpired','bNoChange','bZeroSeeds'] as $k ) {
             switch($oForm->Value($k)) {
                 case 1: $raChecked[$k] = true;  break;     // only show growers with $k
                 case 0: $raChecked[$k] = false; break;     // only show growers with !$k
@@ -137,10 +138,10 @@ class MSEEditAppTabGrower
                </div>
                <div class='col-md-2'>
                    <form method='post'>
-                   <table><tr><td><b><br/>&nbsp;</br>#Seeds&nbsp;</b></td>
+                   <table><tr><td><b>Member Expiry&nbsp;<br/>Changes by mbr&nbsp;</br>#Seeds</b></td>
                      </td><td>"
-                    .$oForm->Checkbox('bExpired',  "Member &lt; 2022",              ['attrs'=>"onchange='submit()'"])."<br/>"
-                    .$oForm->Checkbox('bNoChange', "Change &lt; last April",        ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bExpired',    ['--'=>-1, '< 2022'=>1, '>= 2022'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bNoChange',   ['--'=>-1, '< Aug 2023'=>1, '>= Aug 2023'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
                     .$oForm->Select('bZeroSeeds',  ['--'=>-1, 'Zero'=>1, 'Not Zero'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
                    </td></tr></table>
                    </form>
@@ -169,15 +170,18 @@ class MSEEditAppTabGrower
 
         $sLeft .= "<h3>{$this->kfrGxM->Value('mbr_code')} : ".Mbr_Contacts::GetContactNameFromMbrRA($this->kfrGxM->ValuesRA(), ['fldPrefix'=>'M_'])."</h3>"
                 ."<p>{$this->oMSDLib->oL->S('Grower block heading', [], 'mse-edit-app')}</p>"
-                ."<div class='mse-edit-grower-block".($this->kfrGxM->Value('bDone') ? ' mse-edit-grower-block-done' : '')."'>"
+                ."<div class='mse-edit-grower-block".($this->oMSDLib->IsGrowerDone($this->kfrGxM) ? ' mse-edit-grower-block-done' : '')."'>"
                 .$this->oMSDLib->DrawGrowerBlock( $this->kfrGxM, true )
-                ."</div>"
-                .($this->kfrGxM->Value('bDone') ? "<p style='font-size:16pt;margin-top:20px;'>Done! Thank you!</p>" : "")
-                ."<p><a href='{$this->oApp->PathToSelf()}?gdone={$this->kGrower}'>"
-                    .($this->kfrGxM->Value('bDone')
-                        ? "Click here if you're not really done"
-                        : "<div class='alert alert-warning'><h3>Your seed listings are not active yet</h3> Click here when you are ready (you can undo this)</div>")
-                ."</a></p>"
+                ."</div><br/>"
+                .($this->oMSDLib->IsGrowerDone($this->kfrGxM)
+                     ? "<p style='font-size:16pt;margin-top:20px;'>Done! Thank you!</p>
+                        <a href='{$this->oApp->PathToSelf()}?gdone={$this->kGrower}'>Click here if you're not really done</a>"
+                     : "<form method='post'><input type='hidden' name='gdone' value='{$this->kGrower}'/>
+                                            <div class='alert alert-danger'>
+                                            <h3>Your seed listings are not active yet</h3>
+                                            <p>Click here when you are ready (you can undo this)</p>
+                                            <p><input type='submit' value='Ready for {$this->oMSDLib->GetCurrYear()}'/></p></div>
+                        </form>")
                 .($this->bOffice ? $this->drawGrowerOfficeSummary() : "");
 
         $sRight = "<div style='border:1px solid black; margin:10px; padding:10px'>"
@@ -224,18 +228,26 @@ class MSEEditAppTabGrower
                     : ("<div><a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>Delete this grower</a></div>");
 
         // Grower record
+        $raD['dGLogin']        = substr( $kfrG->Value('tsGLogin'), 0, 10 );            // latest read or write of this record by the member (can be '')
         $raD['dGUpdated']      = substr( $kfrG->Value('_updated'), 0, 10 );            // latest update of this record
         $raD['dGUpdatedByMbr'] = substr( $kfrG->Value('_updated_G_mbr'), 0, 10 );      // latest update of this record by the member (can be "")
         $kGUpdatedBy           = $kfrG->Value('_updated_by');
 
+if($kfrG->Value('mbr_id')==$this->oApp->sess->GetUID()) {
+    $raD['dGLogin'] = "_unavailable_";  // if this is you, the db field was set to NOW() above so the kfr value is blank
+}
         // Seed records - includes INACTIVE and DELETED because we want to know if someone set those states
         $raD['dSUpdated']      = substr( $kfrG->Value('_updated_S'), 0, 10 );          // latest update of any seed records (can be "" if no seeds)
         $raD['dSUpdatedByMbr'] = substr( $kfrG->Value('_updated_S_mbr'), 0, 10 );      // latest update of seed records that were updated by the member (can be "")
         $kSUpdatedBy           = $kfrG->Value('_updated_S_by');                        // who made the latest update of any seed records
 
-        foreach(['dLastLogin','dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
+        // Done status
+        $raD['dDone']          = substr( $kfrG->Value('dDone'), 0, 10 );
+        $kDone                 = $kfrG->Value('dDone_by');
+
+        foreach(['dGLogin','dLastLogin','dDone','dGUpdated','dGUpdatedByMbr','dSUpdated','dSUpdatedByMbr'] as $k ) {
             if( ($d = $raD[$k]) ) {
-                // highlight dates that are within 90 days of today
+                // highlight dates that are within 120 days of today
                 try {
                     if( (new DateTime())->diff(new DateTime($d))->days < 120 ) {
                         $raD[$k] = "<span style='color:green;background-color:#cdc'>$d</span>";
@@ -248,9 +260,10 @@ class MSEEditAppTabGrower
         $s = "<div style='border:1px solid black; margin:10px; padding:10px'>"
             ."<p>Seeds active: $nSActive</p>"
             ."<p>Membership expiry: $dMbrExpiry</p>"
-            ."<p>Last login: {$raD['dLastLogin']}</p>"
+            ."<p>Last mse edit login: {$raD['dGLogin']}   Last general login: {$raD['dLastLogin']}</p>"
             ."<p>Last grower record change: <b>{$raD['dGUpdatedByMbr']} by member</b>".($kGUpdatedBy <> $kGrower ? " ({$raD['dGUpdated']} by $kGUpdatedBy)" : "")."</p>"
             ."<p>Last seed record change: <b>{$raD['dSUpdatedByMbr']} by member</b>".($kSUpdatedBy <> $kGrower ? " ({$raD['dSUpdated']} by $kSUpdatedBy)" : "")."</p>"
+            ."<p>Done: <b>{$raD['dDone']}</b> ".($kDone == $kGrower ? "<b>by member</b>" : "by $kDone")."</p>"
             .$sSkip
             .$sDel
             ."</div>";

@@ -1,5 +1,12 @@
 <?php
 
+/* app_MbrContact
+ *
+ * Copyright 2021-2024 Seeds of Diversity Canada
+ *
+ * Application for managing member contact list
+ */
+
 if( !defined( "SEEDROOT" ) ) {
     define( "SEEDROOT", "../../" );
     define( "SEED_APP_BOOT_REQUIRED", true );
@@ -10,6 +17,7 @@ include_once( SEEDAPP."mbr/mbrApp.php" );
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 include_once( "tab_mbrcontacts_contacts.php" );
 include_once( "tab_mbrcontacts_addcontacts.php" );
+include_once( "tab_mbrcontacts_manage.php" );
 
 $consoleConfig = [
     'CONSOLE_NAME' => "mbrContacts",
@@ -20,6 +28,7 @@ $consoleConfig = [
                                         'addcontacts' => ['label'=>'Add Contacts'],
                                         'logins'      => ['label'=>'Logins'],
                                         'ebulletin'   => ['label'=>'eBulletin'],
+                                        'manage'      => ['label'=>'Manage'],
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' => MbrApp::$raAppPerms['mbrContacts'],
@@ -59,6 +68,10 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_addcontacts_Init()       { $this->oW = new MbrContactsTabAddContacts( $this->oApp ); $this->oW->Init(); }
     function TabSet_main_addcontacts_ControlDraw(){ return( $this->oW->ControlDraw() ); }
     function TabSet_main_addcontacts_ContentDraw(){ return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_manage_Init()            { $this->oW = new MbrContactsTabManage($this->oApp, $this->oContacts); $this->oW->Init(); }
+
+    function TabSetContentDraw($tsid, $tabname)   { return( $this->oW->ContentDraw() ); }
 }
 
 $oCTS = new MyConsole02TabSet( $oApp );
