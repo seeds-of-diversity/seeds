@@ -285,7 +285,7 @@ SCRIPT
                         goto jxDone;
                     }
                     $dbName = addslashes($raSrccv['ocv']);
-                    $kPcv = $this->oApp->kfdb->InsertAutoInc( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv (fk_sl_species,name,notes,old_sl_pcv,packetLabel) VALUES ($kSp,'$dbName','','','')" );
+                    $kPcv = $this->oApp->kfdb->InsertAutoInc( "INSERT INTO {$this->oApp->DBName('seeds1')}.sl_pcv (fk_sl_species,name,notes,old_sl_pcv,packetLabel,originHistory) VALUES ($kSp,'$dbName','','','','')" );
                     if( $kPcv ) {
                         $rQ['bOk'] = true;
                         $rQ['sOut'] = "Worked but you have to reload";

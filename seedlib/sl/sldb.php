@@ -131,6 +131,7 @@ class _sldb_defs
                        array( "col"=>"name",                "type"=>"S" ),
                        array( "col"=>"t",                   "type"=>"I" ),
                        array( "col"=>"packetLabel",         "type"=>"S" ),
+                       array( "col"=>"originHistory",       "type"=>"S" ),
                        array( "col"=>"notes",               "type"=>"S" ) )
                 // sound_* are not here because they're only used during rebuild-index and associated manual steps
               );
