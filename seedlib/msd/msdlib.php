@@ -19,6 +19,7 @@ class MSDLib
     public  $oL;            // SEEDLocal strings available to all MSE apps
     private $oMSDCore;
     private $dbname1;
+    private $oTmpl;
 
     function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {

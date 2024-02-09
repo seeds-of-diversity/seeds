@@ -2,7 +2,7 @@
 
 /* MSDCore
  *
- * Copyright (c) 2018-2023 Seeds of Diversity
+ * Copyright (c) 2018-2024 Seeds of Diversity
  *
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
@@ -683,7 +683,7 @@ class MSDBasketCore extends SEEDBasketCore
     Db tables live in 'seeds' by default, or $raConfig['sbdb']
  */
 {
-    public $bIsMember;
+    public $bIsMbrLogin;
 
     function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
