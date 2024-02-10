@@ -61,7 +61,7 @@ function BS_Row2( $raCols, $raParms = array() )
     $s = "<div class='row'>";
 
     foreach( $raCols as $raCol ) {
-        $s .= "<div class='${raCol[0]}'>${raCol[1]}</div>";
+        $s .= "<div class='{$raCol[0]}'>{$raCol[1]}</div>";
     }
 
     $s .= "</div>";  // row

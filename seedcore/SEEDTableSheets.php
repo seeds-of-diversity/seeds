@@ -447,7 +447,7 @@ function SEEDTableSheets_LoadFromUploadedFile( $fileIndex, $raParms )
         } else if( !isset($f['error']) ) {
             $sErr .= "Something went wrong but no error was recorded.  Please tell Bob.";
         } else {
-            $sErr .= "Please tell Bob that error # ${f['error']} was reported.";
+            $sErr .= "Please tell Bob that error # {$f['error']} was reported.";
         }
     }
     return( [$oSheets,$sErr] );

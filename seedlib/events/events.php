@@ -32,6 +32,7 @@ class EventsLib
     public $oDB;
     public $oL;
     private $oTag;
+    public $oBasicResolver;     // has to be public for SEEDTagParser to call it
 
     function __construct( SEEDAppSessionAccount $oApp )
     {

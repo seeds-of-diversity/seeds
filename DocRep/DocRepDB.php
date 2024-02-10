@@ -1084,7 +1084,7 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                     $dbNewName = addslashes($newName);
                     $dbOldName = addslashes($oldName);
                     $lenOldName = strlen($oldName);
-                    if( ($kfrc = $this->oDocRepDB->GetRel()->GetKFRC('Doc', "name LIKE '${dbOldName}/%'")) ) {
+                    if( ($kfrc = $this->oDocRepDB->GetRel()->GetKFRC('Doc', "name LIKE '{$dbOldName}/%'")) ) {
                         while( $kfrc->CursorFetch() ) {
                             // rename descendant doc
                             $kfr = $this->getKfrDoc( $kfrc->Key(), '' );

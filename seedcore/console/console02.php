@@ -115,9 +115,9 @@ class Console02
         if( isset($this->raConfig['HEADER_LINKS']) ) {
             foreach( $this->raConfig['HEADER_LINKS'] as $ra ) {
                 $sLinks .=
-                      "<a href='${ra['href']}' class='console02-header-link'"
-                     .(isset($ra['target']) ? " target='${ra['target']}'" : "")
-                     .(isset($ra['onclick']) ? " onclick='${ra['onclick']}'" : "")
+                      "<a href='{$ra['href']}' class='console02-header-link'"
+                     .(isset($ra['target']) ? " target='{$ra['target']}'" : "")
+                     .(isset($ra['onclick']) ? " onclick='{$ra['onclick']}'" : "")
                      .">"
                      .$ra['label']."</a>".SEEDCore_NBSP("",5);
             }

@@ -19,11 +19,11 @@ if( !$dirpad ) {
 
 var_dump($dirbot,$dirtop);
 for( $i = $dirbot; $i <= $dirtop; ++$i ) {
-    $s = sprintf( "mkdir %0${dirpad}d\n", $i );
+    $s = sprintf( "mkdir %0{$dirpad}d\n", $i );
     echo $s;
     exec( $s );
     for( $j = $filebot; $j <= $filetop; ++$j ) {
-        $s = sprintf( "curl $url > %0${dirpad}d/%0${filepad}d.jpg\n", $i, $j, $i, $j );
+        $s = sprintf( "curl $url > %0{$dirpad}d/%0{$filepad}d.jpg\n", $i, $j, $i, $j );
         echo $s;
         exec( $s );
     }

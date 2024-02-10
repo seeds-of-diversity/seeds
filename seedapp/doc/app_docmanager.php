@@ -63,6 +63,7 @@ class DocManagerTabSet extends Console02TabSet
 class DocManagerTabDocuments
 {
     private $oApp;
+    private $oDocManUI;
 
     function __construct( SEEDAppConsole $oApp )
     {

@@ -241,7 +241,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
             $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raDefaultParms );
             while( ($ra = $oCursor->GetNextRow()) ) {
                 // use sortable dummy keys and sort at the bottom
-                $k = "${ra['S_name_en']} ${ra['P_name']}";
+                $k = "{$ra['S_name_en']} {$ra['P_name']}";
                 $raOut[$k] = $ra;
             }
             ksort($raOut);

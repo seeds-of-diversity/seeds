@@ -69,10 +69,10 @@ class DocManagerUI_Documents
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
         $raTree = $oDocRepDB->GetSubTree( 0, -1 );
 
-        $s .= "<script>oDocRepApp02_Config.env.seedw_url = '${seedw_url}';
-                       oDocRepApp02_Config.env.q_url = '${q_url}';
+        $s .= "<script>oDocRepApp02_Config.env.seedw_url = '{$seedw_url}';
+                       oDocRepApp02_Config.env.q_url = '{$q_url}';
                        oDocRepApp02_Config.docsPreloaded = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );
-                       oDocRepApp02_Config.ui.eUILevel = ${eUILevel};
+                       oDocRepApp02_Config.ui.eUILevel = {$eUILevel};
                </script>";
 
         return( $s );

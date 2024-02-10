@@ -9,7 +9,7 @@ $url      = @$argv[1];
 $dir      = @$argv[2];
 $filetop  = intval(@$argv[3]);
 $filebot  = intval(@$argv[4]);  // default 0
-$filepad  = intval(@$argv[5]); 
+$filepad  = intval(@$argv[5]);
 
 if( !$url )  die( "a  ( http://example.com/01.jpg | http://example.com/%02d.jpg )  [dir=.]  [filetop=20]  [filebot=0]  [filepad=based on filetop]\n" );
 
@@ -34,8 +34,8 @@ if( strpos($url,'%') === false ) {
 echo "\nGetting $url from $filebot to $filetop in $dir/\n\n";
 
 for( $j = $filebot; $j <= $filetop; ++$j ) {
-    // --referer https://foo.com 
-    $s = sprintf( "curl \"$url\" > \"$dir/%0${filepad}d.jpg\"\n", $j, $j );
+    // --referer https://foo.com
+    $s = sprintf( "curl \"$url\" > \"$dir/%0{$filepad}d.jpg\"\n", $j, $j );
     echo $s;
     exec( $s );
 }

@@ -157,8 +157,8 @@ class SEEDImgManLib
         switch( $action ) {
             case 'CONVERT':
                 $sFileO = $dir.$raFVar['o']['filename'];
-                $sFileR = "${dir}${filebase}_r.{$this->targetExt}";
-                $exec = "convert \"${sFileO}\" "
+                $sFileR = "{$dir}{$filebase}_r.{$this->targetExt}";
+                $exec = "convert \"{$sFileO}\" "
                        ."-quality {$this->raConfig['jpg_quality']} "
                        ."-resize {$this->raConfig['bounding_box']}x{$this->raConfig['bounding_box']}\> "
                        // necessary for animations and seems to be ignored for non-animations
@@ -177,7 +177,7 @@ class SEEDImgManLib
             case 'KEEP_ORIG':
                 // We like the original foo.jpg better than the converted foo.webp
                 // Delete foo.webp and move foo.jpg -> foo_r.jpg
-                $delR = $dir.$raFVar['r']['filename']; //"${dir}${filebase}_r.{$this->targetExt}";
+                $delR = $dir.$raFVar['r']['filename']; //"{$dir}{$filebase}_r.{$this->targetExt}";
                 $moveOFrom = $dir.$raFVar['o']['filename'];
                 $moveOTo = $dir.pathinfo($raFVar['o']['filename'], PATHINFO_FILENAME)."_r.".pathinfo($raFVar['o']['filename'], PATHINFO_EXTENSION);
                 if( file_exists($delR) ) {

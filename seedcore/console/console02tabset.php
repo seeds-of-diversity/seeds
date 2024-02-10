@@ -62,7 +62,7 @@ class Console02TabSet
         Every tab can have its own SVA for saving application state information.
      */
     {
-        return( new SEEDSessionVarAccessor( $this->oC->oApp->sess, "console02TabSet_".$this->oC->GetConsoleName()."_${tsid}_${tabname}" ) );
+        return( new SEEDSessionVarAccessor( $this->oC->oApp->sess, "console02TabSet_".$this->oC->GetConsoleName()."_{$tsid}_{$tabname}" ) );
     }
 
     function TabSetGetSVACurrentTab( $tsid )

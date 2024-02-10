@@ -5,6 +5,8 @@ include_once( "MbrContacts.php" );
 class MbrEbulletin
 {
     private $oApp;
+    private $oDB;
+    private $oMbr;
 
     // uploaded spreadsheets must have these columns
     private $uploadDef = [ 'headers-required' => ['email','language'],      // uploaded xls must have these columns
@@ -177,7 +179,7 @@ class MbrEbulletin
         $bBadLang = false;
         foreach( $raRows as $r ) {
             if( !$r['email'] && $r['name'] ) {
-                $this->oApp->oC->AddErrMsg( "Warning: ${r['name']} has a blank email.<br/>" );
+                $this->oApp->oC->AddErrMsg( "Warning: {$r['name']} has a blank email.<br/>" );
                 $ok = false;
             }
 
@@ -186,7 +188,7 @@ class MbrEbulletin
                 $raNonEmailChars = ["\r", "\n", "\t", ',', ';', ':', '"', "'", '(', ')', '<', '>', '[', ']', '|'];
                 $e = str_replace( $raNonEmailChars, ' ', $r['email'] );
                 if( strpos($r['email'], '@') === false || strpos($r['email'], ' ') !== false ) {
-                    $this->oApp->oC->AddErrMsg( "Warning: ${r['email']} doesn't look like a valid email address.<br/>" );
+                    $this->oApp->oC->AddErrMsg( "Warning: {$r['email']} doesn't look like a valid email address.<br/>" );
                     $ok = false;
                 }
             }

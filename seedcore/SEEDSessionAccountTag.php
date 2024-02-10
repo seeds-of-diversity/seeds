@@ -17,6 +17,7 @@ class SEEDSessionAccountTagHandler
     private $oApp;
     private $raConfig;
     private $oDB;
+    private $oDB2;
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig )
     /*************************************************************
