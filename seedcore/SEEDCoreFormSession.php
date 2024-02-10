@@ -68,6 +68,7 @@ class SEEDCoreFormSVA extends SEEDCoreForm
     Same as SEEDCoreForm but store the data in a given SEEDsessionVarAccessor
  */
 {
+    private $oSVACtrlGlobal;// not sure what this is used for
     function __construct( SEEDSessionVarAccessor $oSVA, $cid = NULL, $raConfig = array() )
     {
         $this->oDS = new SEEDDataStoreSVA( $oSVA, @$raConfig['DSParms'] ?: array() );

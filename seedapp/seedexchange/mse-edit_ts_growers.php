@@ -21,6 +21,7 @@ class MSEEditAppTabGrower
     private   $kGrower = 0;         // the current grower
     private   $bOffice = false;     // activate office features
     private   $raGrowerList = [];   // bOffice list of growers that match the filter controls
+    private   $oGrowerForm;
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -291,6 +292,7 @@ class MSDAppGrowerForm extends KeyframeForm
 {
     private $oMSDLib;
     private $bOffice;
+    private $oL;
 
     function __construct( MSDLib $oMSDLib )
     {
