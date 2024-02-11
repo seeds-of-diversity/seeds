@@ -76,6 +76,10 @@ class MSDQ extends SEEDQ
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->seedListGetData( $raParms );
                 break;
 
+            case 'msdSeedList-GetData-Search':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['raMeta'],$rQ['sErr']) = $this->seedListGetDataSearch( $raParms );
+                break;
+
             case 'msdSeedList-Draw':
                 // do msdSeedList-GetData and draw the list using various display parms
                 list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->seedListDraw( $raParms );
@@ -179,6 +183,8 @@ class MSDQ extends SEEDQ
     private function seedListGetData( $raParms )
     /*******************************************
         Return an array of standard msd seed records.
+
+        eDrawMode = optional parameter to include 'sSeedDraw'=>msdSeed-Draw in each output row
 
         Filter by:
             kProduct
@@ -286,13 +292,81 @@ class MSDQ extends SEEDQ
             }
         }
 
-// raParm['eDrawMode'] could cause msdSeed-Draw to be done in each item, because that is frequently done with refetching
-
         $bOk = true;
 
         done:
         return( array($bOk,$raOut,$sErr) );
 
+    }
+
+    private function seedListGetDataSearch( $raParms )
+    /*************************************************
+        Return an array of standard msd seed records that match search criteria.
+
+        eDrawMode = optional parameter to include 'sSeedDraw'=>msdSeed-Draw in each output row
+        nLimit    = limit how many to fetch (default 200)
+
+        Filter by:
+            sSrch : applied to species, variety, description
+
+            eFilter : LISTABLE            = seeds ACTIVE, growers Done & not Skip|Delete|Hold
+                      ALL                 = seeds of any status, growers of any status
+     */
+    {
+
+// TODO: restrict access using canReadSeed
+
+        $bOk = false;
+        $raOut = [];
+        $raMeta = [];
+        $sErr = "";
+
+        $raCond = [];
+
+        if( ($sSrch = @$raParms['sSrch']) ) {
+            $dbSrch = addslashes($sSrch);
+            $raCond[] = "(PEspecies.v LIKE '%$dbSrch%' OR PEvariety.v LIKE '%$dbSrch%' OR PEdescription.v LIKE '%$dbSrch%')";
+        } else {
+            $sErr = "No search parameter";
+            goto done;
+        }
+        if( ($eFilter = @$raParms['eFilter']) ) {
+            switch($eFilter) {
+                case 'LISTABLE':
+                    $raCond[] = $this->oMSDCore->CondIsListable();
+                    break;
+                case 'ALL':
+                default:
+                    break;
+            }
+        }
+
+        $nLimit = ($nLimit = intval(@$raParms['nLimit'])) && $nLimit>0 ? $nLimit : 200;
+
+        // SeedCursorOpen2 is like SeedCursorOpen but lets you extend the named relation. Also have to extend the join condition.
+        $raCond[] = "uid_seller=G.mbr_id AND PEdescription.k='description'";
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen2( "PxGxCATEGORYxSPECIESxVARIETYxDESC",
+                                                       implode(' AND ', $raCond),
+                                                       ['sSortCol'=>"PEcategory_v,PEspecies_v,PEvariety_v"] )) )
+        {
+            $nRows = $kfrc->CursorNumRows();
+
+            $raMeta['numrows-found'] = $nRows;
+            $raMeta['numrows-returned'] = SEEDCore_Bound($nRows,0,$nLimit);
+
+            while( $nLimit-- && $this->oMSDCore->SeedCursorFetch($kfrc) ) {
+                $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, ['bUTF8'=>$this->bUTF8] );
+                if( ($e = @$raParms['eDrawMode']) ) {
+                    list($bOkDummy,$sSeedDraw,$sErrDummy) = $this->seedDraw( $kfrc, $e );
+                    $raOut[$kfrc->Key()]['sSeedDraw'] = $sSeedDraw;
+                }
+            }
+        }
+
+        $bOk = true;
+
+        done:
+        return( [$bOk,$raOut,$raMeta,$sErr] );
     }
 
     private function seedListDraw( $raParms )

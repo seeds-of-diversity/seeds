@@ -74,7 +74,8 @@ class MSDCore
                  'PxCATEGORYxSPECIESxVARIETY'   => ['Tables' => $pdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ],
                  'PxG'                          => ['Tables' => $pdef + $gdef ],
                  'PxGxCATEGORYxSPECIES'         => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') ],
-                 'PxGxCATEGORYxSPECIESxVARIETY' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ]
+                 'PxGxCATEGORYxSPECIESxVARIETY' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ],
+            'PxGxCATEGORYxSPECIESxVARIETYxDESC' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') + $this->_kdef('description') ],
         ];
 
         return( $kdef );
@@ -388,6 +389,22 @@ class MSDCore
         $sSortCol = @$raParms['sSortCol'] ?: "PEcategory_v,PEspecies_v,PEvariety_v";
 
         $kfrcP = $this->oSBDB->GetKFRC( "PxGxCATEGORYxSPECIESxVARIETY",
+                                        "product_type='seeds' ".($cond ? "AND $cond " : "")
+                                       ."AND PEcategory.k='category' "
+                                       ."AND PEspecies.k='species' "
+                                       ."AND PEvariety.k='variety' ",
+                                       ['sSortCol'=>$sSortCol] );
+        return( $kfrcP );
+    }
+
+    function SeedCursorOpen2( $rel, $cond, $raParms = [] )
+    /*****************************************************
+        Like SeedCursorOpen but you can specify the named relation. You probably have to add join constraints in the $cond too.
+     */
+    {
+        $sSortCol = @$raParms['sSortCol'] ?: "PEcategory_v,PEspecies_v,PEvariety_v";
+
+        $kfrcP = $this->oSBDB->GetKFRC( $rel,
                                         "product_type='seeds' ".($cond ? "AND $cond " : "")
                                        ."AND PEcategory.k='category' "
                                        ."AND PEspecies.k='species' "
