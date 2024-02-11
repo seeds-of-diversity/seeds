@@ -46,7 +46,8 @@ class MSDCore
         $this->oMSDSB = new MSDBasketCore( $oApp );
         $this->oSBDB = new SEEDBasketDB( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir,
                                          // create these kfrels in oSBDB
-                                         ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
+                                         ['raCustomProductKfrelDefs'  => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
+                                        //'raCustomProductKfrelDefs2' => ['PxGxPEMSD' could be made this way, see below
                                           'fnInitKfrel' => [$this,'mseInitKfrel'],      // initKfrel calls this to define additional Named Relations
                                           'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'
                                          ] );
@@ -77,6 +78,11 @@ class MSDCore
                  'PxGxCATEGORYxSPECIESxVARIETY' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') ],
             'PxGxCATEGORYxSPECIESxVARIETYxDESC' => ['Tables' => $pdef + $gdef + $this->_kdef('category') + $this->_kdef('species') + $this->_kdef('variety') + $this->_kdef('description') ],
         ];
+
+        // PxGxPEMSD is like PxPEMSD created by raCustomProductKfrelDefs but also joined with G. It would be nice to make raCustomProductKfrelDefs2 that could do this
+        $d = $kdef['PxG'];
+        foreach( $this->GetSeedKeys('PRODEXTRA') as $k ) { $d['Tables'] += $this->_kdef($k); }    // add a PE join for every msd seed key
+        $kdef['PxGxPEMSD'] = $d;
 
         return( $kdef );
     }
@@ -223,6 +229,15 @@ class MSDCore
     {
         $sCond .= ($sCond ? " AND " : "")."P.product_type='seeds'";
         return( $this->oSBDB->GetKfrel('PxPEMSD')->GetSQL( $sCond, $raKFRParms ) );   // use custom SBDB kfrel
+    }
+
+    function GetSeedSql2( $rel, $sCond, $raKFRParms = [] )
+    /*****************************************************
+        Like GetSeedSql but you can specify the named relation
+     */
+    {
+        $sCond .= ($sCond ? " AND " : "")."P.product_type='seeds'";
+        return( $this->oSBDB->GetKfrel($rel)->GetSQL( $sCond, $raKFRParms ) );   // use custom SBDB kfrel
     }
 
     function PutSeedKfr( KeyframeRecord $kfrS )

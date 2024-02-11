@@ -207,15 +207,15 @@ var_dump($sql);
         $fields = "mbr_id,mbr_code,frostfree,soiltype,organic,zone,cutoff,eDateRange,dDateRangeStart,dDateRangeEnd,eReqClass,notes, _created,_created_by,_updated,_updated_by";
         $sql = "INSERT INTO {$this->dbname1}.sed_growers (_key,_status, year, $fields )"
               ."SELECT NULL,0, '$year', $fields "
-// CondIsListable()
-              ."FROM {$this->dbname1}.sed_curr_growers WHERE _status=0 AND NOT bSkip AND NOT bDelete";
+              ."FROM {$this->dbname1}.sed_curr_growers G WHERE G._status=0 AND {$this->oMSDCore->CondIsGrowerListable('G')} AND G.year='$year'";
+//echo($sql);
         if( $this->oApp->kfdb->Execute($sql) ) {
-            $s .= "<h4 style='color:green'>Growers Successfully Archived</h4>"
+            $s .= "<h4 style='color:green'>{$this->oApp->kfdb->GetAffectedRows()} Growers Successfully Archived</h4>"
                  ."<p style='margin-left:30px'><pre>$sql</pre></p>";
         } else {
             $s .= "<h4 style='color:red'>Archiving Growers Failed</h4>"
                  ."<p style='margin-left:30px'><pre>$sql</pre></p>"
-                 ."<p style='margin-left:30px'><pre>".$this->oApp->kfdb->GetErrMsg()."</pre></p>";
+                 ."<p style='margin-left:30px'><pre>{$this->oApp->kfdb->GetErrMsg()}</pre></p>";
             $ok = false;
         }
 
@@ -235,30 +235,30 @@ var_dump($sql);
              '_updated_by' => 'P._updated_by',
 
              'mbr_id'=>'P.uid_seller',
-             'category' => 'PE_category.v',
-             'species' => 'PE_species.v',
-             'variety' => 'PE_variety.v',
-             'bot_name' => 'PE_bot_name.v',
-             'days_maturity' => 'PE_days_maturity.v',
-             'days_maturity_seed' => 'PE_days_maturity_seed.v',
-             'quantity' => 'PE_quantity.v',
-             'origin' => 'PE_origin.v',
-             'eOffer' => 'PE_eOffer.v',
-             'year_1st_listed' => 'PE_year_1st_listed.v',
-             'description' => 'PE_description.v',
+             'category' => 'PEcategory.v',
+             'species' => 'PEspecies.v',
+             'variety' => 'PEvariety.v',
+             'bot_name' => 'PEbot_name.v',
+             'days_maturity' => 'PEdays_maturity.v',
+             'days_maturity_seed' => 'PEdays_maturity_seed.v',
+             'quantity' => 'PEquantity.v',
+             'origin' => 'PEorigin.v',
+             'eOffer' => 'PEeOffer.v',
+             'year_1st_listed' => 'PEyear_1st_listed.v',
+             'description' => 'PEdescription.v',
              'VERBATIM_year' => "'$year'"
         ];
-        $sSelectSql = $this->oMSDCore->GetSeedSql( "eStatus='ACTIVE'", ['raFieldsOverride'=> $raSelectFields] );
+//        $sSelectSql = $this->oMSDCore->GetSeedSql( "eStatus='ACTIVE'", ['raFieldsOverride'=> $raSelectFields] );
+        $sSelectSql = $this->oMSDCore->GetSeedSql2( 'PxGxPEMSD', "eStatus='ACTIVE' AND {$this->CondIsGrowerListable('G')} AND G.year='$year'", ['raFieldsOverride'=> $raSelectFields] );
 
         $sInsertFields = "mbr_id,category,type,variety,bot_name,days_maturity,days_maturity_seed,quantity,origin,eOffer,year_1st_listed,description,year";
-
 
         /* Archive seeds
          */
         $sql = "INSERT INTO {$this->dbname1}.sed_seeds (_key,_created,_created_by,_updated,_updated_by, $sInsertFields ) $sSelectSql";
-
+//echo ($sql);
         if( $this->oApp->kfdb->Execute($sql) ) {
-            $s .= "<h4 style='color:green'>Seeds Successfully Archived</h3>"
+            $s .= "<h4 style='color:green'>{$this->oApp->kfdb->GetAffectedRows()} Seeds Successfully Archived</h3>"
                  ."<p style='margin-left:30px'><pre>$sql</pre></p>";
         } else {
             $s .= "<h4 style='color:red'>Archiving Seeds Failed</h4>"

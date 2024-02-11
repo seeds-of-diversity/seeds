@@ -98,7 +98,7 @@ class MSEEditAppAdminTab
                 $s .= "<div class='well'>$sTest</div>";
             }
 
-            $s .= "<p><a href='?archiveCurrentMSD=1'>Archive $Y: replace archive with current msd</a></p>";
+            $s .= "<p><a href='?archiveCurrentMSD=1'>Archive: replace $Y archive with current 'Done' growers and seeds where grower year=$Y</a></p>";
             if( SEEDInput_Int('archiveCurrentMSD') ) {
                 // delete archive records for $Y, copy current active growers and seeds there and give them year $Y
                 list($ok,$s1) = $this->oMSDLib->AdminCopyToArchive( $Y );
