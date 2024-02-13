@@ -2,7 +2,7 @@
 /*
  * MasterTemplate
  *
- * Copyright 2016-2022 Seeds of Diversity Canada
+ * Copyright 2016-2024 Seeds of Diversity Canada
  *
  * Handle our advanced template functions.
  *
@@ -165,8 +165,9 @@ class SoDMasterTemplate
         $bHandled = true;
 
         switch( strtolower($raTag['tag']) ) {
-            case 'msd':
-                /* [[msd:seedlist|kMbr]]
+            case 'mse':
+            case 'msd': // deprecate
+                /* [[mse:seedlist|kMbr]]
                  *     Show all seeds offered by kMbr, including skipped and deleted.
                  *     MSDQ is configured to override read access on seeds so the bulk emailer can show each grower their skipped and deleted seeds.
                  */
