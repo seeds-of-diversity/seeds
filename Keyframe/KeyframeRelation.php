@@ -927,7 +927,7 @@ class KeyframeRecord
     function ValueEnt( $k )     { return( SEEDCore_HSC($this->Value($k)) ); }
     function ValueXlat( $k )    { return( $this->Value( $k ) ); }
     function ValueXlatEnt( $k ) { return( $this->ValueEnt( $k ) ); }
-    function ValueDB( $k )      { return( addslashes($this->Value($k)) ); }
+    function ValueDB( $k )      { return( addslashes($this->Value($k)??"") ); }
     function ValueInt( $k )     { return( intval($this->Value( $k )) ); }
     function ValuesRA()         { return( $this->values ); }
 
@@ -1429,11 +1429,11 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
      */
     {
         switch( $type ) {
-            case 'S':   $s = "'".addslashes($val)."'";      break;
+            case 'S':   $s = "'".addslashes($val??"")."'";  break;
             case 'F':   $s = "'".floatval($val)."'";        break;
             case 'I':
             case 'K':   $s = intval($val);                  break;      // protect against an empty value
-            default:    $s = $val;                          break;
+            default:    $s = $val ?? "";                    break;
         }
         return( $s );
     }
