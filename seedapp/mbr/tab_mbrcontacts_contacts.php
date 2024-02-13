@@ -1,5 +1,12 @@
 <?php
 
+/* tab_mbrcontacts_contacts
+ *
+ * Copyright 2023-2024 Seeds of Diversity Canada
+ *
+ * TabSet tab for basic management of member contact list
+ */
+
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."mbr/MbrIntegrity.php" );
 
