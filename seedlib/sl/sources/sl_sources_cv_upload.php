@@ -159,7 +159,7 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
 
         // Index company names.
         // Index species and cultivars using Rosetta
-        SLSourceCV_Build::BuildAll( $this->oApp->kfdb, $this->tmpTable, [] );   // uploadCond()
+        SLSourceCV_Build::BuildAll( $this->oApp, $this->tmpTable, [] );   // uploadCond()
 
         /* Compute Operations to perform on the rows
          *
