@@ -321,6 +321,7 @@ class SEEDMailSend
         $kMail = $kfrStage->Value('fk_SEEDMail');   // master SEEDMail record for this email
         $sTo = $kfrStage->Value('sTo');             // email address or member number
         $sFrom = $kfrStage->Value("M_sFrom");
+        $raBcc = explode(',', $kfrStage->Value("M_sBcc"));   // comma-separated
         $sSubject = $kfrStage->Value("M_sSubject");
 
 
@@ -374,7 +375,7 @@ $raVars['lang'] = $this->oCore->oApp->lang;
         // if ExpandMessage failed, don't send the message (sBody probably blank) - SEEDMail should have logged the problem (e.g. DocRep doc not found)
         if( $ok ) {
 // either here or in SEEDEmail put <html><body> </body></html> around the message if it doesn't already have that
-            $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>['bob@seeds.ca']] );
+            $ok = SEEDEmailSend( $sFrom, $sTo, $sSubject, "", $sBody, ['bcc'=>$raBcc] );
             $sOut .= SEEDCore_HSC("Sent to $sTo : ".($ok ? "successful" : "failed"));   // HSC makes <email> show correctly in html instead of rendering like an html tag
         }
 

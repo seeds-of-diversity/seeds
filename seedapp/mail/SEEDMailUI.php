@@ -181,8 +181,9 @@ function CurrKMail()  { return( $this->kMail ); }
                     "<table class='mailitem-form-table'>"
                    ."<tr><td style='width:50%'>Document: <br/> [[Text:sBody|width:95%]]</td>
                          <td>Name:<br/>[[Text:sName|width:100%]]<br/>[[Checkbox:tmpSticky]] Retain message after sending</td></tr>"
-                   ."<tr><td style='width:50%'>From: <br/> [[Text:sFrom|width:95%]]</td><td><br/><input type='submit' value='Save'/></td></tr>"
+                   ."<tr><td style='width:50%'>From: <br/> [[Text:sFrom|width:95%]]</td><td>Bcc (comma separated): <br/> [[Text:sBcc|width:95%]]</td></tr>"
                    ."<tr><td colspan='2'>Subject: <br/> [[Text:sSubject | width:100%]]</td></tr>"
+                   ."<tr><td style='width:50%'><br/><input type='submit' value='Save'/></td><td>&nbsp;</td></tr>"
                    ."<tr><td colspan='2'>Email addresses / member numbers: <br/> [[TextArea:sAddresses | width:100% nRows:20]]</td></tr>"
               )
              ."</form></div>";

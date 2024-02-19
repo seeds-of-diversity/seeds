@@ -2,7 +2,7 @@
 
 /* SEEDMail database access
  *
- * Copyright (c) 2010-2022 Seeds of Diversity Canada
+ * Copyright (c) 2010-2024 Seeds of Diversity Canada
  */
 
 
@@ -29,6 +29,7 @@ class SEEDMailDB extends Keyframe_NamedRelations
 
         $fldM  = [ ['col'=>'sBody',          'type'=>'S'],
                    ['col'=>'sFrom',          'type'=>'S'],
+                   ['col'=>'sBcc',          'type'=>'S'],
                    ['col'=>'sSubject',       'type'=>'S'],
                    ['col'=>'eStatus',        'type'=>'S'],
                    ['col'=>'sName',          'type'=>'S'],

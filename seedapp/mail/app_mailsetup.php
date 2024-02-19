@@ -2,10 +2,10 @@
 
 /* mailsetup.php
  *
- * Copyright 2010-2023 Seeds of Diversity Canada
+ * Copyright 2010-2024 Seeds of Diversity Canada
  *
  * Prepare mail to be sent to members / donors / subscribers.
- * Use mbr_mailsend to send the mail.
+ * Use app_mailsend.php to send the mail.
  */
 
 if( !defined( "SEEDROOT" ) ) {
@@ -21,8 +21,9 @@ include_once( SEEDLIB."mail/SEEDMail.php" );
 $consoleConfig = [
     'CONSOLE_NAME' => "mailsetup",
     'HEADER' => "Bulk Mailer",
+    // these links are relative to the file that included this one
     'HEADER_LINKS' => [ [ 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ],
-                        [ 'href' => 'app_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ] ],
+                        [ 'href' => 'mailsend.php',     'label' => "Send 'READY'", 'target' => '_blank' ] ],
     'TABSETS' => ['main'=> ['tabs' => [ 'pending' => ['label'=>'Pending'],
                                         'sent'    => ['label'=>'Sent'],
                                         'ghost'   => ['label'=>'Ghost']
