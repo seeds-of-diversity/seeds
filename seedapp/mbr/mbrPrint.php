@@ -160,6 +160,9 @@ class MyConsole02TabSet extends Console02TabSet
 
     private $oDonRqstCtrlForm;  // Control area form for donation requests
 
+    private $yThis;
+    private $yLast;
+
     function __construct( SEEDAppConsole $oApp )
     {
         global $consoleConfig, $o3UpMbr, $o3UpDonors;
@@ -171,6 +174,9 @@ class MyConsole02TabSet extends Console02TabSet
 
         $this->oContacts = new Mbr_Contacts( $oApp );
         $this->oDonations = new MbrDonations($oApp);
+
+        $this->yThis = date('Y');
+        $this->yLast = $this->yThis - 1;
     }
 
     function TabSet_main_renewalRequests_ContentDraw()
@@ -258,7 +264,10 @@ class MyConsole02TabSet extends Console02TabSet
                   <div class='col-md-3'>
                       <form>
                           <input type='hidden' name='cmd' value='showReceiptsNotAccessed'>
-                          <select name='year'><option value='2022'>2022</option></select>
+                          <select name='year'>
+                              <option value='{$this->yLast}'>{$this->yLast}</option>
+                              <option value='{$this->yThis}'>{$this->yThis}</option>
+                          </select>
                           <input type='submit' value='List Receipts Not Accessed by Donor'/>
                       </form>
                       <p>Use this to print and mail receipts in February</p>
