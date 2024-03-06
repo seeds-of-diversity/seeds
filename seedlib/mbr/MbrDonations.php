@@ -154,16 +154,7 @@ class MbrDonations
 
             // Record that the current user accessed this receipt
             if( $bRecordAccess ) {
-/*
-
-Implement SetVerbatim()
-
-            $kfrAccess = $oContacts->oDB->KFRel('RxD_M')->CreateRecord();
-            $kfrAccess->SetValue('uid_accessor', $this->oApp->sess->GetUID());
-            $kfrAccess->SetValue('fk_mbr_donations', $kfrD->Key());
-            $kfrAccess->SetVerbatim('time', 'NOW()');
-            $kfrAccess->PutDBRow();
-*/
+// use StoreDonationReceiptAccessed( int $kDon, int $uid )
                 $uid = $this->oApp->sess->GetUID();
                 $this->oApp->kfdb->Execute("INSERT INTO {$this->oApp->DBName('seeds2')}.mbr_donation_receipts_accessed
                                             (_key,_created,_created_by,_updated,_updated_by,_status,uid_accessor,fk_mbr_donations,time)

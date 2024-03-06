@@ -3,7 +3,7 @@
 /*
  * Seed Directory member seed exchange editing interface
  *
- * Copyright 2011-2023 Seeds of Diversity Canada
+ * Copyright 2011-2024 Seeds of Diversity Canada
  *
  * Gives the current user an interface to their own listings in the Member Seed Exchange
  */

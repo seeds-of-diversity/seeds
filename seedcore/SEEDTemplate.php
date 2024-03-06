@@ -324,7 +324,7 @@ class SEEDTemplate_Generator2
         $o = function_exists('Twig_Environment') ? (new Twig_Environment($this->factory_TwigLoader()))    // twig 1.42 deprecate
                                                  : (new \Twig\Environment($this->factory_TwigLoader()));  // twig ^3.0
         if( isset($this->raConfig['charset']) )  $o->setCharset($this->raConfig['charset']);
-
+$o->enableDebug();
         return( $o );
     }
 

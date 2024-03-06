@@ -25,7 +25,7 @@ $consoleConfig = [
                                         'admin'        => ['label'=>'Admin']
                                       ],
                             'perms' =>[ 'species'      => ["W SLbob"],
-                                        'cultivar'     => ["W SLbob"],
+                                        'cultivar'     => ["W SL"],
                                         'speciessyn'   => ["W SLbob"],
                                         'cultivarsyn'  => ["W SL"],
                                         'admin'        => ['A notyou'],

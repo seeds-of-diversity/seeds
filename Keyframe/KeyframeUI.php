@@ -44,6 +44,9 @@ class KeyframeUIComponent extends SEEDUIComponent
         Returns the rows in the view slice and the total number of rows in the view (used for navigation by the caller)
      */
     {
+        // Most applications need at least 10 rows but sometimes just ask for one at a time. Help them by prefetching into their caches.
+        $nViewSliceSize = max($nViewSliceSize, 10);
+
         list($oView,$raWindowRows) = $this->GetViewWindow($iViewSliceOffset,$nViewSliceSize);
 
         // This redundantly returns the iViewSliceOffset because the method is designed to allow a larger slice to be returned if convenient.
