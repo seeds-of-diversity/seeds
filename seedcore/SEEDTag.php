@@ -685,7 +685,7 @@ function _seedTagParseTable1( $sTemplate, $raParmsTable = [] )
             $s2 = strpos( $col, "}" );
             if( $s1 !== false && $s2 !== false ) {
                 $a = substr( $col, $s1 + 1, $s2 - $s1 - 1 );
-                $col = substr( $col, $s2 +1 );
+                $col = trim(substr( $col, $s2 +1 ));
 
                 if( SEEDCore_StartsWith($a, 'replaceWith ') ) {
                     $tdattrs = substr($a, strlen('replaceWith ') );
