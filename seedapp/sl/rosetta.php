@@ -2,7 +2,7 @@
 
 /* RosettaSEED app
  *
- * Copyright (c) 2014-2023 Seeds of Diversity Canada
+ * Copyright (c) 2014-2024 Seeds of Diversity Canada
  *
  */
 
@@ -24,8 +24,8 @@ $consoleConfig = [
                                         'speciessyn'   => ['label'=>'Species Synonyms'],
                                         'admin'        => ['label'=>'Admin']
                                       ],
-                            'perms' =>[ 'species'      => ["W SLbob"],
-                                        'cultivar'     => ["W SLbob"],
+                            'perms' =>[ 'cultivar'     => ["W SL"],
+                                        'species'      => ["W SLbob"],
                                         'speciessyn'   => ["W SLbob"],
                                         'cultivarsyn'  => ["W SL"],
                                         'admin'        => ['A notyou'],
@@ -98,13 +98,6 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
                     [ 'label'=>"Cultivar #",  'col'=>"_key",      'w'=>'10%'],
                     [ 'label'=>"Species",     'col'=>"S_psp",     'w'=>'30%'],
                     [ 'label'=>"Name",        'col'=>"name",      'w'=>'60%'],
-                  //  [ 'label'=>"Index EN",  'col'=>"iname_en",  'w'=>120 ],
-                  //  [ 'label'=>"Name FR",   'col'=>"name_fr",   'w'=>120 ], //, "colsel" => array("filter"=>"")),
-                  //  [ 'label'=>"Index FR",  'col'=>"iname_fr",  'w'=>120 ],
-                  //  [ 'label'=>"Botanical", 'col'=>"name_bot",  'w'=>120 ],
-                  //  [ 'label'=>"Family EN", 'col'=>"family_en", 'w'=>120 ],
-                  //  [ 'label'=>"Family FR", 'col'=>"family_fr", 'w'=>120 ],
-                  //  [ 'label'=>"Category",  'col'=>"category",  'w'=>60, "colsel" => array("filter"=>"") ],
                 ],
                 // 'fnRowTranslate' => [$this,"listRowTranslate"],
             ],
@@ -208,18 +201,20 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
             }
         }
         $sForm =
-             "|||TABLE( || class='slAdminForm' width='100%' border='0')
-              ||| *Species*       || ".SEEDFormBasic::DrawSelectCtrlFromOptsArray('sfRp_fk_sl_species','fk_sl_species',$raSpOpts, ['sSelAttrs'=>"style='width:90%'"])."
-              ||| *Name*          || [[text:name|width:90%]]
-              ||| *Description<br/> for seed<br/> packets* || [[textarea:packetLabel|width:90% nRows:3]]
-              ||| *Notes* || [[textarea:notes|width:90% nRows:7]]
+             "|||TABLE(width='10%'|width='40%'|width='50%' || class='slAdminForm' width='100%' border='0')
+              ||| *Species*       || ".SEEDFormBasic::DrawSelectCtrlFromOptsArray('sfRp_fk_sl_species','fk_sl_species',$raSpOpts, ['sSelAttrs'=>"style='width:95%'"])."
+              ||| *Name*          || [[text:name|width:95%]]
+              ||| {colspan='2'} *Description for seed packets (write what you would put in a seed catalogue)*  || *Origin / History*
+              ||| {colspan='2'} [[textarea:packetLabel|width:95% nRows:3]]                                     || {replaceWith width='50%'}[[textarea:originHistory|width:95% nRows:3]]
+              ||| {colspan='2'} *Notes*
+              ||| {colspan='2'} [[textarea:notes|width:95% nRows:7]]
               |||ENDTABLE";
 
 
-        $s = "<h4>".($this->oComp->IsNewRowState() ? "New" : "Edit")." Cultivar</h4>
+        $s = "<h4>".($this->oComp->Get_kCurr()==0 || $this->oComp->IsNewRowState() ? "New" : "Edit")." Cultivar</h4>
               <div class='container-fluid'><div class='row'>
-                  <div class='col-md-8'>{$sForm}</div>
-                  <div class='col-md-4'>{$sStats}</div>
+                  <div class='col-md-9'>{$sForm}</div>
+                  <div class='col-md-3'>{$sStats}</div>
               </div></div>"
             ."[[hiddenkey:]]"
             ."<INPUT type='submit' value='Save'>";

@@ -7,6 +7,7 @@ class RosettaCultivarSynonyms
     private $oApp;
     private $oSVA;      // this tab's session variables
     private $oSLDB;
+    private $oFormSpecies;
 
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
     {
