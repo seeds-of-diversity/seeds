@@ -228,45 +228,51 @@ class KeyFrameUI_ListFormUI
         return( $s );
     }
 
-}
+    function GetConfigTemplate( $raParms )
+    /*************************************
+        __construct takes raConfig to define component UI. This returns an raConfig with default behaviour, so you only have to specify the novel parts.
 
-class KeyFrameUI_ListFormUI_Config
-/*********************************
-    Interface for creating the raConfig for a KeyframeUI_ListFormUI
+        Required:
+            sessNamespace = ns for session vars
+            cid           = for the component's form
+            kfrel         = the component's relation
 
-    This is always extended by a derived class that provides specific config.
- */
-{
-    protected $raConfig;
-
-    protected function __construct()
+        Typically:
+            raListConfig_cols    = labels and kfrel cols in list widget
+            raSrchConfig_filters = filter defs for search control; often the same as raListConfig_cols
+     */
     {
-        $this->raConfig = [
-                // derived class must provide these
-                'sessNamespace' => 'replaceMe',
-                'cid'           => 'A',
-                'kfrel'         => null,
+        $raConfig = [
+                'sessNamespace' => $raParms['sessNamespace'],
+                'cid'           => $raParms['cid'],
+                'kfrel'         => $raParms['kfrel'],
 
                 // derived class must provide list cols, may optionally override ListRowTranslate
                 'raListConfig' => [
-                    'cols' => [['label'=>'_replace_', 'col'=>'_me_']],
+                    'cols'           => @$raParms['raListConfig_cols'] ?: [['label'=>'_replace_', 'col'=>'_me_']],
                     'fnRowTranslate' => [$this,'ListRowTranslate'],
-                    'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
+                    'bUse_key'       => true,     // probably makes sense for KeyFrameUI to do this by default
                 ],
 
                 // derived class must provide search control filters, which sometimes can be simply a copy of the list cols array
-                'raSrchConfig' => ['filters'=>[['label'=>'_replace_', 'col'=>'_me_']]],
+                'raSrchConfig' => ['filters'=> @$raParms['raSrchConfig_filters'] ?: [['label'=>'_replace_', 'col'=>'_me_']] ],
+
+                // derived class usually provides a form template in fnExpandTemplate format; if not, remove this and replace with another format e.g. sTemplate, fnTemplate
+                'raFormConfig' => ['fnExpandTemplate'=>[$this,'FormTemplate']],
 
                 // derived class may optionally override these methods
-                'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore']]]],
-                'raFormConfig' => ['fnExpandTemplate'=>[$this,'FormTemplate']],
+                'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore'],
+                                                                  'fn_DSPreOp'   => [$this,'PreOp']]]],
         ];
-    }
-    function GetConfig()   { return( $this->raConfig ); }
 
-    /* These are not called directly, but referenced in raConfig
+        return($raConfig);
+    }
+
+    /* These are not called directly (i.e. their derived implementations are not called by any base code), but methods with this interface are referenced in raConfig.
+     * raConfig can reference the implementations of these methods, or any other methods with the same interface.
      */
-    function ListRowTranslate( $raRow )             { return( $raRow ); }    // override to alter list values (only affects display)
-    function PreStore( Keyframe_DataStore $oDS )    { return( true ); }      // override to validate/alter values before save; return false to cancel save
-    function FormTemplate( SEEDCoreForm $oForm )    { return( "" ); }        // override to draw the Form
+    function ListRowTranslate( $raRow )                    { return( $raRow ); }    // override to alter list values (only affects display)
+    function PreStore( Keyframe_DataStore $oDS )           { return( true ); }      // override to validate/alter values before save; return false to cancel save
+    function PreOp( Keyframe_DataStore $oDS, string $op )  { return( false ); }     // override to validate/alter values before op; return false to cancel op
+    function FormTemplate( SEEDCoreForm $oForm )           { return( "" ); }        // override to draw the Form
 }
