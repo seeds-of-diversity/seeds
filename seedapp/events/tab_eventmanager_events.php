@@ -10,17 +10,28 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
     function __construct( SEEDAppConsole $oApp, EventsLib $oEvLib )
     {
         $this->oEvLib = $oEvLib;
-        parent::__construct($oApp, (new Events_KFUIListForm_Config($oApp, $oEvLib))->GetConfig());  //$this->getListFormConfig());
+
+        $cols = [['label'=>'Event #',    'col'=>'_key' ],
+                 ['label'=>'Type',       'col'=>'type' ],
+                 ['label'=>'Title',      'col'=>'title' ],
+                 ['label'=>'City',       'col'=>'city' ],
+                 ['label'=>'Province',   'col'=>'province' ],
+                 ['label'=>'Date',       'col'=>'date_start' ],
+                 ['label'=>'Location',   'col'=>'location' ],
+        ];
+        $raConfig = $this->GetConfigTemplate(
+            ['sessNamespace'        => 'EventManager_Events',
+             'cid'                  => 'E',
+             'kfrel'                => $this->oEvLib->oDB->GetKfrel('E'),
+             'raListConfig_cols'    => $cols,
+             'raSrchConfig_filters' => $cols,  // conveniently, we can use the same format as cols (because filters can be cols or aliases)
+            ]);
+        parent::__construct($oApp, $raConfig);
     }
 
     function Init()  { parent::Init(); }
 
-    function ControlDraw()
-    {
-        $s = "";
-
-        return( $s );
-    }
+    function ControlDraw()  { return( $this->DrawSearch() ); }
 
     function ContentDraw()
     {
@@ -48,56 +59,6 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
              </div>";
 
         return( $s );
-    }
-}
-
-function BS_Row2( $raCols, $raParms = array() )
-/*********************************************
-    Put any number of columns in a row
-
-    $raCols: array( array( col_class, col_content ), ...
- */
-{
-    $s = "<div class='row'>";
-
-    foreach( $raCols as $raCol ) {
-        $s .= "<div class='{$raCol[0]}'>{$raCol[1]}</div>";
-    }
-
-    $s .= "</div>";  // row
-
-    return( $s );
-}
-
-
-class Events_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
-/*******************************
-    Get the configuration for a KeyframeUI_ListFormUI on the events table
- */
-{
-    private $oApp;
-    private $oEvLib;
-
-    function __construct( SEEDAppDB $oApp, EventsLib $oEvLib )
-    {
-        $this->oApp = $oApp;
-        $this->oEvLib = $oEvLib;
-
-        parent::__construct();  // sets the default raConfig
-        $this->raConfig['sessNamespace'] = 'EventManager_Events';
-        $this->raConfig['cid']           = 'E';
-        $this->raConfig['kfrel']         = $this->oEvLib->oDB->GetKfrel('E');
-        $this->raConfig['raListConfig']['cols'] = [
-                    [ 'label'=>'Event #',    'col'=>'_key' ],
-                    [ 'label'=>'Type',       'col'=>'type' ],
-                    [ 'label'=>'Title',      'col'=>'title' ],
-                    [ 'label'=>'City',       'col'=>'city' ],
-                    [ 'label'=>'Province',   'col'=>'province' ],
-                    [ 'label'=>'Date',       'col'=>'date_start' ],
-                    [ 'label'=>'Location',   'col'=>'location' ],
-        ];
-        // conveniently, we can use the same format for search filters as for the cols (because filters can be cols or aliases)
-        $this->raConfig['raSrchConfig']['filters'] = $this->raConfig['raListConfig']['cols'];
     }
 
     /* These are not called directly, but referenced in raConfig
@@ -184,3 +145,20 @@ date_alt / date_alt_fr replace date but date_start is required for sorting
     }
 }
 
+function BS_Row2( $raCols, $raParms = array() )
+/*********************************************
+    Put any number of columns in a row
+
+    $raCols: array( array( col_class, col_content ), ...
+ */
+{
+    $s = "<div class='row'>";
+
+    foreach( $raCols as $raCol ) {
+        $s .= "<div class='{$raCol[0]}'>{$raCol[1]}</div>";
+    }
+
+    $s .= "</div>";  // row
+
+    return( $s );
+}
