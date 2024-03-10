@@ -702,6 +702,14 @@ groupcol
          return( $s );
     }
 
+    function DrawFormEditLabel( string $sLabel )
+    /*******************************************
+        Label often at top of form for "New thing" / "Edit thing"
+     */
+    {
+        return( "<h4>".($this->Get_kCurr()==0 || $this->IsNewRowState() ? "New" : "Edit")." $sLabel</h4>" );
+    }
+
     function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
     /************************************************************
         If a widget needs a slice of a view it can call here to get it.
