@@ -78,8 +78,8 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
               |||ENDTABLE";
 
 
-        $s = "<h4>".($this->oComp->Get_kCurr()==0 || $this->oComp->IsNewRowState() ? "New" : "Edit")." Cultivar</h4>
-              <div class='container-fluid'><div class='row'>
+        $s = $this->oComp->DrawFormEditLabel('Cultivar')
+            ."<div class='container-fluid'><div class='row'>
                   <div class='col-md-9'>{$sForm}</div>
                   <div class='col-md-3'>{$sStats}</div>
               </div></div>"
