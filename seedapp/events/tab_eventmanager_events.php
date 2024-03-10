@@ -35,28 +35,10 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
 
     function ContentDraw()
     {
-        $cid = $this->oComp->Cid();
-
-        $sEvent = "";
-        if( ($kEvent = $this->oComp->oForm->GetKey()) && ($oE = Events_event::CreateFromKey($this->oEvLib, $kEvent)) ) {
-            $sEvent = $oE->DrawEvent();
-        }
-
-        $s = $this->DrawStyle()
-           ."<style>
+        $s = "<style>
              .drawEvent { background-color: #ded; }
-             </style>
-             <div>{$this->DrawList()}</div>
-             <div style='border:1px solid #777; padding:15px'>
-                 <div style='margin-bottom:5px'><div style='display:inline-block'>{$this->oComp->ButtonNew()}</div>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>
-                 <div style='width:100%;padding:20px;border:2px solid #999'>
-                     <h4>Edit Event</h4>
-                     <div class='container-fluid'><div class='row'>
-                         <div class='col-md-6'>{$this->DrawForm()}</div>
-                         <div class='col-md-6 drawEvent'>$sEvent</div>
-                     </div></div>
-                 </div>
-             </div>";
+             </style>"
+            .$this->ContentDraw_NewDelete();
 
 //        $s = SEEDCore_utf8_encode($s);  // all data is stored in cp-1252 but this app outputs utf8 -- no because then all input has to be transcoded to cp1252
 
@@ -67,7 +49,13 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
      */
     function FormTemplate( SEEDCoreForm $oForm )
     {
-        $s =  "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+        $cid = $this->oComp->Cid();
+
+        $sEvent = (($kEvent = $this->oComp->oForm->GetKey()) && ($oE = Events_event::CreateFromKey($this->oEvLib, $kEvent)))
+                    ? $oE->DrawEvent() : "";
+
+        $sForm = $this->oComp->DrawFormEditLabel('Event')
+             ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| *Event #*                 || [[Key: | readonly]]
                ||| *Type*                    || ".SEEDFormBasic::DrawSelectCtrlFromOptsArray($oForm->Name('type'), 'type', ["Seedy Saturday/Sunday"=>'SS', "Event"=>'EV', "Virtual"=>'VIRTUAL'] )."
 
@@ -105,17 +93,20 @@ date_alt / date_alt_fr replace date but date_start is required for sorting
                ||| &nbsp;                    || \n
                |||ENDTABLE
 
-              <input type='submit' value='Save'/>";
+              <input type='submit' value='Save'/>
 
+              <div style='padding:1em;margin-top:30px;width:100%;border:1px solid #777;font-size:8pt'>
+                  <b>Location</b>: name of venue, address<br/>
+                  <b>Alternate date text</b>: This is shown instead of Date, but you have to enter a Date in the calendar too to sort the event in the list.<br/>
+                     e.g. if a March date is not decided yet enter ".date('Y')."-03-01 for Date, and TBA as Alternate - the event will appear at the March 1
+                          position among the other events but will show TBA instead of the date.<br/>
+                  <b>Contact</b>: put name, phone, email here instead of in details so we can delete that personal info later.<br/>
+                  <b>Contact and Details</b>: email and web addresses are magically converted to links in the display view
+              </div>";
 
-        $s .= "<div style='padding:1em;margin-top:30px;width:100%;border:1px solid #777;font-size:8pt'>
-               <b>Location</b>: name of venue, address<br/>
-               <b>Alternate date text</b>: This is shown instead of Date, but you have to enter a Date in the calendar too to sort the event in the list.<br/>
-                  e.g. if a March date is not decided yet enter ".date('Y')."-03-01 for Date, and TBA as Alternate - the event will appear at the March 1
-                       position among the other events but will show TBA instead of the date.<br/>
-               <b>Contact</b>: put name, phone, email here instead of in details so we can delete that personal info later.<br/>
-               <b>Contact and Details</b>: email and web addresses are magically converted to links in the display view
-               </div>";
+            $s = "<div class='container-fluid'><div class='row'>
+                      <div class='col-md-6'>$sForm</div><div class='col-md-6 drawEvent'>$sEvent</div>
+                  </div></div>";
 
             return( $s );
     }
