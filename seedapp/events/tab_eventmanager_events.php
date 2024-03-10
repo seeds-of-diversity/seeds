@@ -58,6 +58,8 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
                  </div>
              </div>";
 
+//        $s = SEEDCore_utf8_encode($s);  // all data is stored in cp-1252 but this app outputs utf8 -- no because then all input has to be transcoded to cp1252
+
         return( $s );
     }
 
@@ -76,27 +78,22 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
    */
 ."
                ||| *Title*                   || [[Text:title| width:100%]]
-               ||| *(french)*                || [[Text:title_fr| width:100%]]
+               ||| *\" (french)*
+                                             || [[Text:title_fr| width:100%]]
                ||| *City/Town*               || [[Text:city|width:80%;margin-bottom:5px]]&nbsp;".SEEDLocation::SelectProvinceWithSEEDForm($oForm, 'province')."
-               ||| *Location*                || [[Text:location| width:100%]]
-
+               ||| *Location (venue/address)*|| [[Text:location| width:100%]]
                ||| &nbsp;                    || \n
-               ||| *Date*                    || ".$oForm->Date('date_start')."
-               ||| *Time*                    || [[Text:time]]
+
+               ||| *Date*                    || {replaceWith class='col-md-4'}".$oForm->Date('date_start')." || {class='col-md-4'} *Alternate date text*
+               ||| *Time*                    || {replaceWith class='col-md-4'} [[Text:time]]                 || {class='col-md-4'} [[Text:date_alt| width:100%]]
+               ||| &nbsp;                    || \n
+
+               ||| *Contact*                 || [[Text:contact| width:100%]]
+               ||| *Link to more info*       || [[Text:url_more| width:100%]]
 "
 /*
 date_end is deprecated - use date_alt instead
 date_alt / date_alt_fr replace date but date_start is required for sorting
-
-            ."<div class='well'>"
-                .BS_Row2( array( array( 'col-md-6', $oForm->Date( 'date_start', "Date" )."<br/>"
-                                                //.$oForm->Date( 'date_end', "Date end" )."<br/>"   use date_alt instead of a range
-                                                  .$oForm->Text( 'time', "Time" ) ),
-                                array( 'col-md-6', "<b>Date Alternate</b><br/>"
-                                                  .$oForm->Text( 'date_alt', "(en)" )."<br/>"
-                                                  .$oForm->Text( 'date_alt_fr', "(fr)" ) )
-                   ))
-            ."</div>"
 */
 ."
                ||| &nbsp;                    || \n
@@ -111,28 +108,14 @@ date_alt / date_alt_fr replace date but date_start is required for sorting
               <input type='submit' value='Save'/>";
 
 
-    $s .=
-
-            "<div id='ev_titlebox' style='margin-bottom:10px'>"
-            ."<div class='row'>".$oForm->Text( 'title',    "Title",    array('size'=>40, 'bsCol'=>"md-10,md-2") )."</div>"
-            ."<div class='row'>".$oForm->Text( 'title_fr', "(French)", array('size'=>40, 'bsCol'=>"md-10,md-2") )."</div>"
-            ."</div>"
-
-            ."<div class='row'>".$oForm->Text( 'contact', "Contact", array('size'=>30, 'bsCol'=>"md-10,md-2") )."</div>"
-            ."<div class='row'>".$oForm->Text( 'url_more', "Link to<br/> more info", array('size'=>30, 'bsCol'=>"md-10,md-2") )."</div>"
-            ."<br/><br/>"
-
-            ."<br/><br/>"
-            ."<div style='padding:1em;margin:0 auto;width:95%;border:thin solid black;font-size:8pt;font-family:verdana,sans serif;'>"
-                ."<B>Location</B>: name of venue, address<BR/>"
-                ."<B>Date</B>: must be YYYY-MM-DD<BR/>"
-                ."<B>Alternate Date Text</B>: enter a Date too, so the list can sort properly, but this will be shown instead. "
-                ."e.g. if date is unknown enter 2014-01-01 for Date, TBA as Alternate - the list will show TBA as the date and it will put the event at "
-                ."Jan 1, 2014<br/>"
-                ."<B>Contact</B>: name, phone, email here instead of in details so we can delete that personal info later.<BR/>"
-                ."<BR/>"
-                ."Contact and Details use special tags [[mailto:my@email.ca] ] and [[http://my.website.ca] ]"  // escape the [[ because console01 expands template tags
-            ."</div>";
+        $s .= "<div style='padding:1em;margin-top:30px;width:100%;border:1px solid #777;font-size:8pt'>
+               <b>Location</b>: name of venue, address<br/>
+               <b>Alternate date text</b>: This is shown instead of Date, but you have to enter a Date in the calendar too to sort the event in the list.<br/>
+                  e.g. if a March date is not decided yet enter ".date('Y')."-03-01 for Date, and TBA as Alternate - the event will appear at the March 1
+                       position among the other events but will show TBA instead of the date.<br/>
+               <b>Contact</b>: put name, phone, email here instead of in details so we can delete that personal info later.<br/>
+               <b>Contact and Details</b>: email and web addresses are magically converted to links in the display view
+               </div>";
 
             return( $s );
     }
@@ -143,22 +126,4 @@ date_alt / date_alt_fr replace date but date_start is required for sorting
 
         return( true );
     }
-}
-
-function BS_Row2( $raCols, $raParms = array() )
-/*********************************************
-    Put any number of columns in a row
-
-    $raCols: array( array( col_class, col_content ), ...
- */
-{
-    $s = "<div class='row'>";
-
-    foreach( $raCols as $raCol ) {
-        $s .= "<div class='{$raCol[0]}'>{$raCol[1]}</div>";
-    }
-
-    $s .= "</div>";  // row
-
-    return( $s );
 }

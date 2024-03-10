@@ -77,7 +77,7 @@ $oCTS = new MyConsole02TabSet( $oApp );
 
 $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
-// ev_events data is utf8
+// newer ev_events data is utf8 -- old data is cp1252 but we don't care if it shows a few funny diacritics
 echo Console02Static::HTMLPage( $sBody, "", 'EN', ['consoleSkin'=>'green'] );
 
 
