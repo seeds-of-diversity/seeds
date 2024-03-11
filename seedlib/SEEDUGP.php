@@ -3,7 +3,7 @@
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDCORE."SEEDPerms.php" );
 
-class SEEDUGP_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
+class SEEDUGP_KFUIListForm_Config
 /********************************
     Get the configuration for a KeyframeUI_ListFormUI on the UGP tables
         $c = users | groups | perms
@@ -18,54 +18,68 @@ class SEEDUGP_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
         $this->oApp = $oApp;
         $this->c = $c;
         $this->oAcctDB = new SEEDSessionAccountDB2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), ['logdir'=>$this->oApp->logdir] );
-        parent::__construct();  // sets the default raConfig
+    }
 
-        switch($c) {
+    // this is based on KeyframeUI_ListFormUI->GetConfigTemplate() and should probably use it.
+    // the advantage of putting all of this within KeyframeUI_ListFormUI is that the callback methods like FormTemplate can access oComp
+    function GetConfig()
+    {
+        switch($this->c) {
             case 'users':
-                $this->raConfig['sessNamespace'] = 'UGPUsers';
-                $this->raConfig['cid']           = 'U';
-                $this->raConfig['kfrel']         = $this->oAcctDB->GetKfrel('U');
-                $this->raConfig['raListConfig']['cols'] = [
-                        ['label'=>'User #', 'col'=>'_key' ],
-                        ['label'=>'Name',   'col'=>'realname' ],
-                        ['label'=>'Email',  'col'=>'email' ],
-                        ['label'=>'Status', 'col'=>'eStatus' ],
-                        ['label'=>'Group1', 'col'=>'G_groupname' ] ];
-                // Not the same format as list cols because _key is ambiguous
-                $this->raConfig['raSrchConfig']['filters'] = [
-                        ['label'=>'User #', 'col'=>'U._key' ],
-                        ['label'=>'Name',   'col'=>'U.realname' ],
-                        ['label'=>'Email',  'col'=>'U.email' ],
-                        ['label'=>'Status', 'col'=>'U.eStatus' ],
-                        ['label'=>'Group1', 'col'=>'G.groupname' ] ];
+                $raConfig = ['sessNamespace' => 'UGPUsers',
+                             'cid'           => 'U',
+                             'kfrel'         => $this->oAcctDB->GetKfrel('U'),
+                             'raListConfig'  => ['cols' => [['label'=>'User #', 'col'=>'_key' ],
+                                                            ['label'=>'Name',   'col'=>'realname' ],
+                                                            ['label'=>'Email',  'col'=>'email' ],
+                                                            ['label'=>'Status', 'col'=>'eStatus' ],
+                                                            ['label'=>'Group1', 'col'=>'G_groupname' ]]],
+                             // Not the same format as list cols because _key is ambiguous
+                             'raSrchConfig'  => ['filters' => [['label'=>'User #', 'col'=>'U._key' ],
+                                                               ['label'=>'Name',   'col'=>'U.realname' ],
+                                                               ['label'=>'Email',  'col'=>'U.email' ],
+                                                               ['label'=>'Status', 'col'=>'U.eStatus' ],
+                                                               ['label'=>'Group1', 'col'=>'G.groupname' ]]]
+                ];
                 break;
 
             case 'groups':
-                $this->raConfig['sessNamespace'] = 'UGPGroups';
-                $this->raConfig['cid']           = 'G';
-                $this->raConfig['kfrel']         = $this->oAcctDB->GetKfrel('G');
-                $this->raConfig['raListConfig']['cols'] = [
-                        ['label'=>'k',          'col'=>'_key' ],
-                        ['label'=>'Group Name', 'col'=>'groupname' ],
-                        ['label'=>'Inherited',  'col'=>'gid_inherited' ] ];
+                $raConfig = ['sessNamespace' => 'UGPGroups',
+                             'cid'           => 'G',
+                             'kfrel'         => $this->oAcctDB->GetKfrel('G'),
+                             'raListConfig'  => ['cols' => [['label'=>'k',          'col'=>'_key' ],
+                                                            ['label'=>'Group Name', 'col'=>'groupname' ],
+                                                            ['label'=>'Inherited',  'col'=>'gid_inherited' ]]]
+                ];
                 // conveniently, we can use the same format for search filters as for the cols (because filters can be cols or aliases)
-                $this->raConfig['raSrchConfig']['filters'] = $this->raConfig['raListConfig']['cols'];
+                $raConfig['raSrchConfig']['filters'] = $raConfig['raListConfig']['cols'];
                 break;
 
             case 'perms':
-                $this->raConfig['sessNamespace'] = 'UGPPerms';
-                $this->raConfig['cid']           = 'P';
-                $this->raConfig['kfrel']         = $this->oAcctDB->GetKfrel('P');
-                $this->raConfig['raListConfig']['cols'] = [
-                        ['label'=>'Permission', 'col'=>'perm' ],
-                        ['label'=>'Modes',      'col'=>'modes' ],
-                        ['label'=>'User',       'col'=>'U_realname' ],
-                        ['label'=>'Group',      'col'=>'G_groupname' ] ];
+                $raConfig = ['sessNamespace' => 'UGPPerms',
+                             'cid'           => 'P',
+                             'kfrel'         => $this->oAcctDB->GetKfrel('P'),
+                             'raListConfig'  => ['cols' => [['label'=>'Permission', 'col'=>'perm' ],
+                                                            ['label'=>'Modes',      'col'=>'modes' ],
+                                                            ['label'=>'User',       'col'=>'U_realname' ],
+                                                            ['label'=>'Group',      'col'=>'G_groupname' ]]]
+                ];
                 // conveniently, we can use the same format for search filters as for the cols (because filters can be cols or aliases)
-                $this->raConfig['raSrchConfig']['filters'] = $this->raConfig['raListConfig']['cols'];
+                $raConfig['raSrchConfig']['filters'] = $raConfig['raListConfig']['cols'];
                 break;
         }
+        $raConfig['raListConfig']['fnRowTranslate'] = [$this,'ListRowTranslate'];
+        $raConfig['raListConfig']['bUse_key']       = true;     // probably makes sense for KeyFrameUI to do this by default
+        $raConfig['raFormConfig'] = ['fnExpandTemplate'=>[$this,'FormTemplate']];
+        $raConfig['KFCompParms']  = ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore'],
+                                                                     'fn_DSPreOp'   => [$this,'PreOp']]]];
+
+        return( $raConfig );
     }
+
+    /* These are not called directly, but referenced in raConfig
+     */
+    function PreOp( Keyframe_DataStore $oDS, string $op )  { return( false ); }     // override to validate/alter values before op; return false to cancel op
 
     function ListRowTranslate( $raRow )
     {
@@ -165,7 +179,7 @@ class SEEDUGP_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
 }
 
 
-class SEEDPerm_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
+class SEEDPerm_KFUIListForm_Config
 /*********************************
     Get the configuration for a KeyframeUI_ListFormUI on the SEEDPerms tables
         $c = seedpermsclasses | seedperms
@@ -182,29 +196,47 @@ class SEEDPerm_KFUIListForm_Config extends KeyFrameUI_ListFormUI_Config
         $this->c = $c;
         $this->oSEEDPerms = new SEEDPermsRead( $this->oApp, ['dbname'=>$this->oApp->kfdb->GetDB()] );       // uses the same db as the kfdb
         $this->oAcctDB = new SEEDSessionAccountDB2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), ['logdir'=>$this->oApp->logdir] );
+    }
 
-        parent::__construct();  // sets the default raConfig
-        $this->raConfig['sessNamespace'] = ($c=='seedpermsclasses' ? 'SEEDPermsClasses' : 'SEEDPerms');
-        $this->raConfig['cid']           = ($c=='seedpermsclasses' ? 'SC' : 'SP');
-        $this->raConfig['kfrel']         = $this->oSEEDPerms->GetKfrel($c == 'seedpermsclasses' ? 'C' : 'PxC');
-        $this->raConfig['raListConfig']['cols'] =
-                ($c=='seedpermsclasses'
-                    // SEEDPermsClasses list cols
-                    ? [ ['label'=>'k',          'col'=>'_key'],
-                        ['label'=>'App',        'col'=>'application'],
-                        ['label'=>'Class name', 'col'=>'name'] ]
-                    // SEEDPerms list cols
-                    : [ [ 'label'=>'App',        'col'=>'C_application' ],
-                        [ 'label'=>'Class Name', 'col'=>'C_name' ],
-                        [ 'label'=>'User',       'col'=>'user_id' ],
-                        [ 'label'=>'Group',      'col'=>'user_group' ],
-                        [ 'label'=>'Modes',      'col'=>'modes' ] ]);
+    // this is based on KeyframeUI_ListFormUI->GetConfigTemplate() and should probably use it.
+    // the advantage of putting all of this within KeyframeUI_ListFormUI is that the callback methods like FormTemplate can access oComp
+    function GetConfig()
+    {
+        $raConfig = ['sessNamespace' => ($this->c=='seedpermsclasses' ? 'SEEDPermsClasses' : 'SEEDPerms'),
+                     'cid'           => ($this->c=='seedpermsclasses' ? 'SC' : 'SP'),
+                     'kfrel'         => $this->oSEEDPerms->GetKfrel($this->c == 'seedpermsclasses' ? 'C' : 'PxC'),
+                     'raListConfig'  => ['cols' => ($this->c=='seedpermsclasses'
+                                            // SEEDPermsClasses list cols
+                                            ? [ ['label'=>'k',          'col'=>'_key'],
+                                                ['label'=>'App',        'col'=>'application'],
+                                                ['label'=>'Class name', 'col'=>'name'] ]
+                                            // SEEDPerms list cols
+                                            : [ [ 'label'=>'App',        'col'=>'C_application' ],
+                                                [ 'label'=>'Class Name', 'col'=>'C_name' ],
+                                                [ 'label'=>'User',       'col'=>'user_id' ],
+                                                [ 'label'=>'Group',      'col'=>'user_group' ],
+                                                [ 'label'=>'Modes',      'col'=>'modes' ] ]),
+                                         'fnRowTranslate' => [$this,'ListRowTranslate'],
+                                         'bUse_key'       => true,     // probably makes sense for KeyFrameUI to do this by default
+                                        ],
+                     'raFormConfig' => ['fnExpandTemplate'=>[$this,'FormTemplate']],
+
+                     // derived class may optionally override these methods
+                    'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore'],
+                                                                      'fn_DSPreOp'   => [$this,'PreOp']]]],
+        ];
         // conveniently, we can use the same format for search filters as for the cols (because filters can be cols or aliases)
-        $this->raConfig['raSrchConfig']['filters'] = $this->raConfig['raListConfig']['cols'];
+        $raConfig['raSrchConfig']['filters'] = $raConfig['raListConfig']['cols'];
+
+        return( $raConfig );
     }
 
     /* These are not called directly, but referenced in raConfig
      */
+    function ListRowTranslate( $raRow )                    { return( $raRow ); }    // override to alter list values (only affects display)
+    function PreStore( Keyframe_DataStore $oDS )           { return( true ); }      // override to validate/alter values before save; return false to cancel save
+    function PreOp( Keyframe_DataStore $oDS, string $op )  { return( false ); }     // override to validate/alter values before op; return false to cancel op
+
     function FormTemplate( SEEDCoreForm $dummy )
     {
         if( $this->c == 'seedpermsclasses' ) {
