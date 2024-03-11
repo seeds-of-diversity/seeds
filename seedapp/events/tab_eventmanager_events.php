@@ -26,6 +26,7 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
              'raListConfig_cols'    => $cols,
              'raSrchConfig_filters' => $cols,  // conveniently, we can use the same format as cols (because filters can be cols or aliases)
             ]);
+        // note that raConfig references methods like FormTemplate() which use $this->oComp which is not defined now but will be after Init()
         parent::__construct($oApp, $raConfig);
     }
 
@@ -51,6 +52,7 @@ class EventManTabEvents extends KeyframeUI_ListFormUI // implements Console02Tab
     {
         $cid = $this->oComp->Cid();
 
+// you can insert arbitrary text controls into the public view by using [[contact]] in details! --
         $sEvent = (($kEvent = $this->oComp->oForm->GetKey()) && ($oE = Events_event::CreateFromKey($this->oEvLib, $kEvent)))
                     ? $oE->DrawEvent() : "";
 
