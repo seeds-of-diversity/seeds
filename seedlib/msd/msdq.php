@@ -80,6 +80,12 @@ class MSDQ extends SEEDQ
                 list($rQ['bOk'],$rQ['raOut'],$rQ['raMeta'],$rQ['sErr']) = $this->seedListGetDataSearch( $raParms );
                 break;
 
+            case 'msdSeedList-FindByName':      // get MSE records by species/cultivar name (only used by seed search tool, deprecate when MSE indexed by sl_pcv)
+                if( ($sp = SEEDCore_ArraySmartVal1($raParms, 'species', '')) && ($cv = SEEDCore_ArraySmartVal1($raParms, 'cultivar', '')) ) {
+                    list($rQ['bOk'],$rQ['raOut']) = $this->seedListFindByName($sp,$cv);
+                }
+                break;
+
             case 'msdSeedList-Draw':
                 // do msdSeedList-GetData and draw the list using various display parms
                 list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->seedListDraw( $raParms );
@@ -147,6 +153,8 @@ class MSDQ extends SEEDQ
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete" ),
             'nGrowersDone'    => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete AND ({$this->oMSDCore->CondIsGrowerDone()})" ),
+            'nGrowersListable'=> $this->oMSDCore->oApp->kfdb->Query1(
+                                    "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND ({$this->oMSDCore->CondIsGrowerListable()})" ),
             'nGrowersSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND bSkip AND NOT bDelete" ),
             'nGrowersDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -367,6 +375,41 @@ class MSDQ extends SEEDQ
 
         done:
         return( [$bOk,$raOut,$raMeta,$sErr] );
+    }
+
+    private function seedListFindByName( string $sp, string $cv )
+    /************************************************************
+        Find listings by species/variety   -- this is used by seed search, and probably should be deprecated when mse is indexed by sl_pcv.
+                                           -- Actually seedListGetData should take kPCV
+     */
+    {
+        $bOk = false;
+        $raOut = [];
+
+        $raCond = ["PEspecies.v='".addslashes($sp)."'",
+                   "PEvariety.v='".addslashes($cv)."'",
+                   "PEcategory.v='vegetables'"];                      // hard coded to just VEG for now
+
+        if( ($kfrc = $this->oMSDCore->SeedCursorOpen2( "PxGxCATEGORYxSPECIESxVARIETYxDESC",
+                                                       implode(' AND ', $raCond),
+                                                       ['sSortCol'=>"PEcategory_v,PEspecies_v,PEvariety_v"] )) )
+        {
+//            $nRows = $kfrc->CursorNumRows();
+
+//            $raMeta['numrows-found'] = $nRows;
+//            $raMeta['numrows-returned'] = SEEDCore_Bound($nRows,0,$nLimit);
+
+            while( $this->oMSDCore->SeedCursorFetch($kfrc) ) {
+                $raOut[$kfrc->Key()] = $this->oMSDCore->GetSeedRAFromKfr( $kfrc, ['bUTF8'=>$this->bUTF8] );
+                if( ($e = @$raParms['eDrawMode']) ) {
+                    list($bOkDummy,$sSeedDraw,$sErrDummy) = $this->seedDraw( $kfrc, $e );
+                    $raOut[$kfrc->Key()]['sSeedDraw'] = $sSeedDraw;
+                }
+                $bOk = true;
+            }
+        }
+
+        return( [$bOk, $raOut] );
     }
 
     private function seedListDraw( $raParms )

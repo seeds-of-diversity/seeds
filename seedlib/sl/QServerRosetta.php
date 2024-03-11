@@ -133,15 +133,20 @@ class QServerRosetta extends SEEDQ
             kPcv = key of sl_pcv, or kluge sl_cv_sources, or kluge SEEDBasket_Products
 
         output:
-            'PxS'       = portions of the PxS relation (if cultivar indexed in sl_pcv)
-            'raIxA'     = array of IxA relations for Lots in collection (if cultivar in collection #1)
-            'fAdoption' = adoption amount
+            PxS       = portions of the PxS relation (if cultivar indexed in sl_pcv)
+            raIxA     = array of IxA relations for Lots in collection (if cultivar in collection #1)
+            fAdoption = adoption amount
+            raSrc     = list of seed company sources
+            raProfile = crop profile info
+            raMSE     = current MSE listings
 
-
+            todo:
+            raSrc_archive = old seed company sources
+            raMSE_archive = old MSE listings
      */
     {
         $bOk = false;
-        $raOut = ['PxS'=>[], 'raIxA'=>[], 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSD'=>[] ];
+        $raOut = ['PxS'=>[], 'raIxA'=>[], 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSE'=>[] ];
         $sErr = "";
 
         if( !($kPcv = intval(@$parms['kPcv'])) ) {
@@ -167,12 +172,13 @@ class QServerRosetta extends SEEDQ
              */
             $raOut = $this->cultivarOverviewKlugeMSD( -$kPcv );
         } else {
-            if( !($kfr = $this->oSLDB->GetKFR('PxS', $kPcv )) ) {
+            if( !($kfrPxS = $this->oSLDB->GetKFR('PxS', $kPcv )) ) {
                 $sErr = "Unknown kPcv";
                 goto done;
             }
 
-            // Get IxAxPxS information for this cultivar, including adoption status
+            /* Seed Library Collection: get IxAxPxS information for this cultivar, including adoption status
+             */
             $o = new QServerSLCollectionReports( $this->oApp, $this->raConfig );        // use the same config_bUTF8 parm
             $rQ = $o->Cmd('collreport-cultivarinfo', ['kPcv'=>$kPcv, 'kCollection'=>1] );
             if( $rQ['bOk'] ) {
@@ -181,16 +187,25 @@ class QServerRosetta extends SEEDQ
                 $raOut['fAdoption'] = $rQ['raOut']['fAdoption'];
             }
 
-            // Get synonyms
+            /* Synonyms: get sl_pcv_syn matches
+             */
             $raOut['PY'] = [];
             foreach( $this->oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'", ['sSortCol'=>'name']) as $ra ) {
                 $raOut['PY'] = ['name' => $ra['name']];
             }
 
-            // Get a list of sources for this cultivar
+            /* Sources: get seed company sources
+             */
             $raOut['raSrc'] = $this->cultivarOverviewGetSources( "fk_sl_pcv='$kPcv'" );
 
-            /* If these are used to check for pre-delete referential integrity, it's okay to delete a cultivar if any of these are _status<>0 because the cultivar will
+            /* MSE: get current matches in Member Seed Exchange
+             */
+            $o = new MSDQ( $this->oApp, $this->raConfig );        // use the same config_bUTF8 parm
+            $rQ = $o->Cmd('msdSeedList-FindByName', ['species'=>$kfrPxS->Value('S_name_en'), 'cultivar'=>$kfrPxS->Value('name')]);
+            if( $rQ['bOk'] )  $raOut['raMSE'] = $rQ['raOut'];
+
+            /* Statistics:
+             * If these are used to check for pre-delete referential integrity, it's okay to delete a cultivar if any of these are _status<>0 because the cultivar will
              * also be preserved as _status<>0, retaining referential integrity in Trash.
              */
             $dbname = $this->oApp->DBName('seeds1');
