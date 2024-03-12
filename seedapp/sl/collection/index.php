@@ -88,6 +88,7 @@ class MyConsole02TabSet extends Console02TabSet
 {
     private $oApp;
     private $oW;
+    private $oSLDB;
 
     function __construct( SEEDAppConsole $oApp )
     {
