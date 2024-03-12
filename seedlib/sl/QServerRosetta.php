@@ -16,6 +16,8 @@ class QServerRosetta extends SEEDQ
     private $oSLDB;
     private $oSLDBSrc;
 
+    const emptyRAOut = ['PxS'=>[], 'raIxA'=>[], 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSE'=>[] ];
+
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
         parent::__construct( $oApp, $raConfig );
@@ -114,9 +116,23 @@ class QServerRosetta extends SEEDQ
             }
         }
 
-        /* Add MSD cultivars whose names match dbSrch (and fk_sl_pcv=0). Return (name=cultivar, kPcv=SEEDBasket_Product._key * -1)
+        /* Add MSE cultivars whose names match dbSrch (and fk_sl_pcv=0). Return (name=cultivar, kPcv=SEEDBasket_Product._key * -1)
          */
-
+        $raMSE = $this->oApp->kfdb->QueryRowsRA( "SELECT PEspecies.v as sp, PEvariety.v as cv, P._key as k
+                                                  FROM SEEDBasket_Products P, SEEDBasket_ProdExtra PEspecies, SEEDBasket_ProdExtra PEvariety
+                                                  WHERE P._key=PEspecies.fk_SEEDBasket_Products AND P._key=PEvariety.fk_SEEDBasket_Products AND
+                                                        PEspecies.k='species' AND PEvariety.k='variety' and P._status=0 AND
+                                                        PEvariety.v like '%$dbSrch%'" );
+        foreach($raMSE as $ra) {
+            $dbSp = addslashes($ra['sp']);
+            if( ($kfr = $this->oSLDB->GetKFRCond('S',"psp='$dbSp' OR name_en='$dbSp'")) ) {  // or other synonyms or language variants
+                $raOut["{$kfr->Value('psp')}|{$ra['cv']}"] = $this->QCharset(
+                    ['kPcv'            => $ra['k'] * -1,
+                     'sSpecies'        => $kfr->Value('name_en'),
+                     'about_cultivar' => "",//$kfr->Value('P_packetLabel')
+                    ] );
+            }
+        }
 
         ksort($raOut);
         $bOk = true;
@@ -146,7 +162,7 @@ class QServerRosetta extends SEEDQ
      */
     {
         $bOk = false;
-        $raOut = ['PxS'=>[], 'raIxA'=>[], 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSE'=>[] ];
+        $raOut = self::emptyRAOut;
         $sErr = "";
 
         if( !($kPcv = intval(@$parms['kPcv'])) ) {
@@ -158,19 +174,19 @@ class QServerRosetta extends SEEDQ
         $bOffice = $this->oApp->sess->TestPermRA( ["W SLRosetta", "A SL", "|"] );
 
         $bKlugeSrccv = ($kPcv > 10000000);  // kPcv-10000000 is the key of sl_cv_sources containing the (fk_sl_species,ocv) to report on
-        $bKlugeMSD = ($kPcv < 0);           // -kPcv is the key of SEEDBasket_Products containing (species,cultivar) to report on
+        $bKlugeMSE = ($kPcv < 0);           // -kPcv is the key of SEEDBasket_Products containing (species,cultivar) to report on
 
         if( $bKlugeSrccv ) {
             /* Referring to a non-indexed cultivar in sl_cv_sources, all we can do is find the companies that list it there and try to find
-             * the same name in MSD.
+             * the same name in MSE.
              */
-            if( !$this->cultivarOverviewKlugeSrccv( $kPcv - 10000000, $bOffice, $raOut ) ) {
-                goto done;
-            }
-        } else if( $bKlugeMSD ) {
-            /* Referring to a non-indexed cultivar in MSD, all we can do is find the information there and try to find the same name in sl_cv_sources.
+            $raOut = $this->cultivarOverviewKlugeSrccv( $kPcv - 10000000, $bOffice, $raOut );
+
+        } else if( $bKlugeMSE ) {
+            /* Referring to a non-indexed cultivar in MSE, all we can do is find the information there and try to find the same name in sl_cv_sources.
              */
-            $raOut = $this->cultivarOverviewKlugeMSD( -$kPcv );
+            $raOut = $this->cultivarOverviewKlugeMSE( -$kPcv );
+
         } else {
             if( !($kfrPxS = $this->oSLDB->GetKFR('PxS', $kPcv )) ) {
                 $sErr = "Unknown kPcv";
@@ -232,9 +248,11 @@ class QServerRosetta extends SEEDQ
     /************************************************************************
         Referring to a cultivar identified by a sl_cv_sources key.
 
-        All we can do is report the sources, and try to look up the name in the MSD.
+        All we can do is report the sources, and try to look up the name in the MSE.
      */
     {
+        $raOut = self::emptyRAOut;
+
         $ok = false;
 
         if( !($kfr = $this->oSLDBSrc->GetKFR( 'SRCCVxS', $kSrccv )) ) {
@@ -259,9 +277,51 @@ class QServerRosetta extends SEEDQ
         $dbOcv = addslashes($kfr->Value('ocv'));
         $raOut['raSrc'] = $this->cultivarOverviewGetSources( "fk_sl_species='$kSp' AND ocv='$dbOcv'" );
 
+        $raOut['raMSE'] = [];   // TODO: look for the name in MSE
+
         $ok = true;
 
         done:
+        return( $raOut );
+    }
+
+    private function cultivarOverviewKlugeMSE( int $kProduct )
+    /*********************************************************
+        Show the overview of a variety that was found in MSE with no fk_sl_pcv. The key is kluged as one random kProduct of this variety.
+
+        Look up the variety in MSE, and also look for the name in sl_cv_sources
+     */
+    {
+        $raOut = self::emptyRAOut;
+
+        // Lazy way: look up the species and variety by kProduct, then use a deprecated MSDQ cmd to search MSE
+
+        $sp = $this->oApp->kfdb->Query1("SELECT v FROM SEEDBasket_ProdExtra WHERE fk_SEEDBasket_Products='$kProduct' AND k='species'");
+        $cv = $this->oApp->kfdb->Query1("SELECT v FROM SEEDBasket_ProdExtra WHERE fk_SEEDBasket_Products='$kProduct' AND k='variety'");
+        if( $sp && $cv ) {
+            // this should work because they were found when kProduct was determined
+            $dbSp = addslashes($sp);
+            if( ($kfrS = $this->oSLDB->GetKFRCond('S',"psp='$dbSp' OR name_en='$dbSp'")) ) {
+                $raOut['PxS'] = $this->QCharsetFromLatin(
+                                ['kPcv'          => 0,
+                                 'P_name'        => $cv,
+                                 'P_packetLabel' => "",
+                                 'P_notes'       => "",
+                                 'kSp'           => $kfrS->Value('_key'),
+                                 'S_psp'         => $kfrS->Value('psp'),
+                                 'S_name_en'     => $kfrS->Value('name_en'),
+                                 'S_name_fr'     => $kfrS->Value('name_fr'),
+                                 'S_name_bot'    => $kfrS->Value('name_bot')
+                                ]);
+            }
+
+            $o = new MSDQ( $this->oApp, $this->raConfig );        // use the same config_bUTF8 parm
+            $rQ = $o->Cmd('msdSeedList-FindByName', ['species'=>$sp, 'cultivar'=>$cv]);
+            if( $rQ['bOk'] )  $raOut['raMSE'] = $rQ['raOut'];
+        }
+
+        $raOut['raSrc'] = [];  // TODO: look for the name in sl_cv_sources
+
         return( $raOut );
     }
 
