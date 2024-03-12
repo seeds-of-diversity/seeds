@@ -41,17 +41,23 @@ class SLSearchApp
         } else if($sSrch) {
             list($sTitle,$sBody) = $this->drawSearch($sSrch);
         } else {
-            $sTitle = "<h3>Search for your favourite seeds</h3>";
-            $sBody  = "<div style='border:1px solid #ddd;border-radius:5px'>
-                       <p>Click through the links below to find out everything we know about 20,000 varieties of vegetable and fruit seeds grown in Canada.</p>
-                       <p>Or use the search bar to find what you're looking for.</p>
-                       </div>";
+            $sTitle = "<h2>What Do We Know About Seeds?</h2>";
+            $sBody  = "<div style='border:1px solid #ddd;border-radius:5px; padding:15px'>"
+                     .$this->defaultBody(false)
+                     ."</div>";
         }
 
-        $s .= "<div class='container-fluid'><div class='row'>
-                <div class='col-md-10'>$sTitle.$sBody</div>
-                <div class='col-md-2'><p>&nbsp;</p>{$this->drawSearchControl()}</div>
-                </div></div>";
+        $sTitle .= "<div class='sl_srch_heading_srchctrl'>{$this->drawSearchControl()}</div>";
+
+//        $s .= "<div class='container-fluid'><div class='row'>
+//                <div class='col-md-10'><div class='sl_srch_heading'>{$sTitle}</div>{$sBody}</div>
+//                <div class='col-md-2'><p>&nbsp;</p>{$this->drawSearchControl()}</div>
+//                </div></div>";
+
+        $s .= "<div style='position:relative'>
+               <div class='sl_srch_heading'>{$sTitle}</div>
+               <div class='sl_srch_body'>{$sBody}</div>
+               </div>";
 
         done:
         return( $s );
@@ -71,10 +77,13 @@ class SLSearchApp
     {
         return( "
             <style>
-            .sl_srch_heading { background-color:#777; font-weight:bold; padding:3px; color:white; }
-            .sl_srch_heading h2 { font-size:18pt }
-            .sl_srch_heading h3 { font-size:14pt }
-            .sl_srch_roundbox { border:1px solid #888; border-radius:5px; padding:10px; margin-bottom:10px; max-width:30em; }
+            .sl_srch_heading          { background-color:#777; font-weight:bold; padding:5px 15px; color:white; }
+            .sl_srch_heading h2       { font-size:18pt }
+            .sl_srch_heading h3       { font-size:14pt }
+            .sl_srch_header_cvname    { font-size:22pt;font-weight:bold }
+            .sl_srch_heading_srchctrl { position:absolute; top:10px; right:30px; color:black; }
+            .sl_srch_body             { margin: 20px }
+            .sl_srch_roundbox         { border:1px solid #888; border-radius:5px; padding:10px; margin-bottom:10px; max-width:30em; }
             </style>
             ");
     }
@@ -88,10 +97,8 @@ class SLSearchApp
         $o = new QServerRosetta( $this->oApp );
         $rQ = $o->Cmd( 'rosetta-cultivarSearch', ['sSrch'=>$sSrch] );
         if( count($rQ['raOut']) ) {
-            $sTitle = "<div class='sl_srch_heading'>
-                           <h2>Search \"".SEEDCore_HSC($sSrch)."\"</h2>
-                           <h3>Here are some seeds that match the keyword. --- Click each name for more information</h3>
-                       </div>";
+            $sTitle = "<h2>Here are some seeds that match <span class='sl_srch_header_cvname'>\"".SEEDCore_HSC($sSrch)."\"</span></h3>";
+            $sBody = "<h4 style='margin-bottom:30px;'><span style='background-color:#ddd;padding:10px;border-radius:10px'>Click each name for more information</span></h4>";
             foreach( $rQ['raOut'] as $k => $ra ) {
                 list($sp,$cv) = explode( '|', $k, 2 );
 
@@ -99,8 +106,20 @@ class SLSearchApp
                                <p style='margin-left:30px'>{$ra['about_cultivar']}</p>
                            </div>";
             }
+        } else {
+            $sTitle = "<h2>Looks like we don't have any matches for <span class='sl_srch_header_cvname'>\"".SEEDCore_HSC($sSrch)."\"</span></h3>";
+            $sBody = $this->defaultBody(true);
         }
+
         return( [$sTitle,$sBody] );
+    }
+
+    private function defaultBody( bool $bAfterFailedSearch )
+    {
+        $s = $bAfterFailedSearch ? "<h4>Try searching for something else, or click through the links below to find out everything we know about 20,000 varieties of vegetable and fruit seeds in Canada</h4>"
+                                 : "<h4>Click through the links below to find out everything we know about 20,000 varieties of vegetable and fruit seeds grown in Canada.<br/><br/>
+                                    <h4>Or use the search bar to find what you're looking for.</h4>";
+        return( $s );
     }
 
     private function drawCultivar( int $kPcv )
@@ -119,13 +138,13 @@ class SLSearchApp
 
         /* Main Heading
          */
-        $sNameSpecies = $rQ['raOut']['PxS']['S_name_en'];
-        $sNameCultivar = $rQ['raOut']['PxS']['P_name'];
-        $sTitle .= "<h2 class='sl_srch_heading'>Here's everything we know about \"{$sNameCultivar}\" {$sNameSpecies}</h2>";
+        $sNameSpecies = @$rQ['raOut']['PxS']['S_name_en'] ?: "Unknown species";
+        $sNameCultivar = @$rQ['raOut']['PxS']['P_name']   ?: "Unknown cultivar";
+        $sTitle .= "<h2><span class='sl_srch_header_cvname'>{$sNameCultivar} {$sNameSpecies}</span>".SEEDCore_NBSP('',10)."Here's everything we know about it</h2>";
 
         /* Packet label and Synonyms - these are written even if empty
          */
-        $raOut['packetlabel'] = ($p = $rQ['raOut']['PxS']['P_packetLabel']) ? "<div class='sl_srch_roundbox'>$p</div>" : "";
+        $raOut['packetlabel'] = ($p = @$rQ['raOut']['PxS']['P_packetLabel']) ? "<div class='sl_srch_roundbox'>$p</div>" : "";
         $raOut['synonyms'] = ($raSyn = $oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'"))
                                 ? ("Also known as:<div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raSyn,"[[name]]<br/>")."</div>") : "";
 
@@ -153,9 +172,9 @@ class SLSearchApp
          */
         if( $rQ['raOut']['raMSE'] ) {
             $raOut['mse'] =
-                "<h3 class='sl_srch_heading'>Listed in our Seed Exchange</h3>
+                "<h3 class='sl_srch_heading'>Listed in our Member Seed Exchange</h3>
                  <p>Seeds of Diversity's seed savers collect over 3000 varieties of heritage vegetables, fruits, grains, flowers, and herbs,
-                    and offer them through a national seed exchange. Find out how you can exchange seeds with our seed savers too!</p>";
+                    and offer them through a national seed exchange. <a href='https://seeds.ca/seedexchange'>Find out how you can exchange seeds with our seed savers too!</a></p>";
             foreach($rQ['raOut']['raMSE'] as $ra) {
                 $raOut['mse'] .= "<div style='margin:15px;padding:3px;background-color:#e0e0e0;border-color:#aaa'>{$ra['description']}</div>";
             }
