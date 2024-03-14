@@ -268,17 +268,18 @@ class SLDBBase extends Keyframe_NamedRelations
         return( $raKfrel );
     }
 
-    protected function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
-    /******************************************************************
+    protected function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile, array $raDefParms = [] )
+    /******************************************************************************************
         $raTableDefs is an array('Alias'=>array('Table'=>...), ... )
+        $raDefParms are kfrelDef parms merged with $raTableDefs e.g. ['bFetchFullBaseAliases'=>true]
      */
     {
         $parms = $sLogfile ? array('logfile'=>$sLogfile) : array();
-        return( new KeyFrame_Relation( $kfdb, array( "Tables" => $raTableDefs ), $uid, $parms ) );
+        return( new KeyFrame_Relation( $kfdb, array_merge(['Tables'=>$raTableDefs], $raDefParms), $uid, $parms ) );
     }
 
-    protected function newKfrel2( $kfdb, $uid, $raTDefs, $sLogfile )
-    /***************************************************************
+    protected function newKfrel2( $kfdb, $uid, $raTDefs, $sLogfile, array $raDefParms = [] )
+    /***************************************************************************************
         $raTDefs is an array of keys to $this->tDef that will compose a natural join (or a single table)
      */
     {
@@ -286,7 +287,7 @@ class SLDBBase extends Keyframe_NamedRelations
         foreach( $raTDefs as $k ) {
             $raTableDefs[$k] = $this->tDef[$k];
         }
-        return( $this->newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile ) );
+        return( $this->newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile, $raDefParms ) );
     }
 }
 
@@ -306,7 +307,7 @@ class SLDBRosetta extends SLDBBase
         $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
 
         $sLogfile = $logdir ? "{$logdir}slrosetta.log" : "";
-        $raKfrel['PxS']    = $this->newKfrel2( $kfdb, $uid, array('P','S'), $sLogfile );
+        $raKfrel['PxS']    = $this->newKfrel2( $kfdb, $uid, array('P','S'), $sLogfile, ['bFetchFullBaseAliases'=>true] );  // code wants to refer to P__key because conditioning on _key is ambiguous
         $raKfrel['PYxPxS'] = $this->newKfrel2( $kfdb, $uid, array('PY','P','S'), $sLogfile );
         $raKfrel['SYxS']   = $this->newKfrel2( $kfdb, $uid, array('SY','S'), $sLogfile );
 
