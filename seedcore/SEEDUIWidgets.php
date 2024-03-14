@@ -2,7 +2,7 @@
 
 /* SEEDUIWidgets.php
  *
- * Copyright (c) 2013-2020 Seeds of Diversity Canada
+ * Copyright (c) 2013-2024 Seeds of Diversity Canada
  *
  * Implement some basic SEEDUI widgets
  */
@@ -101,11 +101,14 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 /*******************************
     Draw a search control with one or more terms.  Each term has a field list, op list, and text input.
 
-    raConfig = array( 'filters'  => array( array('label=>label1, 'col'=>'fld1'),
-                                           array('label=>label2, 'col'=>'fld2') ),
+    raConfig = array( 'filters'  => array( array('label=>label1, 'srchcol'=>'fld1' OR 'col'=>'fld1'),
+                                           array('label=>label2, 'srchcol'=>'fld2' OR 'col'=>'fld2') ),
                       'template' => " HTML template containing [[fldN]] [[opN]] [[valN]] " )
 
-    The filters use the same format as the List cols, for convenience in your config.
+    The filters can usually use the same format as the List cols, for convenience in your config, if there is not an ambiguous column in another table
+    that matches the colalias provided by 'col'.
+    e.g. 'col'=>'_key' is a col and a colalias for the base table, which will work as a col in the search condition, but only if there is one table. Otherwise
+         you have to use 'srchcol'=>'A._key' to disambiguate (and that format will not work as the colalias for the list).
     The template substitutes the tags [[fldN]], [[opN]], [[valN]], where N is the origin-1 filter index
 
     Default template just separates one row of tags with &nbsp;
@@ -181,7 +184,7 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
                     $raC = array();
                     foreach( $this->raConfig['filters'] as $raF ) {
                         $label = $raF['label'];
-                        $f = $raF['col'];
+                        $f = @$raF['srchcol'] ?: $raF['col'];   // col is convenient but srchcol overrides
                         if( empty($f) )  continue;  // skip 'Any'
                         $raC[] = $this->dbCondTerm( $f, $op, $val );   // op and val are the current uiparm values for this search row
                     }
@@ -234,7 +237,7 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 
     function Draw()
     {
-        $s = @$raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input type='reset'>";
+        $s = @$this->raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input type='reset'>";
 
         if( !@$this->raConfig['filters'] )  goto done;
 
@@ -247,7 +250,7 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
              */
             $raCols['Any'] = "";
             foreach( $this->raConfig['filters'] as $ra ) {
-                $raCols[$ra['label']] = $ra['col'];
+                $raCols[$ra['label']] = @$ra['srchcol'] ?: $ra['col'];  // col is convenient but srchcol overrides
             }
 
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
