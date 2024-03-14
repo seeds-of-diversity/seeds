@@ -14,16 +14,16 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
     {
         $this->oSLDB = new SLDBRosetta( $oApp );
 
-        $cols = [['label'=>"Cultivar #",  'col'=>"_key",      'w'=>'10%'],
-                 ['label'=>"Species",     'col'=>"S_psp",     'w'=>'30%'],
-                 ['label'=>"Name",        'col'=>"name",      'w'=>'60%'],
+        $cols = [['label'=>"Cultivar #",  'col'=>"_key",  'srchcol'=>'P__key',  'w'=>'10%'],    // have to use srchcol because _key is ambiguous in search condition
+                 ['label'=>"Species",     'col'=>"S_psp",                       'w'=>'30%'],
+                 ['label'=>"Name",        'col'=>"name",                        'w'=>'60%'],
                 ];
         $raConfig = $this->GetConfigTemplate(
             ['sessNamespace'        => 'RosettaCultivars',
              'cid'                  => 'R',
              'kfrel'                => $this->oSLDB->GetKfrel('PxS'),
              'raListConfig_cols'    => $cols,
-             'raSrchConfig_filters' => $cols, // conveniently, we can use the same format for search filters (because filters can be cols or aliases)
+             'raSrchConfig_filters' => $cols,
             ]
         );
         parent::__construct($oApp, $raConfig);
@@ -37,28 +37,8 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
      */
     function FormTemplate( SEEDCoreForm $oForm )
     {
-        $sStats = "";
-
-        // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
-        if( ($kPcv = $this->oComp->Get_kCurr()) ) {
-            $rQ = (new QServerRosetta($this->oApp))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$kPcv]);
-            if( $rQ['bOk'] ) {
-                $raCvOverview = $rQ['raOut'];
-
-                $sStats =
-                     "<strong>References: {$raCvOverview['nTotal']}</strong><br/><br/>"
-                    ."Seed Library accessions: {$raCvOverview['nAcc']}<br/>"
-                    ."Source list records: "
-                        .($raCvOverview['nSrcCv1'] ? "PGRC, " : "")
-                        .($raCvOverview['nSrcCv2'] ? "NPGS, " : "")
-                        .("{$raCvOverview['nSrcCv3']} compan".($raCvOverview['nSrcCv3'] == 1 ? "y" : "ies"))."<br/>"
-                    ."Adoptions: {$raCvOverview['nAdopt']}<br/>"
-                    ."Profile Observations: {$raCvOverview['nDesc']}<br/>";
-
-                 $sStats = "<div style='border:1px solid #aaa;padding:10px'>$sStats</div>";
-//                 .($sSyn ? ("Synonyms: $sSyn<br/>") : "")
-            }
-        }
+        $sStats = $this->getStats();
+        $sSyn   = $this->getSynonyms();
 
         // get all species for dropdown
         $raSpOpts = ["-- Choose --"=>0];
@@ -81,7 +61,7 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
         $s = $this->oComp->DrawFormEditLabel('Cultivar')
             ."<div class='container-fluid'><div class='row'>
                   <div class='col-md-9'>{$sForm}</div>
-                  <div class='col-md-3'>{$sStats}</div>
+                  <div class='col-md-3'>{$sSyn}{$sStats}</div>
               </div></div>"
             ."[[hiddenkey:]]"
             ."<INPUT type='submit' value='Save'>";
@@ -133,5 +113,52 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
 
         done:
         return( $bOk );
+    }
+
+    private function getSynonyms()
+    /*****************************
+        Get synonyms of the current pcv
+     */
+    {
+        $s = "";
+
+        // If a cultivar is selected, get synonyms
+        if( ($kPcv = $this->oComp->Get_kCurr()) ) {
+            $s = ($raSyn = $this->oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'"))
+                    ? ("<b>Also known as</b><div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raSyn,"[[name]]<br/>")."</div>") : "";
+
+            $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
+        }
+
+        return( $s );
+    }
+
+    private function getStats()
+    /**************************
+        Get references and stats about the current pcv
+     */
+    {
+        $s = "";
+
+        // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
+        if( ($kPcv = $this->oComp->Get_kCurr()) ) {
+            $rQ = (new QServerRosetta($this->oApp))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$kPcv]);
+            if( $rQ['bOk'] ) {
+                $raCvOverview = $rQ['raOut'];
+
+                $s = "<strong>References: {$raCvOverview['nTotal']}</strong><br/><br/>"
+                    ."Seed Library accessions: {$raCvOverview['nAcc']}<br/>"
+                    ."Source list records: "
+                        .($raCvOverview['nSrcCv1'] ? "PGRC, " : "")
+                        .($raCvOverview['nSrcCv2'] ? "NPGS, " : "")
+                        .("{$raCvOverview['nSrcCv3']} compan".($raCvOverview['nSrcCv3'] == 1 ? "y" : "ies"))."<br/>"
+                    ."Adoptions: {$raCvOverview['nAdopt']}<br/>"
+                    ."Profile Observations: {$raCvOverview['nDesc']}<br/>";
+
+                 $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
+            }
+        }
+
+        return( $s );
     }
 }
