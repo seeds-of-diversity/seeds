@@ -8,8 +8,8 @@
  */
 
 include_once( SEEDLIB."sl/QServerSLCollectionReports.php" );
-
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( SEEDLIB."msd/msdq.php" );
 
 class QServerRosetta extends SEEDQ
 {
