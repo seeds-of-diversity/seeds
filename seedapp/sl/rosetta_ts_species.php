@@ -47,13 +47,15 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
 
     function FormTemplate( SEEDCoreForm $oForm )
     {
+        list($sSyn,$sStats) = $this->getMeta();
+
         $s = $this->oComp->DrawFormEditLabel('Species')
             ."|||TABLE( || class='slAdminForm' width='100%' border='0')"
             ."||| *psp*       || [[text:psp|size=30]]      || *Name EN*  || [[text:name_en|size=30]]  || *Name FR*  || [[text:name_fr|size=30]]"
             ."||| *Botanical* || [[text:name_bot|size=30]] || *Index EN* || [[text:iname_en|size=30]] || *Index FR* || [[text:iname_fr|size=30]]"
             ."||| *Category*  || [[text:category]] || *Family EN*|| [[text:family_en|size=30]]|| *Family FR*|| [[text:family_fr|size=30]]"
             ."||| *Notes*     || {colspan='3'} ".$oForm->TextArea( "notes", array('width'=>'100%') )
-            ."<td colspan='2'>{$this->getSynonyms()}{$this->getStats()}&nbsp;</td>"
+            ."<td colspan='2'>{$sSyn}{$sStats}&nbsp;</td>"
             ."|||ENDTABLE"
             ."[[hiddenkey:]]"
             ."<INPUT type='submit' value='Save'>";
@@ -78,9 +80,9 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
         return( $s );
     }
 
-    private function getStats()
+    private function getMeta()
     {
-        $s = "";
+        $sSyn = $sStats = "";
 
         // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
         if( ($kSp = $this->oComp->Get_kCurr()) ) {
@@ -88,7 +90,8 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
             if( $rQ['bOk'] ) {
                 $raOverview = $rQ['raOut'];
 
-                $s = "<strong>References: {$raOverview['nTotal']}</strong><br/><br/>"
+                $sStats =
+                     "<strong>References: {$raOverview['nTotal']}</strong><br/><br/>"
                     ."Seed Library lots: {$raOverview['nI']}<br/>"
                     ."Source list records: "
                         .($raOverview['nSrcCv1'] ? "PGRC, " : "")
@@ -97,10 +100,15 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
                     ."Adoptions: {$raOverview['nAdopt']}<br/>"
                     ."Profile Observations: {$raOverview['nProfile']}<br/>";
 
-                $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
+                $sStats = "<div style='border:1px solid #aaa;padding:10px'>$sStats</div>";
+
+                $sSyn = $rQ['raOut']['raSY']
+                            ? ("<b>Also known as</b><div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($rQ['raOut']['raSY'],"[[name]]<br/>")."</div>")
+                            : "";
+                if( $sSyn ) $sSyn = "<div style='border:1px solid #aaa;padding:10px'>$sSyn</div>";
             }
         }
 
-        return( $s );
+        return( [$sSyn,$sStats] );
     }
 }

@@ -37,8 +37,7 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
      */
     function FormTemplate( SEEDCoreForm $oForm )
     {
-        $sStats = $this->getStats();
-        $sSyn   = $this->getSynonyms();
+        list($sSyn,$sStats) = $this->getMeta();
 
         // get all species for dropdown
         $raSpOpts = ["-- Choose --"=>0];
@@ -115,30 +114,12 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
         return( $bOk );
     }
 
-    private function getSynonyms()
-    /*****************************
-        Get synonyms of the current pcv
-     */
-    {
-        $s = "";
-
-        // If a cultivar is selected, get synonyms
-        if( ($kPcv = $this->oComp->Get_kCurr()) ) {
-            $s = ($raSyn = $this->oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'"))
-                    ? ("<b>Also known as</b><div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raSyn,"[[name]]<br/>")."</div>") : "";
-
-            $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
-        }
-
-        return( $s );
-    }
-
-    private function getStats()
-    /**************************
+    private function getMeta()
+    /*************************
         Get references and stats about the current pcv
      */
     {
-        $s = "";
+        $sSyn = $sStats = "";
 
         // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
         if( ($kPcv = $this->oComp->Get_kCurr()) ) {
@@ -146,7 +127,8 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
             if( $rQ['bOk'] ) {
                 $raCvOverview = $rQ['raOut'];
 
-                $s = "<strong>References: {$raCvOverview['nTotal']}</strong><br/><br/>"
+                $sStats =
+                     "<strong>References: {$raCvOverview['nTotal']}</strong><br/><br/>"
                     ."Seed Library accessions: {$raCvOverview['nAcc']}<br/>"
                     ."Source list records: "
                         .($raCvOverview['nSrcCv1'] ? "PGRC, " : "")
@@ -155,10 +137,15 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
                     ."Adoptions: {$raCvOverview['nAdopt']}<br/>"
                     ."Profile Observations: {$raCvOverview['nDesc']}<br/>";
 
-                 $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
+                $sStats = "<div style='border:1px solid #aaa;padding:10px'>$sStats</div>";
+
+                $sSyn = $rQ['raOut']['raPY']
+                            ? ("<b>Also known as</b><div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($rQ['raOut']['raPY'],"[[name]]<br/>")."</div>")
+                            : "";
+                if( $sSyn ) $sSyn = "<div style='border:1px solid #aaa;padding:10px'>$sSyn</div>";
             }
         }
 
-        return( $s );
+        return( [$sSyn,$sStats] );
     }
 }

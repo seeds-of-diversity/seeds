@@ -206,7 +206,7 @@ class QServerRosetta extends SEEDQ
          */
         $raOut['raSY'] = [];
         foreach( $this->oSLDB->GetList('SY', "fk_sl_species='$kSp'", ['sSortCol'=>'name']) as $ra ) {
-            $raOut['SY'][] = ['name' => $ra['name']];
+            $raOut['raSY'][] = ['name' => $ra['name']];
         }
 
         /* Statistics:
@@ -234,7 +234,7 @@ class QServerRosetta extends SEEDQ
         $raOut['nMSE_archive'] = 0;                 // number of archived MSE listings of this sp
         $raOut['nSrcCv_archive'] = 0;               // number of archived SrcCv records for this sp
 
-        $raOut['nTotal'] = count($raOut['SY']) + $raOut['nP'] + $raOut['nI'] + $raOut['nAdopt'] + $raOut['nSrcCv'] + $raOut['nMSE'];
+        $raOut['nTotal'] = count($raOut['raSY']) + $raOut['nP'] + $raOut['nI'] + $raOut['nAdopt'] + $raOut['nSrcCv'] + $raOut['nMSE'];
                           // + $raOut['nProfile'] + $raOut['nMSE_archive'] + $raOut['nSrcCv_archive'];
 
         $bOk = true;
