@@ -28,8 +28,10 @@ class DocManagerUI_Documents
         JS files required for the document UI
      */
     {
-        return( [SEEDW_URL."seedapp/DocRep/DocRepApp.js",
-                 SEEDW_URL."seedapp/DocRep/docmanager.js",
+        return( [SEEDW_URL."seedapp/DocRep/DocRepApp.js",           // central standard application
+                 SEEDW_URL."seedapp/DocRep/DocRepApp_Tree.js",      // tree widget
+                 SEEDW_URL."seedapp/DocRep/DocRepApp_CtrlView.js",  // tabbed ctrl widget
+                 SEEDW_URL."seedapp/DocRep/docmanager.js",          // custom application (runs code defined in above files so include last)
                  "https://cdn.ckeditor.com/4.17.1/standard/ckeditor.js"
         ] );
     }
