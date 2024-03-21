@@ -334,9 +334,15 @@ class SLDBCollection extends SLDBRosetta
 
         $raKfrel['IxA']       = $this->newKfrel2( $kfdb, $uid, array('I','A'), $sLogfile );
         $raKfrel['AxPxS']     = $this->newKfrel2( $kfdb, $uid, array('A','P','S'), $sLogfile );
+        $raKfrel['IxAxP']     = $this->newKfrel2( $kfdb, $uid, array('I','A','P'), $sLogfile );
         $raKfrel['IxAxPxS']   = $this->newKfrel2( $kfdb, $uid, array('I','A','P','S'), $sLogfile );
         $raKfrel['IxGxAxPxS'] = $this->newKfrel2( $kfdb, $uid, array('I','G','A','P','S'), $sLogfile );
         $raKfrel['GxIxAxPxS'] = $this->newKfrel2( $kfdb, $uid, array('G','I','A','P','S'), $sLogfile );
+
+        /* Adoptions usually have pcv but not if they're fresh
+         */
+        $raKfrel['DxP'] = $this->newKfrel2( $kfdb, $uid, array('D','P'), $sLogfile );
+
 
         $raKfrel['A_P'] = $this->newKfrel( $kfdb, $uid,
                 array( 'A' => $this->tDef['A'],
@@ -356,6 +362,7 @@ class SLDBCollection extends SLDBRosetta
                                      "JoinOn" => "A.fk_sl_pcv=P._key",
                                      "Fields" => _sldb_defs::fldSLPCV() ) ),
                 $sLogfile );
+
 
         return( $raKfrel );
     }

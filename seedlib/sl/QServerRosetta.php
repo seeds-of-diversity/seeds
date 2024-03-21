@@ -15,6 +15,7 @@ class QServerRosetta extends SEEDQ
 {
     private $oSLDB;
     private $oSLDBSrc;
+    private $oSLDBColl;
 
     const emptyRAOut = ['PxS'=>[], 'raIxA'=>[], 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSE'=>[] ];
 
@@ -23,6 +24,7 @@ class QServerRosetta extends SEEDQ
         parent::__construct( $oApp, $raConfig );
         $this->oSLDB = new SLDBRosetta( $oApp );
         $this->oSLDBSrc = new SLDBSources( $oApp );
+        $this->oSLDBColl = new SLDBCollection( $oApp );
     }
 
     function Cmd( $cmd, $parms )
@@ -48,6 +50,9 @@ class QServerRosetta extends SEEDQ
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarSearch( $parms );
                 break;
             // this is more general than Rosetta but so far there is no better place to put it
+            case 'rosetta-speciesoverview':
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->speciesOverview( $parms );
+                break;
             case 'rosetta-cultivaroverview':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarOverview( $parms );
                 break;
@@ -141,6 +146,103 @@ class QServerRosetta extends SEEDQ
         return( [$bOk,$raOut,$sErr] );
     }
 
+    private function speciesOverview( $parms )
+    /*****************************************
+        Get a summary of all (public/office) information that we know about a species.
+
+        parms:
+            kSp = key of sl_species
+
+        output:
+            S         = portions of the S relation
+            raSY      = array of SY synonyms
+            nP        = number of sl_pcv of this sp
+            nI        = number of sl_inventory lots of this sp (in all collections)
+            nAdopt    = number of adoption records of this sp
+            nSrcCv    = number of SrcCv records for this sp
+            nSrcCv1   = " for PGRC
+            nSrcCv2   = " for NPGS
+            nSrcCv3   = " for seed companies
+            nProfile  = number of profile records for this sp
+            nMSE      = number of MSE listings of this sp
+
+            todo:
+            nSrcCv_archive = old seed company sources
+            nMSE_archive = old MSE listings
+     */
+    {
+        $bOk = false;
+        $raOut = self::emptyRAOut;
+        $sErr = "";
+
+        if( !($kSp = intval(@$parms['kSp'])) ) {
+            $sErr = "No kSp";
+            goto done;
+        }
+
+        // Get more information if the user is allowed to see it
+        $bCanReadInternal = $this->oApp->sess->TestPermRA( ["W SLRosetta", "A SL", "|"] );
+
+        /* Species: get sl_species data
+         */
+        if( !($kfrS = $this->oSLDB->GetKFR('S', $kSp)) ) {
+            $sErr = "Unknown kPcv";
+            goto done;
+        }
+        $raOut['S'] = $this->QCharsetFromLatin( ['kSp'          => $kSp,
+                                                 'name_en'      => $kfrS->Value('name_en'),
+                                                 'name_fr'      => $kfrS->Value('name_fr'),
+                                                 'iname_en'     => $kfrS->Value('iname_en'),
+                                                 'iname_fr'     => $kfrS->Value('iname_fr'),
+                                                 'name_bot'     => $kfrS->Value('name_bot'),
+                                                 'family_en'    => $kfrS->Value('family_en'),
+                                                 'family_fr'    => $kfrS->Value('family_fr'),
+                                                 'psp'          => $kfrS->Value('psp'),
+                                                 'category'     => $kfrS->Value('category'),
+                                                 'notes'        => ($bCanReadInternal ? $kfrS->Value('notes') : ""),
+                                                ] );
+
+        /* Synonyms: get sl_species_syn matches
+         */
+        $raOut['raSY'] = [];
+        foreach( $this->oSLDB->GetList('SY', "fk_sl_species='$kSp'", ['sSortCol'=>'name']) as $ra ) {
+            $raOut['SY'][] = ['name' => $ra['name']];
+        }
+
+        /* Statistics:
+         * If these are used to check for pre-delete referential integrity, it's okay to delete a species if any of these are _status<>0 because the species will
+         * also be preserved as _status<>0, retaining referential integrity in Trash.
+         */
+        $raOut['nP'] = $this->oSLDB->GetCount('P', "fk_sl_species=$kSp");                                   // number of pcv of this species
+        $raOut['nI'] = $this->oSLDBColl->GetCount('IxAxP', "P.fk_sl_species=$kSp");                         // number of lots of this species (in all collections)
+        $raOut['nAdopt'] = $this->oSLDBColl->GetCount('DxP', "P.fk_sl_species=$kSp");                       // number of adoption records of this species
+        $raOut['nSrcCv1'] = $this->oSLDBSrc->GetCount('SRCCV', "fk_sl_species=$kSp AND fk_sl_sources=1");   // for PGRC
+        $raOut['nSrcCv2'] = $this->oSLDBSrc->GetCount('SRCCV', "fk_sl_species=$kSp AND fk_sl_sources=2");   // for NPGS
+        $raOut['nSrcCv3'] = $this->oSLDBSrc->GetCount('SRCCV', "fk_sl_species=$kSp AND fk_sl_sources>=3");  // for seed companies
+        $raOut['nSrcCv']  = $raOut['nSrcCv1'] + $raOut['nSrcCv2'] + $raOut['nSrcCv3'];
+
+        /* MSE: get current matches in Member Seed Exchange
+         */
+        $raOut['nMSE'] = 0;
+        $o = new MSDQ( $this->oApp, $this->raConfig );        // use the same config_bUTF8 parm
+// not implemented
+        $rQ = $o->Cmd('msdSeedList-CountSpecies', ['psp'=>$kfrS->Value('psp')]);
+        if( $rQ['bOk'] )  $raOut['nMSE'] = $rQ['iOut'];
+
+        // todo
+        $raOut['nProfile'] = 0;                     // number of profile records for this sp
+        $raOut['nMSE_archive'] = 0;                 // number of archived MSE listings of this sp
+        $raOut['nSrcCv_archive'] = 0;               // number of archived SrcCv records for this sp
+
+        $raOut['nTotal'] = count($raOut['SY']) + $raOut['nP'] + $raOut['nI'] + $raOut['nAdopt'] + $raOut['nSrcCv'] + $raOut['nMSE'];
+                          // + $raOut['nProfile'] + $raOut['nMSE_archive'] + $raOut['nSrcCv_archive'];
+
+        $bOk = true;
+
+        done:
+        return( [$bOk,$raOut,$sErr] );
+    }
+
     private function cultivarOverview( $parms )
     /******************************************
         Get a summary of all (public/office) information that we know about a cultivar.
@@ -150,6 +252,7 @@ class QServerRosetta extends SEEDQ
 
         output:
             PxS       = portions of the PxS relation (if cultivar indexed in sl_pcv)
+            raPY      = array of PY synonyms
             raIxA     = array of IxA relations for Lots in collection (if cultivar in collection #1)
             fAdoption = adoption amount
             raSrc     = list of seed company sources
@@ -205,9 +308,9 @@ class QServerRosetta extends SEEDQ
 
             /* Synonyms: get sl_pcv_syn matches
              */
-            $raOut['PY'] = [];
+            $raOut['raPY'] = [];
             foreach( $this->oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'", ['sSortCol'=>'name']) as $ra ) {
-                $raOut['PY'] = ['name' => $ra['name']];
+                $raOut['raPY'][] = ['name' => $ra['name']];
             }
 
             /* Sources: get seed company sources

@@ -13,6 +13,7 @@ include_once( SEEDLIB."sl/QServerRosetta.php" );
 
 include_once( "rosetta_ts_cultivars.php" );
 include_once( "rosetta_ts_cultivarsyn.php" );
+include_once( "rosetta_ts_species.php" );
 
 
 $consoleConfig = [
@@ -27,7 +28,7 @@ $consoleConfig = [
                                         'admin'        => ['label'=>'Admin']
                                       ],
                             'perms' =>[ 'cultivar'     => ["W SL"],
-                                        'species'      => ["W SLbob"],
+                                        'species'      => ["W SL"],
                                         'speciessyn'   => ["W SLbob"],
                                         'cultivarsyn'  => ["W SL"],
                                         'admin'        => ['A notyou'],
@@ -106,87 +107,6 @@ class RosettaSpeciesSynonyms // extends KeyframeUI_ListFormUI
         //                return( $s );
     }
 
-}
-
-class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
-{
-    private $oSLDB;
-
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oSLDB = new SLDBRosetta( $oApp );
-
-        $raConfig = [
-            'sessNamespace' => "RosettaSpecies",
-            'cid'   => 'R',
-            'kfrel' => $this->oSLDB->GetKfrel('S'),
-            'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]],
-
-            'raListConfig' => [
-                'bUse_key' => true,     // probably makes sense for KeyFrameUI to do this by default
-                'cols' => [
-                    [ 'label'=>"Sp #",      'col'=>"_key",      'w'=>30 ],
-                    [ 'label'=>"psp",       'col'=>"psp",       'w'=>80 ],
-                    [ 'label'=>"Name EN",   'col'=>"name_en",   'w'=>120 ],
-                    [ 'label'=>"Index EN",  'col'=>"iname_en",  'w'=>120 ],
-                    [ 'label'=>"Name FR",   'col'=>"name_fr",   'w'=>120 ], //, "colsel" => array("filter"=>"")),
-                    [ 'label'=>"Index FR",  'col'=>"iname_fr",  'w'=>120 ],
-                    [ 'label'=>"Botanical", 'col'=>"name_bot",  'w'=>120 ],
-                    [ 'label'=>"Family EN", 'col'=>"family_en", 'w'=>120 ],
-                    [ 'label'=>"Family FR", 'col'=>"family_fr", 'w'=>120 ],
-                    [ 'label'=>"Category",  'col'=>"category",  'w'=>60, "colsel" => array("filter"=>"") ],
-                ],
-               // 'fnRowTranslate' => [$this,"listRowTranslate"],
-            ],
-
-            'raSrchConfig' => [
-                'filters' => [
-                    ['label'=>'Species #',  'col'=>'S._key'],
-                    ['label'=>'Name',       'col'=>'S.name_en'],
-                    ['label'=>'Bot name',   'col'=>'S.name_bot'],
-                ]
-            ],
-
-            'raFormConfig' => [ 'fnExpandTemplate'=>[$this,'speciesForm'] ],
-        ];
-        parent::__construct( $oApp, $raConfig );
-    }
-
-    function dsPreStore( Keyframe_DataStore $oDS )
-    {
-        return( true );
-    }
-
-    function Init()
-    {
-        parent::Init();
-    }
-
-    function ControlDraw()
-    {
-        return( $this->DrawSearch() );
-    }
-
-    function ContentDraw()
-    {
-        return( $this->ContentDraw_NewDelete() );
-
-    }
-
-    function speciesForm( $oForm )
-    {
-        $sStats = "";
-        $s = "|||TABLE( || class='slAdminForm' width='100%' border='0')"
-            ."||| *psp*       || [[text:psp|size=30]]      || *Name EN*  || [[text:name_en|size=30]]  || *Name FR*  || [[text:name_fr|size=30]]"
-            ."||| *Botanical* || [[text:name_bot|size=30]] || *Index EN* || [[text:iname_en|size=30]] || *Index FR* || [[text:iname_fr|size=30]]"
-            ."||| *Category*  || [[text:category]] || *Family EN*|| [[text:family_en|size=30]]|| *Family FR*|| [[text:family_fr|size=30]]"
-            ."||| *Notes*     || {colspan='3'} ".$oForm->TextArea( "notes", array('width'=>'100%') )
-            ."<td colspan='2'>".$sStats."&nbsp;</td>"
-            ."|||ENDTABLE"
-            ."[[hiddenkey:]]"
-            ."<INPUT type='submit' value='Save'>";
-            return( $s );
-    }
 }
 
 
