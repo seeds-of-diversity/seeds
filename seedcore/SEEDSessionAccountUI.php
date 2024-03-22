@@ -702,12 +702,12 @@ class SEEDSessionAccount_AdminUI
     static function MakeUserSelectCtrl( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )
     {
         $raOpts = self::GetUserSelectOptsArray( $oAcctDB, $name_sf, $name, $cond, $raParms);
-        return( SEEDFormBasic::DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts ) );
+        return( SEEDFormBasic::DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts, $raParms ) );
     }
     static function MakeGroupSelectCtrl( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )
     {
         $raOpts = self::GetGroupSelectOptsArray( $oAcctDB, $name_sf, $name, $cond, $raParms);
-        return( SEEDFormBasic::DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts ) );
+        return( SEEDFormBasic::DrawSelectCtrlFromOptsArray( $name_sf, $name, $raOpts, $raParms ) );
     }
 
     static function GetUserSelectOptsArray( SEEDSessionAccountDBRead2 $oAcctDB, $name_sf, $name, $cond = "", $raParms = [] )

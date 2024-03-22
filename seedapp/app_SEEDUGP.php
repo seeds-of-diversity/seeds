@@ -120,18 +120,8 @@ class UGPListForm extends KeyframeUI_ListFormUI
 
         $cid = $this->oComp->Cid();
 
-        $s = "<div class='container-fluid'>"
-                ."<div class='row'>"
-                    ."<div class='col-md-6'>"
-                        ."<div>".$this->DrawList()."</div>"
-                    ."</div>"
-                    ."<div class='col-md-6'>"
-                        ."<div style='margin-bottom:5px'><a href='?sf{$cid}ui_k=0'><button>New</button></a>&nbsp;&nbsp;&nbsp;<button>Delete</button></div>"
-                        ."<div style='width:90%;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>"
-                    ."</div>"
-                ."</div>"
-                .$sInfo
-            ."</div>";
+        $s = $this->ContentDraw_Horz_NewDelete()
+            ."<div>$sInfo</div>";
 
         return( $s );
     }
@@ -144,4 +134,3 @@ $s .= $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
                                  'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
-

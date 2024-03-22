@@ -79,7 +79,10 @@ class SEEDUGP_KFUIListForm_Config
 
     /* These are not called directly, but referenced in raConfig
      */
-    function PreOp( Keyframe_DataStore $oDS, string $op )  { return( false ); }     // override to validate/alter values before op; return false to cancel op
+    function PreOp( Keyframe_DataStore $oDS, string $op )
+    {
+        return( true );
+    }
 
     function ListRowTranslate( $raRow )
     {
@@ -135,11 +138,11 @@ class SEEDUGP_KFUIListForm_Config
                 break;
 
             case 'perms':
-                $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-                    ."||| Name  || [[Text:perm]]\n"
-                    ."||| Mode  || [[Text:modes]]\n"
-                    ."||| User  || ".SEEDSessionAccount_AdminUI::MakeUserSelectCtrl($this->oAcctDB, 'sfPp_uid', 'uid')
-                    ."||| Group || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfPp_gid', 'gid')
+                $s = "|||BOOTSTRAP_TABLE(class='col-md-3'|class='col-md-9')\n"
+                    ."||| Name  || [[Text:perm | width:50% ]]\n"
+                    ."||| Mode  || [[Text:modes | width:50% ]]\n"
+                    ."||| User  || ".SEEDSessionAccount_AdminUI::MakeUserSelectCtrl($this->oAcctDB, 'sfPp_uid', 'uid', '', ['sSelAttrs'=>"style='width:100%'"])
+                    ."||| Group || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfPp_gid', 'gid', '', ['sSelAttrs'=>"style='width:100%'"])
                     ."||| <input type='submit' value='Save'>  [[HiddenKey:]]";
                 break;
         }
@@ -235,7 +238,10 @@ class SEEDPerm_KFUIListForm_Config
      */
     function ListRowTranslate( $raRow )                    { return( $raRow ); }    // override to alter list values (only affects display)
     function PreStore( Keyframe_DataStore $oDS )           { return( true ); }      // override to validate/alter values before save; return false to cancel save
-    function PreOp( Keyframe_DataStore $oDS, string $op )  { return( false ); }     // override to validate/alter values before op; return false to cancel op
+    function PreOp( Keyframe_DataStore $oDS, string $op )
+    {
+        return( true );
+    }
 
     function FormTemplate( SEEDCoreForm $dummy )
     {
