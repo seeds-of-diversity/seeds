@@ -2,7 +2,7 @@
 
 /* SEED UGP application entry point
  *
- * Copyright (c) 2014-2020 Seeds of Diversity Canada
+ * Copyright (c) 2014-2024 Seeds of Diversity Canada
  *
  * Show permissions available by Users, Groups, Perms
  */

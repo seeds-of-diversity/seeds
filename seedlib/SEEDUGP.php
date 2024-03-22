@@ -118,31 +118,31 @@ class SEEDUGP_KFUIListForm_Config
     {
         switch($this->c) {
             case 'users':
-                $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
+                $s = "|||BOOTSTRAP_TABLE(class='col-md-3'|class='col-md-9')\n"
                     ."||| User #|| [[Key: | readonly]]\n"               // generates HiddenKey in readonly mode
-                    ."||| Name  || [[Text:realname]]\n"
-                    ."||| Email || [[Text:email]]\n"
-                    ."||| Password || [[if:[[value:password]]|-- cannot change here --|[[Text:password]] ]]\n"
+                    ."||| Name  || [[Text:realname | width:100%]]\n"
+                    ."||| Email || [[Text:email | width:100%]]\n"
+                    ."||| Password || [[if:[[value:password]]|-- cannot change here --|[[Text:password | width:100%]] ]]\n"
                     ."||| Status|| ".SEEDFormBasic::DrawSelectCtrlFromOptsArray( 'sfUp_eStatus', 'eStatus',
-                                            ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'] )."\n"
+                                            ['ACTIVE'=>'ACTIVE','INACTIVE'=>'INACTIVE','PENDING'=>'PENDING'])."\n"
                     ."||| Group1 || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfUp_gid1', 'gid1')
 
                     ."||| <input type='submit' value='Save'>";
                 break;
 
             case 'groups':
-                $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-                    ."||| Name            || [[Text:groupname]]\n"
+                $s = "|||BOOTSTRAP_TABLE(class='col-md-3'|class='col-md-9')\n"
+                    ."||| Name            || [[Text:groupname | width:100%]]\n"
                     ."||| Inherited Group || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfGp_gid_inherited', 'gid_inherited' )
                     ."||| <input type='submit' value='Save'> [[HiddenKey:]]";
                 break;
 
             case 'perms':
                 $s = "|||BOOTSTRAP_TABLE(class='col-md-3'|class='col-md-9')\n"
-                    ."||| Name  || [[Text:perm | width:50% ]]\n"
-                    ."||| Mode  || [[Text:modes | width:50% ]]\n"
-                    ."||| User  || ".SEEDSessionAccount_AdminUI::MakeUserSelectCtrl($this->oAcctDB, 'sfPp_uid', 'uid', '', ['sSelAttrs'=>"style='width:100%'"])
-                    ."||| Group || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfPp_gid', 'gid', '', ['sSelAttrs'=>"style='width:100%'"])
+                    ."||| Name  || [[Text:perm | width:100% ]]\n"
+                    ."||| Mode  || [[Text:modes | width:100% ]]\n"
+                    ."||| User  || ".SEEDSessionAccount_AdminUI::MakeUserSelectCtrl($this->oAcctDB, 'sfPp_uid', 'uid')
+                    ."||| Group || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfPp_gid', 'gid')
                     ."||| <input type='submit' value='Save'>  [[HiddenKey:]]";
                 break;
         }
@@ -246,13 +246,14 @@ class SEEDPerm_KFUIListForm_Config
     function FormTemplate( SEEDCoreForm $dummy )
     {
         if( $this->c == 'seedpermsclasses' ) {
-            $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-                ."||| App  || [[Text:application]]\n"
-                ."||| Class name  || [[Text:name]]\n"
+            $s = "|||BOOTSTRAP_TABLE(class='col-md-3'|class='col-md-9')\n"
+                ."||| App         || [[Text:application | width:100%]]\n"
+                ."||| Class name  || [[Text:name | width:100%]]\n"
                 ."||| <input type='submit' value='Save'>  [[HiddenKey:]]";
         } else {
-            $s = "|||BOOTSTRAP_TABLE(class='col-md-6'|class='col-md-6')\n"
-                ."||| Class name  || [[Text:C_name]] should be a select\n"
+            $raClassesOpts = $this->oSEEDPerms->GetRAClassesOpts('',true);  // get detailed opts label as key
+            $s = "|||BOOTSTRAP_TABLE(class='col-md-3'|class='col-md-9')\n"
+                ."||| Class name  || ".SEEDFormBasic::DrawSelectCtrlFromOptsArray( 'sfSPp_fk_SEEDPerms_Classes', 'fk_SEEDPerms_Classes', $raClassesOpts )
                 ."||| Mode  || [[Text:modes]]\n"
                 ."||| User  || ".SEEDSessionAccount_AdminUI::MakeUserSelectCtrl($this->oAcctDB, 'sfSPp_user_id', 'user_id')
                 ."||| Group || ".SEEDSessionAccount_AdminUI::MakeGroupSelectCtrl($this->oAcctDB, 'sfSPp_user_group', 'user_group')
