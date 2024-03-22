@@ -62,24 +62,6 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
             return( $s );
     }
 
-    private function getSynonyms()
-    /*****************************
-        Get synonyms of the current sp
-     */
-    {
-        $s = "";
-
-        // If a cultivar is selected, get synonyms
-        if( ($kSp = $this->oComp->Get_kCurr()) ) {
-            $s = ($raSyn = $this->oSLDB->GetList('SY', "fk_sl_species='$kSp'"))
-                    ? ("<b>Also known as</b><div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raSyn,"[[name]]<br/>")."</div>") : "";
-
-            $s = $s ? "<div style='border:1px solid #aaa;padding:10px'>$s</div>" : "";
-        }
-
-        return( $s );
-    }
-
     private function getMeta()
     {
         $sSyn = $sStats = "";
@@ -92,6 +74,7 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
 
                 $sStats =
                      "<strong>References: {$raOverview['nTotal']}</strong><br/><br/>"
+                    ."Cultivars: {$raOverview['nP']}<br/>"
                     ."Seed Library lots: {$raOverview['nI']}<br/>"
                     ."Source list records: "
                         .($raOverview['nSrcCv1'] ? "PGRC, " : "")
