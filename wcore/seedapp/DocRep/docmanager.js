@@ -159,10 +159,6 @@ class myDocRepCtrlView extends DocRepCtrlView
                 $(`#${parentID}`).html(`<div>unknown control mode</div>`);
         }
     }
-
-    DrawCtrlView_Attach()
-    {
-    }
 }
 
 class myDocRepCtrlView_Preview
@@ -1112,11 +1108,13 @@ class DocRepUI02
         this.oTree.DrawTree(0);
 
         this.oCtrlView = new myDocRepCtrlView(
-                        { fnHandleEvent: this.HandleRequest.bind(this),        // tell the object how to send events here
+                        { idCtrlViewContainer: oConfig.ui.idCtrlViewContainer,
+                          fnHandleEvent: this.HandleRequest.bind(this),        // tell the object how to send events here
                           env: oConfig.env,                                    // tell the ctrlview how to interact with the application environment
-                          ui:  oConfig.ui.idTreeContainer 
+                          ui:  oConfig.ui 
                         } );
-
+        this.oCtrlView.DrawCtrlView();
+        
         this.kCurrDoc = 0;
 
         console.log("DocRepUI at level "+oConfig.ui.eUILevel);
@@ -1170,9 +1168,6 @@ class DocRepApp02
 
     InitAppUI()
     {
-
-// make DocRepCtrlView::InitUI() that returns the html of the starting ctrlview, and make DrawCtrlView update that content
-        this.oDocRepUI.DrawCtrlView();
     }
 
     HandleRequest( eRequest, p )
@@ -1197,7 +1192,8 @@ var oDocRepApp02_Config = {
     docsPreloaded: new Map([]),               // replace this with Map() of docs pre-loaded for DocRepTree
     ui: {
         eUILevel:        1,                      // 1=basic UI, 2=more advanced, 3=full UI
-        idTreeContainer: "#docmanui_tree"
+        idTreeContainer: "#docmanui_tree",
+        idCtrlViewContainer: "#docmanui_ctrlview"
     }
 };
 

@@ -13,8 +13,7 @@ class DocRepCtrlView
 {
     constructor( oConfig )
     {
-        this.oConfig = oConfig;
-        
+        this.idCtrlViewContainer = oConfig.idCtrlViewContainer;
         this.fnHandleEvent = oConfig.fnHandleEvent;     // use this to communicate with widgets/app
         
         // initialize ctrlMode then use derived method (or base method if no subclass)
@@ -31,9 +30,11 @@ class DocRepCtrlView
             sTabs += `<div class='tab' data-tabname='${tabname}'>${oConfig.defTabs[tabname]}</div>`;
             if( tabname == this.ctrlMode ) bFoundTabname = true;
         }
-                                       
-        $('#docrepctrlview').html( `<div id='docrepctrlview_tabs'>${sTabs}</div>
-                                    <div id='docrepctrlview_body'></div>` );
+
+        $(this.idCtrlViewContainer).html(`<div id='docrepctrlview'>
+                                              <div id='docrepctrlview_tabs'>${sTabs}</div>
+                                              <div id='docrepctrlview_body'></div>
+                                          </div>`);
 
         // do this after setting the html because it also highlights the current tab
         if( !bFoundTabname ) {
@@ -77,7 +78,6 @@ class DocRepCtrlView
         if( kCurrDoc ) {
             $(`#${parentID}`).empty();
             this.DrawCtrlView_Render(parentID, kCurrDoc );
-            this.DrawCtrlView_Attach();
         }
     }
 
@@ -90,11 +90,6 @@ class DocRepCtrlView
         return( null );
     }
     
-    DrawCtrlView_Attach()
-    {
-        // override to attach event listeners to the html from DrawCtrlView_Render, which is now in the DOM
-    }
-
     HandleRequest( eRequest, p )
     {
         // override to respond to notifications/requests

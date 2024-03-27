@@ -50,7 +50,7 @@ class DocManagerUI_Documents
              ."<div class='container-fluid'>"
                  ."<div class='row'>"
                      ."<div class='col-md-6'> <div id='docmanui_tree'></div> </div>"
-                     ."<div class='col-md-6'> <div id='docrepctrlview'></div> </div>"
+                     ."<div class='col-md-6'> <div id='docmanui_ctrlview'></div> </div>"
                  ."</div>"
             ."</div></div>";
 
