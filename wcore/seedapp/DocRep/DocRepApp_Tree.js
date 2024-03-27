@@ -10,6 +10,7 @@ class DocRepTree
     constructor( oConfig )
     {
         this.fnHandleEvent = oConfig.fnHandleEvent;
+        this.idTreeContainer = oConfig.idTreeContainer;
         this.mapDocs = oConfig.mapDocs;
         this.dirIcons = oConfig.dirIcons;
         this.speed = 0;
@@ -17,7 +18,17 @@ class DocRepTree
 
     DrawTree( kRoot )
     /****************
-        Draw the given root doc and its descendants
+        Draw the tree rooted at kRoot, insert it at #idTreeContainer, and set its state and listeners
+     */
+    {
+        let s = this.#renderTree(kRoot);
+        $(this.idTreeContainer).html(s);     // put the tree in idTreeContainer
+        this.#initTree();                     // set state and listeners
+    }
+
+    #renderTree( kRoot )
+    /****************
+        Draw the html tree content rooted at the given doc
      */
     {
         let s = "";
@@ -53,7 +64,7 @@ class DocRepTree
         if( oDoc.children.length > 0 ) {
             s += `<div class='DocRepTree_level' data-under-kdoc='${oDoc.k}'>`;
             let saveThis = this;
-            oDoc.children.forEach( function (v,k,ra) { s += saveThis.DrawTree(v); } );
+            oDoc.children.forEach( function (v,k,ra) { s += saveThis.#renderTree(v); } );
             s += "</div>";
         }
 
@@ -204,12 +215,15 @@ class DocRepTree
         return( oDRDoc );
     }
 
-    InitUI()
+    #initTree()
+    /**********
+        After the tree is drawn into the dom, call this to set state and listeners
+     */
     {
         let saveThis = this;
-        
-        $('.DocRepTree_title').click( function () {
-            $('.DocRepTree_title').removeClass('DocRepTree_titleSelected');
+
+        $(this.idTreeContainer +' .DocRepTree_title').click( function () {
+            $(saveThis.idTreeContainer +' .DocRepTree_title').removeClass('DocRepTree_titleSelected');
             $(this).addClass('DocRepTree_titleSelected');
 
 // This uses the derived class's event handler to store the new kDoc.
@@ -223,9 +237,9 @@ class DocRepTree
                     saveThis.LevelOpenGet(jDoc) ? saveThis.levelHide(jDoc) : saveThis.levelShow(jDoc); 
             });
         });
-        
+
         // open/close each level based on stored status 
-        $('.DocRepTree_level').each( function () {
+        $(this.idTreeContainer +' .DocRepTree_level').each( function () {
             let pDoc = saveThis.getDocAndJDoc( parseInt($(this).attr('data-under-kdoc')) ); //$(this).closest('.DocRepTree_doc'));
             saveThis.FolderOpenClose( pDoc, saveThis.LevelOpenGet(pDoc) ); 
         });
@@ -233,13 +247,14 @@ class DocRepTree
         // highlight the current doc
 // GetCurrDoc doesn't exist in the base class. See how ctrlMode is stored in CtrlView.        
         let currDoc = saveThis.GetCurrDoc();
+
         if( currDoc ) {
-            $(`.DocRepTree_title[data-kdoc=${currDoc}]`).addClass('DocRepTree_titleSelected');
+            $(this.idTreeContainer +` .DocRepTree_title[data-kdoc=${currDoc}]`).addClass('DocRepTree_titleSelected');
         }
-        
+
         // but always show the top-level forest (node 0 isn't real and can't be closed)
         saveThis.FolderOpenClose( 0, true );
-        
+
         // after init, animate opening and closing
         this.speed = 200;
     }

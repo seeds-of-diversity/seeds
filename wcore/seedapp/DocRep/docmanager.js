@@ -1,8 +1,8 @@
 /* Implements a custom DocManager
  *
- * Copyright (c) 2021-2023 Seeds of Diversity Canada
+ * Copyright (c) 2021-2024 Seeds of Diversity Canada
  *
- * usage: DocRepApp02::InitUI() makes it all start up
+ * usage: DocRepApp02::InitApp() makes it all start up
  *
  * DocRepApp02      - creates a Tree and a CtrlView, lets them communicate with each other, and handles rendering
  * DocRepUI02       - creates Tree and CtrlView for DocRepApp02, manages inter-widget communication, but agnostic to rendering
@@ -46,11 +46,6 @@ class myDocRepTree extends DocRepTree
     constructor(oConfig)
     {
         super(oConfig);
-    }
-
-    InitUI()
-    {
-        super.InitUI();
     }
 
     HandleRequest( eNotify, p )
@@ -1100,21 +1095,26 @@ class DocRepUI02
 {
     constructor( oConfig )
     {
+        this.oConfig = oConfig;
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
         this.oCache = new myDocRepCache( 
                         { mapDocs: oConfig.docsPreloaded,
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
 
+        /* Create myDocRepTree object, draw it into the given container div, set state and listeners
+         */
         this.oTree = new myDocRepTree(
-                        { mapDocs: oConfig.docsPreloaded,
+                        { idTreeContainer: oConfig.ui.idTreeContainer,
+                          mapDocs: oConfig.docsPreloaded,
                           dirIcons: oConfig.env.seedw_url+'img/icons/',
                           fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
+        this.oTree.DrawTree(0);
 
         this.oCtrlView = new myDocRepCtrlView(
                         { fnHandleEvent: this.HandleRequest.bind(this),        // tell the object how to send events here
-                          env: oConfig.env,                                     // tell the ctrlview how to interact with the application environment
-                          ui:  oConfig.ui 
+                          env: oConfig.env,                                    // tell the ctrlview how to interact with the application environment
+                          ui:  oConfig.ui.idTreeContainer 
                         } );
 
         this.kCurrDoc = 0;
@@ -1122,21 +1122,13 @@ class DocRepUI02
         console.log("DocRepUI at level "+oConfig.ui.eUILevel);
     }
 
-    DrawTree()
-    {
-        return( this.oTree.DrawTree( 0 ) );
-    }
+    DrawTree() { this.oTree.DrawTree(0); }
 
     DrawCtrlView()
     {
         this.oCtrlView.DrawCtrlView();
     }
     
-    InitUI()
-    {
-        this.oTree.InitUI();
-    }
-
     HandleRequest( eRequest, p = 0 )
     /*******************************
         Components call here with notifications/requests
@@ -1176,12 +1168,11 @@ class DocRepApp02
         this.oDocRepUI = new DocRepUI02( oConfig );
     }
 
-    InitUI()
+    InitAppUI()
     {
-        // draw the components before initializing them because InitUI sets js bindings in the dom
-        $('#docmanui_tree').html( this.oDocRepUI.DrawTree() );
+
+// make DocRepCtrlView::InitUI() that returns the html of the starting ctrlview, and make DrawCtrlView update that content
         this.oDocRepUI.DrawCtrlView();
-        this.oDocRepUI.InitUI();
     }
 
     HandleRequest( eRequest, p )
@@ -1191,6 +1182,7 @@ class DocRepApp02
             case 'ctrlviewRedraw':  // the CtrlView can request itself to be redrawn when its state changes
                 this.oDocRepUI.DrawCtrlView();
                 break;
+// add docChanged to update the tree and cache appropriately instead of whatever kluge is in Rename                
         }
     }
 }
@@ -1204,10 +1196,11 @@ var oDocRepApp02_Config = {
     },
     docsPreloaded: new Map([]),               // replace this with Map() of docs pre-loaded for DocRepTree
     ui: {
-        eUILevel:     1                       // 1=basic UI, 2=more advanced, 3=full UI
+        eUILevel:        1,                      // 1=basic UI, 2=more advanced, 3=full UI
+        idTreeContainer: "#docmanui_tree"
     }
 };
 
 $(document).ready( function () {
-    (new DocRepApp02( oDocRepApp02_Config )).InitUI();
+    (new DocRepApp02( oDocRepApp02_Config )).InitAppUI();
 });
