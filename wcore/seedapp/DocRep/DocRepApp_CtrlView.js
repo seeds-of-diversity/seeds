@@ -77,11 +77,18 @@ class DocRepCtrlView
 
         if( kCurrDoc ) {
             $(`#${parentID}`).empty();
-            this.DrawCtrlView_Render(parentID, kCurrDoc );
+            let o = { kCurrDoc: kCurrDoc,
+                      oCurrDoc: this.fnHandleEvent('getDocInfo', kCurrDoc),
+                      oDoc:     this.fnHandleEvent('getDocObj', kCurrDoc),
+                      jCtrlViewBody: $(`#${parentID}`),
+                      ctrlMode: this.GetCtrlMode() 
+                    };
+// eliminate parentID in favour of jCtrlViewBody, eliminate kCurrDoc, eliminate o.oCurrDoc in favour of oDoc            
+            this.DrawCtrlView_Render(parentID, kCurrDoc, o );
         }
     }
 
-    DrawCtrlView_Render( kCurrDoc, parentID )
+    DrawCtrlView_Render( kCurrDoc, parentID, oParms )
     /******************************
         Returns a jquery object containing the content of the ctrlview_body
      */

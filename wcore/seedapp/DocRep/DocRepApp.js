@@ -34,6 +34,15 @@ class DocRepCache
         return( oDoc );
     }
     
+    GetDocObj( kDoc )
+    {
+        let doc = this.GetDocInfo(kDoc);
+        let oDoc = new DocRepDoc(kDoc);
+// DocRepDoc should have a method for fetching metadata when it instantiates
+        oDoc.SetMetadata( {name: doc.name, title: doc.title, permclass: doc.permclass} );
+        return( oDoc );   
+    }
+    
     UpdateDocInfo( p )
     {
         let kDoc = parseInt(p.kDoc);    // map requires this to be integer type (uses strict key matching)
@@ -54,4 +63,45 @@ class DocRepCache
     {
         // override to add doc(s) to mapDocs
     }
+}
+
+class DocRepDoc
+{
+    constructor( kDoc )
+    {
+        this.kDoc = kDoc;
+        
+// must have a method that fetches or initializes the metadata
+    }    
+
+    Key()       { return(this.kDoc); }
+    Name()      { return(this.name); }
+    Title()     { return(this.title); }
+    Permclass() { return(this.permclass); }
+    
+    /**
+        The name not including a leading path
+     */
+    BaseName()
+    {
+        let name = this.Name();
+        let basename = "";
+        
+        if( name ) {
+            let i = name.lastIndexOf('/');
+            
+            basename = (i == -1) ? name         // name has no named parent (basename is full name)
+                                 : name.substring(i+1);
+        }
+        
+        return( basename );
+    }
+
+    SetMetadata( oM )
+    {
+        this.name = oM.name;
+        this.title = oM.title;
+        this.permclass = oM.permclass;    
+    }
+    
 }

@@ -92,7 +92,7 @@ class DocManagerUI_Documents
             $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
             $p = $oDoc->GetParent();
             $schedule = SEEDCore_HSC($oDoc->GetDocMetadataValue('schedule'));
-            $perms = $oDoc->GetPermclass();
+            $permclass = $oDoc->GetPermclass();
             $raDocMetadata = $oDoc->GetValue('raDocMetadata', DocRepDoc2::FLAG_INDEPENDENT);
         } else {
             // kDoc is zero only at the root recursion when the fake "zero node" holds the root forest. The record has no metadata, just children.
@@ -101,13 +101,13 @@ class DocManagerUI_Documents
             $ti = '';
             $t = 'folder';
             $schedule = '';
-            $perms = '';
+            $permclass = '';
             $raDocMetadata = [];
         }
         $c = implode(',', array_keys($raChildren));
         $md = SEEDCore_ArrayExpandSeries( $raDocMetadata, "'[[k]]':'[[v]]'", true, ['delimiter'=>","] );
 
-        $s .= "[$kDoc, { k:$kDoc, name:'$n', title:'$ti', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', perms:'$perms', docMetadata:{ $md } }],";
+        $s .= "[$kDoc, { k:$kDoc, name:'$n', title:'$ti', doctype:'$t', kParent:$p, children: [$c], schedule:'$schedule', permclass:'$permclass', docMetadata:{ $md } }],";
 
         foreach( $raChildren as $k => $ra ) {
             $s .= $this->outputTree( $oDocRepDB, $k, $ra['children'] );

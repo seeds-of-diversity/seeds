@@ -112,8 +112,8 @@ class myDocRepCtrlView extends DocRepCtrlView
     // TODO: on first time load, no doc is selected 
     // show default message or select a doc by default
 
-    DrawCtrlView_Render( parentID, kCurrDoc )
-    /******************************
+    DrawCtrlView_Render( parentID, kCurrDoc, oParms )
+    /************************************************
         draws contents of ctrl_view body under parentID
      */
     {
@@ -130,19 +130,19 @@ class myDocRepCtrlView extends DocRepCtrlView
                 break;
 
             case 'rename':
-                myDocRepCtrlView_Rename.Init(this, kCurrDoc);
-                myDocRepCtrlView_Rename.DrawTabBody(parentID);
+                let o = new myDocRepCtrlView_Rename(this);
+                o.DrawTabBody(oParms);
                 break;
                 
             case 'versions':
-            	myDocRepCtrlView_Versions.Init(this, kCurrDoc);
+                myDocRepCtrlView_Versions.Init(this, kCurrDoc);
                 myDocRepCtrlView_Versions.DrawVersions(parentID);
                 myDocRepCtrlView_Versions.DrawTabBody(parentID);
                 break;
                 
             case 'vars':
-                myDocRepCtrlView_Vars.Init(this, kCurrDoc);
-                myDocRepCtrlView_Vars.DrawTabBody(parentID);
+                this.oCtrlViewRender = new myDocRepCtrlView_Vars(this);
+                this.oCtrlViewRender.DrawTabBody(oParms,parentID, kCurrDoc);
                 break;
             
             case 'schedule':
@@ -429,12 +429,12 @@ class myDocRepCtrlView_Add
 
             if( position == 'child' ) {
                 // kDoc is the parent so use the same permclass
-                permclass = oDoc.perms;
+                permclass = oDoc.permclass;
             } else {
                 // kDoc is the sibling so use the parent's permclass
                 if( oDoc.kParent ) {
                     oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', oDoc.kParent);
-                    permclass = oDoc.perms;
+                    permclass = oDoc.permclass;
                 } else {
                     alert( "Cannot add at document tree root without specifying permission class" );
                     return( false );
@@ -514,36 +514,27 @@ class myDocRepCtrlView_Add
 
 class myDocRepCtrlView_Rename
 {
-	static oCtrlView = null;
-    static kCurrDoc = 0;
-    
-    static Init( oCtrlView, kCurrDoc )
+    constructor( oCtrlView )
     {
         this.oCtrlView = oCtrlView;
-        this.kCurrDoc = kCurrDoc;
     }
     
-    static DrawTabBody( parentID )
-    /**
-    draw rename form
-     */
+    DrawTabBody( oParms )
     {
-        let sName = "", sTitle = "", sPerms = "";
-        let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
-
+        let sName = "", sTitle = "", sPermclass = "";
+        let oDoc = oParms.oDoc;
+        
         if( oDoc ) {
-            sName = this.docBasename(oDoc);
-            sTitle = oDoc['title'];
-            sPerms = oDoc['perms'];
+            sName = oDoc.BaseName();
+            sTitle = oDoc.Title();
+            sPermclass = oDoc.Permclass();
         }
 		const label = 'col-md-3';
         const ctrl = 'col-md-6';
-        
-        $(`#${parentID}`).empty();
-        
-        $(`#${parentID}`).html(`
-        	<form onsubmit='myDocRepCtrlView_Rename.Submit(event, "${this.oCtrlView.oConfigEnv.q_url}")'>
-        		<div class='row'> 
+
+        oParms.jCtrlViewBody.html(`
+        	<form id='drRename_form'> `// onsubmit='myDocRepCtrlView_Rename.Submit(event, "")'>
+        	+`	<div class='row'> 
         		 	<div class=${label}>Name</div>        
         		 	<div class=${ctrl}>
         		 		<input type='text' id='formRename_name'  value='${sName}' style='width:100%'/>
@@ -559,41 +550,24 @@ class myDocRepCtrlView_Rename
                     `<div class='row'> 
                         <div class=${label}>Permissions</div>
                         <div class=${ctrl}>
-                            <input type='text' id='formRename_perms' value='${sPerms}' style='width:100%'/>
+                            <input type='text' id='formRename_perms' value='${sPermclass}' style='width:100%'/>
                         </div>
                     </div>` : '')
-              +`<br/><input type='hidden' id='drRename_kDoc' value='${this.kCurrDoc}'/>
+              +`<br/><input type='hidden' id='drRename_kDoc' value='${oDoc.kDoc}'/>
                 <input type='submit' value='Change'/>
 			</form>`);
+
+        let saveThis = this;
+        $('#drRename_form').submit( function(e) {  
+            e.preventDefault();
+            saveThis.Submit()
+        });
+
     }
    
-   // put this in a Doc object 
-    static docBasename( oDoc )
-    {
-        let basename = "";
-        
-        if( oDoc.name ) {
-            let i = oDoc.name.lastIndexOf('/');
-            
-            if( i == -1 ) {
-                // name has no named parent (basename is full name)
-                basename = oDoc.name;
-            } else {
-                basename = oDoc.name.substring(i+1);
-            }
-        }
-        
-        return( basename );
-    }
-
-
-    
-   static Submit( e, q_url ) 
-   /**
-   change name 
-    */
+   Submit() 
 	{
-		e.preventDefault();;
+        let q_url = this.oCtrlView.oConfigEnv.q_url;
 		let kDoc = parseInt($('#drRename_kDoc').val());
 		let name = $('#formRename_name').val();
 		let title = $('#formRename_title').val();
@@ -611,7 +585,7 @@ class myDocRepCtrlView_Rename
 	/*
 	update tree after rename 
 	*/
-	static UpdateTree( kDoc, name, title, permclass ) 
+	UpdateTree( kDoc, name, title, permclass ) 
 	{
         // change the name in the tree
 		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
@@ -809,30 +783,26 @@ class myDocRepCtrlView_Vars
     Implement the Variables pane of the Ctrlview
  */
 {
-    static oCtrlView = null;    // the myDocRepCtrlView using this class
-    static kCurrDoc = 0;        // the current doc (you could also get this via oCtrlView)
-    
-    static Init( oCtrlView, kCurrDoc )
+    constructor( oCtrlView )
     {
         this.oCtrlView = oCtrlView;
-        this.kCurrDoc = kCurrDoc;
     }
     
-    static DrawTabBody( parentID )
+    DrawTabBody( oParms, parentID, kCurrDoc )
     {
-	
+        this.kCurrDoc = kCurrDoc;
+        
         let jForm = null;
         let rQ = null;
         
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
-        /*
         if( !oDoc || oDoc.doctype != 'page' ) {
-			$(`#${parentID}`).empty(); 
-			$(`#${parentID}`).html(`No variables info available`); 
-			return;
-		}
-        */
-        jForm = $(`<form id='drVars_form' onsubmit='myDocRepCtrlView_Vars.Submit(event)'>
+            $(`#${parentID}`).empty(); 
+            $(`#${parentID}`).html(`No variables info available`); 
+            return;
+        }
+       
+        jForm = $(`<form id='drVars_form'>
                    <div class='row' id='drVars_rownew'>
                        <div class='col-4'><input type='text' id='var_knew' style='width:100%'/></div>
                        <div class='col-8'><input type='text' id='var_vnew' style='width:100%'/></div>
@@ -858,14 +828,17 @@ class myDocRepCtrlView_Vars
 
         $(`#${parentID}`).html(jForm);
         
+        let saveThis = this;
+        $('#drVars_form').submit( function(e) {  
+            e.preventDefault();
+            saveThis.Submit()
+        });
     }
     
-    static Submit(e)
+    Submit()
     {
-        e.preventDefault();
-        
         let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', this.kCurrDoc);
-        if( !oDoc || oDoc.doctype != 'page' ) return( "" );
+        if( !oDoc ) return;
 
         let newVars = {};
         // The form contains the same number of input pairs as the docMetedata        
@@ -878,6 +851,7 @@ class myDocRepCtrlView_Vars
                 newVars[k] = v;
             }
         }
+        console.log(newVars);
         let k = $("#drVars_form input#var_knew").val();
         let v = $("#drVars_form input#var_vnew").val();
         if( k ) {
@@ -1142,6 +1116,9 @@ class DocRepUI02
                 
             case 'getDocInfo':
                 return( this.oCache.GetDocInfo(p) );
+                
+            case 'getDocObj':
+                return( this.oCache.GetDocObj(p) );
                 
             case 'updateDocInfo':
                 return( this.oCache.UpdateDocInfo(p) );
