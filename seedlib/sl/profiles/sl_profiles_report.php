@@ -2,7 +2,7 @@
 
 /* Crop Profiles reporting
  *
- * Copyright (c) 2009-2019 Seeds of Diversity Canada
+ * Copyright (c) 2009-2024 Seeds of Diversity Canada
  */
 
 class SLProfilesReport
@@ -25,11 +25,11 @@ class SLProfilesReport
     {
         $s = "";
 
-        if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VISite', $kVI )) ) goto done;
-        list($sp,$cv) = $this->oProfilesDB->ComputeVarInstName( $kfrVI->ValuesRA() );
+        if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VI', $kVI )) ) goto done;
+        list($psp,$sp,$cv) = $this->oProfilesDB->ComputeVarInstName($kfrVI);
 
         $raDO = $this->oProfilesDB->GetList( 'Obs', "fk_sl_varinst='$kVI'" );
-        $defsRA = $this->oProfilesDefs->GetDefsRAFromSP( $sp );
+        $defsRA = $this->oProfilesDefs->GetDefsRAFromSP( $psp );
 //var_dump($raVI);
 //var_dump($raDO);
 
@@ -95,7 +95,7 @@ class SLProfilesReport
         $s = "";
 
         if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VI', $kVI )) ) goto done;
-        list($sp,$cv) = $this->oProfilesDB->ComputeVarInstName( $kfrVI->ValuesRA() );
+        //list($psp,$sp,$cv) = $this->oProfilesDB->ComputeVarInstName($kfrVI);
 
 //        $raForms = $this->getFormsForSp( $sp );
 
@@ -134,7 +134,7 @@ class SLProfilesReport
     private function drawObservationForm( $kfrVI, $eForm, SEEDUIComponent $oUIComp )
     {
         $kVI = $kfrVI->Key();
-        list($sp,$cv) = $this->oProfilesDB->ComputeVarInstName( $kfrVI->ValuesRA() );
+        list($psp,$sp,$cv) = $this->oProfilesDB->ComputeVarInstName($kfrVI);
 
         $s = "";
 
@@ -146,7 +146,7 @@ class SLProfilesReport
         if( true ) { //@$this->raSpecies[$eForm]['hardform'] ) {
             //include_once( SEEDCOMMON."sl/desc/".$sp.".php" );
 
-            switch( $sp ) {
+            switch( $psp ) {
                 case "apple"  : $s .=   appleForm( $this->oProfilesDB, $kVI); break;
                 case "bean"   : $s .=    beanForm( $this->oProfilesDB, $kVI); break;
                 case "garlic" : $s .=  garlicForm( $this->oProfilesDB, $kVI); break;
@@ -162,16 +162,16 @@ class SLProfilesReport
             $oF = new SLDescForm( $this->oSLDescDB, $this->kVI );
             $oF->Update();
 
-            $oF->LoadDefs( $osp );
+            $oF->LoadDefs( $psp );
 
             $s .= $oF->Style();
 
             if( $eForm == 'default' ) {
-                $s .= $oF->DrawDefaultForm( $osp );
+                $s .= $oF->DrawDefaultForm( $psp );
 
             } else if( ($kForm = intval($eForm)) ) {
                 $ra = $this->kfdb->QueryRA( "SELECT * from sl_desc_cfg_forms WHERE _key='$kForm'" );
-                if( $ra['species'] == $osp ) {
+                if( $ra['species'] == $psp ) {
                     $s .= $oF->DrawFormExpandTags( $ra['form'] );
                 }
             }
@@ -179,10 +179,12 @@ class SLProfilesReport
 
 
 // Use SEEDUI to format the form
-        $s = "<form method='post' action='".$this->oApp->PathToSelf()."'>"
+        $s = "<form method='post' action='{$this->oApp->PathToSelf()}'>"
+            ."<input type='hidden' name='vi' value='{$kVI}'/>"                          // this is just for the UI (use profileUpdate)
+            ."<br/><input type='submit' value='Save' class='slUserFormButton' />"
             ."<div style='border:1px solid #eee;padding:10px'>"
             .SEEDForm_Hidden( 'action', 'profileUpdate' )
-            .$oUIComp->HiddenFormUIParms( array('kCurr','sortup','sortdown') )
+            //.$oUIComp->HiddenFormUIParms( array('kCurr','sortup','sortdown') )
             .$s
             ."<br/><input type='submit' value='Save' class='slUserFormButton' />"
             ."</div></form>";
