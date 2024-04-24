@@ -999,10 +999,10 @@ class SEEDUIComponent_ViewWindow
     {
         $bViewChanged = false;  // *** obsolete because VIEW_RESET causes iCurr=-1 and List Dropdowns set iCurr=-1
 
-        if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
-
 $debug=false;
 if($debug) var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
+
+        if( !$this->bEnableKeys )  goto done;       // everything below applies only when keys are enabled
 
         /* Case 4) IsNewRowState()
          *         there will be no selection in the list - probably redundant since this should be done where bNewRowState is set

@@ -356,7 +356,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
     {
         parent::__construct( $oComp, $raConfig );
 
-        $this->oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>$raConfig['bUse_key']] );
+        $this->oViewWindow = new SEEDUIComponent_ViewWindow( $this->oComp, ['bEnableKeys'=>@$raConfig['bUse_key']] );
     }
 
     function RegisterWithComponent()
