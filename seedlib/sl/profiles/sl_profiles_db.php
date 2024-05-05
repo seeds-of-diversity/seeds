@@ -4,6 +4,7 @@
  *
  * Copyright (c) 2009-2024 Seeds of Diversity Canada
  */
+include_once(SEEDLIB."sl/sldb.php");
 
 class SLProfilesDB extends Keyframe_NamedRelations
 {
