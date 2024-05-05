@@ -725,7 +725,7 @@ CREATE TABLE sl_varinst (
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-    fk_mbr_contacts INTEGER NOT NULL,
+    fk_mbr_contacts INTEGER NOT NULL DEFAULT 0,
     fk_mbr_sites    INTEGER NOT NULL DEFAULT 0,
     fk_sl_inventory INTEGER NOT NULL DEFAULT 0,  # preferred one way
     fk_sl_pcv       INTEGER NOT NULL DEFAULT 0,  # or preferred another way
