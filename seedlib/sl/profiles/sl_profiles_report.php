@@ -35,18 +35,19 @@ class SLProfilesReport
 
         $s = "<table class='sldesc_VIRecord_table' border='0' cellspacing='5' cellpadding='5'>";
         if( $bBasic ) {
-            $uid = $kfrVI->Value('Site_uid');
-            $oDB = new SEEDSessionAccountDBRead( $this->oProfilesDB->GetKFDB(), "seeds" );
-            list($k,$raUserInfo) = $oDB->GetUserInfo( $uid, false, false );
-            if( @$raUserInfo['realname'] ) {
-                $uid = $raUserInfo['realname']." ($uid)";
-            }
+            $mbrName = (new Mbr_Contacts($this->oApp))->GetContactName($kfrVI->Value('fk_mbr_contacts'));
+            //$uid = $kfrVI->Value('Site_uid');
+            //$oDB = new SEEDSessionAccountDBRead( $this->oProfilesDB->GetKFDB(), "seeds" );
+            //list($k,$raUserInfo) = $oDB->GetUserInfo( $uid, false, false );
+            //if( @$raUserInfo['realname'] ) {
+            //    $uid = $raUserInfo['realname']." ($uid)";
+            //}
 
-            $s .= "<tr><td width='250'><b>Observer:</b></td><td width='200'>$uid</td></tr>"
-                 ."<tr><td width='250'><b>Species:</b></td><td width='200'>".ucwords($sp)."</td></tr>"
-                 ."<tr><td><b>Variety:</b></td><td> ".ucwords($cv)."</td></tr>"
-                 ."<tr><td><b>Year:</b></td><td> ".$kfrVI->Value('year')."</td></tr>"
-                 ."<tr><td><b>Location:</b></td><td> ".$kfrVI->Value('Site_province')."</td></tr>"
+            $s .= "<tr><td width='250'><b>Observer:</b></td><td width='200'>".SEEDCore_HSC($mbrName)."</td></tr>"
+                 ."<tr><td width='250'><b>Species:</b></td><td width='200'>{$sp}</td></tr>"
+                 ."<tr><td><b>Variety:</b></td><td>{$cv}</td></tr>"
+                 ."<tr><td><b>Year:</b></td><td>{$kfrVI->Value('year')}</td></tr>"
+                 ."<tr><td><b>Location:</b></td><td>{$kfrVI->Value('Site_province')}</td></tr>"
 	         ."<tr><td><hr/></td><td>&nbsp;</td></tr>";
         }
         foreach( $raDO as $obs ) {

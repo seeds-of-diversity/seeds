@@ -131,16 +131,13 @@ class ProjectsTabProjects
         $oProfilesDefs = new SLProfilesDefs( $oProfilesDB );
         $oProfilesReport = new SLProfilesReport( $oProfilesDB, $oProfilesDefs, $this->oP->oApp );
 
-        if( ($u = intval($this->oP->oApp->sess->GetUID())) ) {
-            foreach( $oSLDB->GetList('VI', "VI.fk_mbr_contacts=$u") as $raVI ) {
-                // some varieties are defined by lot #
-                if( ($kI = intval($raVI['fk_sl_inventory'])) && ($kfr = $oSLDB->GetKFRCond('IxAxPxS', "I.inv_number=$kI AND I.fk_sl_collection=1")) ) {
-                    $sLeft .= "<p><a href='?vi={$raVI['_key']}'>{$kfr->Value('S_name_en')} : {$kfr->Value('P_name')}</a></p>";
-                }
-                // some varieties are defined by pcv
-                if( ($kP = intval($raVI['fk_sl_pcv'])) && ($kfr = $oSLDB->GetKFR('PxS', $kP)) ) {
-                    $sLeft .= "<p><a href='?vi={$raVI['_key']}'>{$kfr->Value('S_name_en')} : {$kfr->Value('name')}</a></p>";
-                }
+        if( ($u = intval($this->oP->oApp->sess->GetUID())) &&
+            ($kfrc = $oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts=$u")) )
+        {
+            while( $kfrc->CursorFetch() ) {
+                list($psp,$sSp,$sCv) = $oProfilesDB->ComputeVarInstName($kfrc);
+
+                $sLeft .= "<p><a href='?vi={$kfrc->Key()}'>$sSp : $sCv</a></p>";
             }
         }
 
@@ -177,7 +174,7 @@ class ProjectsTabProjects
                                    ."<input type='submit' value='Edit'/>"
                                ."</form>"
                            ."</div>"
-                           ."<h3>Record #$kVI</h3>"
+                           //."<h3>Record #$kVI</h3>"
                            .$oProfilesReport->DrawVIRecord( $kVI, true )
                            ."</div>";
             }
