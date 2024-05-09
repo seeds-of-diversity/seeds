@@ -55,12 +55,11 @@ class Q
             $o = new QServerEvents( $this->oApp, $this->raConfig );
             $rQ = $o->Cmd( $cmd, $parms );
         }
-
         else
-            if( SEEDCore_StartsWith( $cmd, 'rosetta' ) ) {
-//            include_once( "_QServerPCV.php" );
-//            $o = new QServerPCV( $this->oApp, $this->raConfig );
-//            $rQ = $o->Cmd( $cmd, $parms );
+
+        if( SEEDCore_StartsWith( $cmd, 'rosetta' ) ) {
+            include_once( SEEDLIB."sl/QServerRosetta.php" );
+            $rQ = (new QServerRosetta($this->oApp, $this->raConfig))->Cmd( $cmd, $parms );
         }
         else
 
