@@ -101,7 +101,7 @@ HEREDOC;
              </div>
              <script>SEEDUI_BoxExpandInit( '{$this->oApp->lang}', '{$this->oApp->UrlW()}' );</script>";
 
-        $s = Console02Static::HTMLPage( $sBody, $sHead, $this->oApp->lang,
+        $s = Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, $this->oApp->lang,
                                   ['sTitle' => $sTitle,
                                    'icon' => $this->oApp->UrlW()."img/sod.ico",
                                    'raScriptFiles'=>[$this->oApp->UrlW()."js/SEEDUI.js"],
