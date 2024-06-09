@@ -418,10 +418,10 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
      */
     {
         $bSuccess = false;
-        $raVars = array();
+        $raVars = [];
 
-        $pwd1 = SEEDSafeGPC_GetStrPlain('user_pass1');
-        $pwd2 = SEEDSafeGPC_GetStrPlain('user_pass2');
+        $pwd1 = SEEDInput_Str('user_pass1');
+        $pwd2 = SEEDInput_Str('user_pass2');
 
         if( !$pwd1 || !$pwd2 ) {
             $raVars['errmsg'] = "Please enter a password, and retype it to make sure.";
@@ -432,7 +432,8 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
             goto done;
         }
 
-        $bSuccess = $this->oAuthDB->ChangeUserPassword( $this->oApp->sess->GetUID(), $pwd1 );
+        $oAcctDBWrite = new SEEDSessionAccountDB2($this->oApp->kfdb, $this->oApp->sess->GetUID());
+        $bSuccess = $oAcctDBWrite->ChangeUserPassword( $this->oApp->sess->GetUID(), $pwd1 );
 
         done:
         return( $this->oTmpl->ExpandTmpl( $bSuccess ? "AccountChangePassword-1" : "AccountChangePassword-0", $raVars ) );
@@ -675,6 +676,7 @@ class SEEDSessionAuthUI_Local2
 
         /* ChangePassword
          */
+/* now in seedsession.html
         "ChangePassword_button" => array(
             "EN" => "Change Password",
             "FR" => "Changez le mot de passe" ),
@@ -689,8 +691,8 @@ class SEEDSessionAuthUI_Local2
 
         "ChangePassword_success" => array(
             "EN" => "Your password is changed",
-/* ! */     "FR" => "Your password is changed" ),
-
+ !          "FR" => "Your password is changed" ),
+*/
         );
         return( $localStrings );
     }
