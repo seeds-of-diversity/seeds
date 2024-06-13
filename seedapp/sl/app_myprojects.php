@@ -160,8 +160,24 @@ class ProjectsTabProjects
 
             if( SEEDInput_Int('doForm') ) {
                 // Show the form
-                $sRight  .= "<h3>Edit Record for $sSp : $sCv (#$kVI)</h3>"
-                           .$oProfilesReport->DrawVIForm( $kVI, $oComp );
+                $oChooseForm = new SEEDCoreForm('Plain');
+                $oChooseForm->Update();
+                if( !$oChooseForm->Value('chooseForm') )  $oChooseForm->SetValue('chooseForm', 'cgo');
+
+                $sRight  .= "<div style='float:right'><form method='post'>"
+                           ."<p><b>Choose Your Form</b></p>"
+                           .$oChooseForm->Select('chooseForm',
+                                   ["Trial performance form for Community Grow-outs" => 'cgo',
+                                    "Shortened descriptive form"                     => 'short',
+                                    "Full taxonomic form"                            => 'long'],
+                                   "",
+                                   ['attrs'=>"onchange='submit()'"] )
+                           ."<input type='hidden' name='doForm' value='1'/>
+                             <input type='hidden' name='vi' value='{$kVI}'/>
+                             </form></div>"
+
+                            ."<h3>Edit Record for $sSp : $sCv</h3>" // (#$kVI)</h3>
+                           .$oProfilesReport->DrawVIForm( $kVI, $oComp, $oChooseForm->Value('chooseForm') );
             } else {
                 // Show the summary
                 $sRight  .= "<div style='border-left:1px solid #ddd;border-bottom:1px solid #ddd'>"

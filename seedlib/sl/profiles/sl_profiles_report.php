@@ -5,6 +5,8 @@
  * Copyright (c) 2009-2024 Seeds of Diversity Canada
  */
 
+//include_once("sl_profiles_defs.php");
+
 class SLProfilesReport
 {
     private $oProfilesDB;
@@ -91,9 +93,11 @@ class SLProfilesReport
         return( $s );
     }
 
-    function DrawVIForm( $kVI, SEEDUIComponent $oUIComp )
+    function DrawVIForm( $kVI, SEEDUIComponent $oUIComp, string $eForm )
     {
         $s = "";
+
+        if( !$eForm )  $eForm = 'default';
 
         if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VI', $kVI )) ) goto done;
         //list($psp,$sp,$cv) = $this->oProfilesDB->ComputeVarInstName($kfrVI);
@@ -126,7 +130,7 @@ class SLProfilesReport
         }
 */
 
-        $s .= $this->drawObservationForm( $kfrVI, 'default', $oUIComp );
+        $s .= $this->drawObservationForm( $kfrVI, $eForm, $oUIComp );
 
         done:
         return( $s );
@@ -149,7 +153,7 @@ class SLProfilesReport
 
             switch( $psp ) {
                 case "apple"  : $s .=   appleForm( $this->oProfilesDB, $kVI); break;
-                case "bean"   : $s .=    beanForm( $this->oProfilesDB, $kVI); break;
+                case "bean"   : $s .=    beanForm( $this->oProfilesDefs, $this->oProfilesDB, $kVI, $eForm); break;
                 case "garlic" : $s .=  garlicForm( $this->oProfilesDB, $kVI); break;
                 case "lettuce": $s .= lettuceForm( $this->oProfilesDB, $kVI); break;
                 case "onion"  : $s .=   onionForm( $this->oProfilesDB, $kVI); break;
@@ -157,7 +161,7 @@ class SLProfilesReport
                 case "pepper" : $s .=  pepperForm( $this->oProfilesDB, $kVI); break;
                 case "potato" : $s .=  potatoForm( $this->oProfilesDB, $kVI); break;
                 case "squash" : $s .=  squashForm( $this->oProfilesDB, $kVI); break;
-                case "tomato" : $s .=  tomatoForm( $this->oProfilesDB, $kVI); break;
+                case "tomato" : $s .=  tomatoForm( $this->oProfilesDefs, $this->oProfilesDB, $kVI, $eForm); break;
             }
         } else {
             $oF = new SLDescForm( $this->oSLDescDB, $this->kVI );
@@ -269,97 +273,132 @@ return ($f);
 
 
 
-function beanForm( SLProfilesDB $oDB, $kVI ){
-$oF = new SLProfilesForm( $oDB, $kVI );
-$oF->Update();
+function beanForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kVI, string $eForm )
+{
+    $raBeanFormCommon = [
+    	['cmd'=>'head', 'head_EN'=>"bean"],
 
-$f = $oF->Style();
-//TODO: TERMI_SHAPE needs a picture
-//TODO: GRAI_COLOR should be in the next section (snap harvest)
+        ['cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates"],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__poddate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__seeddate'],
 
-$raBeanFormCommon = array(
-	array( 'cmd'=>'head', 'head_EN'=>"bean"),
+        ['cmd'=>'section', 'title_EN'=>"Population Counts", 'title_FR'=>"Population Counts"],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__popinitial'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__germpercent'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__plantsremoved'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__plantsdied'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__poppollinating'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__popharvestseeds'],
+    ];
 
-    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate' ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__poddate' ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__seeddate' ),
-);
-$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
-$f .= $oF->DrawForm( $raBeanFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+    //TODO: TERMI_SHAPE needs a picture
+    //TODO: GRAI_COLOR should be in the next section (snap harvest)
 
-$raBeanForm = array(
-    array( 'cmd'=>'section', 'title_EN'=>"Seedling", 'title_FR'=>"Seedling" ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_ANTHO' ),
+    $raBeanFormFull = array(
+        array( 'cmd'=>'section', 'title_EN'=>"Seedling", 'title_FR'=>"Seedling" ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_ANTHO' ),
 
-    array( 'cmd'=>'section', 'title_EN'=>"Mid summer", 'title_FR'=>"Mid summer" ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_GROWT' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLANT_TYPE' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_CLIMB' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__LEAF_COLOR' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__LEAF_SIZE' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__LEAF_RUGOS' ),
+        array( 'cmd'=>'section', 'title_EN'=>"Mid summer", 'title_FR'=>"Mid summer" ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_GROWT' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLANT_TYPE' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_CLIMB' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__LEAF_COLOR' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__LEAF_SIZE' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__LEAF_RUGOS' ),
 
-    array( 'cmd'=>'section', 'title_EN'=>"Flowers", 'title_FR'=>"Les fleurs" ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_FLOWE' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_LOCAT' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_BRACT' ),
-    array(     'cmd'=>'inst', 'inst_EN'=>"Bean flowers have two kinds of petals:  standards curled at the bottom and wings spread at the top."),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_STAND' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_WINGS' ),
+        array( 'cmd'=>'section', 'title_EN'=>"Flowers", 'title_FR'=>"Les fleurs" ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__PLAN_FLOWE' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_LOCAT' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_BRACT' ),
+        array(     'cmd'=>'inst', 'inst_EN'=>"Bean flowers have two kinds of petals:  standards curled at the bottom and wings spread at the top."),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_STAND' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__FLOW_WINGS' ),
 
-    array( 'cmd'=>'section', 'title_EN'=>"2-3 weeks after flowering", 'title_FR'=>"2-3 weeks after flowering" ),
-    array(     'cmd'=>'q_f', 'k'=>'bean_NOR_f__PLANT_CM' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__TERMI_SHAPE' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__TERMI_SIZE' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__TERMI_APEX' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAI_COLOR' ),
+        array( 'cmd'=>'section', 'title_EN'=>"2-3 weeks after flowering", 'title_FR'=>"2-3 weeks after flowering" ),
+        array(     'cmd'=>'q_f', 'k'=>'bean_NOR_f__PLANT_CM' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__TERMI_SHAPE' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__TERMI_SIZE' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__TERMI_APEX' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAI_COLOR' ),
 
-    array( 'cmd'=>'section', 'title_EN'=>"Snap beans, harvest", 'title_FR'=>"Snap beans, harvest" ),
-    array(     'cmd'=>'inst', 'inst_EN'=>"Please answer the following questions for ripe pods of varieties that are suitable for fresh (snap) use."),
-    array(     'cmd'=>'q_f', 'k'=>'bean_SoD_f__podlength' ),
-    array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__POD_SECTIO' ),
-    array(     'cmd'=>'inst', 'inst_EN'=>"Most bean pods are one uniform colour; some have a main background colour with extra markings such as stripes or spots."),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_GROUND' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_INTENS' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PIGMEN' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PIGCOL' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_STRING' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_CURVAT' ),
-    array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__POD_SHACUR' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_SHATIP' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_LEBEAK' ),
-    array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__POD_CURBEA' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PROMIN' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_TEXTUR' ),
+        array( 'cmd'=>'section', 'title_EN'=>"Snap beans, harvest", 'title_FR'=>"Snap beans, harvest" ),
+        array(     'cmd'=>'inst', 'inst_EN'=>"Please answer the following questions for ripe pods of varieties that are suitable for fresh (snap) use."),
+        array(     'cmd'=>'q_f', 'k'=>'bean_SoD_f__podlength' ),
+        array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__POD_SECTIO' ),
+        array(     'cmd'=>'inst', 'inst_EN'=>"Most bean pods are one uniform colour; some have a main background colour with extra markings such as stripes or spots."),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_GROUND' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_INTENS' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PIGMEN' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PIGCOL' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_STRING' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_CURVAT' ),
+        array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__POD_SHACUR' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_SHATIP' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_LEBEAK' ),
+        array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__POD_CURBEA' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PROMIN' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_TEXTUR' ),
 
-    array( 'cmd'=>'section', 'title_EN'=>"Dry pods", 'title_FR'=>"Dry pods" ),
-    array(     'cmd'=>'inst', 'inst_EN'=>"Please answer these questions after the pods have dried naturally on the plants."),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PARDRY' ),
-    array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_CONSTR' ),
+        array( 'cmd'=>'section', 'title_EN'=>"Dry pods", 'title_FR'=>"Dry pods" ),
+        array(     'cmd'=>'inst', 'inst_EN'=>"Please answer these questions after the pods have dried naturally on the plants."),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_PARDRY' ),
+        array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__POD_CONSTR' ),
 
-	array( 'cmd'=>'section', 'title_EN'=>"Seeds", 'title_FR'=>"Seeds"),
-	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAIN_SIZE' ),
-	array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__SEED_SHAPE' ),
-	array(     'cmd'=>'q_m', 'k'=>'bean_SoD_m__SEED_SHAPE2' ),
-	array(     'cmd'=>'inst', 'inst_EN'=>"Most bean seeds are one uniform colour, but some are multicoloured."),
-    array(     'cmd'=>'q_m', 'k'=>'bean_SoD_m__seedcolours' ),
-	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAIN_MAIN' ),
-	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAI_MASEC' ),
-	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAI_DISTR' ),
-	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__SEED_VEINS' ),
-	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__SEED_HILAR' ),
+    	array( 'cmd'=>'section', 'title_EN'=>"Seeds", 'title_FR'=>"Seeds"),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAIN_SIZE' ),
+    	array(     'cmd'=>'q_m_t', 'k'=>'bean_NOR_m__SEED_SHAPE' ),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_SoD_m__SEED_SHAPE2' ),
+    	array(     'cmd'=>'inst', 'inst_EN'=>"Most bean seeds are one uniform colour, but some are multicoloured."),
+        array(     'cmd'=>'q_m', 'k'=>'bean_SoD_m__seedcolours' ),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAIN_MAIN' ),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAI_MASEC' ),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__GRAI_DISTR' ),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__SEED_VEINS' ),
+    	array(     'cmd'=>'q_m', 'k'=>'bean_NOR_m__SEED_HILAR' ),
+    );
 
+    $raBeanFormShort = [
+    ];
 
-);
+    $raBeanFormCGO = [
+        ['cmd'=>'section', 'title_EN'=>"Observations", 'title_FR'=>"Observations"],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__disease'],
 
-$oF->SetDefs( SLDescDefsBean::$raDefsBean );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+        ['cmd'=>'section', 'title_EN'=>"Ratings", 'title_FR'=>"Ratings"],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__productivity'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__flavour'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__diseaseresistance'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__uniformity'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__appeal'],
 
-$f .= $oF->DrawForm( $raBeanForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyougrowagain'],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyourecommend'],
 
-   //dw_sect( "Dates" );
-return ($f);
+        ['cmd'=>'section', 'title_EN'=>"Notes", 'title_FR'=>"Notes"],
+        [   'cmd'=>'inst', 'inst_EN'=>"Please note any pros and cons related to growing this variety."],
+        [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notespros'],
+        [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notescons'],
+        [   'cmd'=>'inst', 'inst_EN'=>"Any other comments or things worth noting? How would you describe the variety overall? Anything stand out? Is it good as a fresh eating bean? Good as a soup bean? Both? (etc)."],
+        [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notesgeneral'],
+    ];
+
+    $oF = new SLProfilesForm( $oDB, $kVI );
+    $oF->Update();
+    $oF->SetDefs( $oSLProfilesDefs->GetDefsRAFromSP('bean') );
+
+    $f = $oF->Style()
+        .$oF->DrawForm($raBeanFormCommon);        // draw the common parts of the forms
+    switch($eForm) {
+        default:
+        case 'default':
+        case 'long':        $f .= $oF->DrawForm( $raBeanFormFull );   break;
+        case 'short':       $f .= $oF->DrawForm( $raBeanFormShort );  break;
+        case 'cgo':         $f .= $oF->DrawForm( $raBeanFormCGO );    break;
+    }
+
+    return ($f);
 }
 
 
@@ -425,60 +464,118 @@ return ($f);
 }
 
 
-function tomatoForm( SLProfilesDB $oDB, $kVI ){
-$oF = new SLProfilesForm( $oDB, $kVI );
-$oF->Update();
+function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kVI, string $eForm )
+{
+    $raTomatoFormCommon = [
+    	['cmd'=>'head', 'head_EN'=>"tomato"],
 
-$f = $oF->Style();
+        ['cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates"],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__transplantdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__firstharvestdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__seedharvestdate'],
 
-$raTomatoFormCommon = array(
-	array( 'cmd'=>'head', 'head_EN'=>"tomato"),
+        ['cmd'=>'section', 'title_EN'=>"Population Counts", 'title_FR'=>"Population Counts"],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__popinitial'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__germpercent'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__poptransplanted'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__plantsremoved'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__plantsdied'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__poppollinating'],
+        [   'cmd'=>'q_i', 'k'=>'common_SoD_i__popharvestseeds'],
+    ];
 
-    array( 'cmd'=>'section', 'title_EN'=>"Dates", 'title_FR'=>"Les dates" ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate' ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate' ),
-    array(     'cmd'=>'q_d', 'k'=>'common_SoD_d__harvestdate' ),
+    $raTomatoFormFull = [
+        ['cmd'=>'section', 'title_EN'=>"Mid-Season", 'title_FR'=>"Mid-Season"],
+        [   'cmd'=>'inst', 'inst_EN'=>
+                "For the next question: <br/> determinate (about 2-3 feet tall, produces one main crop of fruit then mostly stops growing, little if any side growth, usually don't need staking)"
+               ."<br/> semi-determinate (about 3-5 feet tall, some slow side growth, grow well on short stakes)"
+               ."<br/> indeterminate (continuously grows long vines with new flower clusters until frost, widely-spaced branches and lots of side shoots, needs staking)"],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__planthabit'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__stempubescence'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__foliagedensity'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__leafattitude'],
+        [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__leaftype'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__flowercolour'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourunripe'],
 
-);
+        ['cmd'=>'section', 'title_EN'=>"Late-Season", 'title_FR'=>"Late-Season"],
+        [   'cmd'=>'q_f', 'k'=>'tomato_SoD_f__vinelength'],
+        [   'cmd'=>'q_f', 'k'=>'tomato_SoD_f__internodelength'],
 
-$oF->SetDefs( SLDescDefsCommon::$raDefsCommon );      // this tells SLDescForm how to interpret the 'common' descriptors
-$f .= $oF->DrawForm( $raTomatoFormCommon );  // this tells SLDescForm to draw a form using those common descriptors, as organized in the array above
+        ['cmd'=>'section', 'title_EN'=>"Fruit", 'title_FR'=>"Fruit"],
+        [   'cmd'=>'inst', 'inst_EN'=>"Answer these questions when the fruit is fully ripe.  Please observe several typical fruit and average your observations."],
+        [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__fruitshape'],
+        [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__fruitshapecrosssection'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitsize'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitdetachment'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourexterior'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourinterior'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_GRIN_m__GELCOLOR'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitfirmness'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitpubescence'],
+    ];
 
-$raTomatoForm = array(
-	array( 'cmd'=>'section', 'title_EN'=>"Mid-Season", 'title_FR'=>"Mid-Season" ),
-	array(     'cmd'=>'inst', 'inst_EN'=>"For the next question: <br/> determinate (about 2-3 feet tall, produces one main crop of fruit then mostly stops growing, little if any side growth, usually don't need staking)" .
-	"<br/> semi-determinate (about 3-5 feet tall, some slow side growth, grow well on short stakes)" .
-	"<br/> indeterminate (continuously grows long vines with new flower clusters until frost, widely-spaced branches and lots of side shoots, needs staking)" ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__planthabit' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__stempubescence' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__foliagedensity' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__leafattitude' ),
-	array(     'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__leaftype' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__flowercolour' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourunripe' ),
+    $raTomatoFormShort = [
+    ];
 
-	array( 'cmd'=>'section', 'title_EN'=>"Late-Season", 'title_FR'=>"Late-Season" ),
-	array(     'cmd'=>'q_f', 'k'=>'tomato_SoD_f__vinelength' ),
-	array(     'cmd'=>'q_f', 'k'=>'tomato_SoD_f__internodelength' ),
+    $raTomatoFormCGO = [
+        ['cmd'=>'section', 'title_EN'=>"Observations", 'title_FR'=>"Observations"],
+        [   'cmd'=>'inst', 'inst_EN'=>"At each stage, remove any plants that are distinctly different (ie off types) than the majority"],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__planthabit'],
+        [   'cmd'=>'q_s', 'k'=>'tomato_SoD_s__aggressive'],
+        [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__leaftype'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__flowercolour'],
 
-	array( 'cmd'=>'section', 'title_EN'=>"Fruit", 'title_FR'=>"Fruit" ),
-	array(     'cmd'=>'inst', 'inst_EN'=>"Answer these questions when the fruit is fully ripe.  Please observe several typical fruit and average your observations." ),
-	array(     'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__fruitshape' ),
-	array(     'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__fruitshapecrosssection' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitsize' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitdetachment' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourexterior' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourinterior' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_GRIN_m__GELCOLOR' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitfirmness' ),
-	array(     'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitpubescence' ),
-);
-$oF->SetDefs( SLDescDefsTomato::$raDefsTomato );  // this tells SLDescForm how to interpret the 'garlic' descriptors
+        ['cmd'=>'section', 'title_EN'=>"Fruit", 'title_FR'=>"Fruit"],
+        [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__fruitshape'],
+        [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__fruitshapecrosssection'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitsize'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitdetachment'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourexterior'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcolourinterior'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitfirmness'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitsizeuniformity'],
+        [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcategory'],
 
-$f .= $oF->DrawForm( $raTomatoForm );  // this tells SLDescForm to draw a form using those garlic descriptors, as organized in the array above
+        ['cmd'=>'section', 'title_EN'=>"Health", 'title_FR'=>"Health"],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__disease'],
+        [   'cmd'=>'inst', 'inst_EN'=>"If yes, please describe and include photo if possible"],
 
-   //dw_sect( "Dates" );
-return ($f);
+        ['cmd'=>'section', 'title_EN'=>"Ratings", 'title_FR'=>"Ratings"],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__productivity'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__flavour'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__diseaseresistance'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__uniformity'],
+        [   'cmd'=>'q_r', 'k'=>'common_SoD_r__appeal'],
+
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyougrowagain'],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyourecommend'],
+
+        ['cmd'=>'section', 'title_EN'=>"Notes", 'title_FR'=>"Notes"],
+        [   'cmd'=>'inst', 'inst_EN'=>"Please note any pros and cons related to growing this variety."],
+        [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notespros'],
+        [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notescons'],
+        [   'cmd'=>'inst', 'inst_EN'=>"Any other comments or things worth noting? How would you describe the variety overall? Anything stand out? Is it good as a fresh eating bean? Good as a soup bean? Both? (etc)."],
+        [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notesgeneral'],
+    ];
+
+    $oF = new SLProfilesForm( $oDB, $kVI );
+    $oF->Update();
+    $oF->SetDefs( $oSLProfilesDefs->GetDefsRAFromSP('tomato') );
+
+    $f = $oF->Style()
+        .$oF->DrawForm($raTomatoFormCommon);        // draw the common parts of the forms
+    switch($eForm) {
+        default:
+        case 'default':
+        case 'long':        $f .= $oF->DrawForm( $raTomatoFormFull );   break;
+        case 'short':       $f .= $oF->DrawForm( $raTomatoFormShort );  break;
+        case 'cgo':         $f .= $oF->DrawForm( $raTomatoFormCGO );    break;
+    }
+
+    return ($f);
 }
 
 
