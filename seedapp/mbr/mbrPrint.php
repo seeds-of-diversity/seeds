@@ -387,7 +387,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
                  {$this->DrawForm()}
                  <br/><br/>"
                  // this goes outside of the oComp form so it can have its own <form> elements
-                 .$this->donationData($this->oComp->oForm->GetKey(), $this->oComp->oForm->ValueInt('fk_mbr_contacts'))
+                 .$this->donationData($this->oComp->oForm->GetKFR())
            ."</div>";
 
         return( $s );
@@ -430,7 +430,8 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
         $sShow = $sScript = "";
 
         if( !$oForm->Value('receipt_num') &&
-            ($kfrLastDonation = $this->oMbrDB->GetKFRCond('D', "", ['sSortCol'=>'_updated','bSortDown'=>true])) &&
+            // Get the donation row with the greatest receipt_num as a template for the next row.
+            ($kfrLastDonation = $this->oMbrDB->GetKFRCond('D', "", ['sSortCol'=>'receipt_num','bSortDown'=>true])) &&
             $kfrLastDonation->Value('date_issued') )
         {
             //$cat = $kfrLastDonation->Value('category');
@@ -461,10 +462,13 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
     }
 
 
-    private function donationData( $kDonation, $kMbr )
+    private function donationData( KeyframeRecord $kfrD )
     {
         $s = "";
-        $sTicket = $sAccessed = "";
+        $sTicket = $sReceipt = "";
+
+        $kDonation = $kfrD->Key();
+        $kMbr = $this->oComp->oForm->ValueInt('fk_mbr_contacts');
 
 //        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _key='$kMbr'" );
 //        $s .= "<p>Mbr database:<br/>donation_receipt: ".@$ra['donation_receipt']."</p>";
@@ -485,25 +489,28 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
             $sTicket = $oMbrOrder->DrawTicket();
         }
 
-        /* Show the receipt views
-         */
-        $sAccessed = "<h4>Receipt viewed by</h4>";
-        if( ($kfrR = $this->oMbrDB->GetKFRC('RxD_M', "D._key=$kDonation",['sSortCol'=>'R.time'])) ) {
-            while( $kfrR->CursorFetch() ) {
-                $sColour = $kfrR->Value('uid_accessor')==$kMbr ? 'green' : 'red';   // green if the access was by the donor
-                $sDelete = "<form method='post' style='display:inline-block'>
-                                <input type='hidden' name='cmd' value='deleteReceiptAccess'/>
-                                <input type='hidden' name='kR' value='{$kfrR->Key()}'/>
-                                <input type='submit' value='delete' style='font-size:x-small'/> </form>";
-                $sAccessed .= $kfrR->Expand("<span style='color:$sColour'>[[uid_accessor]]</span> at [[time]]&nbsp;&nbsp;&nbsp;")."{$sDelete}<br/>";
+        if( $kfrD->ValueInt('receipt_num') > 0 ) {
+            /* Show the receipt views
+             */
+            $sReceipt = "<p><a href='?cmd=printDonationReceipt2&donorReceiptRange={$kfrD->ValueInt('receipt_num')}' target='_blank'>Print this receipt</a></p>"
+                       ."<h4>Receipt viewed by</h4>";
+            if( ($kfrR = $this->oMbrDB->GetKFRC('RxD_M', "D._key=$kDonation",['sSortCol'=>'R.time'])) ) {
+                while( $kfrR->CursorFetch() ) {
+                    $sColour = $kfrR->Value('uid_accessor')==$kMbr ? 'green' : 'red';   // green if the access was by the donor
+                    $sDelete = "<form method='post' style='display:inline-block'>
+                                    <input type='hidden' name='cmd' value='deleteReceiptAccess'/>
+                                    <input type='hidden' name='kR' value='{$kfrR->Key()}'/>
+                                    <input type='submit' value='delete' style='font-size:x-small'/> </form>";
+                    $sReceipt .= $kfrR->Expand("<span style='color:$sColour'>[[uid_accessor]]</span> at [[time]]&nbsp;&nbsp;&nbsp;")."{$sDelete}<br/>";
+                }
             }
+            $sReceipt .= "<form method='post'><input type='submit' value='Add viewed by $kMbr now'/>
+                                               <input type='hidden' name='cmd' value='addReceiptAccess'/>
+                                               <input type='hidden' name='kMbr' value='$kMbr'/></form>";
         }
-        $sAccessed .= "<form method='post'><input type='submit' value='Add viewed by $kMbr now'/>
-                                           <input type='hidden' name='cmd' value='addReceiptAccess'/>
-                                           <input type='hidden' name='kMbr' value='$kMbr'/></form>";
 
         $s = "<table><tr><td valign='top' style='padding-right:20px'>$sTicket</td>
-                         <td valign='top'>$sAccessed</td>
+                         <td valign='top'>$sReceipt</td>
               </tr></table>";
 
         return( $s );
