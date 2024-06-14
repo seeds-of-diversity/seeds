@@ -33,6 +33,7 @@ include_once( SEEDLIB."sl/profiles/sl_profiles_form.php" );
 include_once( SEEDROOT."Keyframe/KeyframeForm.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDCORE."SEEDUI.php" );
+include_once( SEEDCORE."SEEDCoreFormSession.php" );
 
 $consoleConfig = [
     'CONSOLE_NAME' => "myprojects",
@@ -79,7 +80,7 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oProjects = new ProjectsCommon($this->oApp);
     }
 
-    function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects); $this->oW->Init(); }
+    function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this); $this->oW->Init(); }
     function TabSet_main_projects_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_projects_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
@@ -101,15 +102,35 @@ class ProjectsCommon
     {
         $this->oApp = $oApp;
     }
+
+    function CanReadOtherUsers()
+    {
+        return( $this->oApp->sess->GetUID() == 1499 );
+    }
+
+    function CanWriteOtherUsers()
+    {
+        return( $this->oApp->sess->GetUID() == 1499 );
+    }
 }
 
 class ProjectsTabProjects
 {
+    private $oCTS;
     private $oP;
+    private $oMbr;
+    private $oSLDB;
+    private $kCurrMbr;
 
-    function __construct( ProjectsCommon $oP )
+    function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
     {
+        $this->oCTS = $oCTS;
         $this->oP = $oP;
+        $this->oMbr = new Mbr_Contacts($this->oP->oApp);
+        $this->oSLDB = new SLDBProfile($this->oP->oApp);
+
+        // default to current login - change to the SVA selected kMbr if allowed to do that  below
+        $this->kCurrMbr = $this->oP->oApp->sess->GetUID();
     }
 
     function Init()
@@ -118,6 +139,23 @@ class ProjectsTabProjects
 
     function ControlDraw()
     {
+        $s = "";
+
+        if( $this->oP->CanReadOtherUsers() ) {
+            $y = date('Y');
+            $raOpts = [];
+            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year=$y") as $kMbr ) {
+                $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;
+            }
+            ksort($raOpts);
+
+            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
+            $oForm->Update();
+            $this->kCurrMbr = $oForm->Value('kMbr');
+            $s = "<form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form>";
+        }
+
+        return( $s );
     }
 
     function ContentDraw()
@@ -131,7 +169,7 @@ class ProjectsTabProjects
         $oProfilesDefs = new SLProfilesDefs( $oProfilesDB );
         $oProfilesReport = new SLProfilesReport( $oProfilesDB, $oProfilesDefs, $this->oP->oApp );
 
-        if( ($u = intval($this->oP->oApp->sess->GetUID())) &&
+        if( ($u = intval($this->kCurrMbr)) &&
             ($kfrc = $oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts=$u")) )
         {
             while( $kfrc->CursorFetch() ) {
@@ -198,7 +236,8 @@ class ProjectsTabProjects
         }
 
         $s = "<div class='container-fluid'><div class='row'>
-              <div class='col-md-3'><h4>2024 projects</h4>$sLeft</div><div class='col-md-9'>$sRight</div>
+              <div class='col-md-3'><h4>2024 projects for {$this->oMbr->GetContactName($this->kCurrMbr)}</h4>$sLeft</div>
+              <div class='col-md-9'>$sRight</div>
               </div></div>";
 
         return( $s );
