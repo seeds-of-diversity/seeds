@@ -473,7 +473,7 @@ function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kV
         [   'cmd'=>'q_d', 'k'=>'common_SoD_d__sowdate'],
         [   'cmd'=>'q_d', 'k'=>'common_SoD_d__transplantdate'],
         [   'cmd'=>'q_d', 'k'=>'common_SoD_d__flowerdate'],
-        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__firstharvestdate'],
+        [   'cmd'=>'q_d', 'k'=>'common_SoD_d__fruitharvestdate'],
         [   'cmd'=>'q_d', 'k'=>'common_SoD_d__seedharvestdate'],
 
         ['cmd'=>'section', 'title_EN'=>"Population Counts", 'title_FR'=>"Population Counts"],
