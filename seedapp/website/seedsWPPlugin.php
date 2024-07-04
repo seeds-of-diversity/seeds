@@ -100,7 +100,7 @@ class seedsWPPlugin_AdminPage
 
         if( SEEDInput_Str('homeTop') ) {
             foreach( $homeTop as $k => $v ) {
-                $homeTop[$k] = SEEDInput_Str($k);
+                $homeTop[$k] = stripslashes( SEEDInput_Str($k) );   // astonishingly, wp emulates magic_quotes
                 $oSB->PutStr( 'SeedsWPHomeTop', $k, $homeTop[$k] );
             }
         }
