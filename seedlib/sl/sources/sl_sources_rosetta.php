@@ -2,7 +2,7 @@
 
 /* sl_sources_rosetta.php
  *
- * Copyright 2015-2023 Seeds of Diversity Canada
+ * Copyright 2015-2024 Seeds of Diversity Canada
  *
  * Implement references between sl_cv_sources_* and Rosetta species/cultivars
  */
@@ -120,34 +120,40 @@ class SLSourceCV_Build
         return( $ok );
     }
 
-
     static function BuildSpeciesIndex( SEEDAppDB $oApp, $dbtable, $sCond = "" )
     /**************************************************************************
         Fill in the fk_sl_species keys for any matching names anywhere in RosettaSEED
      */
     {
+        $debug = false;
+
         self::checkTable( $oApp, $dbtable );
 $sCond="SrcCV.fk_sl_sources>=3";
-        $ok =
-        // sl_species
-        $oApp->kfdb->Execute(
-                        "UPDATE $dbtable SrcCV,{$oApp->DBName('seeds1')}.sl_species S "
-                       ."SET SrcCV.fk_sl_species=S._key "
-                       ."WHERE SrcCV._status=0 AND S._status=0 "
-                       ."AND SrcCV.fk_sl_species=0 "
-                       ."AND SrcCV.osp<>'' "
-                       ."AND (SrcCV.osp IN(S.name_en, S.name_fr, S.name_bot, S.psp, S.iname_en, S.iname_fr)) "
-                       .($sCond ? " AND ($sCond)" : "" ) )
-        &&
-        // sl_species_syn
-        $oApp->kfdb->Execute(
-                        "UPDATE $dbtable SrcCV,{$oApp->DBName('seeds1')}.sl_species_syn SY "
-                       ."SET SrcCV.fk_sl_species=SY.fk_sl_species "
-                       ."WHERE SrcCV._status=0 AND SY._status=0 "
-                       ."AND SrcCV.fk_sl_species=0 "
-                       ."AND SrcCV.osp<>'' "
-                       ."AND SrcCV.osp=SY.name"
-                       .($sCond ? " AND ($sCond)" : "" ) );
+
+        // fk_sl_species match sl_species
+        $sql1 = "UPDATE $dbtable SrcCV,{$oApp->DBName('seeds1')}.sl_species S
+                 SET SrcCV.fk_sl_species=S._key
+                 WHERE SrcCV._status=0 AND S._status=0 AND
+                       SrcCV.fk_sl_species=0 AND
+                       SrcCV.osp<>'' AND
+                       (SrcCV.osp IN(S.name_en, S.name_fr, S.name_bot, S.psp, S.iname_en, S.iname_fr))"
+                      .($sCond ? " AND ($sCond)" : "" );
+
+        // fk_sl_species match sl_species_syn
+        $sql2 = "UPDATE $dbtable SrcCV,{$oApp->DBName('seeds1')}.sl_species_syn SY
+                 SET SrcCV.fk_sl_species=SY.fk_sl_species
+                 WHERE SrcCV._status=0 AND SY._status=0 AND
+                       SrcCV.fk_sl_species=0 AND
+                       SrcCV.osp<>'' AND
+                       SrcCV.osp=SY.name"
+                      .($sCond ? " AND ($sCond)" : "" );
+
+        if( $debug ) {
+            echo "<pre>$sql1</pre><pre>$sql2</pre>";
+            $ok = true;
+        } else {
+            $ok = $oApp->kfdb->Execute($sql1) && $oApp->kfdb->Execute($sql2);
+        }
 
         return( $ok );
     }
