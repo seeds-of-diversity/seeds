@@ -179,10 +179,13 @@ class SLProfilesDefs
                                             'q_EN' => "Would you recommend this variety to a grower in your area if they were looking for one with its general characteristics (growth habit, size, etc)"],
 
         'common_SoD_s__notespros'       => ['l_EN' => "Pros",
+                                            'rows' => 3,
                                             'q_EN' => "Pros (what you like about this variety)"],
         'common_SoD_s__notescons'       => ['l_EN' => "Cons",
+                                            'rows' => 3,
                                             'q_EN' => "Cons (what you don't like about this variety)"],
         'common_SoD_s__notesgeneral'    => ['l_EN' => "Notes",
+                                            'rows' => 5,
                                             'q_EN' => "Any other information you'd like to give"],
 
     ];

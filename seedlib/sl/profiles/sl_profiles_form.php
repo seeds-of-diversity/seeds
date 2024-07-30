@@ -128,7 +128,7 @@ class SLProfilesForm
 
     function TopHeader($head)
     {
-        $s = "<div class='sld_inst'>If you cannot answer any of these questions, just leave them blank or select the \"don't know\" choice.</div>"
+        $s = "<div class='alert alert-success'><h4>If you cannot answer any of these questions, just leave them blank or select the \"don't know\" choice.</h4></div>"
             .$this->Q_I( "common_SoD_i__samplesize" );
 
         return( $s );
@@ -141,13 +141,15 @@ class SLProfilesForm
     {
         $q = $this->q_( $k );
 
+        $rows = intval(@$this->raDefs[$k]['rows']);
+
         return( "<div class='sld_q'>"
-               ."<span style='float:right'>"
+               ."<div style='float:right'>"
                    .$this->prepForm( $k )
-                   .$this->oForm->Text( 'v', '', array('size'=>30) )
-               ."</span>"
+                   .($rows ? $this->oForm->TextArea('v', '', ['rows'=>$rows, 'cols'=>50]) : $this->oForm->Text( 'v', '', ['size'=>30] ) )
+               ."</div>"
                .$q     //<LABEL for='$k'>$q</LABEL><BR/>"
-               ."</div>" );
+               ."<br/></div>" );
     }
 
     function Q_F( $k ) { return( $this->Q_I( $k ) ); }
