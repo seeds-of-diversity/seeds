@@ -105,6 +105,12 @@ class SLProfilesDefs
         return( @$this->raDefs[$sp] ?: [] );
     }
 
+    function GetDefTypeFromCode( string $defcode )
+    {
+        $r = explode('__', $defcode);
+        return( @$r[0] ? substr($r[0], -1) : '' );
+    }
+
     static $raSLDescDefsCommon = [
         'common_SoD_d__sowdate'         => ['l_EN' => "Sowing date",
                                             'q_EN' => "Date when you sowed the seeds?"],

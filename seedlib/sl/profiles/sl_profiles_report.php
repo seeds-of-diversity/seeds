@@ -80,16 +80,25 @@ class SLProfilesReport
 
         $l = @$def['l_EN'];
 
-        if( ($vl = @$def['m'][$v]) ) {  // the multi-choice text value corresponding to the numerical value
-            $vl = ucwords( $vl );
-            if( ($vimg = @$def['img'][$v]) ) {
-                $s = "<tr><td><b>$l:</b></td><td>$vl</td><td><img src='".W_ROOT."seedcommon/sl/descimg/$vimg' height='75'/></td></tr>";
-            } else {
-                $s = "<tr><td><b>$l:</b></td><td>$vl</td></tr>";
-            }
-        } else {
-            $s = "<tr><td><b>$l:</b></td><td>$v</td></tr>";
+        switch($this->oProfilesDefs->GetDefTypeFromCode($k)) {
+            case 'm':
+                if( ($vl = @$def['m'][$v]) ) {  // the multi-choice text value corresponding to the numerical value
+                    $vl = ucwords( $vl );
+                    $sV = "<td>$vl</td>";
+                    if( ($vimg = @$def['img'][$v]) ) {
+                        $sV .= "<td><img src='".W_ROOT."seedcommon/sl/descimg/$vimg' height='75'/></td>";
+                    }
+                }
+                break;
+            case 'b':
+                $sV = "<td>".($v==1 ? "Yes" : ($v==2 ? "No" : ""))."</td>";
+                break;
+            default:
+                $sV = "<td>$v</td>";
         }
+
+        $s = "<tr><td><b>$l:</b></td>$sV</tr>";
+
         return( $s );
     }
 
