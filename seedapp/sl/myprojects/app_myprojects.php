@@ -129,7 +129,7 @@ class ProjectsTabProjects
         $this->oMbr = new Mbr_Contacts($this->oP->oApp);
         $this->oSLDB = new SLDBProfile($this->oP->oApp);
 
-        // default to current login - change to the SVA selected kMbr if allowed to do that  below
+        // default to current login - change to the SVA selected kMbr if allowed to do that below
         $this->kCurrMbr = $this->oP->oApp->sess->GetUID();
     }
 
@@ -151,7 +151,11 @@ class ProjectsTabProjects
 
             $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
             $oForm->Update();
-            $this->kCurrMbr = $oForm->Value('kMbr');
+            if( !($this->kCurrMbr = $oForm->Value('kMbr')) ) {
+                // if curr mbr not stored in session, initialize to the first in the dropdown
+                $this->kCurrMbr = reset($raOpts);   // returns the first value
+            }
+
             $s = "<form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form>";
         }
 
