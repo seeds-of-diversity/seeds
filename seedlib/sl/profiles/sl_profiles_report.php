@@ -93,12 +93,16 @@ class SLProfilesReport
             case 'b':
                 $sV = "<td>".($v==1 ? "Yes" : ($v==2 ? "No" : ""))."</td>";
                 break;
+            case 'r':
+                if( !$v ) goto done;    // ratings can be reset to "don't know" but the value is stored as 0
+                $sV = "<td>$v</td>";
             default:
                 $sV = "<td>$v</td>";
         }
 
         $s = "<tr><td><b>$l:</b></td>$sV</tr>";
 
+        done:
         return( $s );
     }
 

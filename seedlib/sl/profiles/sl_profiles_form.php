@@ -287,10 +287,19 @@ class SLProfilesForm
         return( "<div class='sld_q'>"
                ."<div style='float:right'>"
                    .$this->prepForm( $k )
-                   ."<p>*&nbsp;&nbsp;*&nbsp;&nbsp;*&nbsp;&nbsp;*&nbsp;&nbsp;*</p>"
+                   ."<table border='0'>
+                     <tr><td valign='top'>Don't know&nbsp;&nbsp;&nbsp;</td><td valign='top'>5</td><td valign='top'>4</td><td valign='top'>3</td><td valign='top'>2</td><td valign='top'>1</td></tr>
+                     <tr>
+                     <td valign='top'>".$this->oForm->Radio( 'v', 0, "" )."</td>
+                     <td valign='top'>".$this->oForm->Radio( 'v', 5, "" )."</td>
+                     <td valign='top'>".$this->oForm->Radio( 'v', 4, "" )."</td>
+                     <td valign='top'>".$this->oForm->Radio( 'v', 3, "" )."</td>
+                     <td valign='top'>".$this->oForm->Radio( 'v', 2, "" )."</td>
+                     <td valign='top'>".$this->oForm->Radio( 'v', 1, "" )."</td>
+                     </tr></table>"
                ."</div>"
                .$q    // <LABEL for='$k'></LABEL><BR/>
-               ."</div>" );
+               ."<br/></div>" );
     }
 
     private function q_( $k )
