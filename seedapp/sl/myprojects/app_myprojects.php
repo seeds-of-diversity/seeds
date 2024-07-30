@@ -105,12 +105,12 @@ class ProjectsCommon
 
     function CanReadOtherUsers()
     {
-        return( $this->oApp->sess->GetUID() == 1499 );
+        return( $this->oApp->sess->CanRead('SLProfileOtherUsers') );
     }
 
     function CanWriteOtherUsers()
     {
-        return( $this->oApp->sess->GetUID() == 1499 );
+        return( $this->oApp->sess->CanWrite('SLProfileOtherUsers') );
     }
 }
 
@@ -196,6 +196,7 @@ class ProjectsTabProjects
 
             $oUI = new SEEDUI();
             $oComp = new SEEDUIComponent( $oUI );
+// require $this->kCurrMbr==$this->oApp->sess->GetUID() || $this->oP->CanWriteOtherUsers()
             $oComp->Update();
             if( $kVI ) $oComp->Set_kCurr( $kVI );   // initialize the list to the right row e.g. if we just created a new row
 
