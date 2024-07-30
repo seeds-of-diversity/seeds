@@ -109,8 +109,8 @@ class SLProfilesDefs
                                             'q_EN' => "Date when you planted the seedlings in the garden/field?"],
         'common_SoD_d__flowerdate'  	=> array( 'l_EN' => "First flowering date",
                                              	  'q_EN' => "Date when the first flowers opened?" ),
-        'common_SoD_d__poddate'     	=> array( 'l_EN' => "First edible pod date",
-                                             	  'q_EN' => "(If an edible pod variety) Date when the first pod was ready to eat?" ),
+        'common_SoD_d__poddate'     	=> ['l_EN' => "First edible pod date",
+                                             	  'q_EN' => "(If an edible pod variety) Date when the first fresh pods were ready to eat?"],
         'common_SoD_d__seeddate'    	=> array( 'l_EN' => "First seed harvest date",
                                              	  'q_EN' => "Date when the first dry seeds were ready to harvest?" ),
         'common_SoD_d__lharvestdate' 	=> array( 'l_EN' => "First lettuce harvest date",
@@ -144,13 +144,42 @@ class SLProfilesDefs
         'common_SoD_i__poptransplanted' => ['l_EN' => "Transplanted population size",
                                             'q_EN' => "How many seedlings did you plant in the garden/field?"],
         'common_SoD_i__plantsremoved'   => ['l_EN' => "Plants removed",
-                                            'q_EN' => "How many plants did you remove because weak, diseased, or off type?"],
+                                            'q_EN' => "How many plants did you remove because weak, diseased, or off types?"],
         'common_SoD_i__plantsdied'      => ['l_EN' => "Plants died",
                                             'q_EN' => "How many plants died of other causes?"],
         'common_SoD_i__poppollinating'  => ['l_EN' => "Pollinating population",
                                             'q_EN' => "How many plants remained at time of flowering?"],
         'common_SoD_i__popharvestseeds' => ['l_EN' => "Final population",
                                             'q_EN' => "How many plants did you harvest seeds from at the end of the season?"],
+
+        'common_SoD_b__disease'         => ['l_EN' => "Signs of disease",
+                                            'q_EN' => "Were there any signs of disease on any part of the plants? (please include description and photo if possible)"],
+
+
+        'common_SoD_r__productivity'    => ['l_EN' => "Productivity",
+                                            'q_EN' => "Productivity"],
+        'common_SoD_r__flavour'         => ['l_EN' => "Flavour",
+                                            'q_EN' => "Flavour"],
+        'common_SoD_r__diseaseresistance' => ['l_EN' => "Disease resistance",
+                                            'q_EN' => "Disease resistance"],
+        'common_SoD_r__uniformity'      => ['l_EN' => "Uniformity",
+                                            'q_EN' => "Uniformity (size, shape, growth habit, colour)"],
+        'common_SoD_r__appeal'          => ['l_EN' => "General appeal",
+                                            'q_EN' => "General appeal"],
+
+
+        'common_SoD_b__wouldgrowagain'  => ['l_EN' => "Would grow again",
+                                            'q_EN' => "Would you want to grow this variety again?"],
+        'common_SoD_b__wouldrecommend'  => ['l_EN' => "Would recommend",
+                                            'q_EN' => "Would you recommend this variety to a grower in your area if they were looking for one with its general characteristics (growth habit, size, etc)"],
+
+        'common_SoD_s__notespros'       => ['l_EN' => "Pros",
+                                            'q_EN' => "Pros (what you like about this variety)"],
+        'common_SoD_s__notescons'       => ['l_EN' => "Cons",
+                                            'q_EN' => "Cons (what you don't like about this variety)"],
+        'common_SoD_s__notesgeneral'    => ['l_EN' => "Notes",
+                                            'q_EN' => "Any other information you'd like to give"],
+
     ];
 
 }

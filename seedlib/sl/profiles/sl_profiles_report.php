@@ -373,8 +373,8 @@ function beanForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kVI,
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__uniformity'],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__appeal'],
 
-        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyougrowagain'],
-        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyourecommend'],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldgrowagain'],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldrecommend'],
 
         ['cmd'=>'section', 'title_EN'=>"Notes", 'title_FR'=>"Notes"],
         [   'cmd'=>'inst', 'inst_EN'=>"Please note any pros and cons related to growing this variety."],
@@ -524,7 +524,7 @@ function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kV
         ['cmd'=>'section', 'title_EN'=>"Observations", 'title_FR'=>"Observations"],
         [   'cmd'=>'inst', 'inst_EN'=>"At each stage, remove any plants that are distinctly different (ie off types) than the majority"],
         [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__planthabit'],
-        [   'cmd'=>'q_s', 'k'=>'tomato_SoD_s__aggressive'],
+        [   'cmd'=>'q_s', 'k'=>'tomato_SoD_s__vigour'],
         [   'cmd'=>'q_m_t', 'k'=>'tomato_SoD_m__leaftype'],
         [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__flowercolour'],
 
@@ -541,7 +541,6 @@ function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kV
 
         ['cmd'=>'section', 'title_EN'=>"Health", 'title_FR'=>"Health"],
         [   'cmd'=>'q_b', 'k'=>'common_SoD_b__disease'],
-        [   'cmd'=>'inst', 'inst_EN'=>"If yes, please describe and include photo if possible"],
 
         ['cmd'=>'section', 'title_EN'=>"Ratings", 'title_FR'=>"Ratings"],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__productivity'],
@@ -550,14 +549,14 @@ function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kV
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__uniformity'],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__appeal'],
 
-        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyougrowagain'],
-        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldyourecommend'],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldgrowagain'],
+        [   'cmd'=>'q_b', 'k'=>'common_SoD_b__wouldrecommend'],
 
         ['cmd'=>'section', 'title_EN'=>"Notes", 'title_FR'=>"Notes"],
         [   'cmd'=>'inst', 'inst_EN'=>"Please note any pros and cons related to growing this variety."],
         [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notespros'],
         [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notescons'],
-        [   'cmd'=>'inst', 'inst_EN'=>"Any other comments or things worth noting? How would you describe the variety overall? Anything stand out? Is it good as a fresh eating bean? Good as a soup bean? Both? (etc)."],
+        [   'cmd'=>'inst', 'inst_EN'=>"Any other comments or things worth noting? How would you describe the variety overall? Anything stand out?"],
         [   'cmd'=>'q_s',  'k'=>'common_SoD_s__notesgeneral'],
     ];
 
