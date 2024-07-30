@@ -19,6 +19,8 @@ include_once( SEEDCOMMON."/sl/desc/squash_defs.php" );
 include_once( SEEDCOMMON."/sl/desc/tomato_defs.php" );
 include_once( SEEDCOMMON."/sl/desc/common_defs.php" );
 
+include_once(SEEDLIB."sl/profiles/sp/ground-cherry.php");
+
 
 class SLProfilesDefs
 /*******************
@@ -58,6 +60,7 @@ class SLProfilesDefs
         $this->raDefs['potato'] = SLDescDefsPotato::$raDefsPotato;
         $this->raDefs['squash'] = SLDescDefsSquash::$raDefsSquash;
         $this->raDefs['tomato'] = array_merge( SLProfilesDefs::$raSLDescDefsCommon, SLDescDefsTomato::$raDefsTomato );
+        $this->raDefs['ground-cherry'] = array_merge( SLProfilesDefs::$raSLDescDefsCommon, SLProfiles_GroundCherry::GetDefs() );
 
 //        $this->raDefs['brassica'] = $this->getDefsFromDB( 'brassica' );
 //        $this->raDefs['corn']     = $this->getDefsFromDB( 'corn' );
@@ -105,7 +108,9 @@ class SLProfilesDefs
     static $raSLDescDefsCommon = [
         'common_SoD_d__sowdate'         => ['l_EN' => "Sowing date",
                                             'q_EN' => "Date when you sowed the seeds?"],
-        'common_SoD_d__transplantdate'  => ['l_EN' => "Sowing date",
+        'common_SoD_d__germdate'        => ['l_EN' => "Seed germinated date",
+                                            'q_EN' => "Date when the first seeds germinated?"],
+        'common_SoD_d__transplantdate'  => ['l_EN' => "Transplant date",
                                             'q_EN' => "Date when you planted the seedlings in the garden/field?"],
         'common_SoD_d__flowerdate'  	=> array( 'l_EN' => "First flowering date",
                                              	  'q_EN' => "Date when the first flowers opened?" ),

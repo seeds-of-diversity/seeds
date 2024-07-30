@@ -162,6 +162,7 @@ class SLProfilesReport
                 case "potato" : $s .=  potatoForm( $this->oProfilesDB, $kVI); break;
                 case "squash" : $s .=  squashForm( $this->oProfilesDB, $kVI); break;
                 case "tomato" : $s .=  tomatoForm( $this->oProfilesDefs, $this->oProfilesDB, $kVI, $eForm); break;
+                case 'ground-cherry': $s = SLProfiles_GroundCherry::GroundCherryForm( $this->oProfilesDefs, $this->oProfilesDB, $kVI, $eForm); break;
             }
         } else {
             $oF = new SLDescForm( $this->oSLDescDB, $this->kVI );
@@ -952,6 +953,3 @@ $f .= $oF->DrawForm( $raSquashForm );  // this tells SLDescForm to draw a form u
    //dw_sect( "Dates" );
 return ($f);
 }
-
-
-?>
