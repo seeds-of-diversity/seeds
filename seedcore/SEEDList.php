@@ -1,7 +1,5 @@
 <?php
 
-use Google\Service\DisplayVideo\Pacing;
-
 /* SEEDList
  *
  * Manage list-like data structures
