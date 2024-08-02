@@ -724,6 +724,8 @@ groupcol
     }
 }
 
+include_once(SEEDCORE."SEEDList.php");
+
 class SEEDUIComponent_ViewWindow
 /*******************************
     Encapsulates the view and window computation.
@@ -750,8 +752,7 @@ class SEEDUIComponent_ViewWindow
 {
     private $oComp;
     private $bEnableKeys;
-    private $raViewRows = null;
-    private $iViewRowsOffset = 0;          // origin-0 index of the first row in raViewRows relative to the whole view
+    private $oViewSlices;
     private $nViewSize = 0;                 // size of whole view, possibly larger than count(raViewRows)
     private $bCurrentRowOutsideViewSlice = false;   // true if raViewRows is a partial view slice and kCurr is given but not found in the slice
 
@@ -761,6 +762,7 @@ class SEEDUIComponent_ViewWindow
     {
         $this->oComp = $oComp;
         $this->bEnableKeys = @$raConfig['bEnableKeys'] ?: false;
+        $this->oViewSlices = new SEEDList_ArraySlices();
     }
 
     function IsEnableKeys()             { return( $this->bEnableKeys ); }
@@ -801,135 +803,10 @@ class SEEDUIComponent_ViewWindow
 
     function SetViewSlice( $raViewRows, $raParms )
     {
-        $this->raViewRows = $raViewRows;
-        $this->iViewRowsOffset = @$raParms['iViewSliceOffset'] ?: 0;
-        $this->nViewSize       = @$raParms['nViewSize'] ?: 0;
-    }
+        $this->oViewSlices->Clear();
+        $this->oViewSlices->AddSlice($raViewRows, @$raParms['iViewSliceOffset'] ?: 0);
 
-    /** Manage insertion of view slices into the view
-     *
-     * $this->raViewRows      contains the view rows. Non loaded rows are denoted by null.
-     * $this->iViewRowsOffset is the origin-0 offset of raViewRows[0] within the actual view
-     * $this->nViewSize       is the actual size of the full view
-     *
-     * Slices are inserted/overlaid on raViewRows. null rows are inserted in unloaded gaps.
-     *
-     * @param array $rows        the rows to insert
-     * @param int   $iOffset     0-origin offset of this slice within the view
-     * @param int   $nViewSize   full size of the whole view
-     */
-    private function _setViewSlice( array $rows, int $iOffset, int $nViewSize )
-    {
-        $this->nViewSize = $nViewSize;          // Store this, but it's independent of everything below
-
-        if( !count($rows) ) goto done;
-
-        // trivial case if nothing loaded yet just set the slice
-        if( !$this->raViewRows ) {
-            $this->raViewRows = $rows;
-            $this->iViewRowsOffset = $iOffset;
-            goto done;
-        }
-
-        // prepare to merge the new slice with the existing raViewRows
-        $iNewStart = $iOffset;
-        $iNewEnd   = $iOffset + count($rows) - 1;     // offset within view of the last row of the new slice
-        $iOldStart = $this->iViewRowsOffset;
-        $iOldEnd   = $this->iViewRowsOffset + count($this->raViewRows) - 1;
-        $rowsOld   = $this->raViewRows;
-
-        /* There are six ways the new rows can overlay the old rows
-
-            1) NNNN OOOO           new rows are before old (with gap of zero or more)
-            2) NNNN                new rows overlap first part of old
-                 OOOO
-            3) NNNN                new rows fully overlap old
-                OO
-            4)  NN                 new rows fully within old range (including iNewEnd==iOldEnd)
-               OOOO
-            5)   NNNN              new rows overlap end part of old
-               OOOO
-            6) OOOO NNNN           new rows are after old (with gap of zero or more)
-         */
-        if( $iNewStart <= $iOldStart ) {
-            /* 1, 2, 3 : put the new rows, then append (part of) old rows (with possible gap)
-             */
-            if( $iNewEnd < $iOldStart ) {
-                // 1) new rows are fully before old, gap of 0 or more to fill with nulls
-                $this->raViewRows = array_merge($rows, array_fill(0, $iOldStart - ($iNewEnd + 1), null), $rowsOld);
-            } else {
-                // 2) new rows are appended by the non-overlapped old rows
-                // 3) same but there are no non-overlapped old rows so array_slice gives empty array
-                $this->raViewRows = array_merge($rows, array_slice($rowsOld, $iNewEnd + 1 - $iOldStart));
-            }
-            $this->iViewRowsOffset = $iNewStart;
-
-        } else if( $iOldEnd < $iNewEnd ) {
-            /* 5, 6 : put (part of) old rows (with possible gap), then append the new rows
-             */
-            if( $iOldEnd < $iNewStart ) {
-                // 6) new rows are fully after old, gap of 0 or more to fill with nulls
-                $this->raViewRows = array_merge($rowsOld, array_fill(0, $iNewStart - ($iOldEnd + 1), null), $rows);
-            } else {
-                // 5) old rows truncated and appended by new rows
-                $this->raViewRows = array_merge(array_slice($rowsOld, 0, $iNewStart - $iOldStart),     // the part of the old rows prior to the new slice
-                                                $rows);
-            }
-
-        } else {
-            /* 4) part of old rows, then the new rows, then part of old rows (or none if iNewEnd==iOldEnd)
-             */
-            $this->raViewRows = array_merge( array_slice($rowsOld, 0, $iNewStart - $iOldStart),     // the part of the old rows prior to the new slice
-                                             $rows,
-                                             array_slice($rowsOld, $iNewEnd + 1 - $iOldStart) );    // the part of the old rows after the new slice
-        }
-
-        done:;
-    }
-
-    private function _setViewSlice__0( array $rows, int $iOffset, int $nViewSize )
-    {
-        // Store this, but it's independent of everything below
-        $this->nViewSize = $nViewSize;
-
-        // Add/prepend/append/overlay new rows into raViewRows
-        $raJoin = [];
-        if( !$this->raViewRows || $iOffset <= $this->iViewRowsOffset ) {      /* the new rows prepend or overlap the start of raViewRows, or raViewRows==[] */
-            // Add the new rows first
-            $newOffset = $iOffset;
-            $raJoin = $rows;
-
-            // If there is a gap between the new slice and the old slice, put in some gap rows.
-            // This should never happen, but it would be bad if it did and we didn't pad the gap.
-            for( $i = $newOffset + count($raJoin); $i < $this->iViewRowsOffset; ++$i ) {
-                $raJoin[] = [];
-            }
-
-            // If any part of the old slice extends past the new slice, add that part
-            for( $i = $newOffset + count($raJoin); $this->raViewRows && ($i < $this->iViewRowsOffset + count($this->raViewRows)); ++$i ) {
-                $raJoin[] = $this->raViewRows[$i - $this->iViewRowsOffset];
-            }
-        } else {                                        /* the new rows append or overlap the end of raViewRows */
-            $newOffset = $this->iViewRowsOffset;
-            // if any part of the old slice extends before the new slice, add that part first
-            for( $i = $this->iViewRowsOffset; $i < min($iOffset, $this->iViewRowsOffset + count($this->raViewRows)); ++$i ) {
-                $raJoin[] = $this->raViewRows[$i - $this->iViewRowsOffset];
-            }
-
-            // If there is a gap between the old slice and the old slice, put in some gap rows.
-            // This should never happen, but it would be bad if it did and we didn't pad the gap.
-            for( $i = $newOffset + count($raJoin); $i < $iOffset; ++$i ) {
-                $raJoin[] = [];
-            }
-
-            // Add the new slice here
-            foreach( $rows as $ra ) {
-                $raJoin[] = $ra;
-            }
-        }
-
-        $this->raViewRows = $raJoin;
-        $this->iViewRowsOffset = $newOffset;
+        $this->nViewSize = @$raParms['nViewSize'] ?: 0;
     }
 
     function GetRowData( $iViewRow, $bFirstTry = true )
@@ -937,8 +814,8 @@ class SEEDUIComponent_ViewWindow
         Return one view row. iViewRow is the origin-0 index in the view.  i.e. GetRowData( Get_iCurr() ) gets the currently selected row
      */
     {
-        if( $this->isViewRowLoaded($iViewRow) ) {
-            return( $this->raViewRows[$iViewRow - $this->iViewRowsOffset] );
+        if( $this->oViewSlices->IsItemLoaded($iViewRow) ) {
+            return($this->oViewSlices->GetItem($iViewRow));
         } else if( $bFirstTry ) {
             $this->GetViewData( $iViewRow, 1 );
             return( $this->GetRowData( $iViewRow, false ) );
@@ -959,62 +836,18 @@ class SEEDUIComponent_ViewWindow
         Return a View slice of nRows starting at origin-0 row iRowStart
      */
     {
-if($this->debug) {
-    var_dump("GetRowData: i=$iRowStart, n=$nRows, loaded=".$this->isViewSliceLoaded($iRowStart,$nRows).", iVO={$this->iViewRowsOffset}, nV=".($this->raViewRows ? count($this->raViewRows):0));
-    if( $this->raViewRows ) var_dump(@$this->raViewRows[0],@$this->raViewRows[1],@$this->raViewRows[2]);
-}
-
-        //if( $this->isViewRowLoaded($iRowStart) && $this->isViewRowLoaded($iRowStart + $nRows -1) ) {
-        if( !$this->isViewSliceLoaded($iRowStart, $nRows) ) {
+        if( !$this->oViewSlices->IsSliceLoaded($iRowStart, $nRows) ) {
             /* Fetch the requested slice using the component's derived object.
              * If your component doesn't support this method you have to use SetViewSlice() before calling here.
              */
             list($rows,$iVO,$nVS) = $this->oComp->FetchViewSlice( $iRowStart, $nRows );
-            $this->_setViewSlice( $rows, $iVO, $nVS );
+if($this->debug) var_dump("GetViewData: $iRowStart $nRows  FetchViewSlice ".count($rows)." $iVO $nVS");
+            $this->oViewSlices->AddSlice($rows, $iVO);
+            $this->nViewSize = $nVS;
         }
 
-        $iOffsetOfRequestedSliceWithinLoadedRows = $iRowStart - $this->iViewRowsOffset;
-        return( $this->raViewRows && ($iOffsetOfRequestedSliceWithinLoadedRows >=0)
-                    ? array_slice($this->raViewRows, $iOffsetOfRequestedSliceWithinLoadedRows, $nRows)
-                    : [] );
-    }
-
-    private function isViewRowLoaded( $iRow )
-    /****************************************
-        True if the origin-0 iRow of the View is loaded in $this->raViewRows[$iRow - $this->iViewRowsOffset]
-     */
-    {
-        return( $this->isViewSliceLoaded($iRow, 1) );
-        //return( $this->raViewRows && ($iRow >= $this->iViewRowsOffset && $iRow < $this->iViewRowsOffset + count($this->raViewRows)) );
-    }
-
-    private function isViewSliceLoaded( $iRowStart, $nSize )
-    /*******************************************************
-        Test if all rows of a given slice are loaded, starting with the 0-origin row iRowStart.
-        Make sure that none of the slice rows are placeholders (null instead of a row array).
-     */
-    {
-        $bLoaded = false;
-
-if($this->debug) {
-    var_dump("VSL: i=$iRowStart, n=$nSize, iVO={$this->iViewRowsOffset}, nV=".($this->raViewRows ? count($this->raViewRows):0));
-    if( $this->raViewRows ) var_dump(@$this->raViewRows[0],@$this->raViewRows[1],@$this->raViewRows[2]);
-}
-
-        if( $this->raViewRows &&                                                        // initialized
-            $nSize > 0 &&                                                               // size makes sense
-            $iRowStart >= $this->iViewRowsOffset &&                                     // iRow is in the range loaded in raViewRows
-            $iRowStart + $nSize <= $this->iViewRowsOffset + count($this->raViewRows))   // iRow is in the range loaded in raViewRows
-        {
-            for( $i = $iRowStart; $i < $iRowStart + $nSize; ++$i ) {
-                if( $this->raViewRows[$i - $this->iViewRowsOffset] == null )  goto done;    // check for placeholder rows
-            }
-
-            $bLoaded = true;
-        }
-
-        done:
-        return( $bLoaded );
+        // bCheckIsLoaded==false because we checked above, and this will fail if requesting nRows that exceeds the actual view size
+        return( $this->oViewSlices->GetSlice($iRowStart, $nRows, false) );
     }
 
     function IdealWindowOffset()
