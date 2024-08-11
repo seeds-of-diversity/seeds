@@ -41,6 +41,7 @@ class MSEEditAppAdminTab
         $oMSDQ = new MSDQ($this->oMSDLib->oApp, [] );
         $raQStats = $oMSDQ->Cmd( 'msd-getStats', [] );
         $s .= "<div style='float:right;margin:10px;padding:10px;border:1px solid #aaa'>"
+             ."Listable growers: {$raQStats['raOut']['nGrowersListable']}<br/>"
              ."Active growers: {$raQStats['raOut']['nGrowersActive']}<br/>"
              ."Skipped growers: {$raQStats['raOut']['nGrowersSkipped']}<br/>"
              ."Deleted growers: {$raQStats['raOut']['nGrowersDeleted']}<br/>"
