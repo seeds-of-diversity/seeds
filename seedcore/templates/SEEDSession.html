@@ -46,6 +46,12 @@
 [[SetVar: ssaForgotYourPassword |[[ifeq:$lang|EN|   Forgot your password? |  Oubliez votre mot de passe?    ]]]]
 [[SetVar: ssaSendMyPassword     |[[ifeq:$lang|EN|   Send me my password   |  Envoyez-moi mon mot de passe   ]]]]
    
+# Change password
+[[SetVar: ssaChangePwd_newPassword      |[[ifeq:$lang|EN|  Type your new password           |  Tapez votre nouveau mot de passe    ]]]]
+[[SetVar: ssaChangePwd_newPasswordAgain |[[ifeq:$lang|EN|  Please re-type your new password |  SVP retapez    ]]]]
+[[SetVar: ssaChangePwd_button           |[[ifeq:$lang|EN|  Change Password                  |  Changez le mot de passe    ]]]]
+[[SetVar: ssaChangePwd_success          |[[ifeq:$lang|EN|  Your password has been changed   |  Votre mot de passe a &eacute;t&eacute; chang&eacute;  ]]]]
+   
    
 {% if lang=='EN' %}
 # Create account    
@@ -276,20 +282,22 @@ $(document).ready(function(){
 </form>
 
 %% SEEDSessionUser_ChangePassword-0
+{% include 'SSA_Local' %}
 <form method='post' action=''>
 [[FormHidden: sessioncmd | value:changePwd]]
 [[Include:ssu-ErrMsg]]
 <table border='0' cellspacing='0' cellpadding='10'>
-<tr><td valign='top'>[[Local:ChangePassword_Your new password]]</td><td valign='top'>[[FormText:user_pass1|bPassword:1]]</td></tr>
-<tr><td valign='top'>[[Local:ChangePassword_Your new password again]]</td><td valign='top'>[[FormText:user_pass2|bPassword:1]]</td></tr>
+<tr><td valign='top'>[[Var:ssaChangePwd_newPassword]]</td><td valign='top'>[[FormText:user_pass1|bPassword:1]]</td></tr>
+<tr><td valign='top'>[[Var:ssaChangePwd_newPasswordAgain]]</td><td valign='top'>[[FormText:user_pass2|bPassword:1]]</td></tr>
 <tr><td valign='top'>&nbsp;</td>
 <td valign='top'>
-  <input type='submit' value='[[Local:ChangePassword_button]]'>
+  <input type='submit' value='[[Var:ssaChangePwd_button]]'>
   [[Include:SEEDSessionUser_LinkGoToLogin]]
 </td></tr></table></form>
 
 %% SEEDSessionUser_ChangePassword-1
-<h2>[[Local:ChangePassword_success]]</h2>
+{% include 'SSA_Local' %}
+<h2>[[Var:ssaChangePwd_success]]</h2>
 [[Include:SEEDSessionUser_LinkGoToLogin]]
 
 

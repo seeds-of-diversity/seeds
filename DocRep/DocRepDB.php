@@ -667,6 +667,10 @@ class DocRepDoc2_ReadOnly
      * return array of children
      */
     {
+//TODO: parm to return array of Doc, array of DocXData, doc keys, etc.
+//TODO: flag for DocXData version
+//TODO: check perms per child
+//TODO: order by sib_order
         $kDoc = $this->GetKey();
         $kfr = $this->oDocRepDB->GetRel()->GetList('Doc', "kDoc_parent=$kDoc");
         return $kfr;

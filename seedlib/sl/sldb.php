@@ -2,12 +2,13 @@
 
 /* Seed Library database access
  *
- * Copyright (c) 2010-2020 Seeds of Diversity Canada
+ * Copyright (c) 2010-2024 Seeds of Diversity Canada
  *
- * SLDBBase                              All individual tables accessible by named relations. e.g. 'A', 'P', 'SY'
- * SLDBRosetta      extends SLDBBase     Joins of variety naming tables e.g. 'PxS', 'SYxS', 'PYxPxS'
- * SLDBCollection   extends SLDBRosetta  Joins of Seed Library tables e.g. 'IxAxC', 'IxAxPxS', also Rosetta joins for convenience
- * SLDBSources      extends SLDBRosetta  Joins of cv-source tables e.g. 'SrcCVxSrc', 'SrcCVxPxS', also Rosetta joins for convenience
+ * SLDBBase                                 All individual tables accessible by named relations. e.g. 'A', 'P', 'SY'
+ * SLDBRosetta      extends SLDBBase        Joins of variety naming tables e.g. 'PxS', 'SYxS', 'PYxPxS'
+ * SLDBCollection   extends SLDBRosetta     Joins of Seed Library tables e.g. 'IxAxC', 'IxAxPxS', also Rosetta joins for convenience
+ * SLDBSources      extends SLDBRosetta     Joins of cv-source tables e.g. 'SrcCVxSrc', 'SrcCVxPxS', also Rosetta joins for convenience
+ * SLDBProfile      extends SLDBCollection  Joins of variety-instance-observations tables - cannot join to Collection/Rosetta because pcv is specified multiple ways, but those are available
  */
 
 class _sldb_defs
@@ -221,6 +222,47 @@ class _sldb_defs
             )
         );
     }
+
+    static function fldMbrSites()
+    {
+        return( [["col"=>"uid",                 "type"=>"K"],       // obsolete : use sl_varinst.fk_mbr_contacts instead
+                 ["col"=>"nSite",               "type"=>"I"],
+                 ["col"=>"sitename",            "type"=>"S"],
+                 ["col"=>"address",             "type"=>"S"],
+                 ["col"=>"city",                "type"=>"S"],
+                 ["col"=>"province",            "type"=>"S"],
+                 ["col"=>"postcode",            "type"=>"S"],
+                 ["col"=>"country",             "type"=>"S"],
+                 ["col"=>"latitude",            "type"=>"S"],
+                 ["col"=>"longitude",           "type"=>"S"],
+                 ["col"=>"metadata",            "type"=>"S"]
+        ] );
+    }
+
+    static function fldSLVarinst()
+    {
+        return( [["col"=>"fk_mbr_contacts",     "type"=>"K"],   // required
+                 ["col"=>"fk_mbr_sites",        "type"=>"K"],   // should exist but left-joined in case it doesn't
+                 ["col"=>"fk_sl_pcv",           "type"=>"K"],   // preferred one way
+                 ["col"=>"fk_sl_inventory",     "type"=>"K"],   // preferred another way
+                 ["col"=>"fk_sl_accession",     "type"=>"K"],   // obsolete - convert to sl_inventory
+                 ["col"=>"fk_sl_species",       "type"=>"K"],   // allowed but not preferred
+                 ["col"=>"pname",               "type"=>"S"],   // "
+                 ["col"=>"psp",                 "type"=>"S"],   // obsolete - use fk_sl_species instead
+                 ["col"=>"osp",                 "type"=>"S"],   // to record user's original names
+                 ["col"=>"oname",               "type"=>"S"],   // to record user's original names
+                 ["col"=>"year",                "type"=>"I"],
+                 ["col"=>"metadata",            "type"=>"S"],
+        ] );
+    }
+
+    static function fldSLDescObs()
+    {
+        return( [["col"=>"fk_sl_varinst",       "type"=>"K"],
+                 ["col"=>"k",                   "type"=>"S"],
+                 ["col"=>"v",                   "type"=>"S"],
+        ] );
+    }
 }
 
 
@@ -247,10 +289,15 @@ class SLDBBase extends Keyframe_NamedRelations
         $this->tDef['A']  = array( "Table" => "{$this->dbname}.sl_accession",  "Fields" => _sldb_defs::fldSLAccession() );
         $this->tDef['D']  = array( "Table" => "{$this->dbname}.sl_adoption",   "Fields" => _sldb_defs::fldSLAdoption() );
         $this->tDef['G']  = array( "Table" => "{$this->dbname}.sl_germ",       "Fields" => _sldb_defs::fldSLGerm() );
+
         $this->tDef['P']  = array( "Table" => "{$this->dbname}.sl_pcv",        "Fields" => _sldb_defs::fldSLPCV() );
         $this->tDef['S']  = array( "Table" => "{$this->dbname}.sl_species",    "Fields" => _sldb_defs::fldSLSpecies() );
         $this->tDef['PY'] = array( "Table" => "{$this->dbname}.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
         $this->tDef['SY'] = array( "Table" => "{$this->dbname}.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
+
+        $this->tDef['SITE'] = ['Table' => "{$this->dbname}.mbr_sites",  'Fields' => _sldb_defs::fldMbrSites()];
+        $this->tDef['VI']   = ['Table' => "{$this->dbname}.sl_varinst", 'Fields' => _sldb_defs::fldSLVarinst()];
+        $this->tDef['VO']   = ['Table' => "{$this->dbname}.sl_desc_obs",'Fields' => _sldb_defs::fldSLDescObs()];
 
         $sLogfile = $logdir ? "{$logdir}slcollection.log" : "";
         $raKfrel['C'] = $this->newKfrel( $kfdb, $uid, array( "C" => $this->tDef['C'] ), $sLogfile );
@@ -264,6 +311,11 @@ class SLDBBase extends Keyframe_NamedRelations
         $raKfrel['S'] = $this->newKfrel( $kfdb, $uid, array( "S" => $this->tDef['S'] ),  $sLogfile );
         $raKfrel['PY']= $this->newKfrel( $kfdb, $uid, array( "PY"=> $this->tDef['PY'] ), $sLogfile );
         $raKfrel['SY']= $this->newKfrel( $kfdb, $uid, array( "SY"=> $this->tDef['SY'] ), $sLogfile );
+
+        $sLogfile = $logdir ? "{$logdir}slprofile.log" : "";
+        $raKfrel['SITE'] = $this->newKfrel( $kfdb, $uid, ['SITE' => $this->tDef['SITE']],  $sLogfile );
+        $raKfrel['VI']   = $this->newKfrel( $kfdb, $uid, ['VI'   => $this->tDef['VI']],    $sLogfile );
+        $raKfrel['VO']   = $this->newKfrel( $kfdb, $uid, ['VO'   => $this->tDef['VO']],    $sLogfile );
 
         return( $raKfrel );
     }
@@ -459,6 +511,46 @@ $raKfrel['SRCCVAxSRC_S'] = $this->newKfrel( $kfdb, $uid,
 }
 
 
+class SLDBProfile extends SLDBCollection
+/****************
+ * Implement joins of variety-instance-observations
+ */
+{
+    function __construct( SEEDAppSessionAccount $oApp, $raConfig = array() )
+    {
+        parent::__construct( $oApp, $raConfig );
+    }
+
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        // do this first because it sets $this->tDef
+        $raKfrel = parent::initKfrel( $kfdb, $uid, $logdir );
+
+        $sLogfile = $logdir ? "{$logdir}slprofile.log" : "";
+
+        $raKfrel['VOxVI'] = $this->newKfrel2( $kfdb, $uid, ['VO','VI'], $sLogfile );
+
+        $raKfrel['VI_SITE'] = $this->newKfrel( $kfdb, $uid,
+                    ['VI'   => $this->tDef['VI'],
+                     'SITE' => ['Table' => "{$this->dbname}.mbr_sites",
+                                'Type'  => "LeftJoin",
+                                'JoinOn' => "VI.fk_mbr_sites=SITE._key",
+                                'Fields' => _sldb_defs::fldMbrSites()] ],
+                    $sLogfile );
+
+        $raKfrel['VOxVI_SITE'] = $this->newKfrel( $kfdb, $uid,
+                    ['VO' => $this->tDef['VO'],
+                     'VI' => $this->tDef['VI'],
+                     'SITE' => ['Table' => "{$this->dbname}.mbr_sites",
+                                'Type'  => "LeftJoin",
+                                'JoinOn' => "VI.fk_mbr_sites=SITE._key",
+                                'Fields' => _sldb_defs::fldMbrSites()] ],
+                    $sLogfile );
+
+        return( $raKfrel );
+    }
+}
+
 
 class SLDB_Create
 {
@@ -583,4 +675,142 @@ CREATE TABLE sl_tmp_cv_sources (
     index (kUpload)
 ) CHARSET latin1;
 ";
+
+
+
+const SEEDS_DB_TABLE_MBR_SITES = "
+CREATE TABLE mbr_sites (
+    # Register a site where something is grown or observed - this is shared by Seed Library and PollinatorWatch
+    # Each user has 0+ sites.
+    #
+    # The site defines location, and permanent characteristics about the site, e.g. soil type.
+    # No time-dependent information is stored here.  i.e. the information is valid for all years
+
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+uid             INTEGER NOT NULL,       # obsolete      SEEDSession_Users._key
+    sitename        VARCHAR(200),
+    address         VARCHAR(200),           # not necessarily the same as the mbr mailing address
+    city            VARCHAR(200),           # not necessarily the same as the mbr mailing address
+    province        VARCHAR(10),
+    postcode        VARCHAR(200),
+    country         VARCHAR(200),
+    latitude        VARCHAR(200),
+    longitude       VARCHAR(200),
+    metadata        TEXT,                   # stored as an urlencoded string
+
+    INDEX (uid),
+    INDEX (province(2)),
+    INDEX (postcode(3))
+);
+";
+
+const SEEDS_DB_TABLE_SL_VARINST = "
+CREATE TABLE sl_varinst (
+    # Register a Variety Instance for a mbr_site.  This is shared by various components of the Seed Library e.g. Multiplication, Descriptors
+    # Each site has has 0+ variety instances.
+    #
+    # A Variety Instance is a tuple of (grower, variety/accession, year) with some metadata.
+    # Metadata can be e.g. fertilized, mulched, etc, but note that sl_desc_obs can contain any such metadata because it's related to the same tuple.
+
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    fk_mbr_contacts INTEGER NOT NULL DEFAULT 0,
+    fk_mbr_sites    INTEGER NOT NULL DEFAULT 0,
+    fk_sl_inventory INTEGER NOT NULL DEFAULT 0,  # preferred one way
+    fk_sl_pcv       INTEGER NOT NULL DEFAULT 0,  # or preferred another way
+
+    fk_sl_accession INTEGER NOT NULL DEFAULT 0,  # obsolete - replace with sl_inventory
+
+    fk_sl_species   INTEGER NOT NULL DEFAULT 0,  # allowed with pname
+    pname           VARCHAR(200) NOT NULL,
+    psp             VARCHAR(200) NOT NULL,       # obsolete - use sl_species
+    osp             VARCHAR(200) NOT NULL,       # the name the user gave us (keep this for reference, but override above)
+    oname           VARCHAR(200) NOT NULL,
+    year            INTEGER NOT NULL,
+    metadata        TEXT,                   # stored as an urlencoded string
+
+    INDEX (fk_mbr_sites),
+    INDEX (fk_sl_pcv),
+    INDEX (osp(10),oname(10)),
+    INDEX (fk_sl_accession)
+);
+";
+
+const SEEDS_DB_TABLE_SL_DESC_OBS = "
+CREATE TABLE sl_desc_obs (
+    # Store observations for each variety instance
+    # Each variety instance has 0+ observations
+    #
+    # The variety instance is a container for observations of a variety during one season.
+    # It defines the variety being observed, the year, and metadata relating to the (variety, year).
+    # Metadata can be e.g. fertilized, mulched, etc, but note that sl_desc_obs can contain any such metadata because it's related to the same tuple.
+
+    # Note: This table is a normalization for the (site,variety,year) tuple that could be stored repetitively in sl_desc_obs instead.
+    #       It is useful however, for centralizing metadata, and alternate linkages such as fk_sl_acc
+
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    fk_sl_varinst   INTEGER NOT NULL,
+    k               VARCHAR(200) NOT NULL,
+    v               VARCHAR(200) NOT NULL,
+
+    INDEX (fk_sl_varinst),
+    INDEX (k(20))
+);
+";
+
+
+const SEEDS_DB_TABLE_SL_DESC_CFG_TAGS = "
+CREATE TABLE sl_desc_cfg_tags (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    tag        VARCHAR(200) NOT NULL,
+    label_en   VARCHAR(200) NOT NULL DEFAULT '',
+    label_fr   VARCHAR(200) NOT NULL DEFAULT '',
+    q_en       TEXT,
+    q_fr       TEXT,
+
+    INDEX (tag(20))
+) DEFAULT CHARSET=latin1;
+";
+
+const SEEDS_DB_TABLE_SL_DESC_CFG_M = "
+CREATE TABLE sl_desc_cfg_m (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+    tag        VARCHAR(200) NOT NULL,
+    v          VARCHAR(200) NOT NULL DEFAULT '',
+    l_en       VARCHAR(200) NOT NULL DEFAULT '',
+    l_fr       VARCHAR(200) NOT NULL DEFAULT '',
+
+    INDEX (tag(20))
+) DEFAULT CHARSET=latin1;
+";
+
 }

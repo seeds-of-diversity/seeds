@@ -287,6 +287,7 @@ if( SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers') ) {
     include( SEEDLIB."msd/msdlib.php" );
     $oMSDLib = new MSDLib( $oApp );
 
+// also exclude growers who have no seeds (not nTotal=0, no SEEDBasket_Products at all) because those are people who created premature grower records
     $raCond = ["NOT G.bDelete",
                "M.email IS NOT NULL AND M.email <> ''"];
     if( $p_lang == "EN" )  $raCond[] = "M.lang IN ('','B','E')";
@@ -307,7 +308,7 @@ if( SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers') ) {
         }
     }
 
-    $sRight .= "Seed Directory Growers:<br/>$sCond<br/>Found $n growers<br/><br/>";
+    $sRight .= "Seed Directory Growers <span style='color:red'>***includes growers with no seeds - need to exclude these***</span>:<br/>$sCond<br/>Found $n growers<br/><br/>";
 }
 
 
