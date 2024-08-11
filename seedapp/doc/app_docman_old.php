@@ -102,7 +102,7 @@ class DocManagerTabDocuments
 //        $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
 
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
-        $raTree = $oDocRepDB->GetSubTree( 0, -1 );
+        $raTree = $oDocRepDB->GetSubTreeDescendants( 0, -1 );
         $s .= "<script>var mymapDocs = new Map( [".$this->outputTree( $oDocRepDB, 0, $raTree )." ] );</script>";
 
         return( $s );
