@@ -134,6 +134,18 @@ class SLProfilesForm
         return( $s );
     }
 
+    function Q_Auto( $k )
+    {
+        switch(SLProfilesDefs::GetDefTypeFromCode($k)) {
+            case 'b':   return( $this->Q_B($k) );     break;
+            case 'd':   return( $this->Q_D($k) );     break;
+            case 'i':   return( $this->Q_I($k) );     break;
+            case 'r':   return( $this->Q_R($k) );     break;
+            case 's':   return( $this->Q_S($k) );     break;
+            // and others
+
+        }
+    }
 
     function Q_D( $k ) { return( $this->Q_S( $k ) ); }
 
@@ -352,6 +364,7 @@ class SLProfilesForm
             case 'inst':
                 $s .= $this->Instruction( $ra["inst_{$this->lang}"] );
                 break;
+            case 'q':       $s .= $this->Q_Auto( $ra['k'] );    break;
             case 'q_d':     $s .= $this->Q_D( $ra['k'] );       break;
             case 'q_s':     $s .= $this->Q_S( $ra['k'] );       break;
             case 'q_f':     $s .= $this->Q_F( $ra['k'] );       break;
