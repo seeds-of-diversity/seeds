@@ -195,6 +195,24 @@ class SoDMasterTemplate
                 }
                 break;
 
+            case 'slprofiles':
+                include_once(SEEDLIB."sl/profiles/sl_profiles_db.php");
+
+                if( $raTag['target'] == 'varinstnamelist' ) {
+                    /* [[slprofiles:varinstnames | kMbr | year]]
+                     *     Show the species/cultivar names of the varinst records for kMbr and year.
+                     */
+                    $kMbr = intval(@$raTag['raParms']['1']) ?: $this->oApp->sess->GetUID();
+                    $year = intval(@$raTag['raParms']['2']) ?: date('Y');
+                    foreach( (new SLProfilesDB($this->oApp))->GetVarInstNames($kMbr, $year) as $ra ) {
+                        $s .= "<p>{$ra['sp']} : {$ra['cv']}</p>";
+                    }
+                    $bHandled = true;
+                }
+                break;
+
+
+
             default:
                 $bHandled = false;
         }

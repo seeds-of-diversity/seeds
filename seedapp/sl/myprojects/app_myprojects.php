@@ -165,6 +165,7 @@ class ProjectsTabProjects
     function ContentDraw()
     {
         $sLeft = $sRight = "";
+        $year = 2024;
 
         $oMbr = new Mbr_Contacts($this->oP->oApp);
         $oSLDB = new SLDBProfile($this->oP->oApp);
@@ -173,13 +174,9 @@ class ProjectsTabProjects
         $oProfilesDefs = new SLProfilesDefs( $oProfilesDB );
         $oProfilesReport = new SLProfilesReport( $oProfilesDB, $oProfilesDefs, $this->oP->oApp );
 
-        if( ($u = intval($this->kCurrMbr)) &&
-            ($kfrc = $oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts=$u")) )
-        {
-            while( $kfrc->CursorFetch() ) {
-                list($psp,$sSp,$sCv) = $oProfilesDB->ComputeVarInstName($kfrc);
-
-                $sLeft .= "<p><a href='?vi={$kfrc->Key()}'>$sSp : $sCv</a></p>";
+        if( ($u = intval($this->kCurrMbr)) ) {
+            foreach( $oProfilesDB->GetVarInstNames($this->kCurrMbr, $year) as $ra ) {
+                $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
             }
         }
 
@@ -241,7 +238,7 @@ class ProjectsTabProjects
         }
 
         $s = "<div class='container-fluid'><div class='row'>
-              <div class='col-md-3'><h4>2024 projects for {$this->oMbr->GetContactName($this->kCurrMbr)}</h4>$sLeft</div>
+              <div class='col-md-3'><h4>$year projects for {$this->oMbr->GetContactName($this->kCurrMbr)}</h4>$sLeft</div>
               <div class='col-md-9'>$sRight</div>
               </div></div>";
 
