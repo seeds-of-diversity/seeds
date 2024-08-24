@@ -37,7 +37,9 @@ class SLProfilesDB extends Keyframe_NamedRelations
     {
         $raOut = [];
 
-        if( $kMbr && ($kfrc = $this->oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts='$kMbr'")) ) {
+        $sCondYear = $year ? " AND (year=$year)" : "";
+
+        if( $kMbr && ($kfrc = $this->oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts='$kMbr' $sCondYear")) ) {
             while( $kfrc->CursorFetch() ) {
                 list($psp,$sSp,$sCv) = $this->ComputeVarInstName($kfrc);
                 $raOut[] = ['kVI'=>$kfrc->Key(), 'psp'=>$psp, 'sp'=>$sSp, 'cv'=>$sCv];
