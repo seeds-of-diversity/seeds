@@ -121,7 +121,17 @@ class QServerDocRep extends SEEDQ
                     $s = $oDoc->GetText('');
                     if( @$parms['bExpand'] ) {
                         include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
+                        include_once( SEEDCORE."SEEDSessionAccountTag.php" );
+                        // start with this doc's variables and a basic config
                         $raVars = $oDoc->GetDocMetadataRA_Inherited();
+                        $raConfigMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB,
+// not sure whether these are needed by the direct expansion below
+                                                       'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars]];
+                        // this permissive handler should only be provided when an admin is looking at the preview
+                        if( $this->oApp->sess->GetUID() == 1499 ) {
+                            $raConfigMT['oSessionAccountTag'] = new SEEDSessionAccountTagHandler($this->oApp, ['bAllowKMbr'=>true, 'bAllowPwd'=>true, 'db'=>'seeds1']);
+                        }
+
                         if( ($drTemplate = @$raVars['docrep-template']) ) {
                             // expand the doc within a template
                             if( ($oDocTemplate = $this->oDocRepDB->GetDoc($drTemplate)) ) {
@@ -130,16 +140,16 @@ class QServerDocRep extends SEEDQ
                                  */
                                 $sTemplate = $oDocTemplate->GetText('');
                                 $raVars = array_merge( $oDocTemplate->GetDocMetadataRA_Inherited(), $raVars );
-                                $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars, 'bKlugeInTemplate'=>true]];
-                                $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
+                                $raConfigMT['oDocRepDB']['raVarsFromIncluder'] = $raVars;
+                                $raConfigMT['oDocRepDB']['bKlugeInTemplate'] = true;
+                                $oTmpl = (new SoDMasterTemplate($this->oApp, $raConfigMT))->GetTmpl();
                                 $s = $oTmpl->ExpandStr($sTemplate, $raVars);
                             } else {
                                 $s = "Cannot find template '$drTemplate'";
                             }
                         } else {
                             // expand the doc directly
-                            $raMT = ['DocRepParms'=>['oDocRepDB'=>$this->oDocRepDB, 'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars]];
-                            $oTmpl = (new SoDMasterTemplate( $this->oApp, $raMT ))->GetTmpl();
+                            $oTmpl = (new SoDMasterTemplate($this->oApp, $raConfigMT))->GetTmpl();
                             $s = $oTmpl->ExpandStr($s, $raVars);
                         }
                     }
