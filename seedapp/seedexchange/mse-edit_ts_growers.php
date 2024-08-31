@@ -48,12 +48,14 @@ class MSEEditAppTabGrower
             // create the Grower Record
             $tmpkfr = $this->oMSDLib->KFRelG()->CreateRecord();
             $tmpkfr->SetValue( 'mbr_id', $this->kGrower );
+            $tmpkfr->SetVerbatim( 'tsGLogin', "NOW()" );    // need this to prevent insert error
             $tmpkfr->PutDBRow();
+            $tmpErr = $tmpkfr->KFRel()->KFDB()->GetErrMsg();    // if the insert failed, here's the reason
             // now fetch with with the Member data joined
 // this is not going to work if mbr_contacts record is not there.
 // G_M would work although with blank M_*, but kfrGxM will be null
             if( !($this->kfrGxM = $this->oMSDLib->KFRelGxM()->GetRecordFromDB( "mbr_id='{$this->kGrower}'" )) ) {
-                $this->oApp->Log( 'MSEEdit.log', "create grower {$this->kGrower} failed, probably mbr_contacts row doesn't exist" );
+                $this->oApp->Log( 'MSEEdit.log', "create grower {$this->kGrower} failed, probably mbr_contacts row doesn't exist : $tmpErr" );
                 goto done;
             }
         }
@@ -358,23 +360,6 @@ $this->oL = $this->oMSDLib->oL;
 .msd_grower_edit_form .help { padding:0 10px;font-weight:bold; font-size:10pt; color:#07f; }
 </style>
 ";
-
-/*
-    alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
-
-    alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
-    alter table sed_curr_growers add pay_paypal    tinyint not null default 0;
-
-    alter table sed_curr_growers add eDateRange enum ('use_range','all_year') not null default 'use_range';
-    alter table sed_curr_growers add dDateRangeStart date not null default '2022-01-01';
-    alter table sed_curr_growers add dDateRangeEnd   date not null default '2022-05-31';
-
-    alter table sed_growers add eReqClass       text;
-    alter table sed_growers add eDateRange      text;
-    alter table sed_growers add dDateRangeStart text;
-    alter table sed_growers add dDateRangeEnd   text;
-
- */
 
         $bNew = !$this->Value('mbr_id');  // only bOffice can instantiate this form with kGrower==0
 
