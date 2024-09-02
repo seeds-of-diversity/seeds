@@ -105,7 +105,7 @@ class SLProfilesDefs
         return( @$this->raDefs[$sp] ?: [] );
     }
 
-    function GetDefTypeFromCode( string $defcode )
+    static function GetDefTypeFromCode( string $defcode )
     {
         $r = explode('__', $defcode);
         return( @$r[0] ? substr($r[0], -1) : '' );

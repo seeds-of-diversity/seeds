@@ -80,7 +80,7 @@ class SLProfilesReport
 
         $l = @$def['l_EN'];
 
-        switch($this->oProfilesDefs->GetDefTypeFromCode($k)) {
+        switch(SLProfilesDefs::GetDefTypeFromCode($k)) {
             case 'm':
                 if( ($vl = @$def['m'][$v]) ) {  // the multi-choice text value corresponding to the numerical value
                     $vl = ucwords( $vl );
@@ -380,7 +380,7 @@ function beanForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kVI,
         ['cmd'=>'section', 'title_EN'=>"Observations", 'title_FR'=>"Observations"],
         [   'cmd'=>'q_b', 'k'=>'common_SoD_b__disease'],
 
-        ['cmd'=>'section', 'title_EN'=>"Ratings", 'title_FR'=>"Ratings"],
+        ['cmd'=>'section', 'title_EN'=>"Ratings (5 for excellent, 1 for very poor)", 'title_FR'=>"Ratings"],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__productivity'],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__flavour'],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__diseaseresistance'],
@@ -556,7 +556,7 @@ function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kV
         ['cmd'=>'section', 'title_EN'=>"Health", 'title_FR'=>"Health"],
         [   'cmd'=>'q_b', 'k'=>'common_SoD_b__disease'],
 
-        ['cmd'=>'section', 'title_EN'=>"Ratings", 'title_FR'=>"Ratings"],
+        ['cmd'=>'section', 'title_EN'=>"Ratings (5 for excellent, 1 for very poor)", 'title_FR'=>"Ratings"],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__productivity'],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__flavour'],
         [   'cmd'=>'q_r', 'k'=>'common_SoD_r__diseaseresistance'],

@@ -33,6 +33,21 @@ class SLProfilesDB extends Keyframe_NamedRelations
     }
 */
 
+    function GetVarInstNames( int $kMbr, int $year )
+    {
+        $raOut = [];
+
+        $sCondYear = $year ? " AND (year=$year)" : "";
+
+        if( $kMbr && ($kfrc = $this->oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts='$kMbr' $sCondYear")) ) {
+            while( $kfrc->CursorFetch() ) {
+                list($psp,$sSp,$sCv) = $this->ComputeVarInstName($kfrc);
+                $raOut[] = ['kVI'=>$kfrc->Key(), 'psp'=>$psp, 'sp'=>$sSp, 'cv'=>$sCv];
+            }
+        }
+        return( $raOut );
+    }
+
     function ComputeVarInstName( KeyframeRecord $kfrVI, $prefix = "" )
     /*****************************************************************
         Given a varinst record, fill in the blanks.  Prefix is "" for base varinst, typically VI_ for non-base
