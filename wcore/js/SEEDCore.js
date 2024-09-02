@@ -82,6 +82,9 @@ function SEEDJXSync( jxUrl, jxData )
 {
     var bSuccess = false;
     var oRet = null;
+
+    if( SEEDJX_bDebug ) {console.log("cmd="+jxUrl+":"); console.log(jxData); }
+
     $.ajax({
         type: "POST",
         async: false,

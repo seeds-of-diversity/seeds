@@ -97,8 +97,13 @@ class DocRepCtrlView
         return( null );
     }
     
-    HandleRequest( eRequest, p )
+    HandleRequest( eNotify, p )
+    /**************************
+     */
     {
-        // override to respond to notifications/requests
+        // Override to respond to internal notifications
+
+        // pass the event up the chain
+        if(this.fnHandleEvent) this.fnHandleEvent( eNotify, p );
     }
 }
