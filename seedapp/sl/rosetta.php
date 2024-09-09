@@ -116,10 +116,12 @@ $oCTS = new MyConsole02TabSet( $oApp );
 
 $s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
 
-
-echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
-                                ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
+// Can't just encode the output to utf-8 because any form/searchcontrol input will be utf-8 so it would have to be converted to cp1252 somewhere
+echo Console02Static::HTMLPage( $s, //SEEDCore_utf8_encode($s),
+                                "", 'EN',
+                                ['sCharset'=>'cp1252',
+                                 'consoleSkin'=>'green',
+                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
 
 ?>
 <script>SEEDCore_CleanBrowserAddress();</script>
