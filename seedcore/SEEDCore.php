@@ -105,7 +105,7 @@ function SEEDCore_CharsetConvert( $val, $sCharsetFrom, $sCharsetTo, $bTransliter
         $val = iconv( $sCharsetFrom, $sCharsetTo, $val );
     } else
     if( is_array($val) ) {
-        array_walk( $val,
+        array_walk_recursive( $val,
                     function (&$v,$k) use ($sCharsetFrom,$sCharsetTo) {
                         if( is_string($v) ) { $v = iconv( $sCharsetFrom, $sCharsetTo, $v ); }
                     } );
