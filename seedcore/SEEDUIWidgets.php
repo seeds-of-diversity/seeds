@@ -168,6 +168,9 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             $op  = $this->oComp->GetUIParm( "srchop$i" );
             $val = trim($this->oComp->GetUIParm( "srchval$i" ));
 
+            // If the http input charset is different than the db charset, transcode the input to match the db
+            $val = $this->oComp->TranscodeToMatchDb($val);
+
             if( $op == 'blank' ) {
                 // process this separately because the text value is irrelevant
                 if( $fld ) {  // 'Any'=blank is not allowed
@@ -245,6 +248,9 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             $fld = $this->oComp->GetUIParm( "srchfld$i" );
             $op  = $this->oComp->GetUIParm( "srchop$i" );
             $val = trim($this->oComp->GetUIParm( "srchval$i" ));
+
+            // If the http input charset is different than the db charset, transcode the input to match the db
+            $val = $this->oComp->TranscodeToMatchDb($val);
 
             /* Collect the fields and substitute into the appropriate [[fieldsN]]
              */

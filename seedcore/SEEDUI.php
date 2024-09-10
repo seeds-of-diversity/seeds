@@ -372,13 +372,26 @@ class SEEDUIComponent
         return( new SEEDCoreForm( $cid, $raSFParms ) );
     }
 
+    function TranscodeToMatchDb( $val )
+    /**********************************
+        If the http input is a different charset than the db, configure sCharsetHTTP and sCharsetDb and use this to transcode input.
+        This is a typical case when a page is utf-8 but data is stored as latin-1
+     */
+    {
+        if( @$this->raCompConfig['sCharsetHTTP'] !== @$this->raCompConfig['sCharsetDb'] ) {   // assumes if one is defined then both are
+            $val = SEEDCore_CharsetConvert($val, $this->raCompConfig['sCharsetHTTP'], $this->raCompConfig['sCharsetDb']);
+        }
+        return( $val );
+    }
 
     function Update()
     /****************
         Call this before reading any data or drawing any widgets
      */
     {
-        $this->oForm->Update();
+        // there is code in Update that does the same thing as TranscodeToMatchDb()
+        $this->oForm->Update( ['sCharsetHTTP'=>@$this->raCompConfig['sCharsetHTTP'],    // tell Form->Update() how to transcode input if necessary (ok if these are null)
+                               'sCharsetDb'=>@$this->raCompConfig['sCharsetDb']] );
 
         /* Since the Form->Update() can insert a new row, fix up the kCurr to reflect that, and tell the derived component about it.
          * We defensively check here that the derived oForm has a GetKey, but you should always have that if you're using a SEEDUIComponent.
