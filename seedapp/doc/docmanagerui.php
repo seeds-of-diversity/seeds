@@ -2,7 +2,7 @@
 
 /* docmanagerui.php
  *
- * Copyright 2006-2022 Seeds of Diversity Canada
+ * Copyright 2006-2024 Seeds of Diversity Canada
  *
  * UI components for document management
  */
@@ -31,7 +31,10 @@ class DocManagerUI_Documents
         return( [SEEDW_URL."seedapp/DocRep/DocRepApp.js",           // central standard application
                  SEEDW_URL."seedapp/DocRep/DocRepApp_Tree.js",      // tree widget
                  SEEDW_URL."seedapp/DocRep/DocRepApp_CtrlView.js",  // tabbed ctrl widget
-                 SEEDW_URL."seedapp/DocRep/docmanager.js",          // custom application (runs code defined in above files so include last)
+
+                 SEEDW_URL."seedapp/DocRep/docmanager.js",          // custom application (runs code defined in above files so include after)
+                 SEEDW_URL."seedapp/DocRep/myDocRep/myDocRepCtrlView_Rename.js",
+                 SEEDW_URL."seedapp/DocRep/myDocRep/myDocRepCtrlView_Add.js",
                  "https://cdn.ckeditor.com/4.17.1/standard/ckeditor.js"
         ] );
     }
