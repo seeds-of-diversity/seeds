@@ -1140,8 +1140,10 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
 // make an UpdateMetadata() method and call it from here
         $ok = true;
 
-// TODO: there is no way to change a name to ""
-        if( @$parms['name'] ) {
+        if( isset($parms['name']) ) {
+            /* If a name is given, rename the doc and descendants to use it.
+             * If name=="", unname the doc and rename descendants to use closest named ancestor's name.
+             */
             $newName = $this->GetNewDocName($parms['name'], self::NEW_DOC_NAME_OP_RENAME);  // convert to full path name
             $oldName = $this->GetName();
 
@@ -1151,32 +1153,33 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                 $kfrDoc->SetValue( 'name', $newName );
                 $ok = $kfrDoc->PutDBRow();
 
-                // Rename all descendants. e.g. if this doc is renamed from a/b to a/b1, then a/b/c becomes a/b1/c
+                /* Rename all descendants.
+                 *     If this doc is renamed from a/b to a/b1, then a/b/c becomes a/b1/c
+                 *     If this doc is renamed from a/b to "", then a/b/c becomes a/c
+                 */
                 if( $ok ) {
-                    $dbNewName = addslashes($newName);
-                    $dbOldName = addslashes($oldName);
-                    $lenOldName = strlen($oldName);
+                    if( $newName ) {
+                        $newFolderName = $newName;                  // a/b1
+                    } else {
+                        $newFolderName = $this->GetFolderName();    // a
+                    }
+                    $oldFolderName = $oldName;                      // a/b
+                    $dbOldName = addslashes($oldFolderName);
                     if( ($kfrc = $this->oDocRepDB->GetRel()->GetKFRC('Doc', "name LIKE '{$dbOldName}/%'")) ) {
                         while( $kfrc->CursorFetch() ) {
                             // rename descendant doc
                             $kfr = $this->getKfrDoc( $kfrc->Key(), '' );
-                            $kfr->SetValue( 'name', $newName.substr($kfr->Value('name'),strlen($oldName)) );
+                            $kfr->SetValue( 'name', $newFolderName.substr($kfr->Value('name'),strlen($oldFolderName)) );    // first char of substr is '/'
                             $ok = $kfr->PutDBRow();
                             // uncache any DocRepDoc obj for this descendant
                             $this->oDocRepDB->DocCacheClear($kfrc->Key());
                         }
-                        /*
-                        $this->oDocRepDB->kfdb->Execute( "UPDATE {$this->oDocRepDB->GetRel()->DBName()}.docrep2_docs
-                                                          SET name=CONCAT('$dbNewName',SUBSTR(name,$lenOldName))
-                                                          WHERE name LIKE '{$dbNewName}/%'" );
-                        */
                     }
                 }
             }
         }
 
-// TODO: there is no way to change a title to "". The solution is to only update parms that are isset()
-        if( $ok && @$parms['title'] ) {
+        if( $ok && isset($parms['title']) ) {
             $kfrData = $this->getKfrData( $this->kDoc, '' );
             $kfrData->SetValue( 'title', $parms['title'] );
             $ok = $kfrData->PutDBRow();
