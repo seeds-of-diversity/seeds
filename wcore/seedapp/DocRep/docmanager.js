@@ -603,27 +603,9 @@ class myDocRepCtrlView_Rename
                                permclass: permclass } );
 		if ( rQ.bOk ) {
             this.oCtrlView.HandleRequest('docTreeChange', oParms.oDoc.Key());
-            this.UpdateTree(oParms.oDoc.Key(), name, title, permclass);
         } else {
 			console.log("error rename");
 		}
-	}
-	
-	/*
-	update tree after rename 
-	*/
-	UpdateTree( kDoc, name, title, permclass ) 
-	{
-        // change the name in the tree
-		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
-		let child = doc.children[1].nextSibling;
-		child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
-		
-		// change the values in the cache
-		let parms = {kDoc:kDoc, permclass:permclass};
-		parms.name = name;    // adding them this way means not having to escape quotes
-		parms.title = title;
-		this.oCtrlView.fnHandleEvent('updateDocInfo', parms);
 	}
 }
 
@@ -1195,12 +1177,11 @@ class DocRepApp02
                 break;
             // a doc is added, deleted, or moved in the tree    
             case 'docTreeChange':
-                // update cache for whole tree (easier than trying to update what has changed, and infrequent)
+                // update cache and redraw whole tree (easier than trying to update what has changed, and infrequent)
                 let kDoc = parseInt(p) || 0;
                 this.oDocRepUI.oCache.PruneTree(kDoc);
                 this.oDocRepUI.oCache.FetchDoc(kDoc);
-                // redraw Tree
-                console.log("REQUESTED docTreeChange "+kDoc)
+                this.oDocRepUI.DrawTree();
                 break;
         }
     }
