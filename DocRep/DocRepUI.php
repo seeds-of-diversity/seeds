@@ -49,7 +49,7 @@ class DocRepUI
 
 // depth== 2: get the immediate children but also count the grandchildren so count($ra['children']) is set.
 // other than that count we only need depth==1; there's probably a more efficient way to get count($ra['children'])
-        $raTree = $this->oDocRepDB->GetSubTree( $kTree, 2 );
+        $raTree = $this->oDocRepDB->GetSubTreeDescendants( $kTree, 2 );
         $s .= "<div class='DocRepTree_level DocRepTree_level$iLevel'>";
         foreach( $raTree as $k => $ra ) {
             if( !($oDoc = $this->oDocRepDB->GetDocRepDoc( $k )) )  continue;

@@ -14,6 +14,7 @@ class DocRepCache
     constructor( oConfig )
     {
         this.mapDocs = oConfig.mapDocs;     // a Map() of docrep docs
+        this.oConfig = oConfig;
     }
     
     GetDocInfo( kDoc, bInternalRecurse = false )
@@ -22,12 +23,21 @@ class DocRepCache
         kDoc = Number(kDoc);
         
         if( this.mapDocs.has(kDoc) ) {
+            // already in cache
             oDoc = this.mapDocs.get(kDoc);
         } else if( !bInternalRecurse ) {
-            // if not found on first time through, try to fetch it
+            // not found in cache and this is the first time through, try to fetch it
             this.FetchDoc( kDoc );
             oDoc = this.GetDocInfo( kDoc, true );
         } else {
+            // not found in cache and already tried (failed) to fetch
+//            oDoc = new DocRepDoc(kDoc);
+//            oDoc.SetInvalid();
+//            console.log(this.mapDocs);
+
+            oDoc = {k:kDoc, name:"failed to load", title:"failed to load", permclass:-1, raChildren:[] };
+            this.mapDocs.set( oDoc.k, oDoc ); // { k:oDoc.k, name:oDoc.name, title:oDoc.title, doctype:oDoc.doctype, kParent: oDoc.kParent,  children: [] } );
+
             // not found after fetching
             console.log(kDoc+" not found");
         }
@@ -63,6 +73,11 @@ class DocRepCache
     {
         // override to add doc(s) to mapDocs
     }
+    
+    PruneTree( kDoc )
+    {
+        // override to remove subtree rooted at kDoc from the cache
+    }
 }
 
 class DocRepDoc
@@ -70,14 +85,24 @@ class DocRepDoc
     constructor( kDoc )
     {
         this.kDoc = kDoc;
-        
-// must have a method that fetches or initializes the metadata
+        this.Clear();
     }    
 
     Key()       { return(this.kDoc); }
     Name()      { return(this.name); }
     Title()     { return(this.title); }
+    Type()      { return(this.doctype); }
     Permclass() { return(this.permclass); }
+    KeyParent() { return(this.kParent); }
+    DocParent() { /* get oDoc of kParent */ }
+    RAChildren(){ return(this.raChildren); }
+
+    Clear()
+    {
+        this.name = this.title = this.doctype = "";
+        this.kParent = this.permclass = 0;
+        this.raChildren = [];
+    }
     
     /**
         The name not including a leading path
@@ -99,9 +124,18 @@ class DocRepDoc
 
     SetMetadata( oM )
     {
-        this.name = oM.name;
-        this.title = oM.title;
-        this.permclass = oM.permclass;    
+        this.name       = oM.name;
+        this.title      = oM.title;
+        this.doctype    = oM.doctype;
+        this.permclass  = oM.permclass;    
+        this.kParent    = oM.kParent;
+        this.raChildren = oM.raChildren;
     }
-    
+
+    SetInvalid()
+    {
+        this.name = "failed";
+        this.title = "Failed";
+        this.permclass = -1;        // visible to all users
+    }    
 }

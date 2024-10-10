@@ -69,7 +69,7 @@ class DocManagerUI_Documents
                    ($this->oApp->sess->CanRead('DocRepMgr2') ? 2 : 1);
 
         $oDocRepDB = DocRepUtil::New_DocRepDB_WithMyPerms( $this->oApp );
-        $raTree = $oDocRepDB->GetSubTree( 0, -1 );
+        $raTree = $oDocRepDB->GetSubTreeDescendants( 0, -1 );
 
         $s .= "<script>oDocRepApp02_Config.env.seedw_url = '{$seedw_url}';
                        oDocRepApp02_Config.env.q_url = '{$q_url}';

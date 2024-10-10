@@ -131,7 +131,7 @@ class MyConsole02TabSet extends Console02TabSet
         $oDocScheduleFolder = $oDocRepDB->GetDocRepDoc( 'Schedule2' );
 
         // this is how you find all the documents in the folder, and their details
-        $raChildren = $oDocRepDB->GetSubtree( $oDocScheduleFolder->GetKey(), 1 );
+        $raChildren = $oDocRepDB->GetSubtreeDescendants( $oDocScheduleFolder->GetKey(), 1 );
         foreach( $raChildren as $kChild => $ra ) {
             if( $ra['visible'] ) {
                 $oChild = $oDocRepDB->GetDocRepDoc( $kChild );

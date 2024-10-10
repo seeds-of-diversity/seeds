@@ -34,9 +34,23 @@ class myDocRepCache extends DocRepCache
 
     FetchDoc( kDoc )
     {
-        if( kDoc == 9 ) {
-            this.mapDocs.set( 9, { k:9, name:'folder3/pageF',   doctype: 'page',   kParent: 3,  children: [] } );
+        if( kDoc == 0 ) kDoc = -1;  // dr-getTree uses this for root of forest so kDoc can be a required parm
+        
+        let rQ = SEEDJXSync(this.oConfig.env.q_url, { qcmd: 'dr-getTree', kDoc: kDoc, flag:'', depth: 1, includeRootDoc: 1 });
+        if( rQ.bOk ) {
+            for(let oDoc of rQ.raOut) {
+                // change children comma string to children array                
+                oDoc.raChildren = oDoc.children.split(',');
+                //console.log("Fetched doc "+oDoc.k, oDoc);
+                
+                this.mapDocs.set( oDoc.k, oDoc ); // { k:oDoc.k, name:oDoc.name, title:oDoc.title, doctype:oDoc.doctype, kParent: oDoc.kParent,  children: [] } );
+            }
         }
+    }
+    
+    PruneTree( kDoc )
+    {
+        
     }
 }
 
@@ -58,9 +72,7 @@ class myDocRepTree extends DocRepTree
                 sessionStorage.setItem( 'DocRepTree_Curr', p );    // SetCurrDoc() not defined but it would be this
                 break;
         }
-
-        // pass the event up the chain
-        this.fnHandleEvent( eNotify, p );
+        super.HandleRequest(eNotify, p);
     }
 
     GetCurrDoc()
@@ -96,6 +108,13 @@ class myDocRepCtrlView extends DocRepCtrlView
         this.oConfigEnv = oConfig.env;      // save the application environment config
         this.oConfigUI = oConfig.ui;        // save the ui config
         myDocRepCtrlView_Preview.Reset();   // so the Preview tab starts in Preview mode
+    }
+
+    HandleRequest( eNotify, p )
+    /**************************
+     */
+    {
+        super.HandleRequest(eNotify, p);
     }
 
     GetCtrlMode()
@@ -529,74 +548,64 @@ class myDocRepCtrlView_Rename
             sTitle = oDoc.Title();
             sPermclass = oDoc.Permclass();
         }
-		const label = 'col-md-3';
-        const ctrl = 'col-md-6';
+		const colLabel = 'col-md-3';
+        const colCtrl = 'col-md-6';
 
         oParms.jCtrlViewBody.html(`
         	<form id='drRename_form'> `// onsubmit='myDocRepCtrlView_Rename.Submit(event, "")'>
         	+`	<div class='row'> 
-        		 	<div class=${label}>Name</div>        
-        		 	<div class=${ctrl}>
+        		 	<div class='${colLabel}'>Name</div>        
+        		 	<div class='${colCtrl}'>
         		 		<input type='text' id='formRename_name'  value='${sName}' style='width:100%'/>
         		 	</div>
         		</div>
                 <div class='row'> 
-                 	<div class=${label}>Title</div>       
-                 	<div class=${ctrl}>
+                 	<div class=${colLabel}>Title</div>       
+                 	<div class=${colCtrl}>
                  		<input type='text' id='formRename_title' value='${sTitle}' style='width:100%'/>
                  	</div>
                 </div>`
               +(this.oCtrlView.oConfigUI.eUILevel>=2 ?
                     `<div class='row'> 
-                        <div class=${label}>Permissions</div>
-                        <div class=${ctrl}>
+                        <div class=${colLabel}>Permissions</div>
+                        <div class=${colCtrl}>
                             <input type='text' id='formRename_perms' value='${sPermclass}' style='width:100%'/>
                         </div>
                     </div>` : '')
-              +`<br/><input type='hidden' id='drRename_kDoc' value='${oDoc.kDoc}'/>
+              +`<br/>
                 <input type='submit' value='Change'/>
 			</form>`);
 
         let saveThis = this;
         $('#drRename_form').submit( function(e) {  
             e.preventDefault();
-            saveThis.Submit()
+            saveThis.Submit(oParms)
         });
 
     }
    
-   Submit() 
+   Submit(oParms) 
 	{
-        let q_url = this.oCtrlView.oConfigEnv.q_url;
-		let kDoc = parseInt($('#drRename_kDoc').val());
+        if( !oParms.oDoc.Key() ) {
+            console.log("error rename has no kDoc");
+            return;
+        }
+
 		let name = $('#formRename_name').val();
 		let title = $('#formRename_title').val();
 		let permclass = $('#formRename_perms').val();
-	
-		let rQ = SEEDJXSync( q_url, { qcmd: 'dr--rename', kDoc: kDoc, name: name, title: title, permclass: permclass });
-		if ( !rQ.bOk ) {
+
+		let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, 
+		                     { qcmd: 'dr--rename', 
+                               kDoc: oParms.oDoc.Key(), 
+                               name: name, 
+                               title: title, 
+                               permclass: permclass } );
+		if ( rQ.bOk ) {
+            this.oCtrlView.HandleRequest('docTreeChange', oParms.oDoc.Key());
+        } else {
 			console.log("error rename");
 		}
-		else {
-			this.UpdateTree(kDoc, name, title, permclass);
-		}
-	}
-	
-	/*
-	update tree after rename 
-	*/
-	UpdateTree( kDoc, name, title, permclass ) 
-	{
-        // change the name in the tree
-		let doc = $(`.DocRepTree_title[data-kDoc=${kDoc}]`)[0];
-		let child = doc.children[1].nextSibling;
-		child.nodeValue = '\u00A0' + name; // \u00a0 is same as &nbsp; in html
-		
-		// change the values in the cache
-		let parms = {kDoc:kDoc, permclass:permclass};
-		parms.name = name;    // adding them this way means not having to escape quotes
-		parms.title = title;
-		this.oCtrlView.fnHandleEvent('updateDocInfo', parms);
 	}
 }
 
@@ -1068,9 +1077,18 @@ class DocRepUI02
         this.oConfig = oConfig;
         this.fnHandleEvent = oConfig.fnHandleEvent;                          // tell this object how to send events up the chain
 
+        this.kCurrDoc = 0;
+
+        /* Create myDocRepCache object, then fetch current tree from server
+         */        
         this.oCache = new myDocRepCache( 
-                        { mapDocs: oConfig.docsPreloaded,
-                          fnHandleEvent: this.HandleRequest.bind(this) } );    // tell the object how to send events here
+                        { mapDocs: new Map([]), // oConfig.docsPreloaded,
+                          env: oConfig.env,                                  // tell the cache how to interact with the application environment
+                          fnHandleEvent: this.HandleRequest.bind(this) } );  // tell the object how to send events here
+
+        this.oCache.PruneTree(0);
+        this.oCache.FetchDoc(0);    // fetch subtree at doc 0
+
 
         /* Create myDocRepTree object, draw it into the given container div, set state and listeners
          */
@@ -1089,8 +1107,6 @@ class DocRepUI02
                         } );
         this.oCtrlView.DrawCtrlView();
         
-        this.kCurrDoc = 0;
-
         console.log("DocRepUI at level "+oConfig.ui.eUILevel);
     }
 
@@ -1154,7 +1170,19 @@ class DocRepApp02
             case 'ctrlviewRedraw':  // the CtrlView can request itself to be redrawn when its state changes
                 this.oDocRepUI.DrawCtrlView();
                 break;
-// add docChanged to update the tree and cache appropriately instead of whatever kluge is in Rename                
+            // a doc's metadata is changed but the tree structure is unchanged
+            case 'docMetadataChange':
+                // update cache for given doc
+                // redraw given doc in Tree
+                break;
+            // a doc is added, deleted, or moved in the tree    
+            case 'docTreeChange':
+                // update cache and redraw whole tree (easier than trying to update what has changed, and infrequent)
+                let kDoc = parseInt(p) || 0;
+                this.oDocRepUI.oCache.PruneTree(kDoc);
+                this.oDocRepUI.oCache.FetchDoc(kDoc);
+                this.oDocRepUI.DrawTree();
+                break;
         }
     }
 }

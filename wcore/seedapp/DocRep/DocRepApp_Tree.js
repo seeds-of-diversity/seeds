@@ -105,10 +105,12 @@ class DocRepTree
     {
         let s = "";
 
-        if( oDoc.children.length > 0 ) {
+        if( oDoc.raChildren.length > 0 ) {
             s += `<div class='DocRepTree_level' data-under-kdoc='${oDoc.k}'>`;
             let saveThis = this;
-            oDoc.children.forEach( function (v,k,ra) { s += saveThis.DrawTree_Render(v); } );
+            oDoc.raChildren.forEach( function (v,k,ra) {
+                                        // sometimes an empty raChildren contains [''] which starts kDoc==0 root render again 
+                                        if(v) s += saveThis.DrawTree_Render(v); } );
             s += "</div>";
         }
 
@@ -192,9 +194,14 @@ class DocRepTree
         return( t );
     }
 
-    HandleRequest( eRequest, p )
+    HandleRequest( eNotify, p )
+    /**************************
+     */
     {
-        // override to respond to notifications
+        // Override to respond to internal notifications
+
+        // pass the event up the chain
+        if(this.fnHandleEvent) this.fnHandleEvent( eNotify, p );
     }
     LevelOpenGet( pDoc )
     {

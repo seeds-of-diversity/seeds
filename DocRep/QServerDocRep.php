@@ -31,70 +31,63 @@ class QServerDocRep extends SEEDQ
         $rQ = $this->GetEmptyRQ();
 
         if( !SEEDCore_StartsWith( $cmd, 'dr-' ) ) goto done;
+        $rQ['bHandled'] = true;
 
         // check permissions
 
-
+        // kDoc must be given : -1 indicates root of forest (normally kDoc==0)
         $kDoc = intval(@$parms['kDoc']);
 
         switch( $cmd ) {
             case 'dr-preview':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doPreview($kDoc, $parms);
                 break;
 
+            case 'dr-getTree':
+                list($rQ['bOk'],$rQ['raOut']) = $this->doGetTree($kDoc, $parms);
+                break;
+
             case 'dr--add':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut'],$rQ['raMeta']['kDocNew']) = $this->doAdd($kDoc, $parms);
                 break;
 
             case 'dr--update':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doUpdate($kDoc, $parms);
                 break;
 
             case 'dr--rename':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doRename($kDoc, $parms);
                 break;
 
             case 'dr-versions':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersions($kDoc, $parms);
                 break;
 
             case 'dr-versionsDiff':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsDiff($parms['kDoc1'], $parms['kDoc2'], $parms['ver1'], $parms['ver2']);
                 break;
 
             case 'dr--versionsDelete':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsDelete($kDoc, $parms);
                 break;
 
             case 'dr--versionsRestore':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doVersionsRestore($kDoc, $parms);
                 break;
 
             case 'dr--schedule':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doSchedule($kDoc, $parms);
                 break;
 
             case 'dr--docMetadataStoreAll':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doDocMetadataStoreAll($kDoc, $parms);
                 break;
 
             case 'dr-XMLExport':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doXMLExport($kDoc);
                 break;
 
             case 'dr--XMLImport':
-                $rQ['bHandled'] = true;
                 list($rQ['bOk'],$rQ['sOut']) = $this->doXMLImport($kDoc, $parms);
                 break;
         }
@@ -170,6 +163,133 @@ class QServerDocRep extends SEEDQ
 
         return( [$bOk,$s] );
     }
+
+    /**
+     * @param int $kDoc
+     * @param array $parms
+     * @return array of docinfo for descendants of kDoc (not including kDoc)
+     */
+    private function doGetTree( int $kDoc, array $parms )
+    /****************************************************
+        includeRootDoc : true = return data for kDoc; false = exclude kDoc (default)
+        depth : -1 = whole subtree rooted at kDoc
+                 0 = just kDoc (only makes sense with includeRootDoc)
+                >0 = levels of subtree to descend
+     */
+    {
+        $ok = false;
+        $raOut = [];
+
+        /* kDoc required in parms, so use kDoc==-1 to refer to root of forest
+         */
+        if( !$kDoc ) goto done;     // here 0 means undefined
+        if( $kDoc < 0 ) $kDoc = 0;  // from here 0 means root forest
+
+        $flag = @$parms['flag'] ?? 'PUB';   // default published version
+        $depth = @$parms['depth'] ?: -1;    // default full depth
+
+        /* If depth != -1, fetch subtree to depth+1 so leaf nodes have children array set
+         */
+        $subtreeDepth = $depth >= 0 ? $depth+1 : -1;
+
+        /* 3 cases:
+         *     $kDoc >= 0 & !includeRootDoc  = get the forest of subtrees whose parent is kDoc, but not that parent (kDoc can be 0)
+         *     $kDoc > 0 & includeRootDoc    = get get the given doc + optional subtree as depth
+         *     $kDoc = 0 & includeRootDoc    = create a fake zero root doc + optional subtree as depth
+         *
+         */
+        if( @$parms['includeRootDoc'] ) {
+            if( $kDoc == 0 ) {
+                // get the top-level forest at the requested depth
+                $raForest = $this->oDocRepDB->GetSubTreeDescendants($kDoc, $subtreeDepth, []);
+                // create a zero root node with the top level forest as its children
+                $raOut[0] = $this->getTree_output_doc(null, $raForest);
+                // if fetching descendants, add those too
+                if( $depth > 0 ) $raOut = array_merge($raOut, $this->getTree_output($raForest, $depth==-1 ? -1 : $depth-1) );
+
+            } else {
+                // fetch the given doc and optionally its subtree
+                $raTree = $this->oDocRepDB->GetSubtree($kDoc, $subtreeDepth, []);
+                $raOut = $this->getTree_output($raTree, $depth);
+            }
+
+        } else {
+            // get the forest whose parent is kDoc
+            if( ($raForest = $this->oDocRepDB->GetSubTreeDescendants($kDoc, $subtreeDepth, [])) ) {
+                $raOut = $this->getTree_output($raForest, $depth);
+            }
+        }
+
+        $ok = true;
+
+        done:
+        return([$ok,$raOut]);
+    }
+
+    private function getTree_output( $raTreeLevel, int $depth, bool $bZeroNode = false )
+    /***************************************************************************
+        Write the nodes of the given level of the tree, optionally descending.
+        bZeroNode is a special mode: create a root-forest zero node, using raTreeLevel as its children
+     */
+    {
+        $raDocs = [];
+
+        if( $bZeroNode ) {
+            // kDoc is zero only at the root recursion when the fake "zero node" holds the root forest. The record has no metadata, just children.
+            $raDocs[0] = $this->getTree_output_doc(null, $raTreeLevel);
+            if( $depth >0 ) $raDocs = array_merge($raDocs, $this->getTree_output($raTreeLevel, $depth==-1 ? -1 : $depth-1) );
+            goto done;
+        }
+
+        foreach( $raTreeLevel as $d ) {
+            $oDoc = $d['oDoc'];
+
+            $raDocs[$oDoc->GetKey()] = $this->getTree_output_doc($d['oDoc'], $d['children']);
+
+            /* Add children to output array if depth unlimited (-1) or if haven't reached defined depth yet.
+             * Note the subtree fetch gets one level deeper than the requested depth so $raChildren can be recorded above.
+             */
+            if( $depth > 0 ) {
+                $raDocs = array_merge( $raDocs, $this->getTree_output( $d['children'], $depth==-1 ? -1 : $depth-1) );
+            }
+        }
+
+        done:
+        return( $raDocs );
+    }
+
+    private function getTree_output_doc( ?DocRepDoc2 $oDoc, array $raChildren )
+    /**************************************************************************
+        Write an oDoc as an array that is convertible to a json string.
+        raChildren is an array of DocRepDoc2 keyed by kDoc, so array_keys gets the keys of the children
+        oDoc==null means to write the root forest zero node with children (the top-level nodes)
+     */
+    {
+        if( $oDoc ) {
+            $kDoc = $oDoc->GetKey();
+            $n = SEEDCore_HSC($oDoc->GetName());
+            $ti = SEEDCore_HSC($oDoc->GetTitle(''));
+            $t = $oDoc->GetType() == 'FOLDER' ? 'folder' : 'page';
+            $p = $oDoc->GetParent();
+            $permclass = $oDoc->GetPermclass();
+            $md = SEEDCore_ArrayExpandSeries( $oDoc->GetValue('raDocMetadata', DocRepDoc2::FLAG_INDEPENDENT),
+                                              "'[[k]]':'[[v]]'", true, ['delimiter'=>","] );                    // does SEEDCore_HSC
+            $schedule = SEEDCore_HSC($oDoc->GetDocMetadataValue('schedule'));
+        } else {
+            $kDoc = 0;
+            $n = '';
+            $ti = '';
+            $t = 'folder';
+            $p = 0;
+            $permclass = '';
+            $md = '';
+            $schedule = '';
+        }
+        $children = implode(',', array_keys($raChildren));
+
+        return( ['k'=>$kDoc, 'name'=>$n, 'title'=>$ti, 'doctype'=>$t, 'kParent'=>$p, 'permclass'=>$permclass, 'docMetadata'=>$md, 'children'=>$children] );
+    }
+
 
     private function doAdd ( $kDoc, $parms ){
         $s = "";

@@ -108,13 +108,15 @@ class DocRepDB2 extends DocRep_DB
     function GetParms() { return( $this->parms ); }
 
 
-// It's worth doing this even if you just want the kDoc of a name. The minimal code would do almost as much work, and there's a
-// pretty good chance you're going to use the cached DocRepDoc after you get the kDoc.
-    function GetDocRepDoc( $sDoc ): ?DocRepDoc2 { return( $this->GetDoc( $sDoc ) ); }
+    function GetDoc( $sDoc ): ?DocRepDoc2 { return( $this->GetDocRepDoc($sDoc) ); }     // deprecate
 
-    function GetDoc( $sDoc ): ?DocRepDoc2
+    /** Get a DocRepDoc by kDoc or name
+     *
+     *  It's worth doing this even if you just want the kDoc of a name. The minimal code would do almost as much work, and there's a
+     *  pretty good chance you're going to use the cached DocRepDoc after you get the kDoc.
+     */
+    function GetDocRepDoc( $sDoc ): ?DocRepDoc2
     /***********************
-        Get a DocRepDoc by kDoc or name
      */
     {
         $oDRDoc = null;
@@ -148,17 +150,55 @@ class DocRepDB2 extends DocRep_DB
         return( $oDRDoc );
     }
 
-    function GetSubtree( $kParent, $depth = -1, $raParms = array() )
-    /***************************************************************
+    function GetSubtree( $kDoc, $depth = -1, $raParms = [] )
+    /*******************************************************
+        Return an array tree of oDoc rooted at the given doc.
+            [ kDoc => ['oDoc' => oDoc,
+                       'visible' => true,
+                       'children' => [ kDoc1 => ['oDoc' => oDoc,
+                                                 'visible' => true,
+                                                 'children' => [kDoc3 => ... ]],
+                                       kDoc2 => ['oDoc' => oDoc,
+                                                 'visible' => true,
+                                                 'children' => [] ]]
+            ]]
+
+        Only visible docs are returned, but invisible folders containing visible descendants are included.
+
+        depth==x:  descend x levels (e.g. 1 gets the children only)
+        depth==-1: no limit to depth
+        depth==0:  just get the single doc (you should probably just get the oDoc instead of using this)
+     */
+    {
+        $raTree = [];
+
+        if( ($oDoc = $this->GetDocRepDoc($kDoc)) && $oDoc->PermsR_Okay(true) ) {   // perms allows this to be an invisible folder that contains visible descendants
+            $raTree[$kDoc] = ['oDoc'=>$oDoc, 'visible'=>true, 'children'=>[]];
+
+            if( $depth != 0 ) {
+                $raTree[$kDoc]['children'] = $this->GetSubtreeDescendants($kDoc, $depth);
+            }
+        }
+
+        return( $raTree );
+    }
+
+    function GetSubtreeDescendants( $kParent, $depth = -1, $raParms = [] )
+    /*********************************************************************
         Return an array tree of descendants of $kParent
-            array( childFolder1 => array( 'visible' => true,
-                                          'children' => array( grandchildFolder1 => array( 'visible' => false,
-                                                                                           'children' => array( ggchildDoc1 => array( 'visible' => true,
-                                                                                                                                      'children' => array() ) ) ),
-                                                               grandchildDoc2 => array( 'visible' => true,
-                                                                                        'children' => array() ) ),
-                   childDoc2 => array( 'visible' => true,
-                                       'children' => array() ) )
+            [ childFolder1 => [ 'oDoc'=>oDoc,
+                                'visible' => true,
+                                'children' => [ grandchildFolder1 => [ 'oDoc'=>oDoc,
+                                                                       'visible' => false,
+                                                                       'children' => [ ggchildDoc1 => [ 'oDoc'=>oDoc,
+                                                                                                        'visible' => true,
+                                                                                                        'children' => [] ] ] ],
+                                                grandchildDoc2 => [ 'oDoc'=>oDoc,
+                                                                    'visible' => true,
+                                                                    'children' => [] ] ],
+              childDoc2 => [ 'oDoc'=>oDoc,
+                             'visible' => true,
+                             'children' => [] ] ] ]
             where every key is an integer kDoc
 
         If a non-visible FOLDER doc contains a visible descendant, then the folder is returned but marked invisible.
@@ -176,7 +216,7 @@ class DocRepDB2 extends DocRep_DB
     {
         $raRet = array();
 
-        $bIncludeDeleted = SEEDCore_ArraySmartVal( $raParms, 'bIncludeDeleted', array(false,true) );
+        $bIncludeDeleted = SEEDCore_ArraySmartVal( $raParms, 'bIncludeDeleted', [false,true] );
 
         /* Get all the children of kParent
          */
@@ -188,23 +228,30 @@ class DocRepDB2 extends DocRep_DB
             }
             $kfr->CursorClose();
         }
-
+//var_dump($kParent,$raChildren);
         /* For each child of kParent, expand visible subtrees and non-visible folders for visible children
          */
         foreach( $raChildren as $kDoc ) {
-            if( !($oDoc = $this->GetDocRepDoc( $kDoc ) ) )  continue;   // continues if kDoc is non-visible
+            /* How to determine visibility of pages/folders and non-visible folders that contain visible items:
+             *     PermsR_Okay(true)   descends into current invisible folder to look for visible descendants
+             *     PermsR_Okay(false)  only determines visibility of current item
+             *     GetDoc()            does a PermsR_Okay(true) before deciding to return the oDoc
+             *
+             *     So do GetDoc() to determine whether item is allowed (visible or invisible-folder-ancestor-of-visible)
+             *     Then do PermsR_Okay(false) to determine basic visibility of the item.
+             */
+            if( !($oDoc = $this->GetDocRepDoc( $kDoc ) ) )  continue;   // determines whether current item is allowed (basic visible | invisible ancestor of visible)
+            $bVisible = $oDoc->PermsR_Okay( false );                    // determine which kind of visibility (basic | invisible ancestor of visible)
 
-            // oDoc will be successful for non-visible folders that contain visible children.
-            // The arg on PermsR_Okay prevents that check, so bVisible is only true if the doc itself is visible
-            $bVisible = $oDoc->PermsR_Okay( false );
+            $raRet[$kDoc]['oDoc'] = $oDoc;
 
             if( $bVisible ) {
-                // This is a visible doc or folder.
+                // This is a directly visible doc or folder.
                 // If depth > 1 or -1 recurse normally.
                 // If depth == 1 make all nodes at this level look like leaves (no children).
                 // If depth == 0 we're looking below depth for a visible descendant of an invisible folder. Found it, so return 'visible' and no children.
                 $raRet[$kDoc]['children'] = ( $depth > 1 || $depth == -1 )
-                                            ? $this->GetSubTree( $kDoc, ($depth == -1 ? -1 : $depth - 1), $raParms )
+                                            ? $this->GetSubTreeDescendants( $kDoc, ($depth == -1 ? -1 : $depth - 1), $raParms )
                                             : array();
                 $raRet[$kDoc]['visible'] = true;
 
@@ -213,7 +260,7 @@ class DocRepDB2 extends DocRep_DB
 // The code below is never part of the determination about whether the invisible folder has visible descendants.
 // All it does is collect the information about the visible children of an invisible folder, after the folder is determined to be visible.
 // That is entirely done by PermsR_Okay which is called by GetDocRepDoc above.
-// PermsR_Okay does GetSubtree for the children of the folder, and if it is not an empty array it says the invisible folder is visible.
+// PermsR_Okay does GetSubtreeDescendants for the children of the folder, and if it is not an empty array it says the invisible folder is visible.
 // Then GetDocRepDoc returns above, and here we do the descent again to store the information about the children.
 
                 // This is an invisible folder. Recurse to find a visible descendant, and go as deep as necessary to find one.
@@ -234,7 +281,7 @@ class DocRepDB2 extends DocRep_DB
                 // In summary: if no child is returned, no visible descendant was found, so ignore this folder completely.
                 //             if a child is returned, at depth > 1 or depth == -1 return this folder with children; at depth 0 or 1 return it with no children.
                 //             always mark this folder as invisible.
-                $raChildren = $this->GetSubTree( $kDoc, (($depth == -1 || $depth == 0) ? $depth : $depth - 1), $raParms );
+                $raChildren = $this->GetSubTreeDescendants( $kDoc, (($depth == -1 || $depth == 0) ? $depth : $depth - 1), $raParms );
                 if( count($raChildren) ) {
                     $raRet[$kDoc]['children'] = ($depth == 0 || $depth == 1) ? array() : $raChildren;
                     $raRet[$kDoc]['visible'] = false;
@@ -312,7 +359,7 @@ class DocRepDB2 extends DocRep_DB
                       dataspec='$sDataspec' metadata='$sMetadata'
                       data_text='$sText'>";
 
-        $raChildren = $this->GetSubtree($kDoc); // find all children
+        $raChildren = $this->GetSubtreeDescendants($kDoc); // find all children
         foreach($raChildren as $k=>$v ){
             $s .= $this->buildXML($k); // recursively call on children
         }
@@ -623,6 +670,27 @@ class DocRepDoc2_ReadOnly
         return $this->GetSiblingPrev(-$n);
     }
 
+    /**
+     * Get an array of DocRepDoc of the visible children of this oDoc, ordered by siborder.
+     * Visible children includes invisible folders containing visible descendants.
+     *
+     * return array of DocRepDoc
+     */
+    function GetChildrenAsObj()
+    {
+        $raChildren = [];
+
+        // depth=1 just gets immediate children, but it descends invisible folders to see if they contain visible descendants
+        foreach( $this->oDocRepDB->GetSubtreeDescendants($this->kDoc, 1) as $child ) {
+            $raChildren[] = $child['oDoc'];
+        }
+
+        return( $raChildren );
+    }
+
+
+/* use GetSubtreeDescendants(depth=1) to get PermR check, and cache the result in this oDoc
+ */
     function GetChildren()
     /**
      * return array of children
@@ -892,11 +960,11 @@ class DocRepDoc2_ReadOnly
                in_array( $permclass, $drParms['raPermsR'] );
 
         if( !$bOk ) {
-            // This doc is not normally visible but GetSubtree will succeed if it is a FOLDER containing a visible descendant.
+            // This doc is not normally visible but GetSubtreeDescendants will succeed if it is a FOLDER containing a visible descendant.
             // In that case, we treat the folder as readable.
             // We only have to look at immediate descendants (depth==1) because if any of those are non-visible folders, GetSubtree
             // will recurse to look for visible descendants.
-            if( $doctype == 'FOLDER' && $bDescendInvisibleFolders && $this->oDocRepDB->GetSubtree( $this->kDoc, 1 ) ) {
+            if( $doctype == 'FOLDER' && $bDescendInvisibleFolders && $this->oDocRepDB->GetSubtreeDescendants( $this->kDoc, 1 ) ) {
                 $bOk = true;
             } else {
                 // doc is not visible/readable

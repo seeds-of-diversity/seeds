@@ -45,7 +45,7 @@ class MyConsole02TabSet extends Console02TabSet
 {
     private $oApp;
 
-    private $oGrowouts;
+    private $oGO;
     private $oW;
 
     function __construct( SEEDAppConsole $oApp )
@@ -92,7 +92,7 @@ class GrowoutsCommon
     public $oApp;
 
     private $oGoogleSheet = null;     // SEEDGoogleSheets_NamedColumns of the Community Growouts sheet
-
+    private $oBucket;
     private $cacheRows = null;        // rows from the Google sheet with values keyed by colname (keep this intermediate step to help debug GoogleSheet access)
     private $cacheGrowers = null;     // rows that are non-blank keyed by [sheet row number][column name]
 
