@@ -932,6 +932,21 @@ alter table sed_curr_growers change _updated_S     _updated_S      VARCHAR(100) 
 alter table sed_curr_growers change _updated_S_by  _updated_S_by   INTEGER NOT NULL DEFAULT 0;
 
 
+    alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
+
+    alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
+    alter table sed_curr_growers add pay_paypal    tinyint not null default 0;
+
+    alter table sed_curr_growers add eDateRange enum ('use_range','all_year') not null default 'use_range';
+    alter table sed_curr_growers add dDateRangeStart date not null default '2022-01-01';
+    alter table sed_curr_growers add dDateRangeEnd   date not null default '2022-05-31';
+
+    alter table sed_growers add eReqClass       text;
+    alter table sed_growers add eDateRange      text;
+    alter table sed_growers add dDateRangeStart text;
+    alter table sed_growers add dDateRangeEnd   text;
+
+
 DROP TABLE IF EXISTS sed_seeds;
 CREATE TABLE sed_seeds (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
