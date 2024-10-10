@@ -98,6 +98,7 @@ $oApp->oC->SetConfig( ['HEADER'=>"Documents on {$oApp->kfdb->GetDB()}" ] );
 
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oDocTS] );
 
+// What charset is the document text?
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['raScriptFiles' => array_merge([W_CORE_URL."js/SEEDCore.js"], DocManagerUI_Documents::ScriptFiles()),
                                  'raCSSFiles' => DocManagerUI_Documents::StyleFiles(),
