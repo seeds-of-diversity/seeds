@@ -123,8 +123,7 @@ class MSDCore
      */
     function CondIsListable()
     {
-                                      // this is CondIsGrowerListable('G')
-        return( "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->CondIsGrowerDone('G')}" );
+        return( "eStatus='ACTIVE' AND {$this->CondIsGrowerListable('G')}" );
     }
 
 
@@ -136,10 +135,12 @@ class MSDCore
 
         Now: LISTABLE is true when dDone > Aug 1 of YEAR(NOW())-1. That means Jan-Dec we list anything dDone this year or the previous fall.
              REQUESTABLE must check that NOW() is between Jan-May, or in a range chosen by the grower.
+             GROWER DONE is true if dDone > Aug 1 of the year preceding the MSE year in process i.e. $this->currYear
 
              This means all listings dDone Jan-Jul are shown for the rest of the calendar year.
                                      dDone Aug-Dec are shown for that period and the whole of the next year.
              But they are only requestable in Jan-May within those periods unless otherwise specified.
+             And in the Edit app, growers see their DONE status disappear each Aug 1 because currYear jumps to the next calendar year.
      */
     function IsGrowerDone( KeyframeRecord $kfrG )
     {
@@ -147,9 +148,7 @@ class MSDCore
     }
     function IsGrowerDoneFromDate( string $dDone )
     {
-        //return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );     this made everything unlistable on Aug 1, which surprised growers
-        $y = date("Y")-1;
-        return( $dDone && $dDone > "{$y}-08-01" );
+        return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );
     }
     function CondIsGrowerDone( string $prefix = '' )
     /***********************************************
@@ -157,17 +156,19 @@ class MSDCore
      */
     {
         if( $prefix )  $prefix = "{$prefix}.";
-        //return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}' )" );  this made everything unlistable on Aug 1, which surprised growers
-        $y = date("Y")-1;
-        return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$y}-08-01' )" );
+        return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}' )" );
     }
     function CondIsGrowerListable( string $prefix = '' )
     /***************************************************
         sql condition for testing if a grower should appear in a public Growers list
+        Listings are visible if dDone since Aug of previous calendar year.
+        That means old listings are visible throughout fall (but not requestable unless grower allows), and disappear Jan 1.
      */
     {
         if( $prefix )  $prefix = "{$prefix}.";
-        return( "( NOT (G.bHold OR G.bSkip OR G.bDelete) AND G.nTotal<>0 AND {$this->CondIsGrowerDone('G')} )" );
+        //return( "( NOT (G.bHold OR G.bSkip OR G.bDelete) AND G.nTotal<>0 AND {$this->CondIsGrowerDone('G')} )" );   this made everything unlistable on Aug 1 of currYear, which surprised growers
+        $y = date("Y")-1;
+        return( "( NOT ({$prefix}bHold OR {$prefix}bSkip OR {$prefix}bDelete) AND {$prefix}nTotal<>0 AND ({$prefix}dDone<>'' AND {$prefix}dDone > '{$y}-08-01') )" );
     }
 
 

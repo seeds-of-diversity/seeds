@@ -337,8 +337,8 @@ var_dump($sql);
                 $sReq = "<p>This seed offer is not currently active.</p>";
                 break;
             case MSDCore::REQUESTABLE_NO_OUTOFSEASON:
-                $sDateStart = SEEDDate::NiceDateStrFromDate($kfrGxM->Value('dDateRangeStart'), 'EN', SEEDDate::OMIT_YEAR);
-                $sDateEnd   = SEEDDate::NiceDateStrFromDate($kfrGxM->Value('dDateRangeEnd'), 'EN', SEEDDate::OMIT_YEAR);
+                $sDateStart = ($d = $kfrGxM->Value('dDateRangeStart')) ? SEEDDate::NiceDateStrFromDate($d, 'EN', SEEDDate::OMIT_YEAR) : "January 1";
+                $sDateEnd   = ($d = $kfrGxM->Value('dDateRangeEnd'))   ? SEEDDate::NiceDateStrFromDate($d, 'EN', SEEDDate::OMIT_YEAR) : "May 31";
                 $sReq = "<p class='alert alert-warning'>This grower only offers these seeds from <strong>$sDateStart</strong> to <strong>$sDateEnd</strong></p>";
                 break;
             case MSDCore::REQUESTABLE_NO_NONGROWER:
