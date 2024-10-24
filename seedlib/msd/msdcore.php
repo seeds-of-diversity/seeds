@@ -129,7 +129,17 @@ class MSDCore
 
 
     /*********************************************
-        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
+        The grower Done checkbox records the date when it was checked.
+
+        Previously: LISTABLE was true if dDone > Aug 1 of currYear-1. Since currYear is YEAR(NOW()) from Jan-Jul, but YEAR(NOW())+1 Aug-Dec,
+        this caused LISTABLE to be false after each Aug 1, so MSE was empty when growers wanted to look at their own seeds, or anybody wanted to research varieties.
+
+        Now: LISTABLE is true when dDone > Aug 1 of YEAR(NOW())-1. That means Jan-Dec we list anything dDone this year or the previous fall.
+             REQUESTABLE must check that NOW() is between Jan-May, or in a range chosen by the grower.
+
+             This means all listings dDone Jan-Jul are shown for the rest of the calendar year.
+                                     dDone Aug-Dec are shown for that period and the whole of the next year.
+             But they are only requestable in Jan-May within those periods unless otherwise specified.
      */
     function IsGrowerDone( KeyframeRecord $kfrG )
     {
@@ -137,7 +147,9 @@ class MSDCore
     }
     function IsGrowerDoneFromDate( string $dDone )
     {
-        return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );
+        //return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );     this made everything unlistable on Aug 1, which surprised growers
+        $y = date("Y")-1;
+        return( $dDone && $dDone > "{$y}-08-01" );
     }
     function CondIsGrowerDone( string $prefix = '' )
     /***********************************************
@@ -145,7 +157,9 @@ class MSDCore
      */
     {
         if( $prefix )  $prefix = "{$prefix}.";
-        return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}' )" );
+        //return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$this->GetFirstDayForCurrYear()}' )" );  this made everything unlistable on Aug 1, which surprised growers
+        $y = date("Y")-1;
+        return( "( {$prefix}dDone<>'' AND {$prefix}dDone > '{$y}-08-01' )" );
     }
     function CondIsGrowerListable( string $prefix = '' )
     /***************************************************
@@ -275,7 +289,7 @@ class MSDCore
 
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
-        if( false
+        if( true
             // also code this into CondIsListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
             // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
             ) {

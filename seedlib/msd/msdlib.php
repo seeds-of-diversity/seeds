@@ -10,6 +10,7 @@
  */
 
 include_once( "msdcore.php" );
+include_once( SEEDCORE."SEEDDate.php" );
 include_once( SEEDCORE."SEEDProblemSolver.php" );
 include_once( SEEDCORE."SEEDLocal.php" );
 
@@ -336,7 +337,9 @@ var_dump($sql);
                 $sReq = "<p>This seed offer is not currently active.</p>";
                 break;
             case MSDCore::REQUESTABLE_NO_OUTOFSEASON:
-                $sReq = "<p class='alert alert-warning'>This grower only offers these seeds from {$kfrGxM->Value('dDateRangeStart')} to {$kfrGxM->Value('dDateRangeEnd')}</p>";
+                $sDateStart = SEEDDate::NiceDateStrFromDate($kfrGxM->Value('dDateRangeStart'), 'EN', SEEDDate::OMIT_YEAR);
+                $sDateEnd   = SEEDDate::NiceDateStrFromDate($kfrGxM->Value('dDateRangeEnd'), 'EN', SEEDDate::OMIT_YEAR);
+                $sReq = "<p class='alert alert-warning'>This grower only offers these seeds from <strong>$sDateStart</strong> to <strong>$sDateEnd</strong></p>";
                 break;
             case MSDCore::REQUESTABLE_NO_NONGROWER:
                 $sReq = "<p>These seeds are only available to members who also offer seeds in the Seed Exchange.</p></p>";
