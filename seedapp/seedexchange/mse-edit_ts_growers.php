@@ -65,7 +65,7 @@ class MSEEditAppTabGrower
         if( ($k = SEEDInput_Int( 'gdone' )) && $k == $this->kGrower ) {
 //            $this->kfrGxM->SetValue( 'bDone', !$this->kfrGxM->value('bDone') );
 //            $this->kfrGxM->SetValue( 'bDoneMbr', $this->kfrGxM->value('bDone') );  // make this match bDone
-            $this->kfrGxM->SetValue( 'dDone', $this->oMSDLib->IsGrowerDone($this->kfrGxM) ? '' : date('Y-m-d') );
+            $this->kfrGxM->SetValue( 'dDone', $this->oMSDLib->IsGrowerDoneForCurrYear($this->kfrGxM) ? '' : date('Y-m-d') );
             $this->kfrGxM->SetValue( 'dDone_by', $this->oApp->sess->GetUID() );
             $eOp = 'gdone';
         }
@@ -173,10 +173,10 @@ class MSEEditAppTabGrower
 
         $sLeft .= "<h3>{$this->kfrGxM->Value('mbr_code')} : ".Mbr_Contacts::GetContactNameFromMbrRA($this->kfrGxM->ValuesRA(), ['fldPrefix'=>'M_'])."</h3>"
                 ."<p>{$this->oMSDLib->oL->S('Grower block heading', [], 'mse-edit-app')}</p>"
-                ."<div class='mse-edit-grower-block".($this->oMSDLib->IsGrowerDone($this->kfrGxM) ? ' mse-edit-grower-block-done' : '')."'>"
+                ."<div class='mse-edit-grower-block".($this->oMSDLib->IsGrowerDoneForCurrYear($this->kfrGxM) ? ' mse-edit-grower-block-done' : '')."'>"
                 .$this->oMSDLib->DrawGrowerBlock( $this->kfrGxM, true )
                 ."</div><br/>"
-                .($this->oMSDLib->IsGrowerDone($this->kfrGxM)
+                .($this->oMSDLib->IsGrowerDoneForCurrYear($this->kfrGxM)
                      ? "<p style='font-size:16pt;margin-top:20px;'>Done! Thank you!</p>
                         <a href='{$this->oApp->PathToSelf()}?gdone={$this->kGrower}'>Click here if you're not really done</a>"
                      : "<form method='post'><input type='hidden' name='gdone' value='{$this->kGrower}'/>

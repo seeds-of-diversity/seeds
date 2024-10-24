@@ -66,10 +66,9 @@ class MSDLib
     function KFRelG()   { return( $this->oMSDCore->KFRelG() ); }
     function KFRelGxM() { return( $this->oMSDCore->KFRelGxM() ); }
 
-    function IsGrowerDone( KeyframeRecord $kfrG )  { return( $this->oMSDCore->IsGrowerDone($kfrG) ); }
-    function IsGrowerDoneFromDate( string $dDone ) { return( $this->oMSDCore->IsGrowerDoneFromDate($dDone) ); }
-
-    function CondIsGrowerDone()                    { return( $this->oMSDCore->CondIsGrowerDone() ); }
+    function IsGrowerDoneForCurrYear( KeyframeRecord $kfrG )  { return( $this->oMSDCore->IsGrowerDoneForCurrYear($kfrG) ); }
+    function IsGrowerDoneForCurrYearFromDate( string $dDone ) { return( $this->oMSDCore->IsGrowerDoneForCurrYearFromDate($dDone) ); }
+    function CondIsGrowerDoneForCurrYear()                    { return( $this->oMSDCore->CondIsGrowerDoneForCurrYear() ); }
     function CondIsGrowerListable( string $prefix) { return( $this->oMSDCore->CondIsGrowerListable($prefix) ); }
 
 

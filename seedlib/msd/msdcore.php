@@ -121,7 +121,7 @@ class MSDCore
      * SQL condition on a PxGx* relation to return only seeds that are listable (i.e. to be shown to people viewing the list; might not be requestable)
      * @return string
      */
-    function CondIsListable()
+    function CondIsSeedListable()
     {
         return( "eStatus='ACTIVE' AND {$this->CondIsGrowerListable('G')}" );
     }
@@ -142,16 +142,19 @@ class MSDCore
              But they are only requestable in Jan-May within those periods unless otherwise specified.
              And in the Edit app, growers see their DONE status disappear each Aug 1 because currYear jumps to the next calendar year.
      */
-    function IsGrowerDone( KeyframeRecord $kfrG )
+    function IsGrowerDoneForCurrYear( KeyframeRecord $kfrG )
     {
-        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneFromDate($kfrG->Value('dDone')) );
+        // true if the grower clicked DONE since Aug 1 of the year preceding $this->currYear.
+        // Use this for grower edit, since they want their done status to reset next Aug 1.
+        // Use IsGrowerListable for showing listings, since those should be visible past Aug 1, though not necessarily requestable.
+        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneForCurrYearFromDate($kfrG->Value('dDone')) );
     }
-    function IsGrowerDoneFromDate( string $dDone )
+    function IsGrowerDoneForCurrYearFromDate( string $dDone )
     {
         return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );
     }
-    function CondIsGrowerDone( string $prefix = '' )
-    /***********************************************
+    function CondIsGrowerDoneForCurrYear( string $prefix = '' )
+    /**********************************************************
         sql cond for testing if Done status is set in a grower record
      */
     {
@@ -291,7 +294,7 @@ class MSDCore
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
         if( true
-            // also code this into CondIsListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
+            // also code this into CondIsSeedListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
             // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
             ) {
             $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
@@ -348,7 +351,7 @@ class MSDCore
             if( $ra['category'] == 'misc' )        ++$raOut['nMisc'];
         }
 
-        $raOut['nVarieties'] = $this->oSBDB->GetCount( 'PxGxCATEGORYxSPECIESxVARIETY', $this->CondIsListable('G'),
+        $raOut['nVarieties'] = $this->oSBDB->GetCount( 'PxGxCATEGORYxSPECIESxVARIETY', $this->CondIsSeedListable('G'),
                                                        ['sGroupAliases'=>'PEcategory_v,PEspecies_v,PEvariety_v'] );
 
         return( $raOut );
@@ -381,7 +384,7 @@ class MSDCore
         }
 
         if( @$raParms['bListable'] ) {
-            $sCond .= ($sCond ? " AND " : "").$this->CondIsListable('G');
+            $sCond .= ($sCond ? " AND " : "").$this->CondIsSeedListable('G');
         }
 
         /* kluge 1: klugeKey is one random key of a Product that has a given category,species
