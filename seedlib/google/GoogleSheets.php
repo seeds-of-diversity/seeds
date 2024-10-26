@@ -383,6 +383,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
         $raColumns = $this->oGoogleSheet->GetColumnNames($nameSheet);
         $raEvents = $this->oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
         //var_dump($raColumns,$raEvents);
+        //var_dump($mapCols);
 
         $iRow = 2;
         foreach( $raEvents as $raRow ) {
@@ -396,7 +397,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
             }
 
             if( !($kfr = $this->kfrel->GetRecordFromDBKey($kSync)) ) {
-                $this->oGoogleSheet->WriteCellWithNamedColumns( $this->nameSheet, $iRow, ['sync_note' => "not found in db"] );
+                $this->oGoogleSheet->WriteCellsWithNamedColumns( $this->nameSheet, $iRow, ['sync_note' => "not found in db"] );
                 goto do_next;
             }
 
