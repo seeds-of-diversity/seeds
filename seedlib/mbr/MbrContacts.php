@@ -432,9 +432,14 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         Return array of M_D where D is the most recent donation for M
 
             raParms:
-                condM_D         : condition on mbr_contacts LEFT JOIN mbr_donations with cols prefixed "M." and "D." e.g. M.email <> '' AND year(D.date_received)>'2019'
-                bRequireEmail   : default false
-                bRequireAddress : default true
+                condM_D                : condition on mbr_contacts LEFT JOIN mbr_donations with cols prefixed "M." and "D." e.g. M.email <> '' AND year(D.date_received)>'2019'
+                bRequireEmail          : default false
+                bRequireAddress        : default true
+                bEnforceNoDonorAppeals : default false
+                bEnforceNoPaperMail    : default false
+                dIncludeIfMbrAfter     : only find donors who had memberships after given date
+                dIncludeIfDonAfter     : only find donors who made a donation after given date
+                dExcludeIfDonAfter     : only find donors who made a donation before given date
 
             output:
                 M_*             = mbr_contacts fields
@@ -446,19 +451,20 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
     {
         if( !isset($raParms['bRequireAddress']) ) $raParms['bRequireAddress'] = true;
 
-        $condM_D = ""//"M.country='Canada' AND "
-                  .(@$raParms['bRequireAddress'] ? "M.address IS NOT NULL AND M.address<>'' AND " : "")   // address is blanked out if mail comes back RTS
-                  .(@$raParms['bRequireEmail'] ? "M.email IS NOT NULL AND M.email<>'' AND " : "")
-                  ."NOT M.bNoDonorAppeals";
+        $raC = ["1=1"];  // "M.country='Canada'"
+        if(@$raParms['bRequireAddress'])         $raC[] = "M.address IS NOT NULL AND M.address<>''";   // address is blanked out if mail comes back RTS
+        if(@$raParms['bRequireEmail'])           $raC[] = "M.email IS NOT NULL AND M.email<>''";
+        if(@$raParms['bEnforceNoPaperMail'])     $raC[] = "NOT M.bNoPaperMail";
+        if(@$raParms['bEnforceNoDonorAppeals'])  $raC[] = "NOT M.bNoDonorAppeals";
 
-        $condM_D .= ($c = @$raParms['condM_D']) ? " AND ($c) " : "";
+        $condM_D = implode(' AND ', $raC).(($c = @$raParms['condM_D']) ? " AND ($c) " : "");
 
-        /* Include members who have had a membership or made a donation after a given date
+        /* Only find members who have had a membership or made a donation after a given date
          * D.date_received NULL means the LEFT JOIN failed (member has never made a donation)
          */
         $dM = @$raParms['dIncludeIfMbrAfter'];
         $dD = @$raParms['dIncludeIfDonAfter'];
-        // pre-calc both to prevent short-circuit
+        // these are calc'd before if() so short-circuit doesn't leave the second one uncalc'd
         if( $dM || $dD ) {
             $c = ($dM        ? "(M.expires IS NOT NULL AND M.expires>='$dM')" : "")
                 .($dM && $dD ? " OR " : "")
@@ -476,8 +482,8 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         if( SEED_isLocal ) {
             $raOut = $this->getMD( $condM_D, $retSql, $raParms, 'old' );
 
-            $sql2 = "";
-            $raOut2 = $this->getMD( $condM_D, $sql, $raParms, 'new' );
+            $sqlDummy = "";
+            $raOut2 = $this->getMD( $condM_D, $sqlDummy, $raParms, 'new' );
 
             echo "Using both methods: new has ".count($raOut)." elements; old has ".count($raOut2)." elements<br/>";
 
@@ -648,14 +654,18 @@ class MbrContactsList
     }
 
     function GetGroup( $sGroup )
+    /***************************
+        This is for paper mailing only - it uses bEnforceNoDonorAppeals and bEnforceNoPaperMail
+     */
     {
         $ret = null;
 
         if( isset($this->raGroups[$sGroup]) ) {
             // fetch the mailing list if not already loaded
             if( !$this->raGroups[$sGroup]['raList'] ) {
-                $this->raGroups[$sGroup]['raList'] = $this->oMbr->oDB->GetContacts_MostRecentDonation(
-                        ['condM_D'=>$this->raGroups[$sGroup]['cond']], $this->raGroups[$sGroup]['sql'], $this->raGroups[$sGroup]['parms'] );
+                $raP = $this->raGroups[$sGroup]['parms'];
+                $raP['condM_D'] = $this->raGroups[$sGroup]['cond'];
+                $this->raGroups[$sGroup]['raList'] = $this->oMbr->oDB->GetContacts_MostRecentDonation($raP, $this->raGroups[$sGroup]['sql']);
                 foreach( $this->raGroups[$sGroup]['raList'] as &$ra ) {
                     $ra['SEEDPrint:addressblock'] = Mbr_Contacts::DrawAddressBlockFromRA( $ra, 'HTML', 'M_' );
                 }
@@ -690,18 +700,23 @@ class MbrContactsList
          * 3) This excludes anyone who neither was a member nor made a donation since dStart
          * 4) Also excludes anyone who made a donation since $dDonorEnd
          */
-// use dIncludeMbrAfter, dIncludeIfDonAfter, dExcludeIfDonAfter
-        $condDonor = "D.date_received IS NOT NULL AND D.date_received BETWEEN '$dStart' AND '$dDonorEnd'";
-        $condNonDonorMember = "(D.date_received IS NULL OR D.date_received<'$dStart') AND M.expires>='$dStart'";
+        $condDonor = "1=1"; // same as dIncludeIfDonAfter and dExcludeIfDonAfter  "D.date_received IS NOT NULL AND D.date_received BETWEEN '$dStart' AND '$dDonorEnd'";
+        $condNonDonorMember = "1=1"; // same as dExcludeIfDonAfter and dIncludeIfMbrAfter  "(D.date_received IS NULL OR D.date_received<'$dStart') AND M.expires>='$dStart'";
+        $raD = ['bEnforceNoDonorAppeals'=>true, 'bEnforceNoPaperMail'=>true,
+                'dIncludeIfDonAfter'=>$dStart,                                  // identify donors - if they made a donation in past 2 years
+                'dExcludeIfDonAfter'=>$dDonorEnd];                              // but don't bother recent donors
+        $raND = ['bEnforceNoDonorAppeals'=>true, 'bEnforceNoPaperMail'=>true,
+                 'dExcludeIfDonAfter'=>$dStart,                                 // identify non-donors - if they didn't make a donation in past 2 years
+                 'dIncludeIfMbrAfter'=>$dStart];                                // who are recent members
 
-        foreach(['donorEN'    => ['title'=>"Donors English",                          'cond'=>[$condDonor,          $lEN],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donorFR'    => ['title'=>"Donors French",                           'cond'=>[$condDonor,          $lFR],                   'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor100EN' => ['title'=>"Donors English \${$dDonThresholdUpper}+", 'cond'=>[$condDonor,          $lEN, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor100FR' => ['title'=>"Donors French \${$dDonThresholdUpper}+",  'cond'=>[$condDonor,          $lFR, $condLarge],       'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor99EN'  => ['title'=>"Donors English \${$dDonThresholdLower}-", 'cond'=>[$condDonor,          $lEN, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'donor99FR'  => ['title'=>"Donors French \${$dDonThresholdLower}-",  'cond'=>[$condDonor,          $lFR, "NOT $condLarge"], 'parms'=>[]],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
-                 'nonDonorEN' => ['title'=>"Non-donors English",                      'cond'=>[$condNonDonorMember, $lEN],                   'parms'=>[]],// 'order'=>"lastname,firstname"],
-                 'nonDonorFR' => ['title'=>"Non-donors French",                       'cond'=>[$condNonDonorMember, $lFR],                   'parms'=>[]],// 'order'=>"lastname,firstname"]
+        foreach(['donorEN'    => ['title'=>"Donors English",                          'cond'=>[$condDonor,          $lEN],                   'parms'=>$raD],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donorFR'    => ['title'=>"Donors French",                           'cond'=>[$condDonor,          $lFR],                   'parms'=>$raD],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor100EN' => ['title'=>"Donors English \${$dDonThresholdUpper}+", 'cond'=>[$condDonor,          $lEN, $condLarge],       'parms'=>$raD],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor100FR' => ['title'=>"Donors French \${$dDonThresholdUpper}+",  'cond'=>[$condDonor,          $lFR, $condLarge],       'parms'=>$raD],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor99EN'  => ['title'=>"Donors English \${$dDonThresholdLower}-", 'cond'=>[$condDonor,          $lEN, "NOT $condLarge"], 'parms'=>$raD],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'donor99FR'  => ['title'=>"Donors French \${$dDonThresholdLower}-",  'cond'=>[$condDonor,          $lFR, "NOT $condLarge"], 'parms'=>$raD],// 'order'=>"cast(donation as decimal) desc,lastname,firstname"],
+                 'nonDonorEN' => ['title'=>"Non-donors English",                      'cond'=>[$condNonDonorMember, $lEN],                   'parms'=>$raND],// 'order'=>"lastname,firstname"],
+                 'nonDonorFR' => ['title'=>"Non-donors French",                       'cond'=>[$condNonDonorMember, $lFR],                   'parms'=>$raND],// 'order'=>"lastname,firstname"]
                 ] as $k => $ra )
         {
             $this->raGroups[$k] = ['title'=>$ra['title'], 'raList'=>null, 'cond'=>implode(' AND ',$ra['cond']), 'parms'=>$ra['parms'], 'sql'=>""];
