@@ -153,8 +153,8 @@ class SEEDCoreForm  // extends SEEDCoreFormControls
         return( $oRet );
     }
 
-    function Load( $raParms = array() )
-    /**********************************
+    function Load( $raParms = [] )
+    /*****************************
         Do the same as Update, except for committing to the data store.
         This is only for single-row applications.
         For in-memory data stores, this typically does the whole update operation because there's no special commit.
@@ -171,6 +171,7 @@ class SEEDCoreForm  // extends SEEDCoreFormControls
         }
 
         // Load the first row of httpParms (probably the only one) into the data store
+//0 is not necessarily the first/only one : it is the index of sfA_p i.e. sfA0_p
         if( isset($raHttpParms['rows'][0]) ) {
             list($bLoaded, $bStorable) = $this->_updateLoad( 0, $raHttpParms['rows'][0] );
         }
@@ -199,7 +200,14 @@ class SEEDCoreForm  // extends SEEDCoreFormControls
         $raSerial = (isset($raParms['raSerial']) ? $raParms['raSerial'] : $_REQUEST);   // array of serialized parms to read
         $bGPC     = (isset($raParms['bGPC']) ? $raParms['bGPC'] : true);                // is that array GPC
 
-        return( $this->oCtrl->GetFormParms()->Deserialize( $raSerial, $bGPC ) );
+        $raOut = $this->oCtrl->GetFormParms()->Deserialize( $raSerial, $bGPC );
+
+        // If the http input charset is different than the db charset, transcode the input to match the db
+        if( @$raParms['sCharsetHTTP'] !== @$raParms['sCharsetDb'] ) {   // assumes if one is defined then both are
+            $raOut = SEEDCore_CharsetConvert($raOut, $raParms['sCharsetHTTP'], $raParms['sCharsetDb']);
+        }
+
+        return($raOut);
     }
 
     private function _updateLoad( $r, $raRow )

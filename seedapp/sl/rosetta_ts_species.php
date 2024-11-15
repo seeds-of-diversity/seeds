@@ -31,6 +31,7 @@ class RosettaSpeciesListForm extends KeyframeUI_ListFormUI
              'kfrel'                => $this->oSLDB->GetKfrel('S'),
              'raListConfig_cols'    => $cols,
              'raSrchConfig_filters' => $cols,
+             'charsets'             => "HttpUtf8&DbLatin"
             ]
         );
         parent::__construct( $oApp, $raConfig );

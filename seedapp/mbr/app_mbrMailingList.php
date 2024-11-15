@@ -156,7 +156,7 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
         case 'getMagazine':                                                  break;  // all members get the magazine
         case 'getEbulletin':    $condFilter .= " AND NOT M.bNoEBull";        break;
         case 'getPrintedMSD':   $condFilter .= " AND M.bPrintedMSD";         break;
-        case 'getDonorAppeals': $condFilter .= " AND NOT M.bNoDonorAppeals"; break;
+        case 'getDonorAppeals': $condFilter .= " AND NOT M.bNoDonorAppeals"; break; // could add bEnforceNoDonorAppeals to mrdParms instead
     }
     switch( $p_locFilter ) {
 //        case 'locOntario':       $qParms['provinceIn'] = "ON";                    break;
@@ -168,12 +168,14 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
 
     // get all members and/or donors since $dStart, optionally exclude those with donations within 6 months ago
     $mrdParms = ['condM_D' => $condFilter,
-                 'bRequireEmail'=>true, 'bRequireAddress'=>false,
-                 'dIncludeIfMbrAfter' => $dStart,
-                 'dIncludeIfDonAfter' => $dStart
+                 'bRequireEmail'=>true,                     // we'll email an appeal
+                 'bRequireAddress'=>false,                  // not sending paper mail
+               //'bEnforceNoPaperMail'                      // not sending paper mail so don't care
+                 'dIncludeIfMbrAfter' => $dStart,           // anyone with a membership after dStart
+                 'dIncludeIfDonAfter' => $dStart            // anyone with a donation after dStart
     ];
     if( $eGroup == 'membersAndDonors2YearsNoDonationInSixMonths' ) {
-        $mrdParms['dExcludeIfDonAfter'] = $dSixMonthsAgo;
+        $mrdParms['dExcludeIfDonAfter'] = $dSixMonthsAgo;   // but not if they've given a donation recently
     }
     $raMD = $oMbr->oDB->GetContacts_MostRecentDonation( $mrdParms, $sql );
 
@@ -292,7 +294,7 @@ if( SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers') ) {
                "M.email IS NOT NULL AND M.email <> ''"];
     if( $p_lang == "EN" )  $raCond[] = "M.lang IN ('','B','E')";
     if( $p_lang == "FR" )  $raCond[] = "M.lang IN ('B','F')";
-    if( $p_mbrFilter1=='mseGrowersNotDone' )  $raCond[] = "(NOT ({$oMSDLib->CondIsGrowerDone()}))";
+    if( $p_mbrFilter1=='mseGrowersNotDone' )  $raCond[] = "(NOT ({$oMSDLib->CondIsGrowerDoneForCurrYear()}))";
 
     $sCond = "(".implode( " AND ", $raCond ).")";
 

@@ -152,7 +152,7 @@ class MSDQ extends SEEDQ
             'nGrowersActive'  => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete" ),
             'nGrowersDone'    => $this->oMSDCore->oApp->kfdb->Query1(
-                                    "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete AND ({$this->oMSDCore->CondIsGrowerDone()})" ),
+                                    "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND NOT bSkip AND NOT bDelete AND ({$this->oMSDCore->CondIsGrowerDoneForCurrYear()})" ),
             'nGrowersListable'=> $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.sed_curr_growers WHERE _status='0' AND ({$this->oMSDCore->CondIsGrowerListable()})" ),
             'nGrowersSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -167,7 +167,7 @@ class MSDQ extends SEEDQ
                                      FROM {$dbname}.SEEDBasket_Products P, {$dbname}.sed_curr_growers G
                                      WHERE P.uid_seller=G.mbr_id AND
                                            P._status='0' AND G._status='0' AND
-                                           P.product_type='seeds' AND ({$this->oMSDCore->CondIsListable()})" ),
+                                           P.product_type='seeds' AND ({$this->oMSDCore->CondIsSeedListable()})" ),
             'nSeedsSkipped' => $this->oMSDCore->oApp->kfdb->Query1(
                                     "SELECT count(*) FROM {$dbname}.SEEDBasket_Products WHERE _status='0' AND product_type='seeds' AND eStatus='INACTIVE'" ),
             'nSeedsDeleted' => $this->oMSDCore->oApp->kfdb->Query1(
@@ -270,7 +270,7 @@ class MSDQ extends SEEDQ
             if( ($eFilter = @$raParms['eFilter']) ) {   // eFilter will replace eStatus with a more general criteria
                 switch($eFilter) {
                     case 'LISTABLE':
-                        $raCond[] = $this->oMSDCore->CondIsListable();
+                        $raCond[] = $this->oMSDCore->CondIsSeedListable();
                         goto eStatusOk;
                     case 'ALL':
                         $eStatus = 'ALL';
@@ -341,7 +341,7 @@ class MSDQ extends SEEDQ
         if( ($eFilter = @$raParms['eFilter']) ) {
             switch($eFilter) {
                 case 'LISTABLE':
-                    $raCond[] = $this->oMSDCore->CondIsListable();
+                    $raCond[] = $this->oMSDCore->CondIsSeedListable();
                     break;
                 case 'ALL':
                 default:

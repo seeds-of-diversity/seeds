@@ -121,26 +121,40 @@ class MSDCore
      * SQL condition on a PxGx* relation to return only seeds that are listable (i.e. to be shown to people viewing the list; might not be requestable)
      * @return string
      */
-    function CondIsListable()
+    function CondIsSeedListable()
     {
-                                      // this is CondIsGrowerListable('G')
-        return( "eStatus='ACTIVE' AND NOT (G.bHold OR G.bSkip OR G.bDelete) AND {$this->CondIsGrowerDone('G')}" );
+        return( "eStatus='ACTIVE' AND {$this->CondIsGrowerListable('G')}" );
     }
 
 
     /*********************************************
-        The grower Done checkbox records the date when it was checked. Return true if that happened during the CurrYear (Aug-Dec,Jan-Jul have CurrYear of Jan's year).
+        The grower Done checkbox records the date when it was checked.
+
+        Previously: LISTABLE was true if dDone > Aug 1 of currYear-1. Since currYear is YEAR(NOW()) from Jan-Jul, but YEAR(NOW())+1 Aug-Dec,
+        this caused LISTABLE to be false after each Aug 1, so MSE was empty when growers wanted to look at their own seeds, or anybody wanted to research varieties.
+
+        Now: LISTABLE is true when dDone > Aug 1 of YEAR(NOW())-1. That means Jan-Dec we list anything dDone this year or the previous fall.
+             REQUESTABLE must check that NOW() is between Jan-May, or in a range chosen by the grower.
+             GROWER DONE is true if dDone > Aug 1 of the year preceding the MSE year in process i.e. $this->currYear
+
+             This means all listings dDone Jan-Jul are shown for the rest of the calendar year.
+                                     dDone Aug-Dec are shown for that period and the whole of the next year.
+             But they are only requestable in Jan-May within those periods unless otherwise specified.
+             And in the Edit app, growers see their DONE status disappear each Aug 1 because currYear jumps to the next calendar year.
      */
-    function IsGrowerDone( KeyframeRecord $kfrG )
+    function IsGrowerDoneForCurrYear( KeyframeRecord $kfrG )
     {
-        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneFromDate($kfrG->Value('dDone')) );
+        // true if the grower clicked DONE since Aug 1 of the year preceding $this->currYear.
+        // Use this for grower edit, since they want their done status to reset next Aug 1.
+        // Use IsGrowerListable for showing listings, since those should be visible past Aug 1, though not necessarily requestable.
+        return( $kfrG && $kfrG->Value('dDone') && $this->IsGrowerDoneForCurrYearFromDate($kfrG->Value('dDone')) );
     }
-    function IsGrowerDoneFromDate( string $dDone )
+    function IsGrowerDoneForCurrYearFromDate( string $dDone )
     {
         return( $dDone && $dDone > $this->GetFirstDayForCurrYear() );
     }
-    function CondIsGrowerDone( string $prefix = '' )
-    /***********************************************
+    function CondIsGrowerDoneForCurrYear( string $prefix = '' )
+    /**********************************************************
         sql cond for testing if Done status is set in a grower record
      */
     {
@@ -150,10 +164,14 @@ class MSDCore
     function CondIsGrowerListable( string $prefix = '' )
     /***************************************************
         sql condition for testing if a grower should appear in a public Growers list
+        Listings are visible if dDone since Aug of previous calendar year.
+        That means old listings are visible throughout fall (but not requestable unless grower allows), and disappear Jan 1.
      */
     {
         if( $prefix )  $prefix = "{$prefix}.";
-        return( "( NOT (G.bHold OR G.bSkip OR G.bDelete) AND G.nTotal<>0 AND {$this->CondIsGrowerDone('G')} )" );
+        //return( "( NOT (G.bHold OR G.bSkip OR G.bDelete) AND G.nTotal<>0 AND {$this->CondIsGrowerDone('G')} )" );   this made everything unlistable on Aug 1 of currYear, which surprised growers
+        $y = date("Y")-1;
+        return( "( NOT ({$prefix}bHold OR {$prefix}bSkip OR {$prefix}bDelete) AND {$prefix}nTotal<>0 AND ({$prefix}dDone<>'' AND {$prefix}dDone > '{$y}-08-01') )" );
     }
 
 
@@ -275,8 +293,8 @@ class MSDCore
 
         // check whether this seed is within its requestable period
         // for now all seeds are out of season
-        if( false
-            // also code this into CondIsListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
+        if( true
+            // also code this into CondIsSeedListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
             // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
             ) {
             $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
@@ -333,7 +351,7 @@ class MSDCore
             if( $ra['category'] == 'misc' )        ++$raOut['nMisc'];
         }
 
-        $raOut['nVarieties'] = $this->oSBDB->GetCount( 'PxGxCATEGORYxSPECIESxVARIETY', $this->CondIsListable('G'),
+        $raOut['nVarieties'] = $this->oSBDB->GetCount( 'PxGxCATEGORYxSPECIESxVARIETY', $this->CondIsSeedListable('G'),
                                                        ['sGroupAliases'=>'PEcategory_v,PEspecies_v,PEvariety_v'] );
 
         return( $raOut );
@@ -366,7 +384,7 @@ class MSDCore
         }
 
         if( @$raParms['bListable'] ) {
-            $sCond .= ($sCond ? " AND " : "").$this->CondIsListable('G');
+            $sCond .= ($sCond ? " AND " : "").$this->CondIsSeedListable('G');
         }
 
         /* kluge 1: klugeKey is one random key of a Product that has a given category,species
@@ -930,6 +948,21 @@ alter table sed_curr_growers change _updated_G_mbr _updated_G_mbr  VARCHAR(100) 
 alter table sed_curr_growers change _updated_S_mbr _updated_S_mbr  VARCHAR(100) NOT NULL DEFAULT '';
 alter table sed_curr_growers change _updated_S     _updated_S      VARCHAR(100) NOT NULL DEFAULT '';
 alter table sed_curr_growers change _updated_S_by  _updated_S_by   INTEGER NOT NULL DEFAULT 0;
+
+
+    alter table sed_curr_growers add eReqClass enum ('mail_email','mail','email') not null default 'mail_email';
+
+    alter table sed_curr_growers add pay_etransfer tinyint not null default 0;
+    alter table sed_curr_growers add pay_paypal    tinyint not null default 0;
+
+    alter table sed_curr_growers add eDateRange enum ('use_range','all_year') not null default 'use_range';
+    alter table sed_curr_growers add dDateRangeStart date not null default '2022-01-01';
+    alter table sed_curr_growers add dDateRangeEnd   date not null default '2022-05-31';
+
+    alter table sed_growers add eReqClass       text;
+    alter table sed_growers add eDateRange      text;
+    alter table sed_growers add dDateRangeStart text;
+    alter table sed_growers add dDateRangeEnd   text;
 
 
 DROP TABLE IF EXISTS sed_seeds;

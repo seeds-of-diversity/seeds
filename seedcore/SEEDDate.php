@@ -99,6 +99,7 @@ class SEEDDate
     }
 
     const INCLUDE_WEEKDAY = 1;
+    const OMIT_YEAR = 2;
 
     static function NiceDateStrFromDate( string $date, string $lang = 'EN', int $eFormat = 0 ) : string
     /*****************************************************************************************
@@ -114,6 +115,7 @@ class SEEDDate
      */
     {
         $bIncludeWeekday = ($eFormat & self::INCLUDE_WEEKDAY) > 0;
+        $bIncludeYear    = ($eFormat & self::OMIT_YEAR) == 0;
 
         if( $lang == "FR" ) {
     // Locales are not set up on localhost or seeds.ca
@@ -122,10 +124,14 @@ class SEEDDate
 
             $raGetDate = getdate($unixTime);
             $date = ($bIncludeWeekday ? (self::$raDaysOfWeek[$raGetDate["wday"]]['fr'] .' ') : '')
-                    .$raGetDate["mday"] ." ". self::$raMonths[$raGetDate["mon"]]['fr'] ." ". $raGetDate["year"];
+                   .$raGetDate['mday']." ".self::$raMonths[$raGetDate['mon']]['fr']
+                   .($bIncludeYear ? " {$raGetDate['year']}" : "");
         } else {
             // English
-            $date = date( $bIncludeWeekday ? "l F j, Y" : "F j, Y", $unixTime );
+            $fmt = "F j";                               // Month day
+            if( $bIncludeWeekday )  $fmt = "l $fmt";    // Weekday
+            if( $bIncludeYear )     $fmt = "$fmt, Y";   // Year
+            $date = date( $fmt, $unixTime );
         }
 
         return( $date );

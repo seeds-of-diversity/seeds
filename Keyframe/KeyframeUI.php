@@ -299,6 +299,11 @@ class KeyFrameUI_ListFormUI
                 'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore'],
                                                                   'fn_DSPreOp'   => [$this,'PreOp']]]],
         ];
+        if( @$raParms['charsets'] == "HttpUtf8&DbLatin" ) {
+            // tell Form/SearchControl/etc to transcode http input to match db's charset internally
+            $raConfig['KFCompParms']['sCharsetHTTP'] = 'utf-8';
+            $raConfig['KFCompParms']['sCharsetDb'] = 'cp1252';
+        }
 
         return($raConfig);
     }

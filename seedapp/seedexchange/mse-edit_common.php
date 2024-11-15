@@ -66,7 +66,7 @@ class MSEEditApp
 
         // filter list by raChecked
         $raCond = [];
-        if(isset($raChecked['bDone']))     { $raCond[] = ($raChecked['bDone'] ? '' : 'NOT ')."({$this->oMSDLib->CondIsGrowerDone()})"; }
+        if(isset($raChecked['bDone']))     { $raCond[] = ($raChecked['bDone'] ? '' : 'NOT ')."({$this->oMSDLib->CondIsGrowerDoneForCurrYear()})"; }
         if(isset($raChecked['bSkip']))     { $raCond[] = ($raChecked['bSkip'] ? '' : 'NOT ')."bSkip"; }
         if(isset($raChecked['bDel']))      { $raCond[] = ($raChecked['bDel']  ? '' : 'NOT ')."bDelete"; }
         if(isset($raChecked['bExpired']))  { $raCond[] = ($raChecked['bExpired']  ? '' : 'NOT ')."(year(M.expires)<".(intval($this->oMSDLib->GetCurrYear())-2).")"; }    // e.g. for 2025 MSE the member's expiry is 2023 or less
@@ -113,7 +113,7 @@ class MSEEditApp
             $kMbr = $ra['mbr_id'];
             $bSkip = $ra['bSkip'];
             $bDelete = $ra['bDelete'];
-            $bDone = $this->oMSDLib->IsGrowerDoneFromDate($ra['dDone']);
+            $bDone = $this->oMSDLib->IsGrowerDoneForCurrYearFromDate($ra['dDone']);
 
             $name = $oMbr->GetContactNameFromMbrRA( $ra, ['fldPrefix'=>'M_'] )
                    ." ($kMbr {$ra['mbr_code']})"

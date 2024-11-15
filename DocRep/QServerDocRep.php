@@ -121,6 +121,7 @@ class QServerDocRep extends SEEDQ
 // not sure whether these are needed by the direct expansion below
                                                        'oDocReference'=>$oDoc, 'raVarsFromIncluder'=>$raVars]];
                         // this permissive handler should only be provided when an admin is looking at the preview
+// should be a flag to tell SoDMasterTemplate to set different levels of SessionAccountTag abilities, instead of putting this code everywhere
                         if( $this->oApp->sess->GetUID() == 1499 ) {
                             $raConfigMT['oSessionAccountTag'] = new SEEDSessionAccountTagHandler($this->oApp, ['bAllowKMbr'=>true, 'bAllowPwd'=>true, 'db'=>'seeds1']);
                         }

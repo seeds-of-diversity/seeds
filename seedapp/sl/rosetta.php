@@ -110,17 +110,13 @@ class RosettaSpeciesSynonyms // extends KeyframeUI_ListFormUI
 }
 
 
-$s = "[[TabSet:main]]";
-
 $oCTS = new MyConsole02TabSet( $oApp );
 
-$s = $oApp->oC->DrawConsole( $s, ['oTabSet'=>$oCTS] );
+$s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
-// Can't just encode the output to utf-8 because any form/searchcontrol input will be utf-8 so it would have to be converted to cp1252 somewhere
-echo Console02Static::HTMLPage( $s, //SEEDCore_utf8_encode($s),
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s),
                                 "", 'EN',
-                                ['sCharset'=>'cp1252',
-                                 'consoleSkin'=>'green',
+                                ['consoleSkin'=>'green',
                                  'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
 
 ?>
