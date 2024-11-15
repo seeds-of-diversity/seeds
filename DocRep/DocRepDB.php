@@ -218,17 +218,9 @@ class DocRepDB2 extends DocRep_DB
 
         $bIncludeDeleted = SEEDCore_ArraySmartVal( $raParms, 'bIncludeDeleted', [false,true] );
 
-        /* Get all the children of kParent
-         */
-        $raChildren = array();
-// use iStatus to implement bIncludeDeleted
-        if( ($kfr = $this->oRel->GetKFRC( "Doc", "kDoc_parent='$kParent'", array('sSortCol'=>'siborder') )) ) {
-            while( $kfr->CursorFetch() ) {
-                $raChildren[] = $kfr->Key();
-            }
-            $kfr->CursorClose();
-        }
+        $raChildren = $this->GetChildrenKeys($kParent);
 //var_dump($kParent,$raChildren);
+
         /* For each child of kParent, expand visible subtrees and non-visible folders for visible children
          */
         foreach( $raChildren as $kDoc ) {
@@ -290,6 +282,19 @@ class DocRepDB2 extends DocRep_DB
         }
         return( $raRet );
     }
+
+    /**
+     * Array of keys of children, ordered by siborder. No visibility constraint.
+     *
+     * @param  int $kParent
+     * @return array of kDoc
+     */
+    function GetChildrenKeys( int $kParent ) : array
+    {
+// use iStatus to implement bIncludeDeleted
+        return( $this->oRel->Get1List('Doc', '_key', "kDoc_parent='$kParent'", ['sSortCol'=>'siborder']) );
+    }
+
 
     function DocCacheClear( $kDoc )
     /******************************
@@ -671,7 +676,7 @@ class DocRepDoc2_ReadOnly
     }
 
     /**
-     * Get an array of DocRepDoc of the visible children of this oDoc, ordered by siborder.
+     * Array of the visible children of this oDoc, ordered by siborder.
      * Visible children includes invisible folders containing visible descendants.
      *
      * return array of DocRepDoc
@@ -687,7 +692,20 @@ class DocRepDoc2_ReadOnly
 
         return( $raChildren );
     }
+    /**
+     * Array of all children of this oDoc, ordered by siborder. No visibility constraint.
+     *
+     * return array of DocRepDoc
+     */
+    function GetChildrenAsObj_Internal()
+    {
+        $ra = [];
 
+        foreach( $this->oDocRepDB->GetChildrenKeys($this->GetKey()) as $kDocChild ) {
+            $ra[] = $this->oDocRepDB->GetDoc($kDocChild);
+        }
+        return($ra);
+    }
 
 /* use GetSubtreeDescendants(depth=1) to get PermR check, and cache the result in this oDoc
  */
@@ -705,25 +723,41 @@ class DocRepDoc2_ReadOnly
         return $kfr;
     }
 
-    function GetAncestors()
-    /**********************
-        Return a list of all ancestors of this doc, including kDoc but not 0.
-        kDoc is the first element, the tree root is the last element.
+    /**
+     * Array of keys of all descendants, regardless of visibility.
+     *
+     * @return array of kDoc
      */
+    function GetDescendants_Internal()
+    {
+        return( $this->_getDescendants($this->GetKey()));
+    }
+    private function _getDescendants( int $kDoc )
+    {
+        $ra = [];
+
+        foreach($this->oDocRepDB->GetChildrenKeys($kDoc) as $kDocChild) {
+            $ra[] = $kDocChild;
+            $ra = array_merge($ra, $this->_getDescendants($kDocChild));
+        }
+        return( $ra );
+    }
+
+    /**
+     * Array of keys of all ancestors in bottom-up order.
+     * No visibility constraint because it is assumed that all ancestors are either visible or contain a visible descendant.
+
+     * @return array|NULL  [this kDoc, ..., root kDoc]
+     */
+    function GetAncestors()
     {
         if( $this->raAncestors === null ) {
             $this->raAncestors = array();
             $kDoc = $this->kDoc;
 
             while( $kDoc ) {
-                $oDoc = $this->oDocRepDB->GetDoc( $kDoc );
-// is perms necessary?
-// TODO: allow invisible folder if contains visible item
-                //if( $this->_permsR_Okay( $permclass ) ) {
-                    $this->raAncestors[] = $kDoc;
-                //}
-
-                $kDoc = $oDoc->GetParent();
+                $this->raAncestors[] = $kDoc;
+                $kDoc = $this->oDocRepDB->GetDoc($kDoc)->GetParent();   // GetDoc does not check visibility
             }
         }
         return( $this->raAncestors );
@@ -1156,23 +1190,29 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
                 /* Rename all descendants.
                  *     If this doc is renamed from a/b to a/b1, then a/b/c becomes a/b1/c
                  *     If this doc is renamed from a/b to "", then a/b/c becomes a/c
+                 *     If this doc is renamed from "" to a/b1 then all named descendants a/x become a/b1/x.
+                 *          We have to walk through the tree to find named descendants in this case because folder names can span neighbouring subtrees
                  */
                 if( $ok ) {
-                    if( $newName ) {
-                        $newFolderName = $newName;                  // a/b1
+                    if( $oldName ) {
+                        $oldFolderName = $oldName;                      // from a/b/
+                        $dbOldName = addslashes($oldFolderName);
+                        if( $newName ) {
+                            $newFolderName = $newName;                  // to a/b1/
+                        } else {
+                            $newFolderName = $this->GetFolderName();    // to a/
+                        }
+                        if( ($kfrc = $this->oDocRepDB->GetRel()->GetKFRC('Doc', "name LIKE '{$dbOldName}/%'")) ) {
+                            while( $kfrc->CursorFetch() ) {
+                                $ok = $ok && $this->_renameDescendant($kfrc->Key(), $oldFolderName, $newFolderName);
+                            }
+                        }
                     } else {
-                        $newFolderName = $this->GetFolderName();    // a
-                    }
-                    $oldFolderName = $oldName;                      // a/b
-                    $dbOldName = addslashes($oldFolderName);
-                    if( ($kfrc = $this->oDocRepDB->GetRel()->GetKFRC('Doc', "name LIKE '{$dbOldName}/%'")) ) {
-                        while( $kfrc->CursorFetch() ) {
-                            // rename descendant doc
-                            $kfr = $this->getKfrDoc( $kfrc->Key(), '' );
-                            $kfr->SetValue( 'name', $newFolderName.substr($kfr->Value('name'),strlen($oldFolderName)) );    // first char of substr is '/'
-                            $ok = $kfr->PutDBRow();
-                            // uncache any DocRepDoc obj for this descendant
-                            $this->oDocRepDB->DocCacheClear($kfrc->Key());
+                        // Get all named descendants regardless of visibility
+                        $oldFolderName = $this->GetFolderName();        // from ""
+                        $newFolderName = $newName;                      // to a/b1/
+                        foreach( $this->GetDescendants_Internal() as $kDocDescendant ) {
+                            $ok = $ok && $this->_renameDescendant($kDocDescendant, $oldFolderName, $newFolderName);
                         }
                     }
                 }
@@ -1188,6 +1228,20 @@ class DocRepDoc2 extends DocRepDoc2_ReadOnly
         $this->ClearCache();    // force a data refresh
 
         return( $ok );
+    }
+    private function _renameDescendant( int $kDoc, string $oldFolderName, string $newFolderName )
+    {
+        $ok = true;
+
+        // rename the folder part of descendant doc, if it has a name
+        if( ($kfr = $this->getKfrDoc($kDoc, '')) && $kfr->Value('name') ) {
+            $baseName = substr($kfr->Value('name'),strlen($oldFolderName));     // if name=a/b this is /b
+            $kfr->SetValue( 'name', $newFolderName.$baseName );
+            $ok = $kfr->PutDBRow();
+            // uncache any DocRepDoc obj for this descendant
+            $this->oDocRepDB->DocCacheClear($kDoc);
+        }
+        return( $ok );  // calling code doesn't use this
     }
 
     function UpdatePermClass( $parms )
