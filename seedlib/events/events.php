@@ -87,7 +87,13 @@ class EventsLib
         return( ['ns'=>'events', 'strs'=> [
             'Events'
                 => [ 'EN'=>"[[]]",
-                     'FR'=>"&Eacute;v&eacute;nements" ]
+                     'FR'=>"&Eacute;v&eacute;nements" ],
+            'Search in events'
+                => [ 'EN'=>"[[]]",
+                     'FR'=>"Rechercher dans les &eacute;v&eacute;nements" ],
+            'More information'
+                => [ 'EN'=>"[[]]",
+                     'FR'=>"Plus d'information" ],
         ]] );
     }
 }
@@ -166,7 +172,7 @@ class Events_event
         if( !$title && $this->kfr->value("type") == "SS" ) {
             $city = $this->kfr->valueEnt('city');
 
-            if( $this->oE->oApp->lang == "FR" ) {
+            if( $this->oE->oL->GetLang() == "FR" ) {
                 $title = "F&ecirc;te des semences $city";
             } else if( ($l = @date('l', @strtotime($this->kfr->valueEnt("date_start")))) ) {
                 $title = "$city Seedy $l";          // e.g. Charlottetown Seedy Sunday
@@ -186,7 +192,7 @@ class Events_event
 
     function GetDateNice()
     {
-        return( SEEDDate::NiceDateStrFromDate($this->GetDate(), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY) );
+        return( SEEDDate::NiceDateStrFromDate($this->GetDate(), $this->oE->oL->GetLang(), SEEDDate::INCLUDE_WEEKDAY) );
     }
 
     protected function _getValue( $field, $bEnt = true )
@@ -199,7 +205,7 @@ class Events_event
         if( $this->kfr ) {
             $e = $this->kfr->value($field);
             $f = $this->kfr->value($field."_fr");
-            $v = (($this->oE->oApp->lang=="EN" && $e) || ($this->oE->oApp->lang=="FR" && !$f)) ? $e : $f;
+            $v = (($this->oE->oL->GetLang()=="EN" && $e) || ($this->oE->oL->GetLang()=="FR" && !$f)) ? $e : $f;
             if( $bEnt ) $v = SEEDCore_HSC($v);
         }
         return( $v );
@@ -215,7 +221,7 @@ class Events_event
         $city     = $this->kfr->Expand( "[[city]], [[province]]", true );
         $location = $this->kfr->ValueEnt('location');
         $title    = $this->GetTitle();
-        $date     = $this->_getValue('date_alt') ?: SEEDDate::NiceDateStrFromDate( $this->kfr->valueEnt('date_start'), $this->oE->oApp->lang, SEEDDate::INCLUDE_WEEKDAY );
+        $date     = $this->_getValue('date_alt') ?: SEEDDate::NiceDateStrFromDate( $this->kfr->valueEnt('date_start'), $this->oE->oL->GetLang(), SEEDDate::INCLUDE_WEEKDAY );
 
         switch( $this->kfr->value('type') ) {
             case 'EV':
@@ -249,7 +255,7 @@ class Events_event
                 ."</strong></p>"
                 .$this->drawEventDetails()
                 .($sContact ? "<p>Contact: $sContact</p>" : "")
-                .($sUrlMore ? ("<p>".($this->oE->oApp->lang=='FR' ? "Plus d'information" : "More information").": $sUrlMore</p>")
+                .($sUrlMore ? ("<p>{$this->oE->oL->S('More information')}: $sUrlMore</p>")
                             : "" )
                 ."</div>";
 
