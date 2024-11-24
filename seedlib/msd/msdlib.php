@@ -313,7 +313,7 @@ var_dump($sql);
 
         $sMbrCode = $kfrGxM->Value('mbr_code');
         $sButton1Attr = $bRequestable && $bEnableAddToBasket ? "onclick='AddToBasket_Name($kP);'"
-                                                             : "disabled='disabled'";
+                                                             : "class='btn btn-warning' disabled='disabled'";
         $sButton2Attr = true /*$bRequestable*/ ? "onclick='msdShowSeedsFromGrower($kM,\"$sMbrCode\");'"
                                       : "disabled='disabled'";
 
@@ -330,10 +330,10 @@ var_dump($sql);
                 $sReq = "";
                 break;
             case MSDCore::REQUESTABLE_NO_NOLOGIN:
-                $sReq = "<p>Please login to request seeds.</p>";
+                $sReq = "<p class='alert alert-warning'>Please login to request seeds.</p>";
                 break;
             case MSDCore::REQUESTABLE_NO_INACTIVE:
-                $sReq = "<p>This seed offer is not currently active.</p>";
+                $sReq = "<p class='alert alert-warning'>This seed offer is not currently active.</p>";
                 break;
             case MSDCore::REQUESTABLE_NO_OUTOFSEASON:
                 $sDateStart = ($d = $kfrGxM->Value('dDateRangeStart')) ? SEEDDate::NiceDateStrFromDate($d, 'EN', SEEDDate::OMIT_YEAR) : "January 1";
@@ -341,7 +341,7 @@ var_dump($sql);
                 $sReq = "<p class='alert alert-warning'>This grower only offers these seeds from <strong>$sDateStart</strong> to <strong>$sDateEnd</strong></p>";
                 break;
             case MSDCore::REQUESTABLE_NO_NONGROWER:
-                $sReq = "<p>These seeds are only available to members who also offer seeds in the Seed Exchange.</p></p>";
+                $sReq = "<p class='alert alert-warning'>These seeds are only available to members who also offer seeds in the Seed Exchange.</p></p>";
                 break;
         }
 
