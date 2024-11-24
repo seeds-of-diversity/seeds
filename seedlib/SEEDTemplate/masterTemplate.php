@@ -138,8 +138,7 @@ class SoDMasterTemplate
 
             case 'events-page':
                 include_once(SEEDAPP."events/eventsApp.php");
-// DrawEventsPage uses oApp->lang; pass $lang as a parm to override that, so language can be forced in the tag
-                $s .= (new EventsApp($this->oApp))->DrawEventsPage();
+                $s .= (new EventsApp($this->oApp, ['lang'=>$lang]))->DrawEventsPage();
                 $bHandled = true;
                 break;
 

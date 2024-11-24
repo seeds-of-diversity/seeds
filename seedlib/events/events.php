@@ -34,7 +34,7 @@ class EventsLib
     private $oTag;
     public $oBasicResolver;     // has to be public for SEEDTagParser to call it
 
-    function __construct( SEEDAppSessionAccount $oApp )
+    function __construct( SEEDAppSessionAccount $oApp, array $raParms = [] )
     {
         $this->oApp = $oApp;
         $this->oDB = new EventsDB( $oApp );
@@ -48,7 +48,9 @@ class EventsLib
                        ];
         $this->oTag = new SEEDTagParser( ['raResolvers' => $raResolvers] );
 
-        $this->oL = new SEED_Local( $this->sLocalStrs(), $this->oApp->lang, 'events' );
+        $this->oL = new SEED_Local( $this->sLocalStrs(),
+                                    @$raParms['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
+                                    'events' );
     }
 
     function ExpandStr( $s )

@@ -16,10 +16,10 @@ class EventsApp
     private $oApp;
     private $oEventsLib;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, array $raParms = [] )
     {
         $this->oApp = $oApp;
-        $this->oEventsLib = new EventsLib( $oApp );
+        $this->oEventsLib = new EventsLib( $oApp, $raParms );
     }
 
     private function S($k)  { return($this->oEventsLib->oL->S($k)); }
