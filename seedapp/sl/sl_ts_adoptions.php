@@ -2,7 +2,7 @@
 
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 include_once( SEEDLIB."mbr/MbrDonations.php" );
-
+include_once(SEEDLIB."sl/sl_integrity.php");
 
 class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 {
@@ -29,7 +29,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
 
         $cols = [['label'=>"k",                 'col'=>"_key",              'w'=>" 5%", 'noSearch'=>true ],
-                 ['label'=>"Adopter",           'col'=>"M_lastname",   'w'=>"15%", 'srchcol'=>"M_lastname" ],   // replaced by GetContactName() (will sort by number)
+                 ['label'=>"Adopter",           'col'=>"M_lastname",        'w'=>"15%", 'srchcol'=>"M_lastname" ],   // replaced by GetContactName() (will sort by number)
                  ['label'=>"Recognized as",     'col'=>"public_name",       'w'=>"20%" ],
                  ['label'=>"Date",              'col'=>"D_date_received",   'w'=>"10%" ],
                  ['label'=>"Amount",            'col'=>"amount",            'w'=>" 5%", 'srchcol'=>"D_amount" ],            // A_amount and D_amount ambiguous (should remove A.amount when there's an mbr_donation for every adoption)
@@ -105,11 +105,8 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
     function FormTemplate( SEEDCoreForm $oForm )
     {
         $sAdopter = $this->oMbrContacts->GetContactName($oForm->Value('fk_mbr_contacts'));
-
-        $sVarietyAdoptions = "";
-        if( $oForm->Value('P_name') ) {
-            $sVarietyAdoptions = "Adoption history for <b>{$oForm->Value('P_name')}</b> {$oForm->Value('S_name_en')} :";
-        }
+        $sLinkRosetta = ($k = $oForm->Value('P__key')) ? "<a href='./rosetta.php?c02ts_main=cultivar&sfRui_k=$k' target='_blank'>See this in Rosetta</a>" : "";
+        list($sSyn,$sStats) = ($kPcv = $oForm->Value('fk_sl_pcv')) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv) : ["",""];
 
         $s =  "<style>
                .slAdoptionFormInfo { border:1px solid #aaa; margin:2em; padding:1em }
@@ -125,20 +122,19 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                ||| *Received*   || [[text:D_date_received|readonly]]
                ||| &nbsp        || &nbsp;
                ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'2'] )."
-               ||| &nbsp;                    || \n
+               ||| &nbsp;       || \n
                |||ENDTABLE
 
                </div><div class='col-md-6'>
 
                |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Variety adopted*    || [[text:fk_sl_pcv|size=30]]
+               ||| *Variety adopted*    || [[text:fk_sl_pcv|size=30]] &nbsp;&nbsp;&nbsp;$sLinkRosetta
                ||| &nbsp;               || {$oForm->Value('P_name')} {$oForm->Value('S_name_en')}
                |||ENDTABLE
 
-               <div class='slAdoptionFormInfo'>$sVarietyAdoptions</div>
-
-               <div class='slAdoptionFormInfo'>$sAdopter has these adoptions:</div>
-
+               <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
+               <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
+               <div style='margin:2em'>{$sSyn}{$sStats}</div>
               </div></div>
 
               [[hiddenkey:]]
@@ -146,5 +142,45 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
               </div>";
 
         return( $s );
+    }
+
+    private function getCultivarAdoptionHistory( SEEDCoreForm $oForm )
+    {
+        $s = "";
+        if( !$oForm->Value('fk_sl_pcv') )  goto done;
+
+        $s = "Adoption history for <b>{$oForm->Value('P_name')}</b> {$oForm->Value('S_name_en')} : <table style='width:100%'>";
+
+        $raAdopt = $this->oMbrContacts->oDB->GetList('AxM_D_P_S', "A.fk_sl_pcv='{$oForm->Value('fk_sl_pcv')}'");
+        foreach($raAdopt as $ra) {
+            $s .= "<tr><td style='width:10%'>&nbsp;</td>
+                       <td>{$ra['D_date_received']}</td>
+                       <td>{$this->oMbrContacts->GetContactName($ra['fk_mbr_contacts'])} ({$ra['fk_mbr_contacts']})</td>
+                       <td>{$ra['amount']}</td></tr>";
+        }
+        $s .= "</table>";
+
+        done:
+        return($s);
+    }
+
+    private function getMemberAdoptionHistory( SEEDCoreForm $oForm )
+    {
+        $s = "";
+        if( !$oForm->Value('fk_mbr_contacts') )  goto done;
+
+        $s = "{$this->oMbrContacts->GetContactName($oForm->Value('fk_mbr_contacts'))} has these adoptions : <table style='width:100%'>";
+
+        $raAdopt = $this->oMbrContacts->oDB->GetList('AxM_D_P_S', "A.fk_mbr_contacts='{$oForm->Value('fk_mbr_contacts')}'");
+        foreach($raAdopt as $ra) {
+            $s .= "<tr><td style='width:10%'>&nbsp;</td>
+                       <td>{$ra['D_date_received']}</td>
+                       <td>{$ra['P_name']} {$ra['S_psp']}</td>
+                       <td>{$ra['amount']}</td></tr>";
+        }
+        $s .= "</table>";
+
+        done:
+        return($s);
     }
 }
