@@ -186,6 +186,8 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
                     // field "Any" is selected, so loop through all the fields to generate a condition that includes them all
                     $raC = array();
                     foreach( $this->raConfig['filters'] as $raF ) {
+                        if( @$raF['noSearch'] )  continue;                       // when reusing the col array this is how you inhibit non-searchable cols
+
                         $label = $raF['label'];
                         $f = @$raF['srchcol'] ?: $raF['col'];   // col is convenient but srchcol overrides
                         if( empty($f) )  continue;  // skip 'Any'
@@ -253,9 +255,13 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             $val = $this->oComp->TranscodeToMatchDb($val);
 
             /* Collect the fields and substitute into the appropriate [[fieldsN]]
+             *    col      : often can be reused from list columns
+             *    srchcol  : overrides col so you can put this in list columns; "" means skip this col in search
+             *    noSearch : skip this col in search
              */
             $raCols['Any'] = "";
             foreach( $this->raConfig['filters'] as $ra ) {
+                if( @$ra['noSearch'] )  continue;                       // when reusing the col array this is how you inhibit non-searchable cols
                 $raCols[$ra['label']] = @$ra['srchcol'] ?: $ra['col'];  // col is convenient but srchcol overrides
             }
 
@@ -651,13 +657,23 @@ $raParms = array_merge( $this->raConfig, $raParms );
             if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
             if( ($p = @$raCol['w']) )      $sColStyle .= "width:$p;";
 
-            $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
-                       ."<a $href>".$raCol['label']
-                       .($bSortingUp || $bSortingDown
-                          ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
-                          : "")
-                       ."</a></th>";
+            if( !@$raCol['noSort'] ) {
+                // make the column sortable
+                $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
+                           ."<a $href>"
+                           .$raCol['label']
+                           .($bSortingUp || $bSortingDown
+                              ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
+                               ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
+                              : "")
+                           ."</a></th>";
+            } else {
+                // disallow sorting (some cols with listTranslate cannot sort from db data)
+                $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
+                           .$raCol['label']
+                           ."</th>";
+            }
+
             ++$c;
         }
         $sHeader .= "</tr>";
