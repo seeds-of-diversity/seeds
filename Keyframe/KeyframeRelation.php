@@ -790,8 +790,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
      */
     {
 //$b = strpos($q,'{{') !== false;
-//if( $b ) echo $q;
-
+//if($b) echo $q."<br/><br/>";
         /* Look for {{c|foo}} and ensure that foo is an existing column name
          */
         $matches = [];
@@ -814,10 +813,12 @@ private $raColAlias = [];        // store all field names for reference ( array 
             if( $this->GetRealColName($a) ) {
                 $q = str_replace( $fullTag, $a, $q );   // replace the tagged alias with the simple alias
             } else {
+                if( SEED_DEBUG ) die( "Can't find col or alias for $p in<br/> $q" );
                 $q = "";
                 goto done;
             }
         }
+//$b = strpos($q,'{{') !== false;if( $b ) echo $q;
 
         /* Look for {{ca|foo}} and ensure that foo is an existing col/alias name, and replace with col name
          */
@@ -835,6 +836,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
             if( ($col = $this->GetRealColName($p)) ) {
                 // good, use $col below
             } else {
+                if( SEED_DEBUG ) die( "Can't find col or alias for $p in<br/> $q" );
                 $q = "";
                 goto done;
             }
@@ -842,7 +844,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         }
 
         done:
-//if( $b ) echo $q;
+//if($b) echo $q;
         return( $q );
     }
 }
