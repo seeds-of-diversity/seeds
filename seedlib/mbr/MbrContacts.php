@@ -362,7 +362,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
 
         // Adoption x MbrContact _ should have fk_mbr_donations _ can have fk_sl_pcv
         // Make it AxMxD_P if mbr_donations exist for all adoptions
-        $defAxM_D_P =
+        $defAxM_D_P_S =
             ["Tables" => [
                 "A" => ["Table" => "{$dbname1}.sl_adoption",
                         "Type"  => 'Base',
@@ -377,6 +377,10 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
                 "P" => ["Table" => "{$dbname1}.sl_pcv",
                         "Type"  => "LeftJoin",
                         "JoinOn" => "A.fk_sl_pcv=P._key",         // actually this is automatic and the Type makes it a left join
+                        "Fields" => 'Auto'],
+                "S" => ["Table" => "{$dbname1}.sl_species",
+                        "Type"  => "LeftJoin",
+                        "JoinOn" => "P.fk_sl_species=S._key",
                         "Fields" => 'Auto']
             ]];
 
@@ -419,7 +423,7 @@ class Mbr_ContactsDB extends Keyframe_NamedRelations
         $raKfrel['A'] = new Keyframe_Relation( $kfdb, $defA, $uid, $parms );
         $raKfrel['DxM'] = new Keyframe_Relation( $kfdb, $defDxM, $uid, $parms );
         $raKfrel['M_D'] = new Keyframe_Relation( $kfdb, $defM_D, $uid, $parms );
-        $raKfrel['AxM_D_P'] = new Keyframe_Relation( $kfdb, $defAxM_D_P, $uid, $parms );
+        $raKfrel['AxM_D_P_S'] = new Keyframe_Relation( $kfdb, $defAxM_D_P_S, $uid, $parms );
         $raKfrel['RxD_M'] = new Keyframe_Relation( $kfdb, $defRxD_M, $uid, $parms );
         $raKfrel['D_R'] = new Keyframe_Relation( $kfdb, $defD_R, $uid, $parms );
 
