@@ -61,9 +61,10 @@ define("SEED_isLocal", ((substr(@$_SERVER["SERVER_NAME"]??"",0,9) == "localhost"
  *
  * Do not define SEED_display_errors here so the default condition can be evaluated in SEEDConfig_NewAppConsole()
  */
-if( (defined('SEED_display_errors') && SEED_display_errors) ||
-    (!defined('SEED_display_errors') && SEED_isLocal) )
-{
+
+define('SEED_DEBUG', (defined('SEED_display_errors') && SEED_display_errors) ||
+                     (!defined('SEED_display_errors') && SEED_isLocal) );
+if( SEED_DEBUG ) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', 1);
     ini_set('html_errors', 1);
