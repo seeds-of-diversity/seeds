@@ -14,29 +14,25 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
         $this->oMbrContacts = new Mbr_Contacts($oApp);
         $this->oSLDB = new SLDBBase($oApp);
 
-/*
-        $raSrch = [['label'=>'First name',    'col'=>'M.firstname'],
-                    ['label'=>'Last name',     'col'=>'M.lastname'],
-                    ['label'=>'Company',       'col'=>'M.company'],
-                    ['label'=>'Member #',      'col'=>'M._key'],
-                    ['label'=>'Amount',        'col'=>'amount'],
-                    ['label'=>'Date received', 'col'=>'date_received'],
-                    ['label'=>'Date issued',   'col'=>'date_issued'],
-                    ['label'=>'Receipt #',     'col'=>'receipt_num'],
-                ]
-            ],
-*/
-
-
-        $cols = [['label'=>"k",                 'col'=>"_key",              'w'=>" 5%", 'noSearch'=>true ],
-                 ['label'=>"Adopter",           'col'=>"M_lastname",        'w'=>"15%", 'srchcol'=>"M_lastname" ],   // replaced by GetContactName() (will sort by number)
-                 ['label'=>"Recognized as",     'col'=>"public_name",       'w'=>"20%" ],
-                 ['label'=>"Date",              'col'=>"D_date_received",   'w'=>"10%" ],
-                 ['label'=>"Amount",            'col'=>"amount",            'w'=>" 5%", 'srchcol'=>"D_amount" ],            // A_amount and D_amount ambiguous (should remove A.amount when there's an mbr_donation for every adoption)
-                 ['label'=>"Request",           'col'=>"sPCV_request",      'w'=>"20%" ],
-                 ['label'=>"Variety adopted",   'col'=>"fk_sl_pcv",         'w'=>"20%" ],                                   // replaced by variety name (will sort by number)
-                 ['label'=>"Total for variety", 'col'=>"tmp_total",         'w'=>" 5%", 'noSearch'=>true, 'noSort'=>true ], // replaced by total adoptions for this variety, cannot be sorted from db data
+        $cols = [['label'=>"#",                 'col'=>"_key",              'w'=>" 5%"],
+                 ['label'=>"Adopter",           'col'=>"M_lastname",        'w'=>"15%"],    // replaced by GetContactName() (will sort by M_lastname)
+                 ['label'=>"Recognized as",     'col'=>"public_name",       'w'=>"20%"],
+                 ['label'=>"Date",              'col'=>"D_date_received",   'w'=>"10%"],
+                 ['label'=>"Amount",            'col'=>"amount",            'w'=>" 5%"],
+                 ['label'=>"Request",           'col'=>"sPCV_request",      'w'=>"20%"],
+                 ['label'=>"Variety adopted",   'col'=>"P_name",            'w'=>"20%"],    // replaced by variety name (will sort by number)
+                 ['label'=>"Total for variety", 'col'=>"tmp_total",         'w'=>" 5%", 'noSort'=>true ], // replaced by total adoptions for this variety, cannot be sorted from db data
         ];
+        $raSrch = [['label'=>'First name',    'col'=>'M.firstname'],
+                   ['label'=>'Last name',     'col'=>'M.lastname'],
+                   ['label'=>'Company',       'col'=>'M.company'],
+                   ['label'=>'Member #',      'col'=>'M._key'],
+                   ['label'=>'Variety #',     'col'=>'P._key'],
+                   ['label'=>'Variety name',  'col'=>'P.name'],
+                   ['label'=>'Amount',        'col'=>'D_amount'],
+                   ['label'=>'Date received', 'col'=>'D_date_received'],
+                  ];
+
         $raConfig = $this->GetConfigTemplate(
             ['sessNamespace'        => 'SLAdoptionManager',
              'cid'                  => 'A',
@@ -44,7 +40,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
              // A=Adoption, D=Donation -- different from sldb where A=Accession, D=Adoption
              'kfrel'                => $this->oMbrContacts->oDB->Kfrel('AxM_D_P_S'),
              'raListConfig_cols'    => $cols,
-             'raSrchConfig_filters' => $cols,  // conveniently, we can use the same format as cols (because filters can be cols or aliases)
+             'raSrchConfig_filters' => $raSrch,
             ]);
         // note that raConfig references methods like FormTemplate() which use $this->oComp which is not defined now but will be after Init()
         parent::__construct($oApp, $raConfig);
@@ -76,15 +72,15 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
         $raRow['M_lastname'] = $this->oMbrContacts->GetContactName($raRow['fk_mbr_contacts']);
 
         if( ($kPcv = @$raRow['fk_sl_pcv']) ) {
-            // show variety name
-            $raRow['fk_sl_pcv'] = @$raRow['P_name']." ".@$raRow['S_psp']." ($kPcv)";
+            // show variety name with species and kPcv
+            $raRow['P_name'] = @$raRow['P_name']." ".@$raRow['S_psp']." ($kPcv)";
 
             // show total adoptions for this variety
             $raAdopt = $this->oSLDB->Get1List('D', 'amount', "fk_sl_pcv='$kPcv'");
             $raRow['tmp_total'] = array_sum($raAdopt);
         } else {
             // don't show zero
-            $raRow['fk_sl_pcv'] = "";
+            $raRow['P_name'] = "";
         }
 
         return($raRow);
