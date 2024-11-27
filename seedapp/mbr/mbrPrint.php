@@ -557,8 +557,10 @@ $oCTS = new MyConsole02TabSet( $oApp );
 $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]".$sBody, ['oTabSet'=>$oCTS] );
 
 
-echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['consoleSkin'=>'green'] );   // sCharset defaults to utf8
-
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN',
+                                ['consoleSkin'=>'green',
+                                 'raScriptFiles'=>[$oApp->UrlW()."js/SEEDUI.js"]
+                                ]);
 
 //echo Console01Static::HTMLPage( $sBody, $sHead, "EN", array( 'bBootstrap' => false,    // we want to control the CSS completely, thanks anyway Bootstrap
 //                                                             'sCharset'=>'utf8' ) );

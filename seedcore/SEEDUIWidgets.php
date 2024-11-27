@@ -242,7 +242,8 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 
     function Draw()
     {
-        $s = @$this->raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input type='reset'>";
+        $s = @$this->raConfig['template'] ?:
+              "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input class='seedui_srchctrl_btn_formreset' type='reset'>";    // include SEEDUI.js to get Reset function
 
         if( !@$this->raConfig['filters'] )  goto done;
 
@@ -266,7 +267,7 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             }
 
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", array('selected'=>$fld, 'sfParmType'=>'ctrl_global') );
+            $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", ['selected'=>$fld, 'sfParmType'=>'ctrl_global', 'classes'=>'seedui_srchctrl_fld'] );
 
             $s = str_replace( "[[fld$i]]", $c, $s );
 
@@ -275,18 +276,18 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
             $c = $this->oComp->oForm->Select(
                     "srchop$i",
-                    array( "contains" => 'like',     "equals" => 'eq',
-                           "starts with" => 'start', "ends with" => 'end',
-                           "less than" => 'less',    "greater than" => 'greater',
-                           "is blank" => 'blank' ),
+                    ["contains"    => 'like',  "equals"       => 'eq',
+                     "starts with" => 'start', "ends with"    => 'end',
+                     "less than"   => 'less',  "greater than" => 'greater',
+                     "is blank"    => 'blank'],
                     "",
-                    array('selected'=>$op, 'sfParmType'=>'ctrl_global') );
+                    ['selected'=>$op, 'sfParmType'=>'ctrl_global', 'classes'=>'seedui_srchctrl_op']);
             $s = str_replace( "[[op$i]]", $c, $s );
 
             /* Write the [[textN]]
              */
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Text( "srchval$i", "", array('value'=>$val, 'sfParmType'=>'ctrl_global', 'size'=>20) );
+            $c = $this->oComp->oForm->Text( "srchval$i", "", ['value'=>$val, 'sfParmType'=>'ctrl_global', 'size'=>20, 'classes'=>'seedui_srchctrl_text'] );
             $s = str_replace( "[[text$i]]", $c, $s );
         }
 

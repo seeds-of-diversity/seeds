@@ -2,7 +2,7 @@
 
 /* Seed collection manager
  *
- * Copyright 2020 Seeds of Diversity Canada
+ * Copyright 2020-2024 Seeds of Diversity Canada
  */
 
 /* You can either execute this script directly and use SEED_APP_BOOT_REQUIRED to initialize config
@@ -313,7 +313,8 @@ $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",$oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );
+                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js", $oApp->UrlW()."js/SEEDUI.js",
+                                                    $oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );
 
 echo "<script>SEEDCore_CleanBrowserAddress();</script>";
 
