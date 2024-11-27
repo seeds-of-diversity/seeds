@@ -20,6 +20,7 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( SEEDAPP."sl/sl_ts_adoptions.php");
 
 include_once( "collectionTab_germtests.php" );
 include_once( "collectionTab_packetlabels.php" );
@@ -33,6 +34,7 @@ class SLApp
         'slCollection' =>
             [ 'slcollMain'  => ["W SLCollection", "A SL", "|"],
               'slcollBatch' => ["W SLCollection", "A SL", "|"],
+              'slcollAdopt' => ["W SLCollection", "A SL", "|"],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
     ];
@@ -46,6 +48,7 @@ $consoleConfig = [
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'slcollMain'   => ['label'=>'My Collection'],
                                         'slcollBatch'  => ['label'=>'Batch Operations'],
+                                        'slcollAdopt'  => ['label'=>'Adoptions'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
@@ -106,6 +109,10 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_slcollBatch_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new CollectionBatchOps( $this->oApp, $oT->oSVA ); $this->oW->Init(); }
     function TabSet_main_slcollBatch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
     function TabSet_main_slcollBatch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_slcollAdopt_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_slcollAdopt_ControlDraw(){ return( $this->oW->ControlDraw() ); }
+    function TabSet_main_slcollAdopt_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 }
 
 class CollectionListForm extends KeyframeUI_ListFormUI
