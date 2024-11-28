@@ -1,21 +1,21 @@
 // requires SEEDCore.js
 // requires SFUTextComplete.js
 
-/* Selector tool for choosing a contact from MbrContacts
+/* Selector tool for choosing a cultivar from sl_pcv
 
    Usage:
-       let o = new MbrSelector( { urlQ        : 'http://.../q.php',
-                                  idTxtSearch : 'myDummyTxt',
-                                  idOutReport : 'myReport',
-                                  idOutKey    : 'myMbrKey' } );
+       let o = new SLPcvSelector( { urlQ        : 'http://.../q.php',
+                                    idTxtSearch : 'myDummyTxt',
+                                    idOutReport : 'myReport',
+                                    idOutKey    : 'myPcvKey' } );
 
        <div style='position:relative'>
            <input type='text' id='myDummyTxt'/>       // you type here
            <span id='myReport'> </span>               // details of your choice go here
-           <input type='hidden' id='myMbrKey'/>       // your selected mbr key goes here
+           <input type='hidden' id='myPcvKey'/>       // your selected pcv key goes here
        </div>
 */
-class MbrSelector extends SFU_TextComplete
+class SLPcvSelector extends SFU_TextComplete
 {
     constructor( raConfig )
     {
@@ -28,9 +28,9 @@ class MbrSelector extends SFU_TextComplete
     {
         let raRet = [];
 
-        let jxData = { qcmd    : 'mbr-search',
-                       lang    : "EN",
-                       sSearch : sSearch
+        let jxData = { qcmd : 'rosettaPCVSearch',
+                       lang : "EN",
+                       srch : sSearch 
                      };
         let o = SEEDJXSync( this.raConfig['urlQ'], jxData );
         if( !o || !o['bOk'] || !o['raOut'] ) {
@@ -39,7 +39,7 @@ class MbrSelector extends SFU_TextComplete
             this.mbrData = o['raOut'];   // save this so we can look it up in ResultChosen
             for( let i = 0; i < o['raOut'].length; ++i ) {
                 let r = o['raOut'][i];
-                raRet[i] = { val: r['_key'], label: this.makelabel(r) };
+                raRet[i] = { val: r['P__key'], label: this.makelabel(r) };
             }
         }
         return( raRet );
@@ -49,9 +49,9 @@ class MbrSelector extends SFU_TextComplete
     {
         for( let i = 0; i < this.mbrData.length; ++i ) {
             let r = this.mbrData[i];
-            if( r['_key'] == val ) {
-                $("#"+this.raConfig['idOutReport']).html( this.makelabel(r) );
-                $("#"+this.raConfig['idOutKey']).val( r['_key'] );
+            if( r['P__key'] == val ) {
+                $("#"+this.raConfig['idOutReport']).html( "<input type='submit' value='Save'/> <span style='color:orange'>"+this.makelabel(r)+"</span>" );
+                $("#"+this.raConfig['idOutKey']).val( r['P__key'] );
                 break;
             }
         }
@@ -59,10 +59,6 @@ class MbrSelector extends SFU_TextComplete
 
     makelabel( r )
     {
-        let l = r['firstname']+" "+r['lastname'];
-        if( !l.trim() ) l = r['company'];            // if there is no firstname or lastname show company instead - trim because of the " "
-        l += " ("+r['_key']+")";
-        if( r['city'] )  l += " in "+r['city'];
-        return( l );
+        return( r['S_psp']+" : "+r['P_name']+" ("+r['P__key']+")");
     }
 }
