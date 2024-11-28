@@ -104,6 +104,8 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
         $sLinkRosetta = ($k = $oForm->Value('P__key')) ? "<a href='./rosetta.php?c02ts_main=cultivar&sfRui_k=$k' target='_blank'>See this in Rosetta</a>" : "";
         list($sSyn,$sStats) = ($kPcv = $oForm->Value('fk_sl_pcv')) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv) : ["",""];
 
+        $urlQ = SITEROOT_URL."app/q/index.php";     // rosettaPCVSearch is still in the original Q code
+
         $s =  "<style>
                .slAdoptionFormInfo { border:1px solid #aaa; margin:2em; padding:1em }
                </style>
@@ -118,14 +120,17 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                ||| *Received*   || [[text:D_date_received|readonly]]
                ||| &nbsp        || &nbsp;
                ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'2'] )."
-               ||| &nbsp;       || \n
+               ||| &nbsp;       || <input type='submit' value='Save'/>
                |||ENDTABLE
 
                </div><div class='col-md-6'>
 
                |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Variety adopted*    || [[text:fk_sl_pcv|size=30]] &nbsp;&nbsp;&nbsp;$sLinkRosetta
-               ||| &nbsp;               || {$oForm->Value('P_name')} {$oForm->Value('S_name_en')}
+               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+               ||| &nbsp;               || <div style='position:relative'>
+                                           <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
+                                           </div>
+                                           [[hidden:fk_sl_pcv]]
                |||ENDTABLE
 
                <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
@@ -134,8 +139,17 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
               </div></div>
 
               [[hiddenkey:]]
-              <input type='submit' value='Save'>
-              </div>";
+              </div>
+
+              <script>
+               function setupMbrSelector() {
+               let o = new SLPcvSelector( { urlQ:'{$urlQ}',
+                                            idTxtSearch:'dummy_pcv',
+                                            idOutReport:'cultivarText',
+                                            idOutKey:'sfAp_fk_sl_pcv' } );
+               }
+               setupMbrSelector();
+               </script>";
 
         return( $s );
     }
