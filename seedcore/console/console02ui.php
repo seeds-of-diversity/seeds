@@ -62,3 +62,33 @@ class Console02UI
         return( $s );
     }
 }
+
+
+/* Dropdown to choose an operation (or anything) that is persistent in a given SVA
+
+   raOps = [label => opcode, ...]
+ */
+class Console02UI_OperationPicker
+{
+    private $opName;
+    private $raOps;
+    private $currVal;  // current value chosen from raOps
+
+    function __construct( string $opName, SEEDSessionVarAccessor $oSVA, array $raOps )
+    {
+        $this->opName = $opName;
+        $this->raOps = $raOps;
+        $this->currVal = $oSVA->SmartGPC($opName, $raOps);    // default is the first value in raOps
+    }
+
+    function Value()    { return($this->currVal); }
+
+    function DrawDropdown( string $cid = 'Plain' )
+    {
+        $oForm = new SEEDCoreForm($cid);
+        $oForm->SetValue($this->opName, $this->currVal );
+        $s = "<form>".$oForm->Select($this->opName, $this->raOps, "", ['attrs'=>"onchange='submit()'"] )."</form>";
+
+        return( $s );
+    }
+}

@@ -30,7 +30,7 @@ $consoleConfig = [
                                         'donationReceipts2' => ['label'=>'Donation Receipts2'],
                                         'donations'        => ['label'=>'Donations'],
                                         'donationsSL'      => ['label'=>'Seed Library Adoptions'],
-                                        'integrity'        => ['label'=>'Integrity Tests'],
+                                        'admin'            => ['label'=>'Admin'],
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' => MbrApp::$raAppPerms['mbrPrint'],
@@ -287,9 +287,9 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donationsSL_ControlDraw(){ return( $this->oW->ControlDraw() ); }
     function TabSet_main_donationsSL_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_integrity_Init()         { $this->oW = new MbrDonationsTab_Admin($this->oApp); $this->oW->Init(); }
-    function TabSet_main_integrity_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_integrity_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_admin_Init(Console02TabSet_TabInfo $oT) { $this->oW = new MbrDonationsTab_Admin($this->oApp, $oT->oSVA); $this->oW->Init(); }
+    function TabSet_main_admin_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_admin_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 }
 
 class MbrDonationsListForm extends KeyframeUI_ListFormUI
