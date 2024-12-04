@@ -287,7 +287,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donationsSL_ControlDraw(){ return( $this->oW->ControlDraw() ); }
     function TabSet_main_donationsSL_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_integrity_Init()         { $this->oW = new MbrDonationsIntegrity($this->oApp); $this->oW->Init(); }
+    function TabSet_main_integrity_Init()         { $this->oW = new MbrDonationsTab_Admin($this->oApp); $this->oW->Init(); }
     function TabSet_main_integrity_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_integrity_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 }
@@ -519,37 +519,7 @@ class MbrDonationsListForm extends KeyframeUI_ListFormUI
 
 include_once( SEEDLIB."sl/sldb.php" );
 include_once( SEEDAPP."sl/sl_ts_adoptions.php");
-
-
-class MbrDonationsIntegrity
-{
-    private $oApp;
-
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-    }
-
-    function Init()
-    {
-    }
-
-    function ControlDraw()
-    {
-        return( "" );
-    }
-
-    function ContentDraw()
-    {
-        include_once( SEEDLIB."mbr/MbrIntegrity.php" );
-
-        $s = "<h3>Donation Integrity Tests</h3>"
-            .(new MbrIntegrity($this->oApp))->ReportDonations();
-
-        return( $s );
-    }
-}
-
+include_once( "adminTab.php" );
 
 
 $oCTS = new MyConsole02TabSet( $oApp );
@@ -559,7 +529,11 @@ $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]".$sBody, ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN',
                                 ['consoleSkin'=>'green',
-                                 'raScriptFiles'=>[$oApp->UrlW()."js/SEEDUI.js"]
+// adoption cultvar select doesn't work because SLPcvSelector is authenticating on seeds_1
+                                 'raScriptFiles'=>[$oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
+                                                   $oApp->UrlW()."js/SFUTextComplete.js",  // for SLPcvSelector.js
+                                                   $oApp->UrlW()."js/SLPcvSelector.js",    // for cultivar search
+                                                  ]
                                 ]);
 
 //echo Console01Static::HTMLPage( $sBody, $sHead, "EN", array( 'bBootstrap' => false,    // we want to control the CSS completely, thanks anyway Bootstrap
