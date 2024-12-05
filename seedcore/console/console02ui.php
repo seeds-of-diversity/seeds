@@ -31,7 +31,16 @@ class Console02UI
         }
 
         if( $bEnableUpload ) {
-             $s .= "<h4 class='DownloadBodyHeading'>Upload a spreadsheet of {$raParms['label']}</h4>"
+            $sCSVSelect = @$raParms['enable_csv_upload']
+                            ? "<tr><td style='padding-top:5px'><select name='upfile-format'>
+                                   <option value='xls'>Spreadsheet file</option>
+                                   <option value='csv-utf8'>CSV in utf8</option>
+                                   <option value='csv-win1252'>CSV in win1252</option>
+                                   </td>
+                               </tr>"
+                            : "<input type='hidden' name='upfile-format' value='xls'/>";
+
+            $s .= "<h4 class='DownloadBodyHeading'>Upload a spreadsheet of {$raParms['label']}</h4>"
                   ."<div style='border:1px solid #aaa;padding:10px;margin:20px;width:500px'>"
                      ."<style>"
                      .".console01_instructions table th {font-size:10pt}"
@@ -43,13 +52,7 @@ class Console02UI
                      ."<input type='hidden' name='MAX_FILE_SIZE' value='10000000' />"
                      .@$raParms['uploadctrl']
                      ."<table style='margin-left:20px' border='0'>"
-                     ."<tr>"
-                     ."<td style='padding-top:5px'><select name='upfile-format'>"
-                         ."<option value='xls'>Spreadsheet file</xls>"
-                         ."<option value='csv-utf8'>CSV in utf8</xls>"
-                         ."<option value='csv-win1252'>CSV in win1252</xls>"
-                     ."</td>"
-                     ."</tr>"
+                     .$sCSVSelect
                      ."<tr>"
                      ."<td><input style='display:inline' type='file' name='upfile'/></td>"
                      ."<td><input style='display:inline' type='submit' name='action' value='Upload' style='float:right'/></td>"
