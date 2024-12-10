@@ -55,6 +55,8 @@ class MbrDonationsTab_Admin
     {
         $s = "";
 
+        $s .= "<div class='alert alert-warning'>This doesn't set Category/Purpose so you have to copy that from the spreadsheet by hand</div>";
+
         $tableDef = ['headers-required' => $this->raSheetCols,
                      'headers-optional' => [] ];
 
@@ -196,6 +198,7 @@ class MbrDonationsTab_Admin
         foreach($raRawRows as $ra) {
             if( ($k = trim(@$ra[$this->raSheetCols['monthly']] ??"")) ) {
                 // monthly donations
+                $k = "monthly_{$this->getYearFromExcelDate($ra['DONATION DATE'])}_$k";
                 $total_amount = floatval(@$ra['AMOUNT']) + @$raMonthly[$k]['amount'];
                 $last_date = max(@$ra['DONATION DATE'], @$raMonthly[$k]['date']);
                 $raMonthly[$k] = ['amount'=>$total_amount, 'date'=>$last_date, 'raOriginal'=>$ra];
@@ -209,10 +212,8 @@ class MbrDonationsTab_Admin
 
         // compare monthly donations with mbr_donations
         foreach($raMonthly as $k => $ra) {
-            $raMonthly[$k]['date'] = date("Y-m-d",\PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($raMonthly[$k]['date']));
-
             $v = addslashes($k);
-            $kfrD = $this->oMbrDb->GetKFRCond('DxM', "v1='monthly_{$v}'");
+            $kfrD = $this->oMbrDb->GetKFRCond('DxM', "v1='$v'");
             $raMonthly[$k] += $this->uploadPreprocessRecord($kfrD, $ra);
         }
 
@@ -226,13 +227,23 @@ class MbrDonationsTab_Admin
         $this->oSVA->VarSet( 'uploadedCHData', ['raRaw'=>$raRawRows, 'raSingle'=>$raSingle, 'raMonthly'=>$raMonthly] );
     }
 
+    private function getDateFromExcelDate( $date )
+    {
+        // Excel stores dates as the number of days since Jan 1 1990 so it is format independent. You can set the format when you read with PHPSpreadsheet but we translate here.
+        // Kluge: this method seems to return the date one day early, so adding +1
+        return( $date ?  date("Y-m-d",\PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($date + 1)) : "" );
+    }
+
+    private function getYearFromExcelDate( $date )
+    {
+        return( $date ? substr($this->getDateFromExcelDate($date), 0, 4) : "" );
+    }
+
     private function uploadPreprocessRecord( ?KeyframeRecord $kfrD, array $raD )
     {
         $raOut = ['status'=>"", 'M_name'=>"", 'actions'=>[]];
 
-        // Excel stores dates as the number of days since Jan 1 1990 so it is format independent. You can set the format when you read with PHPSpreadsheet but we translate here.
-        // Kluge: this method seems to return the date one day early, so adding +1
-        $raD['date'] = date("Y-m-d",\PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($raD['date'] + 1));
+        $raD['date'] = $this->getDateFromExcelDate($raD['date']);
 
         if( !$kfrD ) {
             $raOut['status'] = 'notfound_nocontact';
@@ -290,7 +301,7 @@ class MbrDonationsTab_Admin
                 $kfrD->SetValue('date_received',   $raD['actions']['date']);
                 $kfrD->SetValue('receipt_num',     -3);     // CanadaHelps
 
-                $kfrD->SetValue('v1',              "monthly_$k");
+                $kfrD->SetValue('v1',              $k);
                 $kfrD->SetValue('notes',           "CH monthly total for ".substr($raD['actions']['date'], 0, 4));
 
                 $kfrD->SetNull('date_issued');
