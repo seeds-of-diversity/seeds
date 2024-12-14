@@ -2,7 +2,7 @@
 
 /* SEEDCore
  *
- * Copyright (c) 2016-2023 Seeds of Diversity Canada
+ * Copyright (c) 2016-2024 Seeds of Diversity Canada
  *
  * Basic functions useful in most applications
  */
@@ -480,6 +480,21 @@ function SEEDCore_Contains( $haystack, $needle )
     $haystack = $haystack ?? "";
     $needle = $needle ?? "";
     return( strpos($haystack,$needle) !== false );
+}
+
+/**
+ * Just like explode() except requires a specific limit and pads missing elements with "".
+ * Use this when a string might not contain all the requested elements and you want missing elements to be "".
+ * (explode returns a shorter array if elements are missing)
+ *
+ * @param string $separator split on this string
+ * @param string $s         string to be split - can be null
+ * @param int $limit        return this many elements
+ * @return array
+ */
+function SEEDCore_Explode( string $separator, ?string $s, int $limit )
+{
+    return( array_pad(explode($separator, $s ?? "", $limit), $limit, "") );
 }
 
 function SEEDCore_ImplodeKeyValue( $ra, $sep1, $sep2 )
