@@ -17,7 +17,10 @@ include_once( SEEDAPP."mbr/mbrApp.php" );
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 include_once( "tab_mbrcontacts_contacts.php" );
 include_once( "tab_mbrcontacts_addcontacts.php" );
+include_once( "tab_mbrcontacts_ebulletin.php" );
 include_once( "tab_mbrcontacts_manage.php" );
+include_once( SEEDCORE."console/console02ui.php");
+
 
 $consoleConfig = [
     'CONSOLE_NAME' => "mbrContacts",
@@ -61,16 +64,14 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oContacts = new Mbr_Contacts( $oApp );
     }
 
-    function TabSet_main_contacts_Init()          { $this->oW = new MbrContactsTabContacts( $this->oApp, $this->oContacts ); $this->oW->Init(); }
-    function TabSet_main_contacts_ControlDraw()   { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_contacts_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_contacts_Init()          { $this->oW = new MbrContactsTabContacts($this->oApp, $this->oContacts);  $this->oW->Init(); }
+    function TabSet_main_addcontacts_Init()       { $this->oW = new MbrContactsTabAddContacts($this->oApp);                 $this->oW->Init(); }
+    function TabSet_main_logins_Init()            { $this->oW = new MbrContactsTabLogins($this->oApp, $this->oContacts);    $this->oW->Init(); }
+    function TabSet_main_ebulletin_Init(Console02TabSet_TabInfo $oT) { $this->oW = new MbrContactsTabEBulletin($this->oApp, $this->oContacts, $oT->oSVA); $this->oW->Init(); }
+    function TabSet_main_manage_Init()            { $this->oW = new MbrContactsTabManage($this->oApp, $this->oContacts);    $this->oW->Init(); }
 
-    function TabSet_main_addcontacts_Init()       { $this->oW = new MbrContactsTabAddContacts( $this->oApp ); $this->oW->Init(); }
-    function TabSet_main_addcontacts_ControlDraw(){ return( $this->oW->ControlDraw() ); }
-    function TabSet_main_addcontacts_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_manage_Init()            { $this->oW = new MbrContactsTabManage($this->oApp, $this->oContacts); $this->oW->Init(); }
-
+    function TabSetControlDraw($tsid, $tabname)   { return( $this->oW->ControlDraw() ); }
     function TabSetContentDraw($tsid, $tabname)   { return( $this->oW->ContentDraw() ); }
 }
 
@@ -79,3 +80,35 @@ $oCTS = new MyConsole02TabSet( $oApp );
 $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( utf8_encode($sBody), "", 'EN', ['consoleSkin'=>'green'] );
+
+
+class MbrContactsTabLogins
+{
+    private $oApp;
+    private $oContacts;
+
+    function __construct( SEEDAppConsole $oApp, Mbr_Contacts $oContacts )
+    {
+        $this->oApp = $oApp;
+        $this->oContacts = $oContacts;
+    }
+
+    function Init()
+    {
+
+    }
+
+    function ControlDraw()
+    {
+        $s = "";
+
+        return($s);
+    }
+
+    function ContentDraw()
+    {
+        $s = "";
+
+        return($s);
+    }
+}
