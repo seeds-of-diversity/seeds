@@ -46,6 +46,9 @@ class QServerRosetta extends SEEDQ
         }
 
         switch( strtolower($cmd) ) {
+            // get species name by lang, index, etc
+            case 'rosetta-spname':          list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->spName($parms);     break;
+
             case 'rosetta-cultivarsearch':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarSearch( $parms );
                 break;
@@ -60,6 +63,21 @@ class QServerRosetta extends SEEDQ
 
         done:
         return( $rQ );
+    }
+
+    private function spName( array $raParms )
+    {
+        $kSpecies = intval(@$raParms['kSp']);
+        $lang = @$raParms['lang'] ?: $this->oApp->lang;
+
+        $s = $sErr = "species $kSpecies not found"; $bOk = false;
+
+        if( $kSpecies && ($kfr = $this->oSLDB->GetKFR('S', $kSpecies)) ) {
+            $s = $lang=='EN' ? ($kfr->value('name_en') ?: $kfr->value('name_fr'))
+                             : ($kfr->value('name_fr') ?: $kfr->value('name_en'));
+            $bOk = true; $sErr = "";
+        }
+        return( [$bOk,$s,$sErr] );
     }
 
     private function cultivarSearch( $parms )

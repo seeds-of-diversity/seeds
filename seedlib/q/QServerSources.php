@@ -20,7 +20,7 @@ class QServerSourceCV extends SEEDQ
     {
         parent::__construct( $oApp, $raConfig );
         $this->oSLDBSrc = new SLDBSources( $oApp );
-        $this->oSLDBRosetta = new SLDBRosetta( $oApp );
+        $this->oSLDBRosetta = new SLDBRosetta( $oApp );     // this inherits from SLDBSources so it's redundant
     }
 
     function Cmd( $cmd, $parms )
@@ -55,7 +55,9 @@ class QServerSourceCV extends SEEDQ
 
             $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
 
-            if( ($ra = $this->getSrcCVCultivarList( $raParms )) ) {
+            $ra = @$parms['bGetSrcList'] ? $this->getSrcCVCultivarListWithSrcList($raParms)
+                                         : $this->getSrcCVCultivarList($raParms);
+            if($ra) {
                 $rQ['bOk'] = true;
                 $rQ['raOut'] = $ra;
             }
@@ -116,6 +118,9 @@ class QServerSourceCV extends SEEDQ
 
     private function getSrcCVCultivarList( $raParms )
     /************************************************
+        Return one row per cultivar with Rosetta names, nSources, bBulk if any are bulk, bOrganic if any are organic.
+        Obtains these metadata via SQL aggregation so more efficient than getSrcCVCultivarListWithSrcList().
+        Use this to get a list of cultivars that match criteria, when you don't need specific sl_sources.
     */
     {
 //TODO: sort $raOut by spname,cvname
@@ -166,6 +171,64 @@ class QServerSourceCV extends SEEDQ
                 $raOut[] = $ra;
             }
         }
+
+        done:
+        return( $raOut );
+    }
+
+    private function getSrcCVCultivarListWithSrcList( $raParms )
+    /***********************************************************
+        Return one row per cultivar with Rosetta names, array of sl_sources, bBulk if any are bulk, bOrganic if any are organic.
+        Less efficient than getSrcCVCultivarList() because it has to gather fk_sl_sources.
+        Use this when you want the sl_source list for each cultivar.
+     */
+    {
+        $raOut = [];
+
+        $sCond = $this->condSrcCVCursor( $raParms );
+
+        /* Fetch cultivars in ocv order so it's efficient to look up metadata per cultivar.
+         * Some SRCCV have fk_sl_pcv and some don't.
+         * Create raCV['sSp sCV']['S_name_en'=> ,'S_name_fr' =>, 'S__key' => ,
+         *                        'P_name'=> , 'P__key'=> , 'raPY'=>[syn name, ...],
+         *                        'raSrc'=>[SRC._key, ...]
+         * 'sSp sCV' uses the species name selected by lang so the sorted keys will alphabetize species and cultivars
+         */
+        if( ($kfr = $this->oSLDBSrc->GetKFRC('SRCCVxSRCxS_P', $sCond, ['sSortCol'=>'SRCCV.fk_sl_species,SRCCV.ocv'])) ) {
+            $kSp = 0;       // copy of sl_cv_sources.fk_sl_species for tracking when a group ends
+            $kCV = 0;       // copy of sl_cv_sources.fk_sl_pcv for tracking when a group ends
+            $ocv = null;    // copy of sl_cv_sources.ocv for tracking when a group ends
+            while( $kfr->CursorFetch() ) {
+                if( ($kCV != $kfr->value('fk_sl_pcv')) ||
+                    ($ocv != $kfr->value('ocv')) ||
+                    // for the unusual case where two consecutive items are unindexed and same ocv of different species (could happen on a search of ocv)
+                    ($kSp != $kfr->value('fk_sl_species')) )
+                {
+                    // found a different cultivar
+                    $ocv = $kfr->value('ocv');
+                    $kCV = $kfr->value('fk_sl_pcv');
+                    $kSp = $kfr->value('fk_sl_species');
+                    $sCV = $kCV ? $kfr->Value('P_name') : $ocv;
+                    $outKey = "{$kfr->value('S_name_en')} {$sCV}";
+
+                    if( !isset($raOut[$outKey]) ) {
+                        $raOut[$outKey] = $this->QCharsetFromLatin(
+                            ['P_name'    => $sCV,
+                             'P__key'    => $kCV,
+                             'S__key'    => $kfr->Value('S__key'),
+                             'S_name_en' => $kfr->Value('S_name_en'),
+                             'S_name_fr' => $kfr->Value('S_name_fr'),
+                             // array_walk_recursive will also translate the strings in this array
+                             'raPY'      => $kCV ? $this->oSLDBSrc->Get1List('PY', 'name', "fk_sl_pcv='{$kfr->Value('P__key')}'") : [],
+                             'raSrc'     => []      // company appended every iteration
+                            ] );
+                    }
+                }
+                $raOut[$outKey]['raSrc'][] = $kfr->Value('fk_sl_sources');
+            }
+        }
+
+        ksort($raOut);
 
         done:
         return( $raOut );

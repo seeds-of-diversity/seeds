@@ -463,7 +463,7 @@ class SLDBSources extends SLDBRosetta
                                "LeftJoinOn" => "SRCCV.fk_sl_sources=SRC._key" ] ],
                 $sLogfile );
 
-        // every SrcCV must have a Src, but it might not have a PCV
+        // every SrcCV must have a Src, but it might not have a PCV -- there is always a Species now too
         $raKfrel['SRCCVxSRC_P'] = $this->newKfrel( $kfdb, $uid,
                 array( 'SRCCV' => array( "Table" => "{$this->dbname}.sl_cv_sources",
                                          "Fields" => _sldb_defs::fldSLSourcesCV() ),
@@ -474,6 +474,22 @@ class SLDBSources extends SLDBRosetta
                                          "LeftJoinOn" => "SRCCV.fk_sl_pcv=P._key",
                                          "Fields" => _sldb_defs::fldSLPCV() ) ),
             $sLogfile );
+
+        // every SrcCV must have a Src and a Species, but it might not have a PCV
+        $raKfrel['SRCCVxSRCxS_P'] = $this->newKfrel( $kfdb, $uid,
+                    ['SRCCV' => ['Table' => "{$this->dbname}.sl_cv_sources",
+                                 'Fields'=> _sldb_defs::fldSLSourcesCV()],
+                     'SRC' =>   ['Table' => "{$this->dbname}.sl_sources",
+                                 'Fields'=> _sldb_defs::fldSLSources()],
+                     'S' =>     ['Table' => "{$this->dbname}.sl_species",
+                                 'JoinOn'=> "SRCCV.fk_sl_species=S._key",     // S is joined to SRCCV, not P
+                                 'Fields'=> _sldb_defs::fldSLSpecies()],
+                     'P' =>     ['Table' => "{$this->dbname}.sl_pcv",
+                                 'Type'  => "LeftJoin",
+                                 'LeftJoinOn' => "SRCCV.fk_sl_pcv=P._key",  // remarkably this becomes LEFT JOIN seeds.sl_pcv AS P ON (SRCCV.fk_sl_pcv=P._key AND P.fk_sl_species=S._key) which should work
+                                 'Fields' => _sldb_defs::fldSLPCV()] ],
+            $sLogfile );
+
 
 //kluge: Since fk_sl_pcv is often 0, SRCCVxPxS cannot be used to get a list of species from SRCCV.
 //       SRCCV.fk_sl_species is non-canonical so replace this with SRCCVxPxS when fk_sl_pcv is done right.
