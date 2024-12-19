@@ -1,6 +1,6 @@
 /* DocRepApp.js
  *
- * Copyright (c) 2021-2023 Seeds of Diversity Canada
+ * Copyright (c) 2021-2024 Seeds of Diversity Canada
  *
  * UI widgets for managing DocRep documents.
  *
@@ -75,8 +75,18 @@ class DocRepCache
     }
     
     PruneTree( kDoc )
+    /****************
+        Remove subtree rooted at kDoc from the cache
+     */
     {
-        // override to remove subtree rooted at kDoc from the cache
+        if( this.mapDocs.has(kDoc) ) {
+            // already in cache
+            let oDoc = this.mapDocs.get(kDoc);
+            this.mapDocs.delete(kDoc);
+            //console.log("Pruning kDoc "+kDoc);
+            //console.log(oDoc.raChildren);
+            oDoc.raChildren.forEach(kDocChild => this.PruneTree(parseInt(kDocChild)));
+        }
     }
 }
 
