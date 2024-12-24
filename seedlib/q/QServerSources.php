@@ -332,6 +332,8 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
     {
         $raOut = [];
 
+        $lang = @$raParms['lang'] ?: $this->oApp->lang;
+
         $condDB = "";   // default is to read all sl_cv_sources
 
         if( @$raParms['bAll'] ) {       // not implemented in normalizeParms?
@@ -357,7 +359,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                 while( $kfr->CursorFetch() ) {
                     if( $raParms['outFmt'] != 'Key' ) {
                         $sp = '';
-                        if( $this->oApp->lang == 'FR' ) {
+                        if( $lang == 'FR' ) {
                             $sp = (@$raParms['opt_bIndex'] && ($sp = $kfr->Value('S_iname_fr'))) ? $sp : $kfr->Value('S_name_fr');
                         }
                         if( !$sp ) {
@@ -397,7 +399,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                         if( @$raMap[$kSp] ) {
                             // found a mapped species
                             $kOut = 'spapp'.$raMap[$kSp]['_key'];   // sl_species_map._key
-                            $nameOut = $this->QCharsetFromLatin($this->oApp->lang == 'FR' ? $raMap['appname_fr'] : $raMap['appname_en']);
+                            $nameOut = $this->QCharsetFromLatin($lang == 'FR' ? $raMap['appname_fr'] : $raMap['appname_en']);
                             $raOut[$kOut] = $nameOut;
                         } else {
                             // non-mapped species
@@ -411,7 +413,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                         if( @$raMap[$kSp] ) {
                             // found a mapped species
                             $kOut = 'spapp'.$raMap[$kSp]['_key'];   // sl_species_map._key
-                            $nameOut = $this->QCharsetFromLatin($this->oApp->lang == 'FR' ? $raMap['appname_fr'] : $raMap['appname_en']);
+                            $nameOut = $this->QCharsetFromLatin($lang == 'FR' ? $raMap['appname_fr'] : $raMap['appname_en']);
                             $raOut[$nameOut] = $kOut;
                         } else {
                             // non-mapped species

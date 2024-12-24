@@ -146,34 +146,33 @@ class SoDMasterTemplate
             case 'csci_companies_varieties':
                 include_once( SEEDCOMMON."sl/sl_sources_common.php" );
                 include_once( SEEDAPP."website/csci_page.php" );
+                $oSLCSCI = new SLCSCI_Public($this->oApp);
 
                 [$kfdb] = SiteStart();
                 $oSLSrc = new SLSourcesDraw( $kfdb );
                 $lang = strtoupper(@$raTag['raParms']['1'] ?? "") ?: $this->oApp->lang;
 
                 $sSp = ""; //because it can be short-circuited
-                switch($contentName) {
+                switch( $contentName ) {
                     case 'csci_species':
-                        $s .= $oSLSrc->DrawSpeciesList( "", $lang,
-                                  array( 'bCompaniesOnly'=>true,
-                                         'bCount' => true,
-                                         'bIndex' => true,
-                                         'sTemplate' => "<div class='csci_species' style=''><a href='{$this->oApp->PathToSelf()}?psp=[[var:k]]'>[[var:name]] [[ifnot0:\$n|([[var:n]])]]</a></div>" ) );
+                        $s .= $oSLCSCI->DrawSpeciesList($lang, ['bCompaniesOnly'=>true, 'bCount'=>true, 'bIndex'=>true] );
                         break;
                     case 'csci_companies_varieties':
                         if( ($sSp = SEEDInput_Str('psp')) && SEEDCore_StartsWith($sSp, 'spk') && ($kSp = intval(substr($sSp,3))) ) {
                             $s .= "<p><a href='{$this->oApp->PathToSelf()}'>Back to Companies</a></p>
                                    <style>.slsrc_dcvblock_companies { padding-left:40px }
                                    </style>"
-                                 .(new SLCSCI_Public($this->oApp))->DrawCompaniesCultivars($kSp, $lang);
+                                 .$oSLCSCI->DrawCompaniesCultivars($kSp, $lang);
 
                             include_once( SEEDCOMMON."siteutil.php" );
                             Site_Log( "csci_sp.log", date("Y-m-d H:i:s")." {$_SERVER['REMOTE_ADDR']} | $kSp $sSp" );
+                        } else {
+                            // if no parms show companies instead
+                            $s .= $oSLCSCI->DrawCompanies( $lang );
                         }
                         break;
                     case 'csci_companies':
-                    default:
-                        $s .= $oSLSrc->DrawCompanies( $this->oApp->lang );
+                        $s .= $oSLCSCI->DrawCompanies( $lang );
                         break;
                 }
                 $bHandled = true;

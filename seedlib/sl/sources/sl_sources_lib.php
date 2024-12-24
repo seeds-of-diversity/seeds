@@ -90,4 +90,56 @@ class SLSourcesLib
 
         return( array($s,$sCompanyName) );
     }
+
+    function DrawCompanyBlock( KeyframeRecord $kfrSrc, string $lang='EN', $raParms=[] )
+    /**********************************************************************************
+        Draw a sl_sources kfr as a publicly viewable block
+            bEdit : also show edit controls
+     */
+    {
+        $s = "";
+
+        if( $lang == 'FR' ) {
+            $lang = "fr";  $langother = "en";
+        } else {
+            $lang = "en";  $langother = "fr";
+        }
+        $bEdit = SEEDCore_ArraySmartBool( $raParms, 'bEdit', false );
+
+        $name = $kfrSrc->valueEnt( !$kfrSrc->IsEmpty('name_'.$lang) ? ('name_'.$lang) : ('name_'.$langother) );
+        $addr = $kfrSrc->valueEnt( !$kfrSrc->IsEmpty('addr_'.$lang) ? ('addr_'.$lang) : ('addr_'.$langother) );
+        $desc = $kfrSrc->valueEnt( !$kfrSrc->IsEmpty('desc_'.$lang) ? ('desc_'.$lang) : ('desc_'.$langother) );
+
+        // Caller might wrap the name with a link or something
+        // e.g. subst_name = "<a href=foo>[[name]]</a>   -- [[name]] is substituted with $name (which could be EN or FR as decided above)
+        if( isset($raParms['subst_name']) ) {
+// easier to use str_replace('[[name]]')
+            $name = SEEDCore_ArrayExpand( array('name'=>$name), $raParms['subst_name'], false );  // bEnt=false because entities already expanded
+        }
+
+        $s .= "<span style='font-size:11pt;font-weight:bold'>$name</span><br/>"
+        ."<font size='2'>"
+        .($addr ? ("<nobr>$addr</nobr><BR/>"
+                   .$kfrSrc->Expand( "<nobr>[[city]] [[prov]] [[postcode]]</nobr><BR/>"))
+                : "")
+        .$kfrSrc->ExpandIfNotEmpty('phone', "Phone: [[]]<br/>")
+                      // stopPropagation() is a kluge to prevent the onclick of the containing div (which selects the company)
+        .$kfrSrc->ExpandIfNotEmpty('web', "Web: <a href='https://[[web]]' target='_blank' onclick='event.stopPropagation();'>[[web]]</a><br/>")
+        .$kfrSrc->ExpandIfNotEmpty('email', "Email: <a href='mailto:[[email]]'>[[email]]</a><br/>")
+        .$kfrSrc->ExpandIfNotEmpty('year_est', "Established: [[]]</br>" )
+        //.($kfr->value('bSupporter') ? "*<BR/>" : "")
+        ."<div style=''>$desc</div>"
+        ."</font><br/>";
+
+        if( $bEdit ) {
+            $sNeeded = "";
+            if( $kfrSrc->value('bNeedXlat') )    $sNeeded .= "Translation ";
+            if( $kfrSrc->value('bNeedVerify') )  $sNeeded .= "Verification ";
+            //if( $kfr->value('bNeedProof') )   $sNeeded .= "Proofreading ";
+            if( $sNeeded )  $s .= "<BR/><FONT color='red' size='2'>Needs: $sNeeded</FONT>";
+            $s .= $kfrSrc->ExpandIfNotEmpty( 'comments', "<BR/><FONT size='2' color='blue'>Private comments: [[]]</FONT>" );
+        }
+
+        return( $s );
+    }
 }

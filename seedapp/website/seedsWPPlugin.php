@@ -243,6 +243,10 @@ function fnSeedsWPShortCode( $attrs, $content = null )
         $lang = @$attrs['lang'] ?: $oApp->lang;
 
         switch( $page ) {
+            case 'csci_species':
+            case 'csci_companies':
+            case 'csci_companies_varieties':  $s = $oMT->GetTmpl()->ExpandStr( "[[SEEDContent:{$page} | {$lang}]]" ); break;
+
             case 'events':  $s = $oMT->GetTmpl()->ExpandStr( "[[SEEDContent:events-page | {$lang}]]" );     break;
             case 'boutique':$s = $oTmpl->ExpandStr( "[[SEEDContent:boutique | {$lang}]]", [] );             break;  // deprecate, use store lang=FR instead
             case 'store':   $s = $oTmpl->ExpandStr( "[[SEEDContent:store | {$lang}]]", [] );                break;
