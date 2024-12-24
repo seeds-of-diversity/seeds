@@ -1071,9 +1071,18 @@ class KeyframeRecord
         Return template string with [[]] replaced by the value of the field, if it is not empty.
         This lets you do this:  ( !$kfr->IsEmpty('foo') ? ($kfr->value('foo')." items<br/>") : "" )
                     with this:  ExpandTemplateIfNotEmpty( 'foo', "[[]] items<br/>" )
+
+        Also expand [[all others]] the same as Expand() does, including [[fld]], but still return "" if [[fld]] is blank.
+        Note this allows you to put [[fld]] in the template instead of [[]] to make it more readable.
      */
     {
-        if( !$this->IsEmpty($fld) )  return( str_replace( "[[]]", ($bEnt ? $this->ValueEnt($fld) : $this->Value($fld)), $sTemplate ) );
+        $s = "";
+
+        if( !$this->IsEmpty($fld) ) {
+            $s = str_replace( "[[]]", ($bEnt ? $this->ValueEnt($fld) : $this->Value($fld)), $sTemplate );
+            $s = $this->Expand($s, $bEnt);
+        }
+        return( $s );
     }
 
 /*
