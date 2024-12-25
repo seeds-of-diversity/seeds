@@ -144,12 +144,8 @@ class SoDMasterTemplate
             case 'csci_species':
             case 'csci_companies':
             case 'csci_companies_varieties':
-                include_once( SEEDCOMMON."sl/sl_sources_common.php" );
                 include_once( SEEDAPP."website/csci_page.php" );
                 $oSLCSCI = new SLCSCI_Public($this->oApp);
-
-                [$kfdb] = SiteStart();
-                $oSLSrc = new SLSourcesDraw( $kfdb );
                 $lang = strtoupper(@$raTag['raParms']['1'] ?? "") ?: $this->oApp->lang;
 
                 $sSp = ""; //because it can be short-circuited
