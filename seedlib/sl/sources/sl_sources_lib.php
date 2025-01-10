@@ -14,7 +14,7 @@ class SLSourcesLib
     function GetSrcCVListFromSource( $kSrc )
     {
         $oQ = new Q( $this->oApp, ['config_bUTF8'=>false] );   // change this to true and make downstream code utf8 compliant
-        $rQ = $oQ->Cmd( 'srcSrcCv', ['kSrc'=>$kSrc, 'kfrcParms'=>array('sSortCol'=>'osp,ocv')] );
+        $rQ = $oQ->Cmd( 'srcSrcCv', ['kSrc'=>$kSrc] );  // 'sSortCol'=>'osp,ocv' by default
 
         return( $rQ['raOut'] );
     }
