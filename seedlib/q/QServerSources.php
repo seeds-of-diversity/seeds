@@ -362,6 +362,13 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
                      ];
 
         $sCond = "fk_sl_sources >= 3";
+
+        /* Exclude "rare" varieties that are actually unusual hybrids, GMOs, and greenhouse varieties.
+         */
+        if( true ) {  // if( @$raParms['bExcludeTech'] ) {
+            $sCond .= " AND fk_sl_sources not in (42) ";   // Stokes
+        }
+
         // SRCCVxSRCxPxS only fetches cultivars with fk_sl_pcv
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond, $kfrcParms )) ) {
             $raDefaultParms = $this->normalizeParms( [] );
