@@ -138,25 +138,23 @@ class QServerSourceCV extends SEEDQ
     {
         $raOut = [];
 
-        if( $raParms['sMode'] == 'TopChoices' ) {
-            $raOut = $this->getTopChoices();
-            goto done;
-        }
+        if( $raParms['sMode'] == 'RareChoices' ) { $raOut = $this->getRareChoices(); goto done; }
+        if( $raParms['sMode'] == 'TopChoices' )  { $raOut = $this->getTopChoices();  goto done; }
 
         $sCond = $this->condSrcCVCursor( $raParms );
 //$this->oApp->kfdb->SetDebug(2);
 
         /* Every sl_cv_sources has a S__key, but not all have P__key.  Group by fk_sl_species,ocv
          */
-        $kfrcParms['sGroupAliases'] = "S__key,S_name_en,S_name_fr, ocv, P__key,P_name";
-        $kfrcParms['raFieldsOverride'] = ['S__key'=>"S._key", 'S_name_en'=>"S.name_en", 'S_name_fr'=>"S.name_fr",
-                                          'ocv'=>"ocv", 'P__key'=>"P._key", 'P_name'=>"P.name",
-                                          'nSources'=>"count(*)", 'sSources'=>"group_concat(fk_sl_sources)",
-                                          // max() is an easy way to get a boolean for whether the set contains at least one
-                                          'bOrganic'=>'max(bOrganic)', 'bBulk'=>'max(bulk)',
-                                          // arbitrary kSrccv to represent this ocv
-                                          'kluge_kCV'=>"MIN(SRCCV._key)"
-                                         ];
+        $kfrcParms = ['sGroupAliases'    => "S__key,S_name_en,S_name_fr, ocv, P__key,P_name",
+                      'raFieldsOverride' => ['S__key'=>"S._key", 'S_name_en'=>"S.name_en", 'S_name_fr'=>"S.name_fr",
+                                             'ocv'=>"ocv", 'P__key'=>"P._key", 'P_name'=>"P.name",
+                                             'nSources'=>"count(*)", 'sSources'=>"group_concat(fk_sl_sources)",
+                                             // max() is an easy way to get a boolean for whether the set contains at least one
+                                             'bOrganic'=>'max(bOrganic)', 'bBulk'=>'max(bulk)',
+                                             // arbitrary kSrccv to represent this ocv
+                                             'kluge_kCV'=>"MIN(SRCCV._key)"]
+                     ];
 //        $raParms['kfrcParms']['sHaving'] = $raParms['bBulk'] ? "COUNT(CASE WHEN bulk THEN 1 END)>=1" : "";
 //        $raParms['kfrcParms']['sSortCol'] = "S.name_en asc,P.name";
         if( ($kfrc = $this->oSLDBSrc->GetKFRC('SRCCVxSRCxS_P', $sCond, $kfrcParms)) ) {
@@ -343,6 +341,42 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
 
         return( $raOut );
     }
+
+    private function getRareChoices()
+    /********************************
+        Forget about all other parameters and just return 30 of the least common varieties from all companies.
+        Just get the indexed varieties.
+     */
+    {
+        $kfrcParms = ['sGroupAliases'    => "S__key,S_name_en,S_name_fr, ocv, P__key,P_name",
+                      'raFieldsOverride' => ['S__key'=>"S._key", 'S_name_en'=>"S.name_en", 'S_name_fr'=>"S.name_fr",
+                                             'ocv'=>"ocv", 'P__key'=>"P._key", 'P_name'=>"P.name",
+                                             'nSources'=>"count(*)", 'sSources'=>"group_concat(fk_sl_sources)",
+                                             // max() is an easy way to get a boolean for whether the set contains at least one
+                                             'bOrganic'=>'max(bOrganic)', 'bBulk'=>'max(bulk)',
+                                             // arbitrary kSrccv to represent this ocv
+                                             'kluge_kCV'=>"MIN(SRCCV._key)"],
+                      'sHaving'          => "count(*)=1",   // only returns groups with one row
+                      'sSortCol'         => "rand()",       // gives random rows //  "c asc,S.name_en asc,P.name",
+                      'iLimit'           => 30
+                     ];
+
+        $sCond = "fk_sl_sources >= 3";
+        // SRCCVxSRCxPxS only fetches cultivars with fk_sl_pcv
+        if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond, $kfrcParms )) ) {
+            $raDefaultParms = $this->normalizeParms( [] );
+            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow2"], $raDefaultParms );
+            while( ($ra = $oCursor->GetNextRow()) ) {
+                // use sortable dummy keys and sort at the bottom
+                $k = "{$ra['S_name_en']} {$ra['P_name']}";
+                $raOut[$k] = $ra;
+            }
+            ksort($raOut);
+        }
+
+        return( $raOut );
+    }
+
 
     private function getSpecies( $raParms )
     /**************************************
