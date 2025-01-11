@@ -93,6 +93,15 @@ class QServerSourceCV extends SEEDQ
             }
         }
 
+        if( $cmd == 'srcResearch-cvOverYears' ) {
+            $rQ['bHandled'] = true;
+            $kSp = intval(@$parms['kSp']);
+
+            $rQ['sLog'] = "kSp=$kSp";
+
+            list($rQ['bOk'], $rQ['raOut']) = $this->getResearch_cvOverYears($kSp);
+        }
+
         done:
         return( $rQ );
     }
@@ -747,6 +756,20 @@ support SRCCVxSRC_PxS on SRC.fk_sl_pcv=P._key
         return( $raOut );
     }
 
+    private function getResearch_cvOverYears( int $kSp )
+    {
+        $bOk = false;
+        $raOut = [];
+
+        $raOut = $this->oApp->kfdb->QueryRowsRA(
+            "select year as year,count(*) as nCV from (select year from sl_cv_sources_archive where fk_sl_species={$kSp} group by ocv,year) as A group by year",
+            KEYFRAMEDB_RESULT_ASSOC
+        );
+
+        $bOk = true;
+
+        return([$bOk, $raOut]);
+    }
 
     private function normalizeParms( $parms )
     /****************************************
