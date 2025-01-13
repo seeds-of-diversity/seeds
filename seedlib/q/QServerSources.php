@@ -2,7 +2,7 @@
 
 /* QServerSources
  *
- * Copyright 2015-2023 Seeds of Diversity Canada
+ * Copyright 2015-2025 Seeds of Diversity Canada
  *
  * Serve queries about sources of cultivars
  * (queries involving sl_sources, sl_cv_sources, sl_cv_sources_archive)
@@ -55,9 +55,7 @@ class QServerSourceCV extends SEEDQ
 
             $rQ['sLog'] = SEEDCore_ImplodeKeyValue( $raParms, "=", "," );
 
-            $ra = @$parms['bGetSrcListXX'] ? $this->getSrcCVCultivarListWithSrcList($raParms)
-                                         : $this->getSrcCVCultivarList($raParms);
-            if($ra) {
+            if( ($ra = $this->getSrcCVCultivarList($raParms)) ) {
                 $rQ['bOk'] = true;
                 $rQ['raOut'] = $ra;
             }
@@ -167,7 +165,7 @@ class QServerSourceCV extends SEEDQ
 //        $raParms['kfrcParms']['sHaving'] = $raParms['bBulk'] ? "COUNT(CASE WHEN bulk THEN 1 END)>=1" : "";
 //        $raParms['kfrcParms']['sSortCol'] = "S.name_en asc,P.name";
         if( ($kfrc = $this->oSLDBSrc->GetKFRC('SRCCVxSRCxS_P', $sCond, $kfrcParms)) ) {
-            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow2"], $raParms );
+            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raParms );
             while( ($ra = $oCursor->GetNextRow()) ) {
                 // outKey groups snames with pnames (for rows with fk_sl_pcv defined) because P_name is obtained from fk_sl_pcv
                 $outKey = $ra['S_name_en']." ".$ra['P_name'];
@@ -180,89 +178,6 @@ class QServerSourceCV extends SEEDQ
                     $raOut[$outKey]['bOrganic'] = $raOut[$outKey]['bOrganic'] || $ra['bOrganic'];
                     $raOut[$outKey]['bBulk'] = $raOut[$outKey]['bBulk'] || $ra['bBulk'];
                 }
-            }
-        }
-
-        ksort($raOut);
-        goto done;
-
-        /* Fetch the PxS info for matching cultivars that are not indexed in sl_pcv
-         * All conditions in sCond apply only to SRCCVxSRC.
-         * All QCursor fetched fields are only from SRCCVxSRC.
-         *
-         * This query is only applied to rows where fk_sl_pcv=0; this value is obtained by sl_cv_sources._key+10,000,000
-         * ANY_VALUE of kSrccv will do (using MIN because MariaDB doesn't support ANY_VALUE).
-         */
-        $raParms['kfrcParms']['sGroupAliases'] = "fk_sl_species,ocv";
-        $raParms['kfrcParms']['raFieldsOverride'] = ['fk_sl_species'=>'fk_sl_species','ocv'=>'ocv',
-                                                     'nSources'=>"count(*)",            // generates "count(*) as nSources"
-                                                     'anyKSrccv'=>"MIN(SRCCV._key)"];   // arbitrary kSrccv to represent this ocv
-        $raParms['kfrcParms']['sHaving'] = $raParms['bBulk'] ? "COUNT(CASE WHEN bulk THEN 1 END)>=1" : "";
-        $raParms['kfrcParms']['sSortCol'] = "ocv";
-        if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRC", $sCond." AND fk_sl_pcv='0'", $raParms['kfrcParms'] )) ) {
-            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRowKluge"], $raParms );
-            while( ($ra = $oCursor->GetNextRow()) ) {
-                $raOut[] = $ra;
-            }
-        }
-
-//TODO: sort $raOut by spname,cvname
-
-        done:
-        return( $raOut );
-    }
-
-    private function getSrcCVCultivarListWithSrcList( $raParms )
-    /***********************************************************
-        Return one row per cultivar with Rosetta names, array of sl_sources, bBulk if any are bulk, bOrganic if any are organic.
-        Use this when you want the sl_source list for each cultivar.
-
-can make this efficient by adding group_concat(fk_sl_sources) to getSrcCVCultivarList()
-        Less efficient than getSrcCVCultivarList() because it has to gather fk_sl_sources.
-     */
-    {
-        $raOut = [];
-
-        $sCond = $this->condSrcCVCursor( $raParms );
-
-        /* Fetch cultivars in ocv order so it's efficient to look up metadata per cultivar.
-         * Some SRCCV have fk_sl_pcv and some don't.
-         * Create raCV['sSp sCV']['S_name_en'=> ,'S_name_fr' =>, 'S__key' => ,
-         *                        'P_name'=> , 'P__key'=> , 'raPY'=>[syn name, ...],
-         *                        'raSrc'=>[SRC._key, ...]
-         * 'sSp sCV' uses the species name selected by lang so the sorted keys will alphabetize species and cultivars
-         */
-        if( ($kfr = $this->oSLDBSrc->GetKFRC('SRCCVxSRCxS_P', $sCond, ['sSortCol'=>'SRCCV.fk_sl_species,SRCCV.ocv'])) ) {
-            $kSp = 0;       // copy of sl_cv_sources.fk_sl_species for tracking when a group ends
-            $kCV = 0;       // copy of sl_cv_sources.fk_sl_pcv for tracking when a group ends
-            $ocv = null;    // copy of sl_cv_sources.ocv for tracking when a group ends
-            while( $kfr->CursorFetch() ) {
-                if( ($kCV != $kfr->value('fk_sl_pcv')) ||
-                    ($ocv != $kfr->value('ocv')) ||
-                    // for the unusual case where two consecutive items are unindexed and same ocv of different species (could happen on a search of ocv)
-                    ($kSp != $kfr->value('fk_sl_species')) )
-                {
-                    // found a different cultivar
-                    $ocv = $kfr->value('ocv');
-                    $kCV = $kfr->value('fk_sl_pcv');
-                    $kSp = $kfr->value('fk_sl_species');
-                    $sCV = $kCV ? $kfr->Value('P_name') : $ocv;
-                    $outKey = "{$kfr->value('S_name_en')} {$sCV}";      // this groups snames with pnames because outKey is pname for both
-
-                    if( !isset($raOut[$outKey]) ) {
-                        $raOut[$outKey] = $this->QCharsetFromLatin(
-                            ['P_name'    => $sCV,                       // this is ocv if not in sl_pcv
-                             'P__key'    => $kCV,                       // this is 0 if not in sl_pcv
-                             'S__key'    => $kfr->Value('S__key'),
-                             'S_name_en' => $kfr->Value('S_name_en'),
-                             'S_name_fr' => $kfr->Value('S_name_fr'),
-                             // array_walk_recursive will also translate the strings in this array
-                             'raPY'      => $kCV ? $this->oSLDBSrc->Get1List('PY', 'name', "fk_sl_pcv='{$kfr->Value('P__key')}'",['sSortCol'=>'name']) : [],
-                             'raSrc'     => []      // company appended every iteration
-                            ] );
-                    }
-                }
-                $raOut[$outKey]['raSrc'][] = $kfr->Value('fk_sl_sources');
             }
         }
 
@@ -339,7 +254,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
 // this means only sl_pcv-indexed cultivars are shown in SeedFinder
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond, $kfrcparms )) ) {
             $raDefaultParms = $this->normalizeParms( [] );
-            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raDefaultParms );
+            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRowTopChoices"], $raDefaultParms );
             while( ($ra = $oCursor->GetNextRow()) ) {
                 // use sortable dummy keys and sort at the bottom
                 $k = "{$ra['S_name_en']} {$ra['P_name']}";
@@ -381,7 +296,7 @@ if( ($k = intval(@$raParms['kPcvKluge'])) ) {
         // SRCCVxSRCxPxS only fetches cultivars with fk_sl_pcv
         if( ($kfrc = $this->oSLDBSrc->GetKFRC( "SRCCVxSRCxPxS", $sCond, $kfrcParms )) ) {
             $raDefaultParms = $this->normalizeParms( [] );
-            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow2"], $raDefaultParms );
+            $oCursor = new SEEDQCursor( $kfrc, [$this,"GetSrcCVCultivarListRow"], $raDefaultParms );
             while( ($ra = $oCursor->GetNextRow()) ) {
                 // use sortable dummy keys and sort at the bottom
                 $k = "{$ra['S_name_en']} {$ra['P_name']}";
@@ -556,7 +471,8 @@ support SRCCVxSRC_PxS on SRC.fk_sl_pcv=P._key
         return( $ra );
     }
 
-    function GetSrcCVCultivarListRow( SEEDQCursor $oCursor, $raParms )
+// TopChoices could use GetSrcCVCultivarListRow if it used the left join like RareChoices does
+    function GetSrcCVCultivarListRowTopChoices( SEEDQCursor $oCursor, $raParms )
     /*****************************************************************
         Return PxS info for rows of SRCCVxSRCxPxS, grouped by fk_sl_pcv, fetched from a SEEDQCursor
      */
@@ -575,7 +491,7 @@ support SRCCVxSRC_PxS on SRC.fk_sl_pcv=P._key
         return( $ra );
     }
 
-    function GetSrcCVCultivarListRow2( SEEDQCursor $oCursor, $raParms )
+    function GetSrcCVCultivarListRow( SEEDQCursor $oCursor, $raParms )
     /*****************************************************************
         Return info for rows of SRCCVxSRCxS_P, grouped by fk_sl_species,ocv fetched from a SEEDQCursor
      */
@@ -603,45 +519,6 @@ support SRCCVxSRC_PxS on SRC.fk_sl_pcv=P._key
 
         return( $raOut );
     }
-
-    function GetSrcCVCultivarListRowKluge( SEEDQCursor $oCursor, $raParms )
-    /**********************************************************************
-        Return PxS info for rows of SRCCVxSRC, grouped by (fk_sl_species,ocv), fetched from a SEEDQCursor
-        This means you have to look up sl_species for each row, so we use a cache.
-
-        This query is only applied to rows where fk_sl_pcv=0; this value is obtained by sl_cv_sources._key+10,000,000
-        ANY_VALUE of kSrccv will do (using MIN because MariaDB doesn't support ANY_VALUE).
-     */
-    {
-        $spCache = [];
-
-        // anyKSrccv is an arbitrary row to identify the ocv. Using MIN because MariaDB doesn't support ANY_VALUE
-        $kPcvKluge = $oCursor->kfrc->Value('anyKSrccv') + 10000000;
-
-        $spEn = $spFr = "";
-        if( ($kSp = $oCursor->kfrc->Value('fk_sl_species')) ) {
-            if( !@$spCache["en$kSp"] ) {
-                $kfrS = $this->oSLDBRosetta->GetKFR("S", $kSp);
-                $spCache["en$kSp"] = $kfrS->Value('name_en');
-                $spCache["fr$kSp"] = $kfrS->Value('name_fr');
-            }
-            $spEn = $spCache["en$kSp"];
-            $spFr = $spCache["fr$kSp"];
-        }
-
-        $ra = $this->QCharsetFromLatin(
-                ['S_name_en' => $spEn,
-                 'S_name_fr' => $spFr,
-                 'P_name'    => $oCursor->kfrc->Value('ocv'),
-                 'P__key'    => $kPcvKluge,
-                 'nSources'  => intval($oCursor->kfrc->Value('nSources')),
-                ]);
-        // if this option is set, only cultivars with at least one bulk source are added
-        if( $raParms['bBulk'] ) $ra['bulk']=1;
-
-        return( $ra );
-    }
-
     private function getSrcESFStats( $v, $year )
     {
         $raOut = [];
