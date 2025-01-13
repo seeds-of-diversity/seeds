@@ -7,17 +7,18 @@
  * Descriptor definitions for the observations that are recorded in Crop Profiles.
  */
 
-include_once( SEEDCOMMON."/sl/desc/apple_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/bean_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/garlic_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/lettuce_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/onion_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/pea_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/pepper_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/potato_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/squash_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/tomato_defs.php" );
-include_once( SEEDCOMMON."/sl/desc/common_defs.php" );
+// these defs files are copied from seedsx but the old files are still there and possibly still used
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/apple_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/bean_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/garlic_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/lettuce_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/onion_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/pea_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/pepper_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/potato_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/squash_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/tomato_defs.php");
+include_once(SEEDLIB."sl/profiles/sp/duplicate_copied_from_seedsx/common_defs.php" );
 
 include_once(SEEDLIB."sl/profiles/sp/ground-cherry.php");
 
