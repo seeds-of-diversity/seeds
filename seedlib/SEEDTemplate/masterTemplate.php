@@ -118,7 +118,6 @@ class SoDMasterTemplate
         $contentName = strtolower($raTag['target']);
         $lang = ($l = @$raTag['raParms']['1']) ? (strtolower($l)=='fr' ? "FR" : "EN")   // only defined this way for some tags
                                                : $this->oApp->lang;
-        $pathSelf = method_exists('\Drupal\Core\Url', 'fromRoute') ? \Drupal\Core\Url::fromRoute('<current>')->toString() : $this->oApp->PathToSelf();
 
         switch( $contentName ) {
             case 'home-en':
@@ -138,8 +137,40 @@ class SoDMasterTemplate
 
             case 'events-page':
                 include_once(SEEDAPP."events/eventsApp.php");
-// DrawEventsPage uses oApp->lang; pass $lang as a parm to override that, so language can be forced in the tag
-                $s .= (new EventsApp($this->oApp))->DrawEventsPage();
+                $s .= (new EventsApp($this->oApp, ['lang'=>$lang]))->DrawEventsPage();
+                $bHandled = true;
+                break;
+
+            case 'csci_species':
+            case 'csci_companies':
+            case 'csci_companies_varieties':
+                include_once( SEEDAPP."website/csci_page.php" );
+                $oSLCSCI = new SLCSCI_Public($this->oApp);
+                $lang = strtoupper(@$raTag['raParms']['1'] ?? "") ?: $this->oApp->lang;
+
+                $sSp = ""; //because it can be short-circuited
+                switch( $contentName ) {
+                    case 'csci_species':
+                        $s .= $oSLCSCI->DrawSpeciesList($lang, ['bCompaniesOnly'=>true, 'bCount'=>true, 'bIndex'=>true] );
+                        break;
+                    case 'csci_companies_varieties':
+                        if( ($sSp = SEEDInput_Str('psp')) && SEEDCore_StartsWith($sSp, 'spk') && ($kSp = intval(substr($sSp,3))) ) {
+                            $s .= "<p><a href='{$this->oApp->PathToSelf()}'>Back to Companies</a></p>
+                                   <style>.slsrc_dcvblock_companies { padding-left:40px }
+                                   </style>"
+                                 .$oSLCSCI->DrawCompaniesCultivars($kSp, $lang);
+
+                            include_once( SEEDCOMMON."siteutil.php" );
+                            Site_Log( "csci_sp.log", date("Y-m-d H:i:s")." {$_SERVER['REMOTE_ADDR']} | $kSp $sSp" );
+                        } else {
+                            // if no parms show companies instead
+                            $s .= $oSLCSCI->DrawCompanies( $lang );
+                        }
+                        break;
+                    case 'csci_companies':
+                        $s .= $oSLCSCI->DrawCompanies( $lang );
+                        break;
+                }
                 $bHandled = true;
                 break;
 

@@ -156,13 +156,15 @@ class SEEDAppConsole extends SEEDAppSessionAccount
      */
     {
         if( $this->fnPathToSelf ) {
-            $s = call_user_func( $this->fnPathToSelf );
+            $path = call_user_func( $this->fnPathToSelf );
+        } else if( function_exists('get_permalink') && ($path = get_permalink()) ) {
+            // wordpress
         } else {
             // PHP_SELF is unsafe because page requests can look like seeds.ca/foo/index.php/"><script>alert(1);</script><span class="
             // Use htmlspecialchars to make injected JS non-parseable
-            $s = SEEDCore_HSC($_SERVER['PHP_SELF']);
+            $path = SEEDCore_HSC($_SERVER['PHP_SELF']);
         }
-        return( $s );
+        return( $path );
     }
 
     function UrlQ( $fname = "" )  { return( $this->urlQ.$fname ); }

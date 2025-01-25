@@ -169,8 +169,8 @@ class MbrContactsSheetUI
             $mbrPcode = @$raMbr['postcode'] ?: "";
 
             // these are optional
-            $kMbrFromSheet = $kKMbr !== false ? @$raRow[$kKMbr] : 0;
-            $gPcode = $kPcode !== false ? $raRow[$kPcode] : "";
+            $kMbrFromSheet = intval($kKMbr !== false ? @$raRow[$kKMbr] : 0);
+            $gPcode = ($kPcode !== false && @$raRow[$kPcode]) ? $raRow[$kPcode] : "";
 
             $sMbrFromSheet = '';
             if( $kKMbr !== false ) {

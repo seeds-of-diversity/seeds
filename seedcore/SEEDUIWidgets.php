@@ -186,6 +186,8 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
                     // field "Any" is selected, so loop through all the fields to generate a condition that includes them all
                     $raC = array();
                     foreach( $this->raConfig['filters'] as $raF ) {
+                        if( @$raF['noSearch'] )  continue;                       // when reusing the col array this is how you inhibit non-searchable cols
+
                         $label = $raF['label'];
                         $f = @$raF['srchcol'] ?: $raF['col'];   // col is convenient but srchcol overrides
                         if( empty($f) )  continue;  // skip 'Any'
@@ -240,7 +242,8 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
 
     function Draw()
     {
-        $s = @$this->raConfig['template'] ?: "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input type='reset'>";
+        $s = @$this->raConfig['template'] ?:
+              "[[fld1]]&nbsp;[[op1]]&nbsp;[[text1]]&nbsp;[[submit]] <input class='seedui_srchctrl_btn_formreset' type='reset'>";    // include SEEDUI.js to get Reset function
 
         if( !@$this->raConfig['filters'] )  goto done;
 
@@ -253,14 +256,18 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             $val = $this->oComp->TranscodeToMatchDb($val);
 
             /* Collect the fields and substitute into the appropriate [[fieldsN]]
+             *    col      : often can be reused from list columns
+             *    srchcol  : overrides col so you can put this in list columns; "" means skip this col in search
+             *    noSearch : skip this col in search
              */
             $raCols['Any'] = "";
             foreach( $this->raConfig['filters'] as $ra ) {
+                if( @$ra['noSearch'] )  continue;                       // when reusing the col array this is how you inhibit non-searchable cols
                 $raCols[$ra['label']] = @$ra['srchcol'] ?: $ra['col'];  // col is convenient but srchcol overrides
             }
 
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", array('selected'=>$fld, 'sfParmType'=>'ctrl_global') );
+            $c = $this->oComp->oForm->Select( "srchfld$i", $raCols, "", ['selected'=>$fld, 'sfParmType'=>'ctrl_global', 'classes'=>'seedui_srchctrl_fld'] );
 
             $s = str_replace( "[[fld$i]]", $c, $s );
 
@@ -269,18 +276,18 @@ class SEEDUIWidget_SearchControl extends SEEDUIWidget_Base
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
             $c = $this->oComp->oForm->Select(
                     "srchop$i",
-                    array( "contains" => 'like',     "equals" => 'eq',
-                           "starts with" => 'start', "ends with" => 'end',
-                           "less than" => 'less',    "greater than" => 'greater',
-                           "is blank" => 'blank' ),
+                    ["contains"    => 'like',  "equals"       => 'eq',
+                     "starts with" => 'start', "ends with"    => 'end',
+                     "less than"   => 'less',  "greater than" => 'greater',
+                     "is blank"    => 'blank'],
                     "",
-                    array('selected'=>$op, 'sfParmType'=>'ctrl_global') );
+                    ['selected'=>$op, 'sfParmType'=>'ctrl_global', 'classes'=>'seedui_srchctrl_op']);
             $s = str_replace( "[[op$i]]", $c, $s );
 
             /* Write the [[textN]]
              */
             // using sfAx_ format in the uiparms because it's convenient for oForm to generate it (instead of sfAui_)
-            $c = $this->oComp->oForm->Text( "srchval$i", "", array('value'=>$val, 'sfParmType'=>'ctrl_global', 'size'=>20) );
+            $c = $this->oComp->oForm->Text( "srchval$i", "", ['value'=>$val, 'sfParmType'=>'ctrl_global', 'size'=>20, 'classes'=>'seedui_srchctrl_text'] );
             $s = str_replace( "[[text$i]]", $c, $s );
         }
 
@@ -651,13 +658,23 @@ $raParms = array_merge( $this->raConfig, $raParms );
             if( ($p = @$raCol['align']) )  $sColStyle .= "text-align:$p;";
             if( ($p = @$raCol['w']) )      $sColStyle .= "width:$p;";
 
-            $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
-                       ."<a $href>".$raCol['label']
-                       .($bSortingUp || $bSortingDown
-                          ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
-                           ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
-                          : "")
-                       ."</a></th>";
+            if( !@$raCol['noSort'] ) {
+                // make the column sortable
+                $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
+                           ."<a $href>"
+                           .$raCol['label']
+                           .($bSortingUp || $bSortingDown
+                              ? ("&nbsp;<div style='display:inline-block;position:relative;width:10px;height:12px;'>"
+                               ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>")
+                              : "")
+                           ."</a></th>";
+            } else {
+                // disallow sorting (some cols with listTranslate cannot sort from db data)
+                $sHeader .= "<th style='$sColStyle;vertical-align:baseline'>"
+                           .$raCol['label']
+                           ."</th>";
+            }
+
             ++$c;
         }
         $sHeader .= "</tr>";

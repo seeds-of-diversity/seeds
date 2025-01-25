@@ -1,6 +1,6 @@
 /* SEEDUI
  *
- * Copyright 2020 Seeds of Diversity Canada
+ * Copyright 2020-2024 Seeds of Diversity Canada
  */
 
 function SEEDUI_BoxExpandInit( lang, urlWCore )
@@ -42,6 +42,23 @@ function SEEDUI_BoxExpandInit( lang, urlWCore )
         });
     });
 }
+
+
+/* js for SEEDUIWidget::SearchControl reset button
+
+   Clear the search box and reset the select controls. 
+   This is necessary because the values are hard-coded into the search control, so Reset's action is to put them there.
+ */
+jQuery(document).ready( function($) {
+    $('.seedui_srchctrl_btn_formreset').click( function(e) {
+        e.preventDefault();
+        let jForm = $(this).closest("form"); 
+        jForm.find(".seedui_srchctrl_fld").val("");     // the value of "Any""
+        jForm.find(".seedui_srchctrl_op").val("like");  // the value of "contains"
+        jForm.find(".seedui_srchctrl_text").val("");
+        jForm.submit();
+    });
+});
 
 
 /* Hack to replace video gallery figcaption>h3 with our font and our green background

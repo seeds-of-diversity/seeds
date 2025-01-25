@@ -205,7 +205,7 @@ class SEEDAppImgManager
         $s .= "<style>
                #backbutton {}
                .imgman-ext { display:inline-block; }
-               .imgman-ext-gif, .imgman-ext-png { background-color:#aaf;color:#000;padding:1px 3px; }
+               .imgman-ext-gif, .imgman-ext-png, .imgman-anim { background-color:#aaf;color:#000;padding:1px 3px; }
                </style>";
 
         $s .= "<script>
@@ -328,8 +328,9 @@ class SEEDAppImgManager
                         $ext = pathinfo( $raFVar[$i]['filename'], PATHINFO_EXTENSION );
                         $relfurl = urlencode($reldir.$raFVar[$i]['filename']);
                         $style = $i=='r' ? "color:green" : "";
+                        $cAnim = SEEDCore_Contains($raFVar[$i]['filename'], ' anim.') ? 'imgman-anim' : '';
                         $s .= "<td>"
-                                 ."<a href='?n=$relfurl' target='_blank' style='$style'><span class='imgman-ext imgman-ext-$ext'>"
+                                 ."<a href='?n=$relfurl' target='_blank' style='$style'><span class='imgman-ext imgman-ext-$ext $cAnim'>"
                                  ."$ext".($bOnlyR ? "&nbsp;&nbsp;(R)" : "")."</span></a>&nbsp;&nbsp;"
                                  .($this->bShowDelLinks ? "<a href='?del=$relfurl' style='color:red'>Del</a>" : "")
                              ."</td>";

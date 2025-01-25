@@ -19,6 +19,16 @@ class MbrEbulletin
         $this->oMbr = new Mbr_Contacts( $oApp );
     }
 
+    const SUBSCRIBER_EBULLETIN = 1;     // subscriber via ebulletin list
+    const SUBSCRIBER_CONTACTS  = 2;     // subscriber via contacts record
+    const SUBSCRIBER_ANYSOURCE = 3;     // subscriber via either
+    function IsSubscriber( string $email, int $eSource )
+    {
+        $bSubscriber = (($eSource | self::SUBSCRIBER_EBULLETIN) && $this->GetSubscriber($email)) ||
+                       (($eSource | self::SUBSCRIBER_CONTACTS) && ($raM = $this->oMbr->GetAllValues($email)) && !$raM['bNoEBull']);
+        return($bSubscriber);
+    }
+
     function GetSubscriber( $email )
     {
         return( $this->oDB->GetRecordValsCond( 'B', "email='{$this->oApp->kfdb->EscapeString($email)}'") );

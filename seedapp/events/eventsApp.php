@@ -15,11 +15,13 @@ class EventsApp
 {
     private $oApp;
     private $oEventsLib;
+    private $lang;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, array $raParms = [] )
     {
         $this->oApp = $oApp;
-        $this->oEventsLib = new EventsLib( $oApp );
+        $this->oEventsLib = new EventsLib( $oApp, $raParms );
+        $this->lang = @$raParms['lang'] ?: $oApp->lang;
     }
 
     private function S($k)  { return($this->oEventsLib->oL->S($k)); }
@@ -69,8 +71,8 @@ class EventsApp
     }
     if( !$bFound )  $sList .= "<p style='margin-top:20px;text-align:center'>No events in this range of dates.</p>";
 
-    $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->oApp->lang);
-    $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->oApp->lang);
+    $sDate1 = SEEDDate::NiceDateStrFromDate($pDate1, $this->lang);
+    $sDate2 = SEEDDate::NiceDateStrFromDate($pDate2, $this->lang);
 
     $sBanner = "<style>
                 .events-banner        { text-align:center;border-top:1px solid #bbb; border-bottom:1px solid #bbb; }
@@ -80,8 +82,8 @@ class EventsApp
                   ."<span style='font-size:1.6em'>"
                   ."$sDate1 - $sDate2"
                   ."</span>"
-                  .($pProv ? ("<div class='events-banner-filter'>".($this->oApp->lang=='FR' ? "en" : "in")." ".SEEDLocation::ProvinceName($pProv,$this->oApp->lang)."</div>") : "")
-                  .($pSearch ? "<div class='events-banner-filter'>containing \"".SEEDCore_HSC($pSearch)."\"</div>" : "")
+                  .($pProv ? ("<div class='events-banner-filter'>".($this->lang=='FR' ? "en" : "in")." ".SEEDLocation::ProvinceName($pProv,$this->lang)."</div>") : "")
+                  .($pSearch ? "<div class='events-banner-filter'>".($this->lang=='FR' ? "contenant" : "containing")." \"".SEEDCore_HSC($pSearch)."\"</div>" : "")
               ."</div>";
 
 
@@ -90,7 +92,7 @@ class EventsApp
            </style>"
          ."<form id='events_form' action='' method='post'>"
          ."<div style='margin-bottom:30px'>"
-             .$oForm->Text( 'pSearch', "", ['attrs'=>"placeholder='Search for events' style='border:1px solid #ccc;height:2.5em;padding:5px;width:30em'"] )
+             .$oForm->Text( 'pSearch', "", ['attrs'=>"placeholder='{$this->S('Search in events')}' style='border:1px solid #ccc;height:2.5em;padding:5px;width:30em'"] )
              // not needed and just takes up space   ."&nbsp;<input type='submit' value='Search'/>"
          ."</div>"
 
@@ -117,7 +119,7 @@ class EventsApp
          ."<div class='col-md-2' style='text-align:center' id='map-container'>"
              ."<div style='width:100%;border:1px solid #ccc' id='vmap'></div>"
              //.$oForm->Select( 'pProv', ["-- Province --"=>'',"Ontario"=>'ON'], "", ['attrs'=>"onChange='submit();'"] )
-             .SEEDLocation::SelectProvinceWithSEEDForm( $oForm, 'pProv', ['bAll'=>true,'bFullnames'=>true,'lang'=>$this->oApp->lang,'sAttrs'=>"onChange='submit();'"] )
+             .SEEDLocation::SelectProvinceWithSEEDForm( $oForm, 'pProv', ['bAll'=>true,'bFullnames'=>true,'lang'=>$this->lang,'sAttrs'=>"onChange='submit();'"] )
          ."</div>"
 
          ."</div>"

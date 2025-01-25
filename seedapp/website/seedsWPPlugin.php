@@ -49,6 +49,8 @@ if( defined("SITEROOT") ) {
 
 function seedsWPStart()
 {
+    add_shortcode( 'seeds', 'fnSeedsWPShortcode' );
+
     // replace SEEDTemplate tags in content
     add_filter( 'the_content', 'seedsWPPlugin_Filter' );
 
@@ -221,6 +223,43 @@ function seedsWPPlugin_Filter( $content )
     done:
     return( $content );
 }
+
+function fnSeedsWPShortCode( $attrs, $content = null )
+{
+    $s = "";
+
+    switch( @$attrs['effect'] ) {
+        // <article id='post-$id' class='post-$id ...>
+        // <h1 class='post-title'...>
+        case 'hide-title':
+            $s = "<style>.post-title { display:none; }</style>";
+            break;
+    }
+
+    if( ($page = @$attrs['page']) ) {
+        $oApp = SEEDConfig_NewAppConsole_LoginNotRequired( [] );
+        $oTmpl = new Drupal8Template( $oApp, [] );
+        $oMT = new SoDMasterTemplate( $oApp, [] );
+        $lang = @$attrs['lang'] ?: $oApp->lang;
+
+        switch( $page ) {
+            case 'csci_species':
+            case 'csci_companies':
+            case 'csci_companies_varieties':  $s = $oMT->GetTmpl()->ExpandStr( "[[SEEDContent:{$page} | {$lang}]]" ); break;
+
+            case 'events':  $s = $oMT->GetTmpl()->ExpandStr( "[[SEEDContent:events-page | {$lang}]]" );     break;
+            case 'boutique':$s = $oTmpl->ExpandStr( "[[SEEDContent:boutique | {$lang}]]", [] );             break;  // deprecate, use store lang=FR instead
+            case 'store':   $s = $oTmpl->ExpandStr( "[[SEEDContent:store | {$lang}]]", [] );                break;
+        }
+    }
+//    global $post;
+//    $post_id = $post->ID;
+//    $s = "foo and bar id $post_id";
+
+    return( $s );
+}
+
+
 
 function seedsWPPlugin_SessionStart() {
     if( !session_id() ) {

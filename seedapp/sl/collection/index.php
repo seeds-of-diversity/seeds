@@ -2,7 +2,7 @@
 
 /* Seed collection manager
  *
- * Copyright 2020 Seeds of Diversity Canada
+ * Copyright 2020-2024 Seeds of Diversity Canada
  */
 
 /* You can either execute this script directly and use SEED_APP_BOOT_REQUIRED to initialize config
@@ -20,6 +20,7 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( SEEDAPP."sl/sl_ts_adoptions.php");
 
 include_once( "collectionTab_germtests.php" );
 include_once( "collectionTab_packetlabels.php" );
@@ -33,6 +34,7 @@ class SLApp
         'slCollection' =>
             [ 'slcollMain'  => ["W SLCollection", "A SL", "|"],
               'slcollBatch' => ["W SLCollection", "A SL", "|"],
+              'slcollAdopt' => ["W SLCollection", "A SL", "|"],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
     ];
@@ -46,6 +48,7 @@ $consoleConfig = [
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'slcollMain'   => ['label'=>'My Collection'],
                                         'slcollBatch'  => ['label'=>'Batch Operations'],
+                                        'slcollAdopt'  => ['label'=>'Adoptions'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
@@ -106,6 +109,10 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_slcollBatch_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new CollectionBatchOps( $this->oApp, $oT->oSVA ); $this->oW->Init(); }
     function TabSet_main_slcollBatch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
     function TabSet_main_slcollBatch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_slcollAdopt_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_slcollAdopt_ControlDraw(){ return( $this->oW->ControlDraw() ); }
+    function TabSet_main_slcollAdopt_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 }
 
 class CollectionListForm extends KeyframeUI_ListFormUI
@@ -306,7 +313,11 @@ $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",$oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );
+                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",
+                                                    $oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
+                                                    $oApp->UrlW()."js/SFUTextComplete.js",  // for SLPcvSelector.js
+                                                    $oApp->UrlW()."js/SLPcvSelector.js",    // for cultivar search
+                                                    $oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );
 
 echo "<script>SEEDCore_CleanBrowserAddress();</script>";
 

@@ -291,20 +291,24 @@ class MSDCore
         if( $this->bShutdown )  goto done;
         if( $kfrS->value('eStatus') != 'ACTIVE' )  goto done;
 
-        // check whether this seed is within its requestable period
-        // for now all seeds are out of season
-        if( true
-            // also code this into CondIsSeedListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
-            // $kfrS->Value('eDateRange')=='use_range' && date() between $kfrS->value('dDateRangeStart') and $kfrS->Value('dDateRangeEnd')
-            ) {
-            $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
-            goto done;
+        // this should be obtained by the caller and used everywhere
+        $kfrBetter = $this->GetSeedKfr($kfrS->Key());
+        $kfrG = $this->oSBDB->GetKFR('PxG', $kfrS->Key());
+
+// also code this into CondIsSeedListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
+        if( $kfrG->Value('G_eDateRange')=='use_range' ) {
+            // check whether this seed is within its requestable period
+            $today = date('Y-m-d');
+            $dStart = date('Y').substr($kfrG->value('G_dDateRangeStart'),4);
+            $dEnd   = date('Y').substr($kfrG->value('G_dDateRangeEnd'),4);
+
+            if( $today <= $dStart || $today >= $dEnd ) {
+                $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
+                goto done;
+            }
         }
 
         $eReq = self::REQUESTABLE_YES;
-
-        // this should be obtained by the caller and used everywhere
-        $kfrBetter = $this->GetSeedKfr($kfrS->Key());
 
         switch( $kfrBetter->value('eOffer') ) {
             default:

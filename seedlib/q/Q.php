@@ -70,6 +70,12 @@ class Q
         }
         else
 
+        if( SEEDCore_StartsWith( $cmd, 'slprofile' ) ) {
+            include_once( SEEDLIB."sl/QServerSLProfile.php" );
+            $rQ = (new QServerSLProfile($this->oApp, $this->raConfig))->Cmd( $cmd, $parms );
+        }
+        else
+
         if( SEEDCore_StartsWith( $cmd, 'collection' ) ) {
 //            include_once( "_QServerCollection.php" );
 //            $o = new QServerCollection( $this->oApp, $this->raConfig );
