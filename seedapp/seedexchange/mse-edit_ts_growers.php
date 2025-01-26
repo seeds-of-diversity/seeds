@@ -119,6 +119,8 @@ class MSEEditAppTabGrower
             }
         }
         // Get the list of growers that matches the controls. This array is used in ControlDraw too.
+        $yExpiredFilter = $this->oMEApp->GrowerList_YearForCond_bExpired();
+        $dNoChangeFilter = $this->oMEApp->GrowerList_DateForCond_bNoChange();
         $this->raGrowerList = $this->oMEApp->GetGrowerList($oForm->Value('sort'), $raChecked);
         $s .= "<div class='container-fluid'><div class='row'>
                <div class='col-md-5'>"
@@ -143,9 +145,9 @@ class MSEEditAppTabGrower
                    <form method='post'>
                    <table><tr><td><b>Member Expiry&nbsp;<br/>Changes by mbr&nbsp;</br>#Seeds</b></td>
                      </td><td>"
-                    .$oForm->Select('bExpired',    ['--'=>-1, '< 2022'=>1, '>= 2022'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
-                    .$oForm->Select('bNoChange',   ['--'=>-1, '< Aug 2023'=>1, '>= Aug 2023'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
-                    .$oForm->Select('bZeroSeeds',  ['--'=>-1, 'Zero'=>1, 'Not Zero'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>
+                    .$oForm->Select('bExpired',    ['--'=>-1, "< {$yExpiredFilter}"=>1,  ">= {$yExpiredFilter}"=>0],  "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bNoChange',   ['--'=>-1, "< {$dNoChangeFilter}"=>1, ">= {$dNoChangeFilter}"=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
+                    .$oForm->Select('bZeroSeeds',  ['--'=>-1, 'Zero'=>1,                 'Not Zero'=>0],              "", ['attrs'=>"onchange='submit()'"])."<br/>
                    </td></tr></table>
                    </form>
                </div>

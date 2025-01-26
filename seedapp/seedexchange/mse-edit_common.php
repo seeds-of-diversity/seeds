@@ -69,15 +69,18 @@ class MSEEditApp
         if(isset($raChecked['bDone']))     { $raCond[] = ($raChecked['bDone'] ? '' : 'NOT ')."({$this->oMSDLib->CondIsGrowerDoneForCurrYear()})"; }
         if(isset($raChecked['bSkip']))     { $raCond[] = ($raChecked['bSkip'] ? '' : 'NOT ')."bSkip"; }
         if(isset($raChecked['bDel']))      { $raCond[] = ($raChecked['bDel']  ? '' : 'NOT ')."bDelete"; }
-        if(isset($raChecked['bExpired']))  { $raCond[] = ($raChecked['bExpired']  ? '' : 'NOT ')."(year(M.expires)<".(intval($this->oMSDLib->GetCurrYear())-2).")"; }    // e.g. for 2025 MSE the member's expiry is 2023 or less
-        if(isset($raChecked['bNoChange'])) { $raCond[] = ($raChecked['bNoChange'] ? '' : 'NOT ')."((_updated_G_mbr='' OR _updated_G_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}') AND
-                                                                                                   (_updated_S_mbr='' OR _updated_S_mbr<'{$this->oMSDLib->GetFirstDayForCurrYear()}'))"; }
+        if(isset($raChecked['bExpired']))  { $raCond[] = ($raChecked['bExpired']  ? '' : 'NOT ')."(year(M.expires)<{$this->GrowerList_YearForCond_bExpired()})"; }
+        if(isset($raChecked['bNoChange'])) { $raCond[] = ($raChecked['bNoChange'] ? '' : 'NOT ')."((_updated_G_mbr='' OR _updated_G_mbr<'{$this->GrowerList_DateForCond_bNoChange()}') AND
+                                                                                                   (_updated_S_mbr='' OR _updated_S_mbr<'{$this->GrowerList_DateForCond_bNoChange()}'))"; }
         if(isset($raChecked['bZeroSeeds'])) { $raCond[] = $raChecked['bZeroSeeds'] ? "nTotal=0" : "nTotal>0"; }
 
         $raG = $this->oMSDLib->KFRelGxM()->GetRecordSetRA(implode(' AND ',$raCond),['sSortCol'=>$sSortCol]);   // all growers with _status=0
 
         return( $raG );
     }
+
+    function GrowerList_YearForCond_bExpired()  { return( intval($this->oMSDLib->GetCurrYear())-2 ); }    // e.g. for 2025 MSE we filter members with expiry of >=2023 or <2022
+    function GrowerList_DateForCond_bNoChange() { return( $this->oMSDLib->GetFirstDayForCurrYear() ); }   // e.g. filter members who did/didn't make changes since Aug prior to curryear
 
     function MakeGrowerNamesSelect( array $raGrowerList, int $kCurrGrower, bool $klugeEncodeUTF8 )   // get this array from GetGrowerList()
     {
