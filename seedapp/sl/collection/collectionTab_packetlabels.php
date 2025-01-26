@@ -62,7 +62,8 @@ class CollectionTab_PacketLabels
                     //."<p style='font-size:small'>You can change any information here before printing labels.</p>"
                     .$oFE->ExpandForm( "|||TABLE()"
                                       ."||| # labels   &nbsp; || [[label_n      | width:50px]]"
-                                      ."||| Skip first &nbsp; || [[label_offset | width:50px]]" )
+                                      ."||| Skip first &nbsp; || [[label_offset | width:50px]]"
+                                      ."||| French &nbsp; || [[checkbox:bFrench ]]" )
                 ."</div>"
                 ."<div style='clear:both;margin:10px'><input type='submit' name='cmd' value='Make Labels'/></div>"
             ."</form>";
@@ -77,6 +78,7 @@ class CollectionTab_PacketLabels
         $sDesc = $oForm->Value('label_desc');
         $nLabels = $oForm->ValueInt('label_n');
         $iOffset = $oForm->ValueInt('label_offset');
+        $bFrench = $oForm->ValueInt('bFrench');
 
         $pdf = new MyPDF_Label( '5160' );
         $pdf->Set_Font_Size(8);  // default is 8pt which is pretty small; though this might be too big for long addresses
@@ -100,23 +102,23 @@ class CollectionTab_PacketLabels
 
             // set position to the top-left and draw the logo
             $pdf->AddLabel2( 0, 0 );
-            $pdf->Image( "https://seeds.ca/i/img/logo/logoA_v-en-300.jpg", $pdf->GetX(), $pdf->GetY(), 17.14, 17.14 );  // image is 300x300
+            $pdf->Image( "https://seeds.ca/i/img/logo/logoA_v-".($bFrench ? 'fr-300x.png':'en-300.jpg'), $pdf->GetX(), $pdf->GetY(), 17.14, 17.14 );  // image is 300x300
 
             // set position to the bottom-left and write the web site in bold
             $pdf->AddLabel2( 0, $yMarginWWW );
             $pdf->SetFont( '', 'B', $fontsizeWWW );
-            $pdf->AddLabel3( "www.seeds.ca", 0 );
+            $pdf->AddLabel3( $bFrench ? "semences.ca" : "www.seeds.ca", 0 );
 
             // set position to the top with left padding for the logo, and write the cvname in bold
             $pdf->AddLabel2( $xMarginText, $yMarginText );
             $pdf->SetFont( '', 'B', $fontsizeText );
-            $pdf->AddLabel3( SEEDCore_utf8_encode($sHead), $xMarginText );
+            $pdf->AddLabel3( SEEDCore_utf8_decode($sHead), $xMarginText );  // the pdf is iso8859
 
             // set position to the top-left with additional left padding for the logo and one line of top padding for the cvname,
             // and write the description
             $pdf->SetFont( '', '', $fontsizeText );
             $pdf->AddLabel2a( $xMarginText );
-            $pdf->AddLabel3( SEEDCore_utf8_encode($sDesc), $xMarginText );
+            $pdf->AddLabel3( SEEDCore_utf8_decode($sDesc), $xMarginText );  // the pdf is iso8859
             //$pdf->AddLabel3( "\n".$sDesc, $xMarginText );      old method reset Y to top and inserted \n here
         }
 
