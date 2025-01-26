@@ -104,22 +104,18 @@ class myDocRepCtrlView_Add
         let permclass = $('#add-permissions').val();
 
         if( !kDoc )  return(false);
+
         if( position != 'child' ) position = 'sibling';      // default sibling
         if( !permclass ) {
-            // not defined probably because the control is not exposed in this user mode. Use same permclass as parent.
-            let oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', kDoc);
-            if( !oDoc ) {
-                return( false );
-            }
-
+            // permclass is not defined when the control is not shown in this user mode. Use same permclass as new doc's parent.
             if( position == 'child' ) {
                 // kDoc is the parent so use the same permclass
-                permclass = oDoc.permclass;
+                permclass = oDocCurr.permclass;
             } else {
                 // kDoc is the sibling so use the parent's permclass
-                if( oDoc.kParent ) {
-                    oDoc = this.oCtrlView.fnHandleEvent('getDocInfo', oDoc.kParent);
-                    permclass = oDoc.permclass;
+                if( oDocCurr.kParent ) {
+                    oDocParent = this.oCtrlView.fnHandleEvent('getDocInfo', oDocCurr.kParent);
+                    permclass = oDocCurr.permclass;
                 } else {
                     alert( "Cannot add at document tree root without specifying permission class" );
                     return( false );
@@ -140,12 +136,18 @@ class myDocRepCtrlView_Add
         console.log(q);
         
         let rQ = SEEDJXSync(q_url, q);
-        if( !rQ.bOk ) {
-            console.log( "Error adding doc: "+rQ.sErr, q );
+        if( rQ.bOk ) {
+            // if added a child, refetch current doc's tree to see it; if added a sibling, refetch the parent's tree
+            let kDocPrune = position=='child' ? kDoc : oDocCurr.kParent;
+            this.oCtrlView.HandleRequest('docTreeChange', kDocPrune);
         } else {
-            // update tree with new folder/file
-//  this.UpdateTree();
+            console.log( "Error adding doc: "+rQ.sErr, q );
         }
+        
+        // Reset the form. Other forms don't need this because they should show the current info.
+        $('#add-name').val("");
+        $('#add-title').val("");
+                
         return( false );
     }
 

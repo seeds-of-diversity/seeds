@@ -48,10 +48,10 @@ class myDocRepCache extends DocRepCache
         }
     }
     
-    PruneTree( kDoc )
-    {
-        
-    }
+//    PruneTree( kDoc )
+//    {
+//        console.log("Not pruning "+kDoc);
+//    }
 }
 
 

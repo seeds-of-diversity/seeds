@@ -50,7 +50,10 @@ class DocRepTree
     {
         let saveThis = this;
 
+        /* Clicking on a title selects that doc. Other listeners handle opening/closing folders.
+         */
         $(this.idTreeContainer +' .DocRepTree_title').click( function () {
+            // unselect all titles and select this one
             $(saveThis.idTreeContainer +' .DocRepTree_title').removeClass('DocRepTree_titleSelected');
             $(this).addClass('DocRepTree_titleSelected');
 
@@ -58,15 +61,23 @@ class DocRepTree
 // That's a weird way to it, because no other classes call their own event handlers.
 // Also GetCurrDoc() is in the derived class but not the base class, but it's used below.
             saveThis.HandleRequest( 'docSelected', $(this).attr('data-kdoc') );
-
-            // show/hide any children by toggling the Level contained within the same Doc (there should be zero or one Level sibling)
-            $(this).siblings('.DocRepTree_level').each( function () { 
-                    let jDoc = $(this).closest('.DocRepTree_doc');
-                    saveThis.LevelOpenGet(jDoc) ? saveThis.levelHide(jDoc) : saveThis.levelShow(jDoc); 
-            });
         });
 
-        // open/close each level based on stored status 
+        /* Clicking on an icon or triangle toggles folder open/close state
+         */
+        $(this.idTreeContainer +' .DocRepTree_titleicons').click( function () {
+            let jDoc = $(this).closest('.DocRepTree_doc');
+            saveThis.LevelOpenGet(jDoc) ? saveThis.levelHide(jDoc) : saveThis.levelShow(jDoc); 
+        });
+
+        /* Clicking on a title's text opens the level but doesn't close it (only has an effect if this is a folder)
+         */
+        $(this.idTreeContainer +' .DocRepTree_titletext').click( function () {
+            saveThis.levelShow( $(this).closest('.DocRepTree_doc') );
+        });
+
+        /* Initialize open/close state of every level based on stored status
+         */ 
         $(this.idTreeContainer +' .DocRepTree_level').each( function () {
             let pDoc = saveThis.getDocAndJDoc( parseInt($(this).attr('data-under-kdoc')) ); //$(this).closest('.DocRepTree_doc'));
             saveThis.FolderOpenClose( pDoc, saveThis.LevelOpenGet(pDoc) ); 
@@ -135,12 +146,14 @@ class DocRepTree
         }
 
         s = `<div class='DocRepTree_title' data-kdoc='${oDoc.k}'>
-                 <div class='DocRepTree_titleFolderTriangle' style='width:10px;display:inline-block;margin:0 3px'>`
-                +this.drawFolderTriangle( oDoc )
-                +`</div>`
-                +(oDoc.doctype=='folder' ? `<img src='${this.dirIcons}folder.png' width='20'>`
-                                         : `<img src='${this.dirIcons}text.png' width='20'>`)
-                +`&nbsp;${label}
+                 <div class='DocRepTree_titleicons' style='display:inline-block'>
+                     <div class='DocRepTree_titleFolderTriangle' style='width:10px;display:inline-block;margin:0 3px'>
+                       ${this.drawFolderTriangle( oDoc )}
+                     </div>`
+                    +(oDoc.doctype=='folder' ? `<img src='${this.dirIcons}folder.png' width='20'>`
+                                             : `<img src='${this.dirIcons}text.png' width='20'>`)
+               +`</div>
+                 <div class='DocRepTree_titletext' style='display:inline-block'>${label}</div>
              </div>`;
 
 /*
