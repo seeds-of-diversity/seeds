@@ -298,13 +298,24 @@ class MSDCore
 // also code this into CondIsSeedListableAndRequestable(kUserRequesting) to evaluate below plus if eOffer==grower-member that kUser's nTotal>0 and dDone>FirstDayForCurrentYear
         if( $kfrG->Value('G_eDateRange')=='use_range' ) {
             // check whether this seed is within its requestable period
-            $today = date('Y-m-d');
-            $dStart = date('Y').substr($kfrG->value('G_dDateRangeStart'),4);
-            $dEnd   = date('Y').substr($kfrG->value('G_dDateRangeEnd'),4);
+            $today = date('m-d');
+            $dStart = substr($kfrG->value('G_dDateRangeStart'),5);      // this is MM-DD
+            $dEnd   = substr($kfrG->value('G_dDateRangeEnd'),5);        // this is MM-DD
 
-            if( $today <= $dStart || $today >= $dEnd ) {
-                $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
-                goto done;
+            if( strlen($dStart)==5 && strlen($dEnd)==5 ) {              // make sure they're defined
+                if( $dStart < $dEnd ) {
+                    // start and end dates are in the same year, so seed requestable if today is between them
+                    if( $today <= $dStart || $today >= $dEnd ) {
+                        $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
+                        goto done;
+                    }
+                } else {
+                    // start and end dates are in different years e.g. Nov-May. so seed is requestable if not between them (think of months as a circle)
+                    if( $today <= $dStart && $today >= $dEnd ) {
+                        $eReq = self::REQUESTABLE_NO_OUTOFSEASON;
+                        goto done;
+                    }
+                }
             }
         }
 
