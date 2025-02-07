@@ -2,7 +2,7 @@
 
 /* MbrDonations
  *
- * Copyright 2023-2024 Seeds of Diversity Canada
+ * Copyright 2023-2025 Seeds of Diversity Canada
  *
  * Information about member donations
  */
@@ -72,6 +72,10 @@ class MbrDonations
                     $nReceipt == 0
                         => SEEDCore_ArrayExpand( $raDon,
                                 "<p style=''>$[[amount]] donated [[date_received]] (receipt is being processed)</p>" ),
+                    // CanadaHelps donation
+                    $nReceipt == -3
+                        => SEEDCore_ArrayExpand( $raDon,
+                                "<p style=''>$[[amount]] donated [[date_received]] through CanadaHelps (you will receive your receipt from them)</p>" ),
                     // don't show -1, -2, -3
                     $nReceipt < 0
                         => ""
