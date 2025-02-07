@@ -61,14 +61,21 @@ class MbrDonations
 //            foreach( $this->oDonations->GetDonationInfo($kMbr,['minDate'=>'2022-01-01']) as $raDon ) {
 
         foreach( $this->GetDonationInfo($kMbr) as $raDon ) {
-            if( $raDon['receipt_num'] ) {
-                $s .= SEEDCore_ArrayExpand( $raDon,
-                        "<p style=''>Receipt #<a href='{$this->oApp->UrlQ()}?qcmd=mbrdonation.printReceipt&receiptnum=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
-                             for $[[amount]] donated [[date_received]]</p>" );
-            } else {
-                $s .= SEEDCore_ArrayExpand( $raDon,
-                        "<p style=''>$[[amount]] donated [[date_received]] (receipt is being processed)</p>" );
-            }
+            $nReceipt = $raDon['receipt_num'];
+            $s .= match(true) {
+                    // valid receipt
+                    $nReceipt > 0
+                        => SEEDCore_ArrayExpand( $raDon,
+                                "<p style=''>Receipt #<a href='{$this->oApp->UrlQ()}?qcmd=mbrdonation.printReceipt&receiptnum=[[receipt_num]]' target='_blank'>[[receipt_num]]</a>
+                                 for $[[amount]] donated [[date_received]]</p>" ),
+                    // receipt pending
+                    $nReceipt == 0
+                        => SEEDCore_ArrayExpand( $raDon,
+                                "<p style=''>$[[amount]] donated [[date_received]] (receipt is being processed)</p>" ),
+                    // don't show -1, -2, -3
+                    $nReceipt < 0
+                        => ""
+            };
         }
         return( $s );
     }
@@ -102,6 +109,7 @@ class MbrDonations
     function DrawDonationReceipt( string $rngReceipt, $eFmt = 'PDF', $bRecordAccess = true )
     {
         $sHead = $sBody = "";
+        $sReceiptName = "";
 
         include_once( SEEDLIB."SEEDTemplate/masterTemplate.php" );
 
@@ -113,7 +121,9 @@ class MbrDonations
         $oContacts = new Mbr_Contacts($this->oApp);
         $sBody = $eFmt=='HTML' ? $oMT->GetTmpl()->ExpandTmpl('donation_receipt_page', []) : "";     // HTML needs an extra blank first page
         foreach( $raReceipts as $nReceipt ) {
-            if( !($kfrD = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) ) {
+            if( $nReceipt <= 0 ||                                                               // -1, -2, -3 are actual but non-valid receipt numbers fetchable via DxM
+                !($kfrD = $oContacts->oDB->GetKFRCond('DxM', "receipt_num='$nReceipt'")) )
+            {
                 $sBody .= "<div class='donReceipt_page'>Unknown receipt number $nReceipt</div>";
                 continue;
             }
@@ -141,6 +151,8 @@ class MbrDonations
             ];
             $vars['donorName'] = SEEDCore_utf8_encode($vars['donorName']);
             $vars['donorAddr'] = SEEDCore_utf8_encode($vars['donorAddr']);
+
+            $sReceiptName = $vars['donorName'];     // doesn't make sense for multiple pages though
 
             switch($eFmt) {
                 case 'PDF_STREAM':
@@ -171,7 +183,7 @@ class MbrDonations
                 $dompdf->loadHtml($sBody);
                 $dompdf->setPaper('letter', 'portrait');
                 $dompdf->render();
-                $dompdf->stream( "Seeds of Diversity donation receipt #$nReceipt {$vars['donorName']}.pdf", ['Attachment' => 0] );
+                $dompdf->stream( "Seeds of Diversity donation receipt #$nReceipt $sReceiptName.pdf", ['Attachment' => 0] );
                 exit;
             case 'PDF':
                 break;
