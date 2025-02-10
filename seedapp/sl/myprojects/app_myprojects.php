@@ -2,8 +2,7 @@
 
 /* MyProjects app
  *
- * Copyright (c) 2024 Seeds of Diversity Canada
- *
+ * Copyright (c) 2024-2025 Seeds of Diversity Canada
  */
 
 /*
@@ -42,11 +41,14 @@ $consoleConfig = [
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
     'TABSETS' => ['main'=> ['tabs' => [ 'projects' => ['label'=>'My Projects'],
                                         'sites'    => ['label'=>'My Sites'],
-                                        //'settings'     => ['label'=>'Settings']
+                                        'office'   => ['label'=>'Office'],
+        //'settings'     => ['label'=>'Settings']
                                       ],
                             'perms' =>[ 'projects' => ['PUBLIC'],           // anyone can login to see their own data
                                         'sites'    => ['PUBLIC'],
+                                        'office'   => ['SL W'],
                                         //'settings'     => ['label'=>'Settings']
+                                        '|'
                                       ],
                            ],
                  ],
@@ -87,6 +89,11 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_sites_Init()         { $this->oW = new ProjectsTabSites($this->oProjects); $this->oW->Init(); }
     function TabSet_main_sites_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_sites_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+
+    function TabSet_main_office_Init()          { $this->oW = new ProjectsTabOffice($this->oProjects, $this); $this->oW->Init(); }
+    function TabSet_main_office_Permission()    { return( $this->oProjects->CanReadOtherUsers() ? Console02TabSet::PERM_SHOW : Console02TabSet::PERM_HIDE ); }
+    function TabSet_main_office_ControlDraw()   { return( $this->oW->ControlDraw() ); }
+    function TabSet_main_office_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 
 //    function TabSet_main_settings_Init()         { $this->oW = new GrowoutsTabSettings($this->oGO); $this->oW->Init(); }
 //    function TabSet_main_settings_ControlDraw()  { return( $this->oW->ControlDraw() ); }
@@ -142,9 +149,9 @@ class ProjectsTabProjects
         $s = "";
 
         if( $this->oP->CanReadOtherUsers() ) {
-            $y = date('Y');
+            $y = 2024;
             $raOpts = [];
-            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year=$y") as $kMbr ) {
+            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y") as $kMbr ) {
                 $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;
             }
             ksort($raOpts);
@@ -272,6 +279,34 @@ class ProjectsTabSites
         return( $s );
     }
 }
+
+class ProjectsTabOffice
+{
+    private $oP;
+
+    function __construct( ProjectsCommon $oP )
+    {
+        $this->oP = $oP;
+    }
+
+    function Init()
+    {
+    }
+
+    function ControlDraw()
+    {
+    }
+
+    function ContentDraw()
+    {
+        $s = "";
+
+        return( $s );
+    }
+}
+
+
+
 
 $oCTS = new MyConsole02TabSet( $oApp );
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
