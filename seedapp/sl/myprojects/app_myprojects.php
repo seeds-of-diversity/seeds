@@ -42,14 +42,9 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'projects' => ['label'=>'My Projects'],
                                         'sites'    => ['label'=>'My Sites'],
                                         'office'   => ['label'=>'Office'],
-        //'settings'     => ['label'=>'Settings']
+                                      //'settings'     => ['label'=>'Settings']
                                       ],
-                            'perms' =>[ 'projects' => ['PUBLIC'],           // anyone can login to see their own data
-                                        'sites'    => ['PUBLIC'],
-                                        'office'   => ['SL W'],
-                                        //'settings'     => ['label'=>'Settings']
-                                        '|'
-                                      ],
+                            'perms' =>['PUBLIC'],    // used only to permit access to the app; tabs use separate Permissions
                            ],
                  ],
     'pathToSite' => '../../',
@@ -82,6 +77,20 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oProjects = new ProjectsCommon($this->oApp);
     }
 
+    function TabSetPermission( $tsid, $tabname )
+    {
+        switch($tabname) {
+            case 'projects':
+            case 'sites':
+                return( Console02TabSet::PERM_SHOW );
+            case 'office':
+            case 'settings':
+                return( $this->oProjects->CanReadOtherUsers() ? Console02TabSet::PERM_SHOW : Console02TabSet::PERM_HIDE );
+        }
+        return( Console02TabSet::PERM_HIDE );
+    }
+
+
     function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this); $this->oW->Init(); }
     function TabSet_main_projects_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_projects_ContentDraw()  { return( $this->oW->ContentDraw() ); }
@@ -91,7 +100,6 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_sites_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
     function TabSet_main_office_Init()          { $this->oW = new ProjectsTabOffice($this->oProjects, $this); $this->oW->Init(); }
-    function TabSet_main_office_Permission()    { return( $this->oProjects->CanReadOtherUsers() ? Console02TabSet::PERM_SHOW : Console02TabSet::PERM_HIDE ); }
     function TabSet_main_office_ControlDraw()   { return( $this->oW->ControlDraw() ); }
     function TabSet_main_office_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 
@@ -171,8 +179,7 @@ class ProjectsTabProjects
 
     function ContentDraw()
     {
-        $sLeft = $sRight = "";
-        $year = 2024;
+        $s = "";
 
         $oMbr = new Mbr_Contacts($this->oP->oApp);
         $oSLDB = new SLDBProfile($this->oP->oApp);
@@ -180,6 +187,18 @@ class ProjectsTabProjects
         $oProfilesDB = new SLProfilesDB( $this->oP->oApp );
         $oProfilesDefs = new SLProfilesDefs( $oProfilesDB );
         $oProfilesReport = new SLProfilesReport( $oProfilesDB, $oProfilesDefs, $this->oP->oApp );
+
+        include("cgo_signup.php");
+
+        $s .= (new CGOSignup_GC())->Draw();
+        $s .= (new CGOSignup_Tomato())->Draw();
+
+        $s .= "<hr/>";
+
+        /* Show projects
+         */
+        $sLeft = $sRight = "";
+        $year = 2024;
 
         if( ($u = intval($this->kCurrMbr)) ) {
             foreach( $oProfilesDB->GetVarInstNames($this->kCurrMbr, $year) as $ra ) {
@@ -244,7 +263,7 @@ class ProjectsTabProjects
 
         }
 
-        $s = "<div class='container-fluid'><div class='row'>
+        $s .= "<div class='container-fluid'><div class='row'>
               <div class='col-md-3'><h4>$year projects for {$this->oMbr->GetContactName($this->kCurrMbr)}</h4>$sLeft</div>
               <div class='col-md-9'>$sRight</div>
               </div></div>";
@@ -317,3 +336,58 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
 ?>
 
 <script>SEEDCore_CleanBrowserAddress();</script>
+
+<!--  CGO Signup  -->
+
+<script>
+$(document).ready( function () {
+    $('.cgosignup_opener').click(function () {
+        let j = $(this).closest('.row').next();
+        j.slideDown();
+    });
+});
+
+class CGOSignup_GroundCherry
+{
+    static doRadio1()  { this.validate(); }
+    static doRadio2()  { this.validate(); }
+
+    static validate()
+    {
+        let r1 = document.getElementById('cgosignup_form_gc1').checked;
+        let r2 = document.getElementById('cgosignup_form_gc2').checked;
+        $('#cgosignup_form_gc_join').prop('disabled', !(r1 && r2));
+    }
+
+    static doSubmit(event)
+    {
+        event.preventDefault();
+        console.log('Submit');
+    }
+
+}
+
+
+
+
+
+</script>
+<style>
+.cgosignup_box {
+    border:1px solid #aaa;
+    border-radius:5px;
+    box-shadow: #ccc 6px 6px;
+    padding: 1em;
+}
+
+#cgosignup_form_gc_join {
+    background-color:green;
+    color:white;
+    font-weight:bold;
+    transition: all ease-in-out 0s;
+}
+#cgosignup_form_gc_join[disabled] {
+    background-color:#ccc;
+    color:#555;
+}
+</style>
