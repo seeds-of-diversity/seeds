@@ -297,7 +297,7 @@ class SEEDSessionAccount extends SEEDSession
 
         if( $this->IsLogin() && $this->kfrSession )
         {
-            $ok = (strpos($this->kfrSession->value("perms$mode"), " $perm ") !== false);  // NB !== because 0 means first position
+            $ok = (strpos($this->kfrSession->value("perms$mode") ?? "", " $perm ") !== false);  // NB !== because 0 means first position
         }
         return( $ok );
     }
@@ -327,6 +327,8 @@ class SEEDSessionAccount extends SEEDSession
         $bOk = false;
         $suff = "";
         $sErr = "";
+
+        $p = $p ?? "";
 
         if( strpos( $p, "---" ) !== false ) {
             list($perm,$suff) = explode( "---", $p, 2 );
@@ -372,6 +374,8 @@ class SEEDSessionAccount extends SEEDSession
     {
         $bAccess = false;
         $sErr = "";
+
+        $cmd = $cmd ?? "";
 
         if( strpos( $cmd, "---" ) !== false ) {
             if( !($bAccess = $this->TestPerm( $ePerm, 'A' )) ) {
