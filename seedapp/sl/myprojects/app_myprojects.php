@@ -61,6 +61,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
     $oP = new ProjectsCommon($oApp);
 
     $rQ = SEEDQ::GetEmptyRQ();
+
     /* Add a project for the current/given user.
      * Project managers can add projects for any user.
      * N.B. This doesn't check if seeds are available - only the front end does that.
@@ -106,6 +107,22 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
             $kfr->UrlParmSet('metadata', 'project', $sProjname);
             $kfr->SetValue('year', 2025);
 
+            if( $kfr->PutDBRow() ) {
+                $rQ['bOk'] = true;
+            }
+        }
+    }
+
+    /* Remove a project for the current/given user.
+     * Project managers can remove projects for any user.
+     */
+    if( $qcmd == 'myprojects--remove' ) {
+        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID) )  goto skip;
+
+        if( ($sProjname = SEEDInput_Str('projectName')) &&
+            ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} && metadata LIKE '%project=".addslashes($sProjname)."%'")) )
+        {
+            $kfr->StatusSet(KeyFrameRecord::STATUS_DELETED);
             if( $kfr->PutDBRow() ) {
                 $rQ['bOk'] = true;
             }
@@ -237,8 +254,11 @@ class ProjectsTabProjects
                 $this->kCurrMbr = reset($raOpts);   // returns the first value
             }
 
-            $s = "<form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form>";
+            $s .= "<div style='float:left'><form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form></div>";
         }
+
+        // show the kCurrMbr's name on the right
+        $s .= "<div style='text-align:right'><h3 style='padding:0;margin:0;color:white'>{$this->oMbr->GetContactName($this->kCurrMbr)}</h3></div>";
 
         return( $s );
     }
@@ -255,12 +275,16 @@ class ProjectsTabProjects
 
         include("cgo_signup.php");
 
+        $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025gc%'");
+        $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025tomato%'");
+        $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'");
+
         $s .= "<h3>Join Our Community Seed Growouts</h3>";
-        $s .= (new CGOSignup_GC($this->oP))->Draw()
+        $s .= (new CGOSignup_GC($this->oP))->Draw($bRegisteredGC)
              ."<br/><br/>"
-             .(new CGOSignup_Tomato($this->oP))->Draw()
+             .(new CGOSignup_Tomato($this->oP))->Draw($bRegisteredTomato)
              ."<br/><br/>"
-             .(new CGOSignup_Bean($this->oP))->Draw();
+             .(new CGOSignup_Bean($this->oP))->Draw($bRegisteredBean);
 
         /* For Office mode, tell cgosignup the uid to sign up
          */
@@ -424,6 +448,54 @@ $(document).ready( function () {
     });
 });
 
+
+class CGOSignup
+{
+    static doRegister(jThis)
+    {
+        let jForm = jThis.closest('.cgosignup-form');
+        let projName = jForm.data('project');
+        let iLot = 0;
+
+        if(projName=='cgo2025tomato') {
+            iLot = document.getElementById('cgosignup-form-tomatoselect').value;
+        }
+
+        let o = {qcmd:'myprojects--add',
+                projectName: projName,
+                uid: CGOSignup_Uid,
+                iLot: iLot};
+        let rQ = SEEDJXAsync2("myprojects.php", o,
+                     function (rQ) {
+                         if( rQ['bOk'] ) {
+                             jForm.find('.cgosignup-form-btn-container-notregistered').hide();
+                             jForm.find('.cgosignup-form-btn-container-registered').show();
+                         }
+                     });
+
+        console.log(rQ);
+    }
+
+	static doUnregister(jThis)
+    {
+        let jForm = jThis.closest('.cgosignup-form');
+        let projName = jForm.data('project');
+
+        let o = {qcmd:'myprojects--remove',
+                projectName: projName,
+                uid: CGOSignup_Uid};
+        let rQ = SEEDJXAsync2("myprojects.php", o,
+                     function (rQ) {
+                         if( rQ['bOk'] ) {
+                             jForm.find('.cgosignup-form-btn-container-notregistered').show();
+                             jForm.find('.cgosignup-form-btn-container-registered').hide();
+                         }
+                     });
+
+    }
+}
+
+
 class CGOSignup_GroundCherry
 {
     static doValidate()
@@ -433,16 +505,20 @@ class CGOSignup_GroundCherry
         $('#cgosignup-form-gcbutton').prop('disabled', !(r1 && r2));
     }
 
-    static doSubmit(event)
+    static doSubmit(event, jThis)
     {
         event.preventDefault();
+        let jForm = jThis.closest('.cgosignup-form');
 
         let o = {qcmd:'myprojects--add',
                 projectName: 'cgo2025gc',
                 uid: CGOSignup_Uid};
         let rQ = SEEDJXAsync2("myprojects.php", o,
                      function (rQ) {
-                         $('#cgosignup-form-tomato .cgosignup-form-btn-container').html("<p class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.</p>");
+                         if( rQ['bOk'] ) {
+                             jForm.find('.cgosignup-form-btn-container-notregistered').hide();
+                             jForm.find('.cgosignup-form-btn-container-registered').show();
+                         }
                      });
 
         console.log(rQ);
@@ -474,7 +550,10 @@ class CGOSignup_Tomato
                  uid: CGOSignup_Uid};
         let rQ = SEEDJXAsync2("myprojects.php", o,
                 function (rQ) {
-                    jForm.find('.cgosignup-form-btn-container').html("<p class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.</p>");
+                    if( rQ['bOk'] ) {
+                        jForm.find('.cgosignup-form-btn-container-notregistered').hide();
+                        jForm.find('.cgosignup-form-btn-container-registered').show();
+                    }
                 });
 
         console.log(rQ);
@@ -490,16 +569,20 @@ class CGOSignup_Bean
         $('#cgosignup-form-beanbutton').prop('disabled', !(r1 && r2));
     }
 
-    static doSubmit(event)
+    static doSubmit(event, jThis)
     {
         event.preventDefault();
+        let jForm = jThis.closest('.cgosignup-form');
 
         let o = {qcmd:'myprojects--add',
                 projectName: 'cgo2025bean',
                 uid: CGOSignup_Uid};
         let rQ = SEEDJXAsync2("myprojects.php", o,
                      function (rQ) {
-                         $('#cgosignup-form-tomato .cgosignup-form-btn-container').html("<p class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.</p>");
+                         if( rQ['bOk'] ) {
+                             jForm.find('.cgosignup-form-btn-container-notregistered').hide();
+                             jForm.find('.cgosignup-form-btn-container-registered').show();
+                         }
                      });
 
         console.log(rQ);

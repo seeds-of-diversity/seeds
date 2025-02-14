@@ -52,7 +52,7 @@ class CGOSignup_GC extends CGOSignup
         parent::__construct($oP);
     }
 
-    function Draw()
+    function Draw( bool $bRegistered )
     {
         /* Sign up for CGO Ground Cherry
          */
@@ -80,15 +80,21 @@ class CGOSignup_GC extends CGOSignup
                   <li>Share some of the seeds in your community.</li>
                   </ul>";
         $s3 = "<br/><br/><br/>
-                  <form id='cgosignup-form-gc' class='cgosignup-form'>
-                  <p>Please confirm:<br/>
-                  <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I have at least 30 square feet of garden space for this project.<br/>
-                  <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I can germinate seeds at 20 - 25 degrees C, and grow seedlings indoors for 8 weeks.
-                  </p>
-                  <div id='cgosignup-form-btn-container'>
-                    <button class='cgosignup-form-button' id='cgosignup-form-gcbutton' disabled onclick='CGOSignup_GroundCherry.doSubmit(event)'>Sign up for this project</button>
-                  </div>
-                  </form>";
+                <div class='cgosignup-form' data-project='cgo2025gc'>
+                    <p>Please confirm:<br/>
+                    <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I have at least 30 square feet of garden space for this project.<br/>
+                    <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I can germinate seeds at 20 - 25 degrees C, and grow seedlings indoors for 8 weeks.
+                    </p>
+                    <div class='cgosignup-form-btn-container-notregistered' style='".($bRegistered ? 'display:none' : "")."'>
+                        <button class='cgosignup-form-button' id='cgosignup-form-gcbutton' disabled onclick='CGOSignup.doRegister($(this))'>Sign up for this project</button>
+                    </div>
+                    <div class='cgosignup-form-btn-container-registered' style='".($bRegistered ? "" : 'display:none')."'>
+                        <div class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.
+                            <hr/>
+                            Oh no, I don't want to be in this project &nbsp;&nbsp;<button onclick='CGOSignup.doUnregister($(this))'>Unregister me please</button>
+                        </div>
+                    </div>
+                </div>";
 
         $sImg = "https://seeds.ca/d?n=ebulletin/2023/10-groundcherry-1.jpg";
 
@@ -103,7 +109,7 @@ class CGOSignup_Tomato extends CGOSignup
         parent::__construct($oP);
     }
 
-    function Draw()
+    function Draw( bool $bRegistered )
     {
         /* Sign up for CGO Tomato
          */
@@ -135,17 +141,23 @@ class CGOSignup_Tomato extends CGOSignup
                   <hr style='border-color:#888'/>
                   <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
              .$sCvAvailable;
-        $s3 = "<form id='cgosignup-form-tomato' class='cgosignup-form'>
-                  <p>Please choose a variety below and confirm:<br/>
-                      <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I have at least 20 square feet of garden space for this project.<br/>
-                      <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can isolate tomato plants at least 20 feet apart from any other tomato variety.<br/>
-                      <input type='checkbox' id='cgosignup-form-tomato3' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can germinate seeds and grow seedlings indoors for 6-8 weeks.<br/>
-                      <select id='cgosignup-form-tomatoselect' onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- Choose a variety ---</option>{$sCvOpts}</select>
-                  </p>
-                  <div class='cgosignup-form-btn-container'>
-                      <button class='cgosignup-form-button' id='cgosignup-form-tomatobutton' disabled onclick='CGOSignup_Tomato.doSubmit(event, $(this))'>Sign up for this project</button>
-                  </div>
-                  </form>";
+        $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
+                    <p>Please choose a variety below and confirm:<br/>
+                        <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I have at least 20 square feet of garden space for this project.<br/>
+                        <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can isolate tomato plants at least 20 feet apart from any other tomato variety.<br/>
+                        <input type='checkbox' id='cgosignup-form-tomato3' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can germinate seeds and grow seedlings indoors for 6-8 weeks.<br/>
+                        <select id='cgosignup-form-tomatoselect' onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- Choose a variety ---</option>{$sCvOpts}</select>
+                    </p>
+                    <div class='cgosignup-form-btn-container-notregistered' style='".($bRegistered ? 'display:none' : "")."'>
+                        <button class='cgosignup-form-button' id='cgosignup-form-tomatobutton' disabled onclick='CGOSignup.doRegister($(this))'>Sign up for this project</button>
+                    </div>
+                    <div class='cgosignup-form-btn-container-registered' style='".($bRegistered ? "" : 'display:none')."'>
+                        <div class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.
+                            <hr/>
+                            Oh no, I don't want to be in this project &nbsp;&nbsp;<button onclick='CGOSignup.doUnregister($(this))'>Unregister me please</button>
+                        </div>
+                    </div>
+                </div>";
 
         $sImg = "https://seeds.ca/d?n=ebulletin/2024/08-tomato_Earlirouge_03_bob_r.jpg";
 
@@ -218,7 +230,7 @@ class CGOSignup_Bean extends CGOSignup
         parent::__construct($oP);
     }
 
-    function Draw()
+    function Draw( bool $bRegistered )
     {
         /* Sign up for CGO Beans
          */
@@ -242,16 +254,22 @@ class CGOSignup_Bean extends CGOSignup
                   <li>Share some of the seeds in your community.</li>
                   </ul>";
         $s3 = "<br/><br/><br/>
-                  <form id='cgosignup-form-bean' class='cgosignup-form'>
-                  <p>Please confirm:<br/>
-                  <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> I have at least 15 row-feet of garden space for this project.<br/>
-                  <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> I can isolate bean plants at least 20 feet apart from any other bean variety.<br/>
-                  <br/>We'll follow up in March to let you choose your bean variety (bush / pole, hot / cool climate)
-                  </p>
-                  <div id='cgosignup-form-btn-container'>
-                    <button class='cgosignup-form-button' id='cgosignup-form-beanbutton' disabled onclick='CGOSignup_Bean.doSubmit(event)'>Sign up for this project</button>
-                  </div>
-                  </form>";
+                <div class='cgosignup-form' data-project='cgo2025bean'>
+                    <p>Please confirm:<br/>
+                        <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> I have at least 15 row-feet of garden space for this project.<br/>
+                        <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> I can isolate bean plants at least 20 feet apart from any other bean variety.<br/>
+                        <br/>We'll follow up in March to let you choose your bean variety (bush / pole, hot / cool climate)
+                    </p>
+                    <div class='cgosignup-form-btn-container-notregistered' style='".($bRegistered ? 'display:none' : "")."'>
+                        <button class='cgosignup-form-button' id='cgosignup-form-beanbutton' disabled onclick='CGOSignup.doRegister($(this))'>Sign up for this project</button>
+                    </div>
+                    <div class='cgosignup-form-btn-container-registered' style='".($bRegistered ? "" : 'display:none')."'>
+                        <div class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.
+                            <hr/>
+                            Oh no, I don't want to be in this project &nbsp;&nbsp;<button onclick='CGOSignup.doUnregister($(this))'>Unregister me please</button>
+                        </div>
+                    </div>
+                </div>";
 
         $sImg = "https://seeds.ca/d?n=ebulletin/2024/11-odawa-rotated.jpg";
 
