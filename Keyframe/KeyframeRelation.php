@@ -1688,6 +1688,11 @@ class Keyframe_NamedRelations
         return( ($kfr = $this->GetKFRCond($sRel, $sCond, $raKFParms)) ? $kfr->ValuesRA() : [] );
     }
 
+    /* Get one value from a record, selected by key or cond
+     */
+    function GetRecordVal1( string $sRel, int $k, string $fld ) : mixed                                    { return( @$this->GetRecordVals($sRel, $k)[$fld] ); }
+    function GetRecordVal1Cond( string $sRel, string $sCond, string $fld, array $raKFParms = [] ) : mixed  { return( @$this->GetRecordValsCond($sRel, $sCond, $raKFParms)[$fld] ); }
+
     function GetKFRCond( $sRel, $sCond, $raKFParms = array() ):?KeyframeRecord
     /*********************************************************
         Return a kfr with one result pre-loaded
