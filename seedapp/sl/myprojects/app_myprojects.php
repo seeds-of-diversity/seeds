@@ -57,6 +57,69 @@ $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSET
                                    'consoleConfig' => $consoleConfig] );
 //$oApp->kfdb->SetDebug(1);
 
+if( ($qcmd = SEEDInput_Str('qcmd')) ) {
+    $oP = new ProjectsCommon($oApp);
+
+    $rQ = SEEDQ::GetEmptyRQ();
+    /* Add a project for the current/given user.
+     * Project managers can add projects for any user.
+     * N.B. This doesn't check if seeds are available - only the front end does that.
+     */
+    if( $qcmd == 'myprojects--add' ) {
+        $kLot = 0;
+        $psp = $oname = "";
+
+        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID) )  goto skip;
+
+        switch( ($sProjname = SEEDInput_Str('projectName')) ) {
+            case 'cgo2025gc':
+                /* record project, psp, oname
+                 */
+                $psp = 'ground-cherry';
+                $oname = "Tall-bearing selection from 2024";
+                break;
+            case 'cgo2025tomato':
+                /* record project, kLot, and psp just for good measure
+                 */
+                $psp = 'tomato';
+                if( ($iLot = SEEDInput_Int('iLot')) ) {
+                    $kLot = (new SLDBCollection($oApp))->GetRecordVal1Cond('I', "fk_sl_collection='1' AND inv_number='$iLot'", '_key');
+                }
+                if(!$kLot)  goto skip;
+                break;
+            case 'cgo2025bean':
+                /* record project, psp, oname
+                 */
+                $psp = 'bean';
+                $oname = '[To be chosen]';
+                break;
+            default:
+                $rQ['sErr'] = "no project";
+                goto skip;
+        }
+
+        if( ($kfr = $oP->oProfilesDB->Kfrel('VI')->CreateRecord()) ) {
+            $kfr->SetValue('fk_mbr_contacts', $uid);
+            $kfr->SetValue('psp', $psp);
+            $kfr->SetValue('oname', $oname);
+            $kfr->SetValue('fk_sl_inventory', $kLot);
+            $kfr->UrlParmSet('metadata', 'project', $sProjname);
+            $kfr->SetValue('year', 2025);
+
+            if( $kfr->PutDBRow() ) {
+                $rQ['bOk'] = true;
+            }
+        }
+    }
+
+//    include(SEEDLIB."q/Q.php");
+//    DoQCmd($oApp, $qcmd);
+    skip:
+    echo json_encode($rQ);
+    exit;
+}
+
+
 SEEDPRG();
 
 //var_dump($_REQUEST);
@@ -112,10 +175,13 @@ class ProjectsCommon
 {
     const  BUCKET_NS = 'AppMyProjects';
     public $oApp;
+    public $oProfilesDB;
 
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
+        $this->oProfilesDB = new SLProfilesDB($oApp);
+
     }
 
     function CanReadOtherUsers()
@@ -184,24 +250,34 @@ class ProjectsTabProjects
         $oMbr = new Mbr_Contacts($this->oP->oApp);
         $oSLDB = new SLDBProfile($this->oP->oApp);
 
-        $oProfilesDB = new SLProfilesDB( $this->oP->oApp );
-        $oProfilesDefs = new SLProfilesDefs( $oProfilesDB );
-        $oProfilesReport = new SLProfilesReport( $oProfilesDB, $oProfilesDefs, $this->oP->oApp );
+        $oProfilesDefs = new SLProfilesDefs( $this->oP->oProfilesDB );
+        $oProfilesReport = new SLProfilesReport( $this->oP->oProfilesDB, $oProfilesDefs, $this->oP->oApp );
 
         include("cgo_signup.php");
 
-        $s .= (new CGOSignup_GC())->Draw();
-        $s .= (new CGOSignup_Tomato())->Draw();
+        $s .= "<h3>Join Our Community Seed Growouts</h3>";
+        $s .= (new CGOSignup_GC($this->oP))->Draw()
+             ."<br/><br/>"
+             .(new CGOSignup_Tomato($this->oP))->Draw()
+             ."<br/><br/>"
+             .(new CGOSignup_Bean($this->oP))->Draw();
+
+        /* For Office mode, tell cgosignup the uid to sign up
+         */
+        $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
 
         $s .= "<hr/>";
 
         /* Show projects
          */
         $sLeft = $sRight = "";
-        $year = 2024;
+
+
+// also show projects from past years
+        $year = 2025;
 
         if( ($u = intval($this->kCurrMbr)) ) {
-            foreach( $oProfilesDB->GetVarInstNames($this->kCurrMbr, $year) as $ra ) {
+            foreach( $this->oP->oProfilesDB->GetVarInstNames($this->kCurrMbr, $year) as $ra ) {
                 $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
             }
         }
@@ -209,12 +285,12 @@ class ProjectsTabProjects
         if( ($kVI = SEEDInput_Int('vi')) ) {
             $kfrVI = $oSLDB->GetKFR('VI', $kVI);
 
-            list($psp,$sSp,$sCv) = $oProfilesDB->ComputeVarInstName($kfrVI);
+            list($psp,$sSp,$sCv) = $this->oP->oProfilesDB->ComputeVarInstName($kfrVI);
 
             $sRight .= "<h2>$sSp : $sCv</h2>";
 
             // this should be in oCP too
-            $oF = new SLProfilesForm( $oProfilesDB, $kVI );
+            $oF = new SLProfilesForm( $this->oP->oProfilesDB, $kVI );
             $oF->Update();  // record the sl_desc_obs returned from the form
 
             $oUI = new SEEDUI();
@@ -341,7 +417,8 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
 
 <script>
 $(document).ready( function () {
-    $('.cgosignup_opener').click(function () {
+    $('.cgosignup-opener').click(function () {
+        $(this).hide();
         let j = $(this).closest('.row').next();
         j.slideDown();
     });
@@ -349,44 +426,102 @@ $(document).ready( function () {
 
 class CGOSignup_GroundCherry
 {
-    static doRadio1()  { this.validate(); }
-    static doRadio2()  { this.validate(); }
-
-    static validate()
+    static doValidate()
     {
-        let r1 = document.getElementById('cgosignup_form_gc1').checked;
-        let r2 = document.getElementById('cgosignup_form_gc2').checked;
-        $('#cgosignup_form_gc_join').prop('disabled', !(r1 && r2));
+        let r1 = document.getElementById('cgosignup-form-gc1').checked;
+        let r2 = document.getElementById('cgosignup-form-gc2').checked;
+        $('#cgosignup-form-gcbutton').prop('disabled', !(r1 && r2));
     }
 
     static doSubmit(event)
     {
         event.preventDefault();
-        console.log('Submit');
-    }
 
+        let o = {qcmd:'myprojects--add',
+                projectName: 'cgo2025gc',
+                uid: CGOSignup_Uid};
+        let rQ = SEEDJXAsync2("myprojects.php", o,
+                     function (rQ) {
+                         $('#cgosignup-form-tomato .cgosignup-form-btn-container').html("<p class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.</p>");
+                     });
+
+        console.log(rQ);
+    }
 }
 
 
+class CGOSignup_Tomato
+{
+    static doValidate()
+    {
+        let r1 = document.getElementById('cgosignup-form-tomato1').checked;
+        let r2 = document.getElementById('cgosignup-form-tomato2').checked;
+        let r3 = document.getElementById('cgosignup-form-tomato2').checked;
+        let sel = document.getElementById('cgosignup-form-tomatoselect').value > 0;
 
+        $('#cgosignup-form-tomatobutton').prop('disabled', !(r1 && r2 && r3 && sel));
+    }
 
+    static doSubmit(event, jThis)
+    {
+        event.preventDefault();
+        let jForm = jThis.closest('.cgosignup-form');
+        let tomatoLot = document.getElementById('cgosignup-form-tomatoselect').value;
 
+        let o = {qcmd:'myprojects--add',
+                 projectName: 'cgo2025tomato',
+                 iLot: tomatoLot,
+                 uid: CGOSignup_Uid};
+        let rQ = SEEDJXAsync2("myprojects.php", o,
+                function (rQ) {
+                    jForm.find('.cgosignup-form-btn-container').html("<p class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.</p>");
+                });
+
+        console.log(rQ);
+    }
+}
+
+class CGOSignup_Bean
+{
+    static doValidate()
+    {
+        let r1 = document.getElementById('cgosignup-form-bean1').checked;
+        let r2 = document.getElementById('cgosignup-form-bean2').checked;
+        $('#cgosignup-form-beanbutton').prop('disabled', !(r1 && r2));
+    }
+
+    static doSubmit(event)
+    {
+        event.preventDefault();
+
+        let o = {qcmd:'myprojects--add',
+                projectName: 'cgo2025bean',
+                uid: CGOSignup_Uid};
+        let rQ = SEEDJXAsync2("myprojects.php", o,
+                     function (rQ) {
+                         $('#cgosignup-form-tomato .cgosignup-form-btn-container').html("<p class='alert alert-success'>Thanks! You're registered in this project.<br/>You'll hear from us soon.</p>");
+                     });
+
+        console.log(rQ);
+    }
+}
 </script>
+
 <style>
-.cgosignup_box {
+.cgosignup-box {
     border:1px solid #aaa;
     border-radius:5px;
     box-shadow: #ccc 6px 6px;
     padding: 1em;
 }
 
-#cgosignup_form_gc_join {
+.cgosignup-form-button {
     background-color:green;
     color:white;
     font-weight:bold;
     transition: all ease-in-out 0s;
 }
-#cgosignup_form_gc_join[disabled] {
+.cgosignup-form-button[disabled] {
     background-color:#ccc;
     color:#555;
 }
