@@ -504,27 +504,7 @@ class CGOSignup_GroundCherry
         let r2 = document.getElementById('cgosignup-form-gc2').checked;
         $('#cgosignup-form-gcbutton').prop('disabled', !(r1 && r2));
     }
-
-    static doSubmit(event, jThis)
-    {
-        event.preventDefault();
-        let jForm = jThis.closest('.cgosignup-form');
-
-        let o = {qcmd:'myprojects--add',
-                projectName: 'cgo2025gc',
-                uid: CGOSignup_Uid};
-        let rQ = SEEDJXAsync2("myprojects.php", o,
-                     function (rQ) {
-                         if( rQ['bOk'] ) {
-                             jForm.find('.cgosignup-form-btn-container-notregistered').hide();
-                             jForm.find('.cgosignup-form-btn-container-registered').show();
-                         }
-                     });
-
-        console.log(rQ);
-    }
 }
-
 
 class CGOSignup_Tomato
 {
@@ -537,27 +517,6 @@ class CGOSignup_Tomato
 
         $('#cgosignup-form-tomatobutton').prop('disabled', !(r1 && r2 && r3 && sel));
     }
-
-    static doSubmit(event, jThis)
-    {
-        event.preventDefault();
-        let jForm = jThis.closest('.cgosignup-form');
-        let tomatoLot = document.getElementById('cgosignup-form-tomatoselect').value;
-
-        let o = {qcmd:'myprojects--add',
-                 projectName: 'cgo2025tomato',
-                 iLot: tomatoLot,
-                 uid: CGOSignup_Uid};
-        let rQ = SEEDJXAsync2("myprojects.php", o,
-                function (rQ) {
-                    if( rQ['bOk'] ) {
-                        jForm.find('.cgosignup-form-btn-container-notregistered').hide();
-                        jForm.find('.cgosignup-form-btn-container-registered').show();
-                    }
-                });
-
-        console.log(rQ);
-    }
 }
 
 class CGOSignup_Bean
@@ -567,25 +526,6 @@ class CGOSignup_Bean
         let r1 = document.getElementById('cgosignup-form-bean1').checked;
         let r2 = document.getElementById('cgosignup-form-bean2').checked;
         $('#cgosignup-form-beanbutton').prop('disabled', !(r1 && r2));
-    }
-
-    static doSubmit(event, jThis)
-    {
-        event.preventDefault();
-        let jForm = jThis.closest('.cgosignup-form');
-
-        let o = {qcmd:'myprojects--add',
-                projectName: 'cgo2025bean',
-                uid: CGOSignup_Uid};
-        let rQ = SEEDJXAsync2("myprojects.php", o,
-                     function (rQ) {
-                         if( rQ['bOk'] ) {
-                             jForm.find('.cgosignup-form-btn-container-notregistered').hide();
-                             jForm.find('.cgosignup-form-btn-container-registered').show();
-                         }
-                     });
-
-        console.log(rQ);
     }
 }
 </script>

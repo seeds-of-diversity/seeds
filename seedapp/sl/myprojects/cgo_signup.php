@@ -165,26 +165,31 @@ class CGOSignup_Tomato extends CGOSignup
     }
 
     private function tomatoVarieties()
-    {
-        $raCv = [8819 => 8,
-                 6957 => 3,
-                 7955 => 54,
-                 9120 => 1,
-                 7816 => 1,
-                 8273 => 16,
-                 7361 => 14 + 49,    // plus
-                 6981 => 5,
-                 6983 => 52,
-                 7215 => 2,
-                 7658 => 3,
-                 6994 => 52,
-                 7085 => 7 + 48,     // plus
-                 7211 => 3,
-                 9231 => 3,
-                 7612 => 7,
-                 9239 => 1,
-                 8468 => 2,
-                 9221 => 2
+    {                                                    // new seed
+        $raCv = [9576 => 130,       // Andy's Buckflats     13g  per
+                 8819 => 8,         // Adelin
+                 6957 => 3 + 100,   // Beaverlodge          10g             -- not accessioned
+                 7955 => 54 + 80,   // Betty's               8g  9417
+                 9120 => 1,         // Centennial Red
+                 7816 => 1,         // Charlie's Red Staker
+                 9507 => 80,        // Coastal Pride Red     8g  per
+                 8273 => 16,        // Cobourg
+                 7361 => 14 + 49,   // Doucet's QEM         bob  9467
+                 6981 => 5,         // Earlibright
+                 6983 => 52,        // Early Lethbridge
+                 7215 => 2 + 90,    // Mac Pink              9g  9564
+                 7658 => 3 + 40,    // Manitoba              4g             -- not accessioned
+                 6994 => 52,        // Mennonite Orange
+                 9501 => 20,        // Montreal Tasty        2g  per
+                 7085 => 7 + 48,    // Petitbec             bob  9465
+                 7211 => 3,         // Quebec 5
+                 9231 => 3,         // Quinte
+                 7612 => 7 + 30,    // Scotia                3g             -- not accessioned
+                 9221 => 2,         // Sub-arctic Cherry
+                 8468 => 2,         // Sub-arctic Maxi
+                 9239 => 1 + 20,    // Superbec              2g 9239        -- guessing 9239 from 2023
+
+// g = 500 seeds = 10 pkts but really 20
         ];
 
         $s = "";
@@ -210,7 +215,8 @@ $n+=$nPackets;
 
         foreach($raY as $ra) {
             $sRemaining = $this->oP->CanReadOtherUsers() ? " ({$ra['nRemaining']} / {$ra['nPackets']} left)" : "";
-            $s .= SEEDCore_ArrayExpand($ra, "<div><b>[[P_name]] [[kLot]]</b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
+            $s .= SEEDCore_ArrayExpand($ra, "<div><b>[[P_name]]         </b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
+//          $s .= SEEDCore_ArrayExpand($ra, "<div><b>[[P_name]] [[kLot]]</b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
         }
         $s .= "<h4 style='margin-top:2em'>Sorry no longer available</h4>";
         foreach($raN as $ra) {
@@ -218,7 +224,7 @@ $n+=$nPackets;
             $s .= SEEDCore_ArrayExpand($ra, "<div style='color:gray'><b>[[P_name]]</b> {$sAssigned}<br/>[[P_packetLabel]]</div>");
         }
 
-$s .= "<p>$n packets available</p>";
+if($this->oP->CanReadOtherUsers())  $s .= "<p>$n packets available</p>";
         return([$s,$raOpts]);
     }
 }
