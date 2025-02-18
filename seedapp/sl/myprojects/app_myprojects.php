@@ -31,6 +31,7 @@ include_once( SEEDLIB."sl/profiles/sl_profiles_report.php" );
 include_once( SEEDLIB."sl/profiles/sl_profiles_form.php" );
 include_once( SEEDROOT."Keyframe/KeyframeForm.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
+include_once( SEEDCORE."SEEDLocal.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDCORE."SEEDCoreFormSession.php" );
 
@@ -193,11 +194,15 @@ class ProjectsCommon
     const  BUCKET_NS = 'AppMyProjects';
     public $oApp;
     public $oProfilesDB;
+    public $oL;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, array $raParms = [] )
     {
         $this->oApp = $oApp;
         $this->oProfilesDB = new SLProfilesDB($oApp);
+        $this->oL = new SEED_Local( $this->sLocalStrs(),
+                                    @$raParms['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
+                                    'myprojects' );
 
     }
 
@@ -209,6 +214,25 @@ class ProjectsCommon
     function CanWriteOtherUsers()
     {
         return( $this->oApp->sess->CanWrite('SLProfileOtherUsers') );
+    }
+
+    private function sLocalStrs()
+    {
+        return( ['ns'=>'myprojects', 'strs'=> [
+            'Join Our Community Seed Growouts'
+                => ['EN'=>"[[]]",
+                    'FR'=>"Rejoignez nos cultures de semences communautaires"],
+            // More with chevron
+            'More'
+                => ['EN'=>"[[]]",
+                    'FR'=>"Voir plus"],
+            'Sorry no longer available'
+                => ['EN'=>"[[]]",
+                    'FR'=>"D&eacute;sol&eacute;, n'est plus disponible"],
+            'Choose a variety'
+                => ['EN'=>"[[]]",
+                    'FR'=>"Choisissez une vari&eacute;t&eacute;"],
+        ]] );
     }
 }
 
@@ -279,7 +303,7 @@ class ProjectsTabProjects
         $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025tomato%'");
         $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'");
 
-        $s .= "<h3>Join Our Community Seed Growouts</h3>";
+        $s .= "<h3>{$this->oP->oL->S('Join Our Community Seed Growouts')}</h3>";
         $s .= (new CGOSignup_GC($this->oP))->Draw($bRegisteredGC)
              ."<br/><br/>"
              .(new CGOSignup_Tomato($this->oP))->Draw($bRegisteredTomato)
