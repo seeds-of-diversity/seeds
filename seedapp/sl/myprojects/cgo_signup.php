@@ -237,7 +237,7 @@ class CGOSignup_Tomato extends CGOSignup
                         <p>Veuillez choisir une vari&eacute;t&eacute; ci-dessous et confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> J'ai au moins 20 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux isoler les plants de tomates &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de tomates.<br/>
-                            <input type='checkbox' id='cgosignup-form-tomato3' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux faire germer des semences et faire pousser des plants &agrave; l’int&eacute;rieur pendant 6 &agrave; 8 semaines.<br/>
+                            <input type='checkbox' id='cgosignup-form-tomato3' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux faire germer des semences et faire pousser des plants &agrave; l'int&eacute;rieur pendant 6 &agrave; 8 semaines.<br/>
                             <select id='cgosignup-form-tomatoselect' onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
                         </p>
                         {$this->drawButton('cgosignup-form-tomatobutton', $bRegistered)}
