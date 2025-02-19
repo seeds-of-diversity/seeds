@@ -53,7 +53,7 @@ $consoleConfig = [
     'consoleSkin' => 'green',
 ];
 
-
+SEED_define_lang();     // sets SEED_LANG which tells SEEDAppConsole to set language based on various cues including server name
 $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
                                    'consoleConfig' => $consoleConfig] );
 //$oApp->kfdb->SetDebug(1);

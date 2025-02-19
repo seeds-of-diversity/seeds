@@ -117,6 +117,36 @@ require_once SEEDROOT."vendor/autoload.php";
 
 include_once( SEEDCORE."SEEDApp.php" );
 
+function SEED_define_lang( $lang = "" )
+/**************************************
+    Defines SEED_LANG = ("EN" | "FR")
+
+    Order of overrides:
+    1) SEED_LANG already defined (so you can hard-code the language of an app when you include it in a language-defined entry point)
+    2) GPC contains lang parm (allows manual override, mostly for testing)
+    3) Parm (must be EN or FR else defaults to EN)
+    4) SERVER_NAME identifies English or French site
+    5) Default is EN
+ */
+{
+    if( defined("SITE_LANG") )  return( SITE_LANG );
+
+    $lang = strtoupper($lang);
+
+    if( ($l = strtoupper(SEEDInput_Str('lang'))) && in_array($l, ['EN','FR']) ) {
+        $lang = $l;
+    } else if( $lang && in_array($lang, ['EN','FR']) ) {
+        // use $lang
+    } else if( strpos($_SERVER['SERVER_NAME'], "semences.ca") !== false ||
+               strpos($_SERVER['SERVER_NAME'], "pollinisation") !== false ||
+               strpos($_SERVER['SERVER_NAME'], "pollinisateur") !== false ) {
+        $lang = "FR";
+    }
+    define("SEED_LANG", ($lang=='FR' ? $lang : 'EN') );
+    return( SEED_LANG );
+}
+
+
 function SEEDConfig_NewAppConsole_LoginNotRequired( $raConfig ) : SEEDAppConsole
 /**************************************************************
     Create a new SEEDAppConsole that doesn't require a login.
@@ -154,7 +184,8 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
     $db = @$raConfig['db'] ?: (defined('SEED_DB_DEFAULT') ? SEED_DB_DEFAULT : 'seeds1');
 
     $raP = [
-        'lang'              => @$raConfig['lang'] ?: SEEDInput_Smart('lang', ['EN','FR']),
+        // call SEED_define_lang() to set SEED_LANG
+        'lang'              => @$raConfig['lang'] ?: (defined('SEED_LANG') ? SEED_LANG : SEEDInput_Smart('lang', ['EN','FR'])),
         'logdir'            => @$raConfig['logdir'] ?: SEED_LOG_DIR,
         'urlW'              => @$raConfig['urlW'] ?: SEEDW_URL,
         'urlQ'              => @$raConfig['urlQ'] ?: SEEDQ_URL,
