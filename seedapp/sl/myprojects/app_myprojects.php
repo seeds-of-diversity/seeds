@@ -536,7 +536,7 @@ class CGOSignup_Tomato
     {
         let r1 = document.getElementById('cgosignup-form-tomato1').checked;
         let r2 = document.getElementById('cgosignup-form-tomato2').checked;
-        let r3 = document.getElementById('cgosignup-form-tomato2').checked;
+        let r3 = document.getElementById('cgosignup-form-tomato3').checked;
         let sel = document.getElementById('cgosignup-form-tomatoselect').value > 0;
 
         $('#cgosignup-form-tomatobutton').prop('disabled', !(r1 && r2 && r3 && sel));
