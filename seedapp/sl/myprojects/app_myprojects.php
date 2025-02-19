@@ -299,18 +299,30 @@ class ProjectsTabProjects
 
         /* Membership status and renewal
          */
+        if( $this->kCurrMbr ) {
+            $sL = $sR = "";
+            $sExpires = $oMbr->GetAllValues($this->kCurrMbr)['expires'];
+            if( $oMbr->IsCurrentFromExpires($sExpires) ) {
+                $sAlert = 'success';
+                $sL = "<p>Your membership is up to date until $sExpires.</p>
+                       <p>Please check your mailing address and let us know if it has changed.<br/>
+                          We're glad to help at <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.</p>";
+            } else {
+                $sAlert = 'warning';
+                $sL = ($sExpires ? "<p>Membership expiry: $sExpires</p>" : "")
+                     ."<p>Please renew your membership to make sure we have your correct contact and mailing information.
+                          Then refresh this page and join our projects.<br/><br/>
+                          <a href='https://seeds.ca/store' target='_blank'><button>Renew Your Membership / Update Your Address</button></a></p>";
+            }
+            $sL = "<div class='alert alert-{$sAlert}'>$sL</div>";
+            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$oMbr->DrawAddressBlock($this->kCurrMbr)}</div>";
+            $s .= "<div class='container-fluid'><div class='row'>
+                       <div class='col-md-6'>$sL</div>
+                       <div class='col-md-3'>&nbsp;</div>
+                       <div class='col-md-3'>$sR</div>
+                   </div>";
+        }
 
-        // show address
-        // show membership status and link to renew
-
-        // Please renew/update your membership to make sure we have your correct contact and mailing information. Then refresh this page and join our projects.
-
-
-
-
-// MyProjects shows wrong variety in 2025 projects when tomato chosen
-// disable tomato select control after registered
-// put 2025 projects at top
 
         /* 2025 projects (just to show them at the top, not functional like they are at the bottom).
          */

@@ -198,7 +198,7 @@ class CGOSignup_Tomato extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
                   .$sCvAvailable;
-            $sDisabled = $bRegistered ? 'disabled' : 'foo';
+            $sDisabled = $bRegistered ? 'disabled' : '';
             $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
                         <p>Please choose a variety below and confirm:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I have at least 20 square feet of garden space for this project.<br/>
@@ -234,7 +234,7 @@ class CGOSignup_Tomato extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Vari&eacute;t&eacute;s disponibles</p>"
                   .$sCvAvailable;
-            $sDisabled = $bRegistered ? 'disabled' : 'foo';
+            $sDisabled = $bRegistered ? 'disabled' : '';
             $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
                         <p>Veuillez choisir une vari&eacute;t&eacute; ci-dessous et confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> J'ai au moins 20 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
