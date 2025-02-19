@@ -60,7 +60,7 @@ class SLProfilesDB extends Keyframe_NamedRelations
         $sp = $cv = $psp = "";
 
         // Use sl_inventory.sl.accession.sl_pcv if defined
-        if( ($kI = $kfrVI->ValueInt($prefix.'fk_sl_inventory')) && ($kfr = $this->oSLDB->GetKFRCond('IxAxPxS', "I.inv_number=$kI AND I.fk_sl_collection=1")) ) {
+        if( ($kI = $kfrVI->ValueInt($prefix.'fk_sl_inventory')) && ($kfr = $this->oSLDB->GetKFR('IxAxPxS', $kI)) ) {
             $sp  = $kfr->Value('S_name_en');
             $psp = $kfr->Value('S_psp');
             $cv  = $kfr->Value('P_name');
