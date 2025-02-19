@@ -297,6 +297,34 @@ class ProjectsTabProjects
         $oProfilesDefs = new SLProfilesDefs( $this->oP->oProfilesDB );
         $oProfilesReport = new SLProfilesReport( $this->oP->oProfilesDB, $oProfilesDefs, $this->oP->oApp );
 
+        /* Membership status and renewal
+         */
+
+        // show address
+        // show membership status and link to renew
+
+        // Please renew/update your membership to make sure we have your correct contact and mailing information. Then refresh this page and join our projects.
+
+
+
+
+// MyProjects shows wrong variety in 2025 projects when tomato chosen
+// disable tomato select control after registered
+// put 2025 projects at top
+
+        /* 2025 projects (just to show them at the top, not functional like they are at the bottom).
+         */
+        $year = 2025;
+        $sY = "";
+        if( ($u = intval($this->kCurrMbr)) ) {
+            foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
+                $sY .= "<p>{$ra['sp']} : {$ra['cv']}</p>";
+            }
+            if($sY) $s .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>".$sY."<br/>";
+        }
+
+        /* CGO Signups
+         */
         include("cgo_signup.php");
 
         $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025gc%'");
@@ -321,14 +349,21 @@ class ProjectsTabProjects
         $sLeft = $sRight = "";
 
 
-// also show projects from past years
-        $year = 2025;
-
+        /* 2025 and 2024 projects
+         */
         if( ($u = intval($this->kCurrMbr)) ) {
-            foreach( $this->oP->oProfilesDB->GetVarInstNames($this->kCurrMbr, $year) as $ra ) {
-                $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
+            $raY = [];
+            foreach([2025,2024] as $year) {
+                if(!isset($raY[$year])) {
+                    $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
+                    $raY[$year] = 1;
+                }
+                foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
+                    $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
+                }
             }
         }
+
 
         if( ($kVI = SEEDInput_Int('vi')) ) {
             $kfrVI = $oSLDB->GetKFR('VI', $kVI);
@@ -388,7 +423,7 @@ class ProjectsTabProjects
         }
 
         $s .= "<div class='container-fluid'><div class='row'>
-              <div class='col-md-3'><h4>$year projects for {$this->oMbr->GetContactName($this->kCurrMbr)}</h4>$sLeft</div>
+              <div class='col-md-3'>$sLeft</div>
               <div class='col-md-9'>$sRight</div>
               </div></div>";
 

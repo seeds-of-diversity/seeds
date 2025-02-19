@@ -198,12 +198,13 @@ class CGOSignup_Tomato extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
                   .$sCvAvailable;
+            $sDisabled = $bRegistered ? 'disabled' : 'foo';
             $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
                         <p>Please choose a variety below and confirm:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I have at least 20 square feet of garden space for this project.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can isolate tomato plants at least 20 feet apart from any other tomato variety.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato3' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can germinate seeds and grow seedlings indoors for 6-8 weeks.<br/>
-                            <select id='cgosignup-form-tomatoselect' onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- Choose a variety ---</option>{$sCvOpts}</select>
+                            <select id='cgosignup-form-tomatoselect' {$sDisabled} onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- Choose a variety ---</option>{$sCvOpts}</select>
                         </p>
                         {$this->drawButton('cgosignup-form-tomatobutton', $bRegistered)}
                     </div>";
@@ -233,12 +234,13 @@ class CGOSignup_Tomato extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Vari&eacute;t&eacute;s disponibles</p>"
                   .$sCvAvailable;
+            $sDisabled = $bRegistered ? 'disabled' : 'foo';
             $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
                         <p>Veuillez choisir une vari&eacute;t&eacute; ci-dessous et confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> J'ai au moins 20 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux isoler les plants de tomates &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de tomates.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato3' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux faire germer des semences et faire pousser des plants &agrave; l'int&eacute;rieur pendant 6 &agrave; 8 semaines.<br/>
-                            <select id='cgosignup-form-tomatoselect' onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
+                            <select id='cgosignup-form-tomatoselect' {$sDisabled} onchange='CGOSignup_Tomato.doValidate()'><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
                         </p>
                         {$this->drawButton('cgosignup-form-tomatobutton', $bRegistered)}
                     </div>";
