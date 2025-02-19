@@ -300,21 +300,14 @@ class ProjectsTabProjects
         /* Membership status and renewal
          */
         if( $this->kCurrMbr ) {
-            $sL = $sR = "";
-            $sExpires = $oMbr->GetAllValues($this->kCurrMbr)['expires'];
-            if( $oMbr->IsCurrentFromExpires($sExpires) ) {
-                $sAlert = 'success';
-                $sL = "<p>Your membership is up to date until $sExpires.</p>
-                       <p>Please check your mailing address and let us know if it has changed.<br/>
-                          We're glad to help at <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.</p>";
-            } else {
-                $sAlert = 'warning';
-                $sL = ($sExpires ? "<p>Membership expiry: $sExpires</p>" : "")
-                     ."<p>Please renew your membership to make sure we have your correct contact and mailing information.
-                          Then refresh this page and join our projects.<br/><br/>
-                          <a href='https://seeds.ca/store' target='_blank'><button>Renew Your Membership / Update Your Address</button></a></p>";
-            }
-            $sL = "<div class='alert alert-{$sAlert}'>$sL</div>";
+            $parms = $this->oP->oL->GetLang()=='EN'
+                        ? ['sExtra_Current' => "<br/>We're glad to help at <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.",
+                           'sExtra_Expired' => "Then refresh this page and join our projects.<br/><br/>"]
+                        : ['sExtra_Current' => "<br/>Nous sommes heureux de vous aider &agrave; <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.",
+                           'sExtra_Expired' => "Rafra&icirc;chissez ensuite cette page et rejoignez nos projets.<br/><br/>"];
+            $parms['lang'] = $this->oP->oL->GetLang();
+
+            $sL = (new MbrContactsDraw($this->oP->oApp))->DrawExpiryNotice($this->kCurrMbr, $parms );
             $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$oMbr->DrawAddressBlock($this->kCurrMbr)}</div>";
             $s .= "<div class='container-fluid'><div class='row'>
                        <div class='col-md-6'>$sL</div>

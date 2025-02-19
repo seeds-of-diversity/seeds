@@ -142,6 +142,7 @@ class Mbr_Contacts
         return( $name );
     }
 
+// move to MbrContactsDraw
     function DrawAddressBlock( $mbrid, $format = 'HTML', $prefix = '' )
     /******************************************************************
         mbrid can be k or email
@@ -156,6 +157,7 @@ class Mbr_Contacts
         return( $s );
     }
 
+// move to MbrContactsDraw
     static function DrawAddressBlockFromRA( $raMbr, $fmt = 'HTML', $prefix = '' )
     /****************************************************************************
         Draw a contact's address block in the given format (HTML or PDF).
@@ -299,6 +301,51 @@ class Mbr_Contacts
         return( $kDonation );
     }
 }
+
+class MbrContactsDraw
+{
+    function __construct( SEEDAppSessionAccount $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oMbr = new Mbr_Contacts($oApp);
+    }
+
+    function DrawExpiryNotice( int $kMbr, array $raParms = [] )
+    {
+        $s = "";
+
+        $bEN            = @$raParms['lang']!='FR';
+        $sExtra_Current = @$raParms['sExtra_Current'] ?? "";
+        $sExtra_Expired = @$raParms['sExtra_Expired'] ?? "";
+
+        $sExpires = $this->oMbr->GetAllValues($kMbr)['expires'];
+        if( $this->oMbr->IsCurrentFromExpires($sExpires) ) {
+            $sAlert = 'success';
+            $s .= $bEN ? "<p>Your membership is up to date until $sExpires.</p>
+                          <p>Please check your mailing address and let us know if it has changed. {$sExtra_Current}</p>"
+                       : "<p>Votre adh&eacute;sion est &agrave; jour jusqu'au $sExpires.</p>
+                          <p>Veuillez v&eacute;rifier votre adresse postale et dites-nous si elle a chang&eacute;. {$sExtra_Current}</p>";
+        } else {
+            $sAlert = 'warning';
+            if($sExpires) {
+                $s .= $bEN ? "<p>Membership expiry: $sExpires</p>"
+                           : "<p>Membership expiry: $sExpires</p>";
+            }
+            $s .= $bEN ? "<p>Please renew your membership to make sure we have your correct contact and mailing information.
+                          {$sExtra_Expired}
+                          <a href='https://seeds.ca/store' target='_blank'><button>Renew Your Membership / Update Your Address</button></a></p>"
+                       : "<p>Veuillez renouveler votre adh&eacute;sion pour vous assurer que nous avons vos coordonn&eacute;es et vos informations postales correctes.
+                          {$sExtra_Expired}
+                          <a href='https://semences.ca/boutique' target='_blank'><button>Renouvelez votre adh&eacute;sion / Confirmez votre adresse</button></a></p>";
+        }
+
+        $s = "<div class='alert alert-{$sAlert}'>{$s}</div>";
+
+        return( $s );
+    }
+
+}
+
 
 class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
