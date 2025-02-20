@@ -71,7 +71,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
         $kLot = 0;
         $psp = $oname = "";
 
-        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID) )  goto skip;
+        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
         switch( ($sProjname = SEEDInput_Str('projectName')) ) {
             case 'cgo2025gc':
@@ -118,7 +118,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
      * Project managers can remove projects for any user.
      */
     if( $qcmd == 'myprojects--remove' ) {
-        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID) )  goto skip;
+        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
         if( ($sProjname = SEEDInput_Str('projectName')) &&
             ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} && metadata LIKE '%project=".addslashes($sProjname)."%'")) )
@@ -221,7 +221,7 @@ class ProjectsCommon
         return( ['ns'=>'myprojects', 'strs'=> [
             'Join Our Community Seed Growouts'
                 => ['EN'=>"[[]]",
-                    'FR'=>"Rejoignez nos cultures de semences communautaires"],
+                    'FR'=>"Rejoignez nos projets de semences communautaires"],
             // More with chevron
             'More'
                 => ['EN'=>"[[]]",
