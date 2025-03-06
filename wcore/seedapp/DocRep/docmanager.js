@@ -35,9 +35,14 @@ class myDocRepCache extends DocRepCache
     FetchDoc( kDoc )
     {
         if( kDoc == 0 ) kDoc = -1;  // dr-getTree uses this for root of forest so kDoc can be a required parm
-        
-        let rQ = SEEDJXSync(this.oConfig.env.q_url, { qcmd: 'dr-getTree', kDoc: kDoc, flag:'', depth: 1, includeRootDoc: 1 });
-        if( rQ.bOk ) {
+
+        /* This only needs to be depth:1 because the DocRepCache will FetchDoc children as needed.
+         * However, that leads to a large number of fetches since children and usually grandchildren are shown in the initial tree view.
+         * depth:2 was tried, and seemed to also make an unnecessary number of fetches.
+         * Note that there is no cost for deep fetches when children/grandchildren don't exist, so this seems like a reasonable depth.
+         */ 
+        let rQ = SEEDJXSync(this.oConfig.env.q_url, { qcmd: 'dr-getTree', kDoc: kDoc, flag:'', depth: 3, includeRootDoc: 1 });
+        if( rQ && rQ.bOk ) {
             for(let oDoc of rQ.raOut) {
                 // change children comma string to children array                
                 oDoc.raChildren = oDoc.children.split(',');
