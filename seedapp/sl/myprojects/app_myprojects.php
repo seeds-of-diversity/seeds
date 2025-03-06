@@ -19,7 +19,8 @@ insert into sl_varinst (fk_mbr_contacts,fk_sl_pcv,year) values (1499,188,2024);
 
 add sl_varinst.fk_mbr_contacts to test for deleting mbr_contacts
  */
-
+// padding under images for phone width
+// re-enable select control after canceling tomato, or refresh page
 
 include_once( SEEDCORE."console/console02.php" );
 //include_once( SEEDLIB."google/GoogleSheets.php" );
@@ -335,6 +336,8 @@ class ProjectsTabProjects
         $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025gc%'");
         $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025tomato%'");
         $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'");
+
+        $s .= "<h4 class='alert alert-success' style='color:green'>We have lots of seeds left so we've extended the deadline!</h4>";
 
         $s .= "<h3>{$this->oP->oL->S('Join Our Community Seed Growouts')}</h3>";
         $s .= (new CGOSignup_GC($this->oP))->Draw($bRegisteredGC)

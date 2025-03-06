@@ -98,7 +98,8 @@ class CGOSignup_GC extends CGOSignup
                          <li><b>You will need about 30 to 40 square feet of garden space.</b></li>
                          <li><b>You will need space indoors to start seedlings at 20-25 degrees C, for 8 weeks before transplanting.</b></li>
                          </ul>
-                      <p style='color:red;margin-top:1em'><b>Reserve your seeds by March 3, 2025</b></p>
+<!--                  <p style='color:red;margin-top:1em'><b>Reserve your seeds by March 3, 2025</b></p> -->
+                      <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
                    </div>";
             $s2 = "<p><b>To participate in this project:</b></p>
                       <ul>
@@ -131,7 +132,8 @@ class CGOSignup_GC extends CGOSignup
                          <li><b>Vous aurez besoin d'environ 30 &agrave; 40 pieds carr&eacute;s d'espace de jardin.</b></li>
                          <li><b>Vous aurez besoin d'espace &agrave; l'int&eacute;rieur pour faire pousser des plants &agrave; 20-25 degr&eacute;s C pendant 8 semaines avant de les planter dans le jardin.</b></li>
                          </ul>
-                      <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 3 mars 2025</b></p>
+<!--                  <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 3 mars 2025</b></p>  -->
+                      <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
                    </div>";
             $s2 = "<p><b>Pour participer &agrave ce projet:</b></p>
                       <ul>
@@ -184,7 +186,8 @@ class CGOSignup_Tomato extends CGOSignup
                          <li><b>You are able grow your tomatoes isolated at least 20 feet apart from any other tomato varieties.</b></li>
                          <li><b>You will need a warm, bright place indoors to start seedlings, for 6-8 weeks before transplanting.</b></li>
                          </ul>
-                      <p style='color:red;margin-top:1em'><b>Reserve your seeds by March 3, 2025</b></p>
+<!--                  <p style='color:red;margin-top:1em'><b>Reserve your seeds by March 3, 2025</b></p> -->
+                      <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
                     </div>";
             $s2 = "<p><b>To participate in this project:</b></p>
                       <ul>
@@ -220,7 +223,8 @@ class CGOSignup_Tomato extends CGOSignup
                          <li><b>Vous pouvez cultiver vos tomates isol&eacute;es &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de tomates.</b></li>
                          <li><b>Vous aurez besoin d'un endroit chaud et lumineux &agrave; l'int&eacute;rieur pour d&eacute;marrer les semis, pendant 6 &agrave; 8 semaines avant de les planter dans le jardin.</b></li>
                          </ul>
-                      <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 3 mars 2025</b></p>
+<!--                  <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 3 mars 2025</b></p>  -->
+                      <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
                     </div>";
             $s2 = "<p><b>Pour participer &agrave ce projet:</b></p>
                       <ul>
