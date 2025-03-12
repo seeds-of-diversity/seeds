@@ -604,10 +604,44 @@ class QServerSLCollectionReports extends SEEDQ
             // Most recent germ test for this lot
             $dGermLatest = "";
             $nGermLatest = 0;
+            $nGermNow = 0.0;
             if( $bGetIxG ) {
+                /* Compute the modeled current germ rate, for comparison or use.
+                 * See https://docs.google.com/document/d/1xnm7Ylo97jYB8e8SCu_CRjrIGB2UHi9JDOywYm-ZLnw
+                 */
+                $a = 6;                                                                 // shape parm (6 to 8 seems good)
+                $t0 = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 15 : 8;     // age when seeds likely reach zero germ
+                $yOrigin = $y;                                                          // year the seeds were harvested
+                $ageNow = date('Y')-$y;                                                 // age of seeds now
+                $nGermModel = intval((1 - (1 / (1 + exp($a*(0.5 - $ageNow/$t0))))) * 100);
+
+                /* Find the most recent germ test, and recompute current germ rate using that test to determine the viability curve.
+                 */
                 if( ($kfrG = $this->oSLDB->GetKFRCond('G', "fk_sl_inventory='{$kfrcI->Key()}' AND nSown>0", ['sSortCol'=>'dStart','bSortDown'=>true])) ) {
                     $dGermLatest = $kfrG->Value('dStart');
                     $nGermLatest = $kfrG->Value('nGerm');
+
+                    /* Compute nGermNow using the latest germ test to define the viability curve.
+                     * $y is taken to be the year the seeds were harvested
+                     * year($dGermLatest) is year of test
+                     * Compute t0 in germ model and use that to compute germ rate in year(now)
+                     */
+                    if( $nGermLatest && $yOrigin && ($yTest = substr($dGermLatest,0,4)) && $ageNow )
+                    {
+
+                        if( ($fGerm = $nGermLatest/100.0) >= 1.0 )  $fGerm = 0.98;    // formula will crash otherwise
+                        if( ($ageTest = $yTest-$yOrigin) < 0.1 )    $ageTest = 0.5;   // formula will crash otherwise
+
+                        $t0 = 2 * $a * $ageTest / ($a - 2 * log($fGerm / (1.0-$fGerm)));
+//if($kfrcI->Value('inv_number')==5043) var_dump($nGermLatest,$yOrigin, $dGermLatest,$ageNow,$t0,$ageTest,$fGerm);
+                        // sometimes germ tests at 100% taken very shortly after harvest make the curve crazy
+                        //$t0 = min(max($t0,20),10);
+
+                        $nGermNow = intval((1 - (1 / (1 + exp($a*(0.5 - $ageNow/$t0))))) * 100);
+                    }
+                } else {
+                    // No germ tests for this lot. Just use the model.
+                    $nGermNow = $nGermModel;
                 }
             }
 
@@ -622,6 +656,8 @@ class QServerSLCollectionReports extends SEEDQ
                              'year_received'  => $yReceived,
                              'latest_germtest_date' => $dGermLatest,
                              'latest_germtest_result' => $nGermLatest,
+                             'current_germ_estimate' => $nGermNow,
+                             'current_germ_model' => $nGermModel,
                              'notes' => (($bFullDetails && $bCanReadInternal) ? trim($kfr->Expand("[[notes]] [[A_notes]]")) : ""),
                             ]);
             }

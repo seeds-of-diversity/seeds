@@ -62,16 +62,15 @@ $bUnionCSCI = false;
                 foreach( (@$ra['raIxA'] ?? []) as $kEncodesYear => $raI ) {
                     $y = intval($kEncodesYear);
                     $sCol1 .= "{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g from $y<br/>";
-                    $sCol2 .= ($raI['latest_germtest_date'] ? "{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}" : "&nbsp;")."<br/>";
-                    $sCol3 .= "<br/>";
-                    $sCol4 .= ($raI['latest_germtest_result'] ? "%%" : "")."<br/>";
+                    $sCol2 .= ($raI['latest_germtest_date'] ? "{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}" : "")."<br/>";
+                    $sCol3 .= "{$raI['current_germ_estimate']}%<br/>";
+                    $sCol4 .= ($raI['latest_germtest_date'] ? "({$raI['current_germ_model']}%)" : "")."<br/>";
                 }
 
                 $s1 .= "<tr><td $sTDClass>{$ra['species']}</td><td $sTDClass>{$ra['cultivar']}</td>"
                       ."<td $sTDClass>{$ra['csci_count']}</td><td $sTDClass>{$ra['adoption']}</td>"
                       ."<td $sTDClass>{$ra['newest_lot_year']}</td><td $sTDClass>{$ra['total_grams']}</td>"
-                      ."<td $sTDClass>".str_replace( " | ", "<br/>", $ra['notes'] )."</td>"
-                      ."<td $sTDClass>{$ra['newest_lot_germ_result']}</td><td $sTDClass>{$ra['newest_lot_germ_year']}</td>"
+
                       ."<td $sTDClass>$sCol1</td>
                         <td $sTDClass>$sCol2</td>
                         <td $sTDClass>$sCol3</td>
@@ -80,7 +79,8 @@ $bUnionCSCI = false;
                 $c = $c ? 0 : 1;
             }
             $s .= $this->drawReport( $sTitle, $qCmd,
-                          "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th><th>Newest</th><th>Total grams</th><th>&nbsp;</th>",
+                          "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th><th>Newest</th><th>Total grams</th>
+                           <th>Lot detail</th><th>Germ tests</th><th>Est. current germ</th><th>(model germ)</th>",
                           $s1 );
         } else {
             $this->oW->oC->ErrMsg( $rQ['sErr'] );
