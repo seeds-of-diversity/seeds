@@ -2,7 +2,7 @@
 
 /* Seed collection manager
  *
- * Copyright 2020-2024 Seeds of Diversity Canada
+ * Copyright 2020-2025 Seeds of Diversity Canada
  */
 
 /* You can either execute this script directly and use SEED_APP_BOOT_REQUIRED to initialize config
@@ -25,6 +25,7 @@ include_once( SEEDAPP."sl/sl_ts_adoptions.php");
 include_once( "collectionTab_germtests.php" );
 include_once( "collectionTab_packetlabels.php" );
 include_once( "batchopsTab.php" );
+include_once( "overviewTab.php" );
 
 class SLApp
 {
@@ -35,6 +36,7 @@ class SLApp
             [ 'slcollMain'  => ["W SLCollection", "A SL", "|"],
               'slcollBatch' => ["W SLCollection", "A SL", "|"],
               'slcollAdopt' => ["W SLCollection", "A SL", "|"],
+              'slcollOver'  => ["W SLCollection", "A SL", "|"],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
     ];
@@ -49,6 +51,7 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'slcollMain'   => ['label'=>'My Collection'],
                                         'slcollBatch'  => ['label'=>'Batch Operations'],
                                         'slcollAdopt'  => ['label'=>'Adoptions'],
+                                        'slcollOver'   => ['label'=>'Overview'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
@@ -102,17 +105,23 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oSLDB = new SLDBCollection( $this->oApp );
     }
 
-    function TabSet_main_slcollMain_Init()         { $this->oW = new CollectionListForm( $this->oApp ); $this->oW->Init(); }
-    function TabSet_main_slcollMain_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_slcollMain_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_slcollMain_Init()                              { $this->oW = new CollectionListForm($this->oApp);            $this->oW->Init(); }
+    function TabSet_main_slcollBatch_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new CollectionBatchOps($this->oApp, $oT->oSVA); $this->oW->Init(); }
+    function TabSet_main_slcollAdopt_Init()                             { $this->oW = new MbrAdoptionsListForm($this->oApp);          $this->oW->Init(); }
+    function TabSet_main_slcollOver_Init(Console02TabSet_TabInfo $oT)   { $this->oW = new CollectionOverview($this->oApp, $oT->oSVA); $this->oW->Init(); }
 
-    function TabSet_main_slcollBatch_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new CollectionBatchOps( $this->oApp, $oT->oSVA ); $this->oW->Init(); }
-    function TabSet_main_slcollBatch_ControlDraw()       { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_slcollBatch_ContentDraw()       { return( $this->oW->ContentDraw() ); }
-
-    function TabSet_main_slcollAdopt_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
-    function TabSet_main_slcollAdopt_ControlDraw(){ return( $this->oW->ControlDraw() ); }
-    function TabSet_main_slcollAdopt_ContentDraw(){ return( $this->oW->ContentDraw() ); }
+    function TabSetControlDraw($tsid, $tabname)
+    {
+        return( $tsid == 'main' ? $this->oW->ControlDraw()
+                                : parent::TabSetControlDraw($tsid, $tabname)    // maybe need this for sub-tabsets?
+        );
+    }
+    function TabSetContentDraw($tsid, $tabname)
+    {
+        return( $tsid == 'main' ? $this->oW->ContentDraw()
+                                : parent::TabSetContentDraw($tsid, $tabname)    // maybe need this for sub-tabsets?
+        );
+    }
 }
 
 class CollectionListForm extends KeyframeUI_ListFormUI
