@@ -628,16 +628,25 @@ class QServerSLCollectionReports extends SEEDQ
                      */
                     if( $nGermLatest && $yOrigin && ($yTest = substr($dGermLatest,0,4)) && $ageNow )
                     {
+                        $ageTest = $yTest-$yOrigin;
+                        if($ageTest <= 0) $ageTest = 0.5;   // prevent t0 from being forced to 0
 
-                        if( ($fGerm = $nGermLatest/100.0) >= 1.0 )  $fGerm = 0.98;    // formula will crash otherwise
-                        if( ($ageTest = $yTest-$yOrigin) < 0.1 )    $ageTest = 0.5;   // formula will crash otherwise
+                        /* The formula for t0 contains three problems:
+                         *     fGerm==1.0 causes divide-by-zero inside log()
+                         *     2log(...)==a causes divide-by-zero
+                         *     fGerm ~ 1.0 the denominator can be negative which makes t0 invalid
+                         *
+                         * Solution 1 is to require a > 2log(g/(g-1))           we do this below
+                         * Solution 2 is to require g < exp(a/2)/(1+exp(a/2))
+                         */
+                        $fGerm = $nGermLatest/100.0;
+                        if( $fGerm > 0.95 ) $a = 7;
+                        if( $fGerm > 0.97 ) $a = 8;
+                        if( $fGerm > 0.99 ) $fGerm = 0.99;  // and a==8 from above
 
                         $t0 = 2 * $a * $ageTest / ($a - 2 * log($fGerm / (1.0-$fGerm)));
 //if($kfrcI->Value('inv_number')==5043) var_dump($nGermLatest,$yOrigin, $dGermLatest,$ageNow,$t0,$ageTest,$fGerm);
-                        // sometimes germ tests at 100% taken very shortly after harvest make the curve crazy
-                        //$t0 = min(max($t0,20),10);
-
-                        $nGermNow = intval((1 - (1 / (1 + exp($a*(0.5 - $ageNow/$t0))))) * 100);
+                        $nGermNow = intval((1 - (1 / (1 + exp($a*(0.5 - floatval($ageNow)/$t0))))) * 100);
                     }
                 } else {
                     // No germ tests for this lot. Just use the model.
@@ -658,6 +667,7 @@ class QServerSLCollectionReports extends SEEDQ
                              'latest_germtest_result' => $nGermLatest,
                              'current_germ_estimate' => $nGermNow,
                              'current_germ_model' => $nGermModel,
+                             'g_weight_viable_estimate' => $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0,
                              'notes' => (($bFullDetails && $bCanReadInternal) ? trim($kfr->Expand("[[notes]] [[A_notes]]")) : ""),
                             ]);
             }
