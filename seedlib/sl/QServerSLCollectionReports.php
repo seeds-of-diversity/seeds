@@ -18,6 +18,7 @@
  * Serve reports about sl_collection, sl_accession, sl_adoption, etc
  */
 
+include_once( SEEDLIB."sl/sl_util.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 
 class QServerSLCollectionReports extends SEEDQ
@@ -468,10 +469,13 @@ class QServerSLCollectionReports extends SEEDQ
                         'cultivar'               => $this->QCharSetFromLatin($ra['P_name']),
                         'csci_count'             => $ra['nCSCI'],
                         'adoption'               => '',
-                        'newest_lot_year'        => '',
-                        'newest_lot_grams'       => '',
-                        'newest_lot_germ_result' => '',
-                        'newest_lot_germ_year'   => '',
+                        //'newest_lot_year'        => '',
+                        //'newest_lot_grams'       => '',
+                        //'newest_lot_germ_result' => '',
+                        //'newest_lot_germ_year'   => '',
+                        'est_total_viable_grams' => 0,
+                        'est_total_viable_seeds' => 0,
+                        'est_total_viable_pops'  => 0,
                         'total_grams'            => '',
                         'notes'                  => '',
                         'raIxA'                  => [],
@@ -503,7 +507,7 @@ class QServerSLCollectionReports extends SEEDQ
         $raOut = [];
 
         // Get the most recent harvest date and total weight of each pcv
-        $ra = $this->getLotDetails_PCV( $raPCV['P__key'], $kCollection, $bComputeAdoption, $bGetIxG, $bCanReadInternal );
+        $ra = $this->getLotDetails_PCV( $raPCV['P__key'], $kCollection, $raPCV['S_psp'], $bComputeAdoption, $bGetIxG, $bCanReadInternal );
         $yNewest = $ra['yNewest'];
         $nWeightTotal = $ra['nWeightTotal'];
         $sNotes = $bCanReadInternal ? $ra['sNotes'] : "";
@@ -517,11 +521,14 @@ class QServerSLCollectionReports extends SEEDQ
                   'cultivar'               => $this->QCharSetFromLatin( $raPCV['P_name'] ),
                   'csci_count'             => $nCSCI,
                   'adoption'               => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
-                  'newest_lot_year'        => $yNewest,
-                  'newest_lot_grams'       => $ra['newest_lot_grams'],
-                  'newest_lot_germ_result' => $ra['newest_lot_germ_result'],
-                  'newest_lot_germ_year'   => $ra['newest_lot_germ_year'],
+//                  'newest_lot_year'        => $yNewest,
+//                  'newest_lot_grams'       => $ra['newest_lot_grams'],
+//                  'newest_lot_germ_result' => $ra['newest_lot_germ_result'],
+//                  'newest_lot_germ_year'   => $ra['newest_lot_germ_year'],
                   'total_grams'            => $nWeightTotal,
+                  'est_total_viable_grams' => round($ra['total_viable_grams'], 2),
+                  'est_total_viable_seeds' => $ra['total_viable_seeds'],
+                  'est_total_viable_pops'  => round($ra['total_viable_pops'], 1),
                   'notes'                  => $sNotes,           // already QCharset in the method that aggregates it
                   'raIxA'                  => @$ra['raIxA'] ?? [],
                  ];
@@ -529,7 +536,7 @@ class QServerSLCollectionReports extends SEEDQ
         return( $raOut );
     }
 
-    private function getLotDetails_PCV( $kPCV, $kCollection, $bAdoption, bool $bGetIxG, $bCanReadInternal, $bFullDetails = false )
+    private function getLotDetails_PCV( $kPCV, $kCollection, string $psp, $bAdoption, bool $bGetIxG, $bCanReadInternal, $bFullDetails = false )
     /*****************************************************************************************************************************
         Report details about the IxA inventory for the given (pcv,collection), plus some aggregate information e.g. adoption status
 
@@ -553,13 +560,17 @@ class QServerSLCollectionReports extends SEEDQ
                    'fAdoption' => 0.0,
                    'sNotes' => "",
                    'raIxA' => [],
-                   'PxS' => []
+                   'PxS' => [],
+                   'total_viable_grams' => 0.0,
+                   'total_viable_seeds' => 0,
+                   'total_viable_pops'  => 0.0,
                  ];
 
         /* Get PxS record if reporting full details (other clients either don't use it or they got here from a list of P,S anyway.
          * Note that everything returned by this method has QCharset, so avoid double-converting by clients.
          */
         if( $bFullDetails ) {
+// the caller has raPCV which might have all of this already
             $o = new SLDBRosetta($this->oApp);
             if( ($kfr = $o->GetKFR('PxS', $kPCV)) ) {
                 $raOut['PxS'] = $this->QCharsetFromLatin( ['kPcv'          => $kPCV,
@@ -651,6 +662,12 @@ class QServerSLCollectionReports extends SEEDQ
                 } else {
                     // No germ tests for this lot. Just use the model.
                     $nGermNow = $nGermModel;
+                }
+
+                $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
+                if( ($seedsPerGram = SLUtil::GetSeedsPerGram($psp)) > 0 ) {
+                    $raOut['total_viable_seeds'] = round($raOut['total_viable_grams'] * $seedsPerGram);
+                    $raOut['total_viable_pops'] = $raOut['total_viable_seeds'] / SLUtil::GetPopulationCommercial($psp);
                 }
             }
 

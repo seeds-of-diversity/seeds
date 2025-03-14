@@ -85,18 +85,24 @@ $bUnionCSCI = false;
 
                 $s1 .= "<tr><td $sTDClass>{$ra['species']}</td><td $sTDClass>{$ra['cultivar']}</td>"
                       ."<td $sTDClass>{$ra['csci_count']}</td><td $sTDClass>{$ra['adoption']}</td>"
-                      ."<td $sTDClass>{$ra['newest_lot_year']}</td><td $sTDClass>{$ra['total_grams']}</td>"
+                      //."<td $sTDClass>{$ra['newest_lot_year']}</td>"
 
                       ."<td $sTDClass>$sCol1</td>
                         <td $sTDClass>$sCol2</td>
                         <td $sTDClass>$sCol3</td>
                         <td $sTDClass>$sCol4</td>
                         <td $sTDClass>$sCol5</td>
+
+                        <td $sTDClass>{$ra['total_grams']}</td>
+                        <td $sTDClass>{$ra['est_total_viable_grams']}</td>
+                        <td $sTDClass>{$ra['est_total_viable_seeds']}</td>
+                        <td $sTDClass>{$ra['est_total_viable_pops']}</td>
                         </tr>";
             }
             $s .= $this->drawReport( $sTitle, $qCmd,
-                          "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th><th>Newest</th><th>Total grams</th>
-                           <th>Lot detail</th><th>Germ tests</th><th>Est. current germ</th><th>(model germ)</th><th>viable grams</th>",
+                          "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th>
+                           <th>Lot detail</th><th>Germ tests</th><th>Est. current germ</th><th>(model germ)</th><th>viable grams</th>
+                           <th>Total grams</th><th>Estimated total viable grams</th><th>Est Total viable seeds</th><th>Est Total viable pops</th>",
                           $s1 );
         } else {
             $this->oW->oC->ErrMsg( $rQ['sErr'] );
@@ -107,7 +113,7 @@ $bUnionCSCI = false;
     private function drawReport( $sTitle, $qCmd, $sTableHeaders, $sTableBody )
     {
         $s = "<div><h3 style='display:inline-block;margin-right:3em;'>$sTitle</h3>
-                <a style='display:inline-block' href='".$this->oApp->UrlQ('index2.php')."?qcmd=$qCmd&kCollection=1&qfmt=xls' target='_blank'>
+                <a style='display:inline-block' href='".$this->oApp->UrlQ('index2.php')."?qcmd=$qCmd&kCollection=1&mode=%20raIxG%20&qfmt=xls' target='_blank'>
                   <img src='".W_ROOT."std/img/dr/xls.png' height='25'/>
                 </a>
               </div>"

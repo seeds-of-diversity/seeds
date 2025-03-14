@@ -2,6 +2,7 @@
 
 include("../../seedcore/SEEDCore.php");
 
+//copied to sl_util.php
 $commercial_population = array(
 	"arugula" => 80,
 	"asparagus" => 100,
