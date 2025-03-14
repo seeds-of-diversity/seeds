@@ -113,7 +113,7 @@ $bUnionCSCI = false;
     private function drawReport( $sTitle, $qCmd, $sTableHeaders, $sTableBody )
     {
         $s = "<div><h3 style='display:inline-block;margin-right:3em;'>$sTitle</h3>
-                <a style='display:inline-block' href='".$this->oApp->UrlQ('index2.php')."?qcmd=$qCmd&kCollection=1&mode=%20raIxG%20&qfmt=xls' target='_blank'>
+                <a style='display:inline-block' href='".$this->oApp->UrlQ('index2.php')."?qcmd=$qCmd&kCollection=1&modes=%20raIxG%20&qfmt=xls' target='_blank'>
                   <img src='".W_ROOT."std/img/dr/xls.png' height='25'/>
                 </a>
               </div>"
