@@ -286,6 +286,8 @@ class SEEDXlsWrite
 
         $col = 'A';
         foreach( $raCols as $v ) {
+            if( is_array($v) ) $v = "";     // some data structures can contain nested arrays, which cannot be written
+
             $oSheet->setCellValue($col.$iRow, $v );
             $col = chr(ord($col)+1);    // Change A to B, B to C, etc
         }
