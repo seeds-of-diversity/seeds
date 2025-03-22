@@ -468,11 +468,17 @@ class ProjectsTabSites
 
 class ProjectsTabOffice
 {
+    private $oCTS;
     private $oP;
+    private $oMbr;
+    private $oSLDB;
 
-    function __construct( ProjectsCommon $oP )
+    function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
     {
+        $this->oCTS = $oCTS;
         $this->oP = $oP;
+        $this->oMbr = new Mbr_Contacts($this->oP->oApp);
+        $this->oSLDB = new SLDBProfile($this->oP->oApp);
     }
 
     function Init()
@@ -487,6 +493,105 @@ class ProjectsTabOffice
     {
         $s = "";
 
+        $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'A',
+                                     ['fields'=>['all'          =>['control'=>'checkbox'],
+                                                 'ground-cherry'=>['control'=>'checkbox'],
+                                                 'tomato'       =>['control'=>'checkbox'],
+                                                 'bean'         =>['control'=>'checkbox'],
+                                     ]]);
+        $oForm->Update();
+        $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:5px;padding:1em'><form>
+               <p>".$oForm->Select('year', ['2025'=>2025, '2024'=>2024])."</p>
+               <p>".$oForm->Checkbox('all', "All")."</p>
+               <p>".$oForm->Checkbox('ground-cherry', "Ground cherry")."</p>
+               <p>".$oForm->Checkbox('tomato', "Tomato")."</p>
+               <p>".$oForm->Checkbox('bean', "Bean")."</p>
+               <p><input type='submit' value='Show'/></p>
+               </form></div>
+               <div style='display:inline-block;vertical-align:top;padding-left:1em'>
+                   <a href='?xlsx=1' target='_blank'><img src='https://seeds.ca/w/std/img/dr/xls.png' style='height:30px'/></a>
+               </div>";
+
+        $bShow = false;
+        $raProj = [];
+        if( $oForm->Value('all') ) {
+            $bShow = true;
+        } else {
+            foreach( ['ground-cherry','tomato','bean'] as $proj ) {
+                if( $oForm->Value($proj) ) {
+                    $bShow = true;
+                    $raProj[] = $proj;
+                }
+            }
+        }
+
+        if( !$bShow )  goto done;
+
+        $sCond = "year='{$oForm->ValueDB('year')}'";
+        if( $raProj )  $sCond .= " AND psp in ('".implode("','", $raProj)."')";
+
+        $raMbr = [];
+        foreach( $this->oSLDB->GetList('VI', $sCond) as $raVI ) {
+            $kMbr = $raVI['fk_mbr_contacts'];
+
+            if( !isset($raMbr[$kMbr]) ) {
+                $ra = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
+                $raMbr[$kMbr] = ['member_name' => $this->oMbr->GetContactNameFromMbrRA($ra),
+                                 'member_email'=> $ra['email'],
+                                 'ground-cherry' => '',
+                                 'tomato' => '',
+                                 'bean' => '',
+                ];
+            }
+
+            switch( $raVI['psp'] ) {
+                case 'ground-cherry':
+                    $raMbr[$kMbr]['ground-cherry'] = 1;
+                    break;
+                case 'tomato':
+                    if( $raVI['fk_sl_inventory'] && ($kfrLot = $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory'])) ) {
+                        $raMbr[$kMbr]['tomato'] = $kfrLot->Value('P_name');
+                    }
+                    break;
+                case 'bean':
+                    $raMbr[$kMbr]['bean'] = 1;
+                    break;
+            }
+        }
+
+        if( SEEDInput_Int('xlsx') ) {
+            // output as a spreadsheet
+            include_once( SEEDCORE."SEEDXLSX.php" );
+
+            $title = "Seeds of Diversity Projects {$oForm->Value('year')}";
+            $oXLSX = new SEEDXlsWrite( ['title'=> $title,
+                                        'filename'=>$title.'.xlsx',
+                                        'creator'=>$this->oP->oApp->sess->GetName(),
+                                        'author'=>$this->oP->oApp->sess->GetName()] );
+
+            $raKeys = ['member_name','member_email','ground-cherry','tomato','bean'];
+
+            $oXLSX->WriteHeader( 0, array_merge(['member'],$raKeys));
+
+            $iRow = 2;  // rows are origin-1 so this is the row below the header
+            foreach( $raMbr as $kMbr => $ra ) {
+                // reorder the $ra values to the same order as $raKeys
+                $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode( array_merge([$kMbr],array_replace(array_fill_keys($raKeys,''), array_intersect_key($ra,array_fill_keys($raKeys,''))))) );
+            }
+
+            $oXLSX->OutputSpreadsheet();
+            exit;
+        }
+
+        $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
+               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>Ground cherry</th><th>Tomato</th><th>Bean</th></tr>";
+        foreach( $raMbr as $kMbr => $ra ) {
+            $s .= "<tr><td>{$ra['member_name']} ({$kMbr})</td><td>{$ra['member_email']}</td>
+                       <td>{$ra['ground-cherry']}</td><td>{$ra['tomato']}</td><td>{$ra['bean']}</td></tr>";
+        }
+        $s .= "</table>";
+
+        done:
         return( $s );
     }
 }
