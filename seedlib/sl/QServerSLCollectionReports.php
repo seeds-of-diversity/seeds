@@ -13,7 +13,7 @@
 
 /* QServerSLCollectionReports
  *
- * Copyright 2017-2020 Seeds of Diversity Canada
+ * Copyright 2017-2025 Seeds of Diversity Canada
  *
  * Serve reports about sl_collection, sl_accession, sl_adoption, etc
  */
@@ -78,17 +78,27 @@ class QServerSLCollectionReports extends SEEDQ
 
 
             // list of info for all cultivars - use collreport-cultivarinfo for one kPcv
-            case 'collreport-cultivarlistdata':
-            case 'collreport-cultivarlistdataunioncsci':
+            case 'collreport-cultivarlist_active_lots_combined':
+            case 'collreport-cultivarlist_active_lots_combined_unioncsci':
                 if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
                     goto done;
                 }
-                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarListData( $parms['kCollection'],
-                                                                         strtolower($cmd)=='collreport-cultivarlistdataunioncsci',
-                                                                         $bCanReadInternal,
+                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarList_activeLotsCombined( $parms['kCollection'],
+                                                                                        strtolower($cmd)=='collreport-cultivarlist_active_lots_combined_unioncsci',
+                                                                                        $bCanReadInternal,
 // NormalizeParms modes=>S?
                                                                          $parms['modes'] ?? "");
                 $rQ['raMeta']['title'] = "Summary of All Varieties";
+                $rQ['raMeta']['name'] = $cmd;
+                break;
+
+            case 'collreport-cultivar_adopt_priorities':
+                if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
+                    goto done;
+                }
+                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarAdoptPriorities( $parms['kCollection'],
+                                                                                $bCanReadInternal );
+                $rQ['raMeta']['title'] = "Adoption Priorities";
                 $rQ['raMeta']['name'] = $cmd;
                 break;
 
@@ -397,8 +407,8 @@ class QServerSLCollectionReports extends SEEDQ
         return( $raOut );
     }
 
-    private function cultivarListData( $kCollection, $bUnionCSCI, $bCanReadInternal, string $modes )
-    /**********************************************************************************************
+    private function cultivarList_activeLotsCombined( $kCollection, $bUnionCSCI, $bCanReadInternal, string $modes )
+    /**************************************************************************************************************
         Get a summary of information on all cultivars in the given Seed Library Collection.
         If bUnionCSCI get all varieties in the csci and left-join that with the collection information.
      */
@@ -464,7 +474,7 @@ class QServerSLCollectionReports extends SEEDQ
 */
 
                     $raOut[] = [
-                        'cv'                     => 0,
+                        'kPcv'                   => 0,
                         'species'                => $ra['S_psp'],
                         'cultivar'               => $this->QCharSetFromLatin($ra['P_name']),
                         'csci_count'             => $ra['nCSCI'],
@@ -516,7 +526,7 @@ class QServerSLCollectionReports extends SEEDQ
         // Get the number of csci companies that have the given pcv
         $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
 
-        $raOut = ['cv'                     => $raPCV['P__key'],
+        $raOut = ['kPcv'                   => $raPCV['P__key'],
                   'species'                => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
                   'cultivar'               => $this->QCharSetFromLatin( $raPCV['P_name'] ),
                   'csci_count'             => $nCSCI,
@@ -786,6 +796,36 @@ class QServerSLCollectionReports extends SEEDQ
         $bOk = true;
 
         done:
+        return( [$bOk, $raOut] );
+    }
+
+    private function cultivarAdoptPriorities( int $kCollection, bool $bCanReadInternal )
+    {
+        $bOk = false;
+        $raOut = $raOutPartialAdopt = $raNonAdopt = [];
+
+        // get overview of all active lots by cultivar, then filter and sort adoption priorities
+        list($bOk,$raCV) = $this->cultivarList_activeLotsCombined( $kCollection, false /*bUnionCSCI*/, $bCanReadInternal, " raIxG ");
+
+        foreach($raCV as $ra) {
+            if( $ra['adoption'] >= 250 ) continue;
+
+            // array keys are pops/csci_count so krsort makes good pops with low availability come first;  kPcv is for uniqueness; csci+1 prevents div0
+            $k = round(floatval($ra['est_total_viable_pops'])/floatval($ra['csci_count']+1), 3)."|".$ra['kPcv'];
+
+            if( $ra['adoption'] > 0 ) {
+                // a partial adoption is a priority for filling
+                $raOutPartialAdopt[$k] = $ra;
+            } else if( $ra['csci_count'] > 0 && $ra['csci_count'] <= 3 && $ra['est_total_viable_pops'] > 3 ) {
+                // a variety with a workable pop and low non-zero csci_count is a good priority.
+                $raOutNonAdopt[$k] = $ra;
+            }
+        }
+
+        krsort($raOutPartialAdopt);
+        krsort($raOutNonAdopt);
+        $raOut = array_merge($raOutPartialAdopt, $raOutNonAdopt);   // partial adoptions first, then non-adopted; since keys are unique the arrays should simply concatenate
+
         return( [$bOk, $raOut] );
     }
 }

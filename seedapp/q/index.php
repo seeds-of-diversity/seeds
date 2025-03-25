@@ -16,6 +16,9 @@ $oApp = SEEDConfig_NewAppConsole_LoginNotRequired(
             ['db'=>Q_DB,
              'lang' => 'EN' ] );
 
+
+// use DoQCmd() for the below
+
 $qcmd = SEEDInput_Str('qcmd');
 $qfmt = SEEDInput_Str('qfmt') ?: 'json';
 
@@ -31,7 +34,7 @@ $oApp->Log( "q.log", $_SERVER['REMOTE_ADDR']."\t"
                     .(@$rQ['sLog'] ? : "") );
 unset($rQ['sLog']);
 
-
+// these are just the input parms
 ($name  = (@$raQParms['qname']))  || ($name  = (@$rQ['raMeta']['name']))  || ($name = $qcmd);
 ($title = (@$raQParms['qtitle'])) || ($title = (@$rQ['raMeta']['title'])) || ($title = $qcmd);
 
@@ -72,7 +75,10 @@ switch( $qfmt ) {
                                         'creator'=>$oApp->sess->GetName(),
                                         'author'=>$oApp->sess->GetName()] );
 
-            $oXLSX->WriteHeader( 0, array_keys($rQ['raOut'][0]) );
+            // the header row is made of key names so get one of the rows and find the keys - every row should have the same set of keys
+            //$raK = array_keys($rQ['raOut'][0]);       // this doesn't work if the output has non-numeric keys
+            $raK = array_keys( reset($rQ['raOut']) );   // this does work
+            $oXLSX->WriteHeader( 0, $raK );
 
             $iRow = 2;  // rows are origin-1 so this is the row below the header
             foreach( $rQ['raOut'] as $ra ) {
