@@ -38,8 +38,9 @@ class CollectionOverview
         $s = "";
 
         switch( $this->oOpPicker->Value() ) {
-            case 'lot_all':           $s = $this->drawLotOverview('all');    break;
-            case 'adopt_priorities':  $s = $this->drawAdoptionPriorities();  break;
+            case 'lot_all':             $s = $this->drawLotOverview('all');    break;
+            case 'adopt_priorities':    $s = $this->drawAdoptionPriorities();  break;
+            case 'growout_priorities':  $s = $this->drawGrowoutPriorities();   break;
         }
 
         return( $s );
@@ -62,11 +63,7 @@ $bUnionCSCI = false;
 
                 $s1 .= $this->_drawCVRow($ra);
             }
-            $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms),
-                          "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th>
-                           <th>Lot detail</th><th>Germ tests</th><th>Est. current germ</th><th>(model germ)</th><th>viable grams</th>
-                           <th>Total grams</th><th>Estimated total viable grams</th><th>Est Total viable seeds</th><th>Est Total viable pops</th>",
-                          $s1 );
+            $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms), $s1 );
         } else {
             $this->oW->oC->ErrMsg( $rQ['sErr'] );
         }
@@ -88,13 +85,7 @@ $bUnionCSCI = false;
             foreach( $rQ['raOut'] as $ra ) {
                 $s1 .= $this->_drawCVRow($ra);
             }
-            $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms),
-                          "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th>
-                           <th>Total grams</th><th>Estimated viable grams</th><th>Est viable seeds</th><th>Est viable pops</th>
-                           <!-- last cols are details for reference; aggregated into former values -->
-                           <th style='font-size:75%'>Lot detail</th><th style='font-size:75%'>Germ tests</th><th style='font-size:75%'>Est. current germ</th>
-                           <th style='font-size:75%'>(model germ)</th><th style='font-size:75%'>viable grams</th>",
-                          $s1, $sInst );
+            $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms), $s1, $sInst );
         } else {
             $this->oW->oC->ErrMsg( $rQ['sErr'] );
         }
@@ -140,8 +131,14 @@ $bUnionCSCI = false;
         return($s);
     }
 
-    private function drawReport( string $sTitle, string $qCmd, string $sTableHeaders, string $sTableBody, string $sInst = "" )
+    private function drawReport( string $sTitle, string $qCmd, string $sTableBody, string $sInst = "" )
     {
+        $sTableHeaders = "<th>&nbsp;</th><th>&nbsp;</th><th>Companies</th><th>Adoption</th>
+                          <th>Total grams</th><th>Estimated viable grams</th><th>Est viable seeds</th><th>Est viable pops</th>
+                          <!-- last cols are details for reference; aggregated into former values -->
+                          <th style='font-size:75%'>Lot detail</th><th style='font-size:75%'>Germ tests</th><th style='font-size:75%'>Est. current germ</th>
+                          <th style='font-size:75%'>(model germ)</th><th style='font-size:75%'>viable grams</th>";
+
         $s = "<div>
                   <h3 style='display:inline-block;margin-right:3em;'>$sTitle</h3>
                   <div style='display:inline-block'>
