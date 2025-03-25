@@ -9,7 +9,9 @@
 
 include_once( "DocRep.php" );
 
-include_once( SEEDROOT.'/vendor/autoload.php');
+if (!defined("SEED_EXTERNAL_COMPOSER")) {
+    include_once( SEEDROOT.'/vendor/autoload.php');
+}
 
 use Jfcherng\Diff\Differ;
 use Jfcherng\Diff\DiffHelper;

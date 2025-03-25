@@ -113,7 +113,9 @@ define("W_CORE_JQUERY",       W_CORE_JQUERY_3_3_1 );                        // u
 
 
 // include everything that SEEDROOT gets via composer
-require_once SEEDROOT."vendor/autoload.php";
+if (!defined("SEED_EXTERNAL_COMPOSER")) {
+    require_once SEEDROOT."vendor/autoload.php";
+}
 
 include_once( SEEDCORE."SEEDApp.php" );
 

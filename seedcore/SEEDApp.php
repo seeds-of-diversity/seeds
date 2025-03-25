@@ -98,7 +98,9 @@ class SEEDAppSessionAccount extends SEEDAppSession
 //  public $lang is inherited
 //  public $logdir is inherited
 //  public $kfdb is inherited
-//  public $sess is inherited
+//  public $sess is inherited, but redefining it gives better type-hinting in IDEs
+    /** @var SEEDSessionAccount */
+    public $sess;
 
     function __construct( $raConfig )
     {
@@ -117,6 +119,7 @@ class SEEDAppSessionAccount extends SEEDAppSession
         if( !isset($raSessConfig['logfile']) && !isset($raSessConfig['logdir']) && isset($raConfig['logdir']) ) {
             $raSessConfig['logdir'] = $raConfig['logdir'];
         }
+
         $this->sess = new SEEDSessionAccount( $this->kfdb, $raConfig['sessPermsRequired'], $raSessConfig );
 
         // Handle the session UI (e.g. draw login form if !IsLogin, logout, send password)
