@@ -96,9 +96,17 @@ class QServerSLCollectionReports extends SEEDQ
                 if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
                     goto done;
                 }
-                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarAdoptPriorities( $parms['kCollection'],
-                                                                                $bCanReadInternal );
+                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarAdoptPriorities( $parms['kCollection'], $bCanReadInternal );
                 $rQ['raMeta']['title'] = "Adoption Priorities";
+                $rQ['raMeta']['name'] = $cmd;
+                break;
+
+            case 'collreport-cultivar_growout_priorities':
+                if( !$this->normalizeParms( $parms, "kCollection", $rQ['sErr'] ) ) {
+                    goto done;
+                }
+                list($rQ['bOk'],$rQ['raOut']) = $this->cultivarGrowoutPriorities( $parms['kCollection'], $bCanReadInternal );
+                $rQ['raMeta']['title'] = "Growout Priorities";
                 $rQ['raMeta']['name'] = $cmd;
                 break;
 
@@ -804,7 +812,10 @@ class QServerSLCollectionReports extends SEEDQ
         $bOk = false;
         $raOut = $raOutPartialAdopt = $raNonAdopt = [];
 
-        // get overview of all active lots by cultivar, then filter and sort adoption priorities
+        /* Get overview of all active lots by cultivar, then filter and sort adoption priorities.
+         * Remove fully adopted, sort by (partial vs non-adopted, pops/csci_count).
+         * This creates two sections (partial, non) each sorted for good pops + rarity at top, poor pops + commonness at bottom.
+         */
         list($bOk,$raCV) = $this->cultivarList_activeLotsCombined( $kCollection, false /*bUnionCSCI*/, $bCanReadInternal, " raIxG ");
 
         foreach($raCV as $ra) {
@@ -822,9 +833,40 @@ class QServerSLCollectionReports extends SEEDQ
             }
         }
 
-        krsort($raOutPartialAdopt);
+        krsort($raOutPartialAdopt);     // sorting high-low pops/csci_count
         krsort($raOutNonAdopt);
         $raOut = array_merge($raOutPartialAdopt, $raOutNonAdopt);   // partial adoptions first, then non-adopted; since keys are unique the arrays should simply concatenate
+
+        return( [$bOk, $raOut] );
+    }
+
+    private function cultivarGrowoutPriorities( int $kCollection, bool $bCanReadInternal )
+    {
+        $bOk = false;
+        $raOut = $raOutAdopted = $raNonAdopted = [];
+
+        /* Get overview of all active lots by cultivar, then filter and sort growout priorities.
+         * Remove csci_count>0 and pop>3, sort by (adopted vs non-adopted, population ascending).
+         * This creates two sections (adopted, not) each sorted with lowest viable population first.
+         */
+        list($bOk,$raCV) = $this->cultivarList_activeLotsCombined( $kCollection, false /*bUnionCSCI*/, $bCanReadInternal, " raIxG ");
+
+        foreach($raCV as $ra) {
+            if( $ra['csci_count'] > 0 || $ra['est_total_viable_pops'] > 3.0 ) continue;
+
+            // array keys are pops|kPcv to be sortable and unique
+            $k = $ra['est_total_viable_pops']."|".$ra['kPcv'];
+
+            if( $ra['adoption'] > 0 ) {
+                $raOutAdopted[$k] = $ra;
+            } else {
+                $raOutNonAdopted[$k] = $ra;
+            }
+        }
+
+        ksort($raOutAdopted);       // sorting low-high pops
+        ksort($raOutNonAdopted);
+        $raOut = array_merge($raOutAdopted, $raOutNonAdopted);   // adopted first, then non-adopted; since keys are unique the arrays should simply concatenate
 
         return( [$bOk, $raOut] );
     }

@@ -17,6 +17,7 @@ class CollectionOverview
 
         $raOps = ['Active lots'        =>'lot_all',
                   'Adoption priorities'=>'adopt_priorities',
+                  'Growout priorities' =>'growout_priorities',
                   'Other Operation'    =>'other'];
         $this->oOpPicker = new Console02UI_OperationPicker('overview', $oSVA, $raOps);
     }
@@ -65,7 +66,7 @@ $bUnionCSCI = false;
             }
             $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms), $s1 );
         } else {
-            $this->oW->oC->ErrMsg( $rQ['sErr'] );
+            $this->oApp->oC->ErrMsg( $rQ['sErr'] );
         }
         return( $s );
     }
@@ -87,7 +88,29 @@ $bUnionCSCI = false;
             }
             $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms), $s1, $sInst );
         } else {
-            $this->oW->oC->ErrMsg( $rQ['sErr'] );
+            $this->oApp->oC->ErrMsg( $rQ['sErr'] );
+        }
+        return( $s );
+    }
+
+    private function drawGrowoutPriorities()
+    {
+        $s = "";
+
+        $qCmd = 'collreport-cultivar_growout_priorities';
+        $raQCmdParms = ['kCollection'=>1];
+        $sTitle = "Growout Priorities for the Seed Library Collection";
+        $sInst = "<p>Adopted varieties at the top, then ordered by viable populations low-high, where pops < 3 and companies=0.</p>";
+
+        $rQ = $this->oQCollReports->Cmd($qCmd, $raQCmdParms);
+        if( $rQ['bOk'] ) {
+            $s1 = "";
+            foreach( $rQ['raOut'] as $ra ) {
+                $s1 .= $this->_drawCVRow($ra);
+            }
+            $s .= $this->drawReport( $sTitle, $qCmd."&".SEEDCore_ParmsRA2URL($raQCmdParms), $s1, $sInst );
+        } else {
+            $this->oApp->oC->AddErrMsg( $rQ['sErr'] );
         }
         return( $s );
     }
