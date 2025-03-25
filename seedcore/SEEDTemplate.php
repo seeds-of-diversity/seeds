@@ -28,7 +28,9 @@
  */
 
 include_once( "SEEDTag.php" );
-include_once( SEEDROOT."vendor/autoload.php" );
+if (!defined("SEED_EXTERNAL_COMPOSER")) {
+    include_once( SEEDROOT."vendor/autoload.php" );
+}
 
 class SEEDTemplate2
 {

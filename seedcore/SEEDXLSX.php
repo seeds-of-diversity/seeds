@@ -10,7 +10,9 @@
  * For more comprehensive handling of 3D data, use SEEDTableSheetsFile (which uses this).
  */
 
-require_once SEEDROOT.'/vendor/autoload.php';   // PhpOffice/PhpSpreadsheet
+ if (!defined("SEED_EXTERNAL_COMPOSER")) {
+    require_once SEEDROOT.'/vendor/autoload.php';   // PhpOffice/PhpSpreadsheet
+}
 
 class SEEDXls
 {
