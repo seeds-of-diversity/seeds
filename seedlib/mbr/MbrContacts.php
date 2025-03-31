@@ -304,6 +304,8 @@ class Mbr_Contacts
 
 class MbrContactsDraw
 {
+    private $oApp, $oMbr;
+
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
