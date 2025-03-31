@@ -274,12 +274,21 @@ class ProjectsTabProjects
 
             $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
             $oForm->Update();
-            if( !($this->kCurrMbr = $oForm->Value('kMbr')) ) {
+            if( ($kMbrAdd = $oForm->Value('kMbrAdd')) ) {
+                // specified a member in the 'Add a member' control - add to the dropdown and select it
+                if( ($name = $this->oMbr->GetContactName($kMbrAdd)) ) {
+                    $raOpts["$name ($kMbrAdd)"] = $kMbrAdd;
+                    $this->kCurrMbr = $kMbrAdd;
+                }
+            }
+            if( !$this->kCurrMbr && !($this->kCurrMbr = $oForm->Value('kMbr')) ) {
                 // if curr mbr not stored in session, initialize to the first in the dropdown
                 $this->kCurrMbr = reset($raOpts);   // returns the first value
             }
 
-            $s .= "<div style='float:left'><form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form></div>";
+            $s .= "<div style='display:inline-block'><form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form></div>
+                   &nbsp;&nbsp;
+                   <div style='display:inline-block'><form method='post'>".$oForm->Text('kMbrAdd', "", ['placeholder'=>"member #", 'value'=>"", 'attrs'=>"onChange='submit();'"])."&nbsp;Add a member</form></div>";
         }
 
         // show the kCurrMbr's name on the right

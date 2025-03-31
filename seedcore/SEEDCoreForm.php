@@ -536,6 +536,7 @@ class SEEDCoreFormControls
             bPassword = make it a password control
             bBootstrap = use bootstrap classes
             bsCol = bootstrapCol{,bootstrapCol}  for the text field{, and the label}  e.g. "md-4,md-2"
+            placeholder = string to show in empty text control
      */
     {
         $s = "";
@@ -930,6 +931,7 @@ class SEEDCoreFormControls
         width             in        css value that we put into the style attr
         height            in        css value that we put into the style attr
         bPassword         in / out  turn Text controls into password controls
+        placeholder       in / out  string to show in empty text control - we HSC this
      */
     {
         $p = array();        // output array
@@ -996,6 +998,8 @@ class SEEDCoreFormControls
             $p['bAddHidden'] = true;
             $p['bSuppressNameId'] = true;   // so there aren't two elements with the same name/id
         }
+
+        if( ($v = @$raParms['placeholder']) )  $p['raAttrs']['placeholder'] = SEEDCore_HSC($v);
 
         /* Finish by assembling the attrs, but only if this is being called by an element method
          */
