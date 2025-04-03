@@ -52,8 +52,9 @@ class CollectionTab_GerminationTests
                                                                       ['sSortCol'=>'dStart','bSortDown'=>true] );
         foreach( $raKfrG as $kfr ) {
             if( $kfr->value('dEnd') && $kfr->value('dEnd') != "0000-00-00" ) {
-                if( $kfr->Key() < 999 ) {
-                    // old germ tests: nGerm is percentage, so calculate nGerm_count so the correct value appears
+                // nGerm is always the % and it has been verified correct. nGerm_count is only set by the new system so there are many nGerm_count==0
+                if( !$kfr->Value('nGerm_count') && $kfr->Value('nGerm') > 0 ) {
+                    // calculate nGerm_count so the correct value is used below
                     $kfr->SetValue('nGerm_count', ($kfr->Value('nGerm') * $kfr->Value('nSown')) / 100 );
                 }
                 $nGermPercent = $this->germPercent( $kfr->value('nSown'), $kfr->value('nGerm_count') );
