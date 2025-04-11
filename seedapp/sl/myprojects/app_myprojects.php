@@ -286,9 +286,17 @@ class ProjectsTabProjects
                 $this->kCurrMbr = reset($raOpts);   // returns the first value
             }
 
-            $s .= "<div style='display:inline-block'><form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form></div>
+            $s .= "<div style='display:inline-block'>
+                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form>
+                   </div>
                    &nbsp;&nbsp;
-                   <div style='display:inline-block'><form method='post'>".$oForm->Text('kMbrAdd', "", ['placeholder'=>"member #", 'value'=>"", 'attrs'=>"onChange='submit();'"])."&nbsp;Add a member</form></div>";
+                   <div style='display:inline-block'>
+                       <form method='post'><select id='kMbrAdd' name='kMbrAdd' style='width:40em' onChange='submit();'><option value='0'>Search for a member</option></select></form>
+                   </div>
+                   <script>
+                       new MbrContactsSelect2( { jSelect: $('#kMbrAdd'),
+                                                 qUrl: '{$this->oP->oApp->UrlQ()}' } );
+                   </script>";
         }
 
         // show the kCurrMbr's name on the right
@@ -496,6 +504,9 @@ class ProjectsTabOffice
 
     function ControlDraw()
     {
+        $s = "";
+
+        return($s);
     }
 
     function ContentDraw()
@@ -613,7 +624,10 @@ $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js"] ] );
+                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",
+                                                     $oApp->UrlW()."seedapp/MbrContactsSelect2.js"],
+                                 'bSelect2' => true,
+                                ] );
 ?>
 
 <script>SEEDCore_CleanBrowserAddress();</script>

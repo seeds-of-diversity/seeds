@@ -279,38 +279,33 @@ class QServerMbr extends SEEDQ
      */
     {
         $bOk = false;
-        $raOut = array();
+        $raOut = [];
         $sErr = "";
 
         // impose a lower limit to the number of chars in the search string to prevent unwieldy results
         if( !($nMinChars = intval(@$raParms['nMinChars'])) )  $nMinChars = 3;
-        if( strlen( ($sSearch = @$raParms['sSearch']) ) < $nMinChars )  goto done;
+        if( strlen( ($dbSearch = addslashes(@$raParms['sSearch']??"")) ) < $nMinChars )  goto done;
 
-        $raM = $this->oApp->kfdb->QueryRowsRA( "SELECT * FROM {$this->oApp->GetDBName('seeds2')}.mbr_contacts WHERE _status='0' AND "
-                                                ."(_key='$sSearch' OR "
-                                                 ."firstname LIKE '%$sSearch%' OR "
-                                                 ."lastname  LIKE '%$sSearch%' OR "
-                                                 ."company   LIKE '%$sSearch%' OR "
-                                                 ."email     LIKE '%$sSearch%' OR "
-                                                 ."address   LIKE '%$sSearch%' OR "
-                                                 ."city      LIKE '%$sSearch%')" );
+        $raM = $this->oMbrContacts->oDB->GetList( 'M',
+                            "(_key='{$dbSearch}' OR "
+                            // picks up matches in firstname, lastname, or both with space between
+                           ."CONCAT(firstname, ' ',lastname)  LIKE '%{$dbSearch}%' OR
+                             CONCAT(firstname2,' ',lastname2) LIKE '%{$dbSearch}%' OR
+                             company    LIKE '%{$dbSearch}%' OR
+                             email      LIKE '%{$dbSearch}%' OR
+                             address    LIKE '%{$dbSearch}%' OR
+                             city       LIKE '%{$dbSearch}%')" );
 
-        if( $raM && count($raM) ) {
+        if( $raM ) {
             foreach( $raM as $ra ) {
-                $raR = array();
-                $raR['_key']      = $ra['_key'];
-                $raR['firstname'] = $this->QCharSet($ra['firstname']);
-                $raR['lastname']  = $this->QCharSet($ra['lastname']);
-                $raR['company']   = $this->QCharSet($ra['company']);
-                $raR['email']     = $this->QCharSet($ra['email']);
-                $raR['phone']     = $this->QCharSet($ra['phone']);
-                $raR['address']   = $this->QCharSet($ra['address']);
-                $raR['city']      = $this->QCharSet($ra['city']);
-                $raR['province']  = $this->QCharSet($ra['province']);
-                $raR['postcode']  = $this->QCharSet($ra['postcode']);
+                // get all elements of $ra that have the same keys as BasicFlds (_key,firstname,lastname,etc)
+                $raR = array_intersect_key($ra, $this->oMbrContacts->GetBasicFlds());
+                $raR['fullname'] = $this->oMbrContacts->GetContactNameFromMbrRA($ra);
 
                 $raOut[] = $raR;
             }
+
+            $raOut = $this->QCharsetFromLatin($raOut);
 
             $bOk = true;
         }
