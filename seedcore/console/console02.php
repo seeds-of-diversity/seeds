@@ -224,6 +224,7 @@ class Console02Static
         raConfig:
             bBootstrap    : use bootstrap by default, =>false to disable
             bJQuery       : load JQuery by default
+            bSelect2      : load Select2
             sCharset      : UTF-8 by default
             bCTHeader     : output header(Content-type) by default, =>false to disable
             sTitle        : <title>
@@ -242,9 +243,6 @@ class Console02Static
         $bCTHeader = (@$raConfig['bCTHeader'] !== false);
         $sCharset  = @$raConfig['sCharset'] ?: "UTF-8";
 
-        // <body> can have attrs and an optional margin (use the margin with bootstrap)
-        $sBodyAttr   = @$raConfig['sBodyAttr'];
-        $cssBodyStyle = ($css = @$raConfig['cssBodyMargin']) ? "margin:$css" : "";
 
         /* Content-type is always text/html because this only outputs <!DOCTYPE html> after all
          *
@@ -267,6 +265,7 @@ class Console02Static
         }
 
         if( $bBootstrap ) {
+//upgrate to 4 or 5
             $sH .= "<link rel='stylesheet' type='text/css' href='".W_CORE_URL."os/bootstrap3/dist/css/bootstrap.min.css'></link>"
                      ."<script src='".W_CORE_URL."os/bootstrap3/dist/js/bootstrap.min.js'></script>"
                      ."<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
@@ -284,27 +283,31 @@ class Console02Static
 
         /* Set the css and js for the requested console skin, and add extra css and js files too.
          */
-        if( @$raConfig['consoleSkin'] == 'green' ) {
-            $sH .= "<link rel='stylesheet' type='text/css' href='".W_CORE."css/console02.css'></link>";
-        }
-        if( @$raConfig['raCSSFiles'] ) {
-            foreach( $raConfig['raCSSFiles'] as $v ) {
-                $sH .= "<link rel='stylesheet' type='text/css' href='$v'></link>";
-            }
-        }
-        if( @$raConfig['raScriptFiles'] ) {
-            foreach( $raConfig['raScriptFiles'] as $v ) {
-                $sH .= "<script src='$v' type='text/javascript'></script>";
-            }
-        }
+        $raCSSFiles = @$raConfig['raCSSFiles'] ?? [];
+        $raScriptFiles = @$raConfig['raScriptFiles'] ?? [];
 
-        $s = "<!DOCTYPE html>"
-             ."<html lang='".($lang == 'FR' ? 'fr' : 'en')."'>"
-             ."<head>".$sH.$sHead."</head>"                                                // put user-specified head last so e.g. js vars override defaults in files
-             ."<body $sBodyAttr>"
-             .($cssBodyStyle ? ("<div style='$cssBodyStyle'>$sBody</div>") : $sBody)       // div is easier than trying to parse style in sBodyAttr
-             ."</body>"
-             ."</html>";
+        if( @$raConfig['consoleSkin'] == 'green' ) {
+            $raCSSFiles[] = W_CORE."css/console02.css";
+            //$sH .= "<link rel='stylesheet' type='text/css' href='".W_CORE."css/console02.css'></link>";
+        }
+        if( @$raConfig['bSelect2'] ) {
+            $raCSSFiles[]    = "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css";
+            $raScriptFiles[] = "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js";
+        }
+        $sH .= SEEDCore_ArrayExpandSeries($raCSSFiles,    "<link rel='stylesheet' type='text/css' href='[[v]]'></link>");
+        $sH .= SEEDCore_ArrayExpandSeries($raScriptFiles, "<script src='[[v]]' type='text/javascript'></script>");
+
+        // <body> can have attrs and an optional margin (use the margin with bootstrap)
+        $sBodyAttr   = @$raConfig['sBodyAttr'];
+        $cssBodyStyle = ($css = @$raConfig['cssBodyMargin']) ? "margin:$css" : "";
+        if($cssBodyStyle) $sBody = "<div style='{$cssBodyStyle}'>{$sBody}</div>";     // div is easier than trying to parse style in sBodyAttr
+
+        $s = "<!DOCTYPE html>
+              <html lang='".($lang == 'FR' ? 'fr' : 'en')."'>
+              <!-- put user-specified head last so e.g. js vars override defaults in files -->
+              <head>{$sH}{$sHead}</head>
+              <body {$sBodyAttr}>$sBody</body>
+              </html>";
 
         return( $s );
     }
