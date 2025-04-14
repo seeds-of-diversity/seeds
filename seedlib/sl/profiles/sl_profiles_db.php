@@ -9,7 +9,8 @@ include_once(SEEDLIB."sl/sldb.php");
 class SLProfilesDB extends Keyframe_NamedRelations
 {
     private $oApp;
-    private $oSLDB;
+// use this as the correct named relation object
+    public  $oSLDB;
 
     function __construct( SEEDAppSession $oApp )
     {

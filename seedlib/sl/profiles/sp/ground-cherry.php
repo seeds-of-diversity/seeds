@@ -73,7 +73,7 @@ class SLProfiles_GroundCherry
             [   'cmd'=>'q', 'k'=>'ground-cherry_SoD_i__fruitharvestseeds'],
 
             // General
-            ['cmd'=>'section', 'title_EN'=>"Health", 'title_FR'=>"Health"],
+            ['cmd'=>'section', 'title_EN'=>"Health/Disease", 'title_FR'=>"Health"],
             [   'cmd'=>'q', 'k'=>'common_SoD_b__disease'],
 
             ['cmd'=>'section', 'title_EN'=>"Ratings (5 for excellent, 1 for very poor)", 'title_FR'=>"Ratings"],

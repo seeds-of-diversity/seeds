@@ -101,6 +101,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
                 goto skip;
         }
 
+// oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
         if( ($kfr = $oP->oProfilesDB->Kfrel('VI')->CreateRecord()) ) {
             $kfr->SetValue('fk_mbr_contacts', $uid);
             $kfr->SetValue('psp', $psp);
@@ -122,6 +123,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
         if( ($sProjname = SEEDInput_Str('projectName')) &&
+// oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
             ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} && metadata LIKE '%project=".addslashes($sProjname)."%'")) )
         {
             $kfr->StatusSet(KeyFrameRecord::STATUS_DELETED);
@@ -243,7 +245,12 @@ class ProjectsTabProjects
     private $oP;
     private $oMbr;
     private $oSLDB;
-    private $kCurrMbr;
+
+    private $oUIProfile, $oUIRecord;
+
+    private $kCurrMbr = 0;
+    private $kCurrVI = 0;
+    private $kfrCurrVI = null;
 
     function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
     {
@@ -252,23 +259,57 @@ class ProjectsTabProjects
         $this->oMbr = new Mbr_Contacts($this->oP->oApp);
         $this->oSLDB = new SLDBProfile($this->oP->oApp);
 
+        // ui components of this tab view
+        $this->oUIProfile = new ProjectsTabProjects_UI_Profile($this, $oP);
+        $this->oUIRecord = new ProjectsTabProjects_UI_Record($this, $oP);
+
         // default to current login - change to the SVA selected kMbr if allowed to do that below
         $this->kCurrMbr = $this->oP->oApp->sess->GetUID();
     }
 
+    /* Profile and Record UI components need to reference the current kfr, but each can potentially update it.
+     * Use this as the one true copy, allowing Updates to change it.
+     */
+    function KFRCurrVI()  { return($this->kfrCurrVI); }
+
     function Init()
     {
+        /* vi == -1 indicates Add New Project mode
+         * vi > 0   when user clicks in project list. forms must propagate this because it is not persistent
+         */
+        if( SEEDInput_Str('action') == 'Add New Project' ) {
+            $this->kCurrVI = -1;
+        } else {
+            $this->kCurrVI = SEEDInput_Int('vi');
+        }
+        if( $this->kCurrVI < -1 ) $this->kCurrVI = 0;
+
+        /* Create kfr for selected project, or empty kfr for -1
+         * It's best to check this for null later anyway, in case of error
+         */
+        if( $this->kCurrVI )  $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $this->kCurrVI);
+
+        /* kCurrMbr is GetUID unless office mode allows member selection
+         */
+
+        /* kCurrVI and kCurrMbr must be correct before initializing ui components
+         *
+         * Each Init() can potentially change the record via form Update(), so if that happens a different kfr is returned to keep all components synced.
+         */
+        $this->oUIProfile->Init($this->kCurrVI);
+        $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrVI, $this->kCurrMbr);
     }
 
     function ControlDraw()
     {
         $s = "";
 
+// put all this in a class and get kCurrMbr in Init()
         if( $this->oP->CanReadOtherUsers() ) {
             $y = 2024;
             $raOpts = [];
             foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y") as $kMbr ) {
-                $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;
+                $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
             }
             ksort($raOpts);
 
@@ -309,12 +350,6 @@ class ProjectsTabProjects
     {
         $s = "";
 
-        $oMbr = new Mbr_Contacts($this->oP->oApp);
-        $oSLDB = new SLDBProfile($this->oP->oApp);
-
-        $oProfilesDefs = new SLProfilesDefs( $this->oP->oProfilesDB );
-        $oProfilesReport = new SLProfilesReport( $this->oP->oProfilesDB, $oProfilesDefs, $this->oP->oApp );
-
         /* Membership status and renewal
          */
         if( $this->kCurrMbr ) {
@@ -326,7 +361,7 @@ class ProjectsTabProjects
             $parms['lang'] = $this->oP->oL->GetLang();
 
             $sL = (new MbrContactsDraw($this->oP->oApp))->DrawExpiryNotice($this->kCurrMbr, $parms );
-            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$oMbr->DrawAddressBlock($this->kCurrMbr)}</div>";
+            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$this->oMbr->DrawAddressBlock($this->kCurrMbr)}</div>";
             $s .= "<div class='container-fluid'><div class='row'>
                        <div class='col-md-6'>$sL</div>
                        <div class='col-md-3'>&nbsp;</div>
@@ -334,22 +369,79 @@ class ProjectsTabProjects
                    </div>";
         }
 
+        $s .= "<hr/>";
 
-        /* 2025 projects (just to show them at the top, not functional like they are at the bottom).
+        /* Show projects
          */
-        $year = 2025;
-        $sY = "";
-        if( ($u = intval($this->kCurrMbr)) ) {
-            foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
-                $sY .= "<p>{$ra['sp']} : {$ra['cv']}</p>";
-            }
-            if($sY) $s .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>".$sY."<br/>";
+        $sLeft = $sOfficePanel = $sProfile = "";
+
+        // Add New Project button
+        if( $this->oP->CanWriteOtherUsers() ) {
+            $sLeft .= "<form method='post'><input type='submit' name='action' value='Add New Project'/></form>";
         }
 
-        /* CGO Signups
+
+        /* 2025 and 2024 projects
          */
+        if( ($u = intval($this->kCurrMbr)) ) {
+            $raY = [];
+            foreach([2025,2024] as $year) {
+                foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
+                    if(!isset($raY[$year])) {
+                        $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
+                        $raY[$year] = 1;
+                    }
+                    $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
+                }
+            }
+            if( !$raY ) {
+                $sLeft .= "<h4 style='color:#777'>You haven't signed up for any projects (yet!)</h3>";
+            }
+        }
+
+
+        if( $this->kCurrVI > 0 ) {
+            // User clicked in the project list. This is propagated by project forms too.
+            if( $this->kfrCurrVI ) {
+                $sProfile .= $this->oUIProfile->DrawProfile();
+            }
+        }
+
+        if( $this->kCurrVI && $this->oP->CanWriteOtherUsers() ) {
+            /* Show the project record : >0 means a project was selected in the list
+             *                           -1 means new project button was clicked
+             */
+            $sOfficePanel .= ("<h3>".($this->kCurrVI == -1 ? "New " : "")."Project Record</h3>")
+                            .$this->oUIRecord->DrawRecord( $this->kCurrMbr /*kluge: remove when kCurrMbr is known in Init()*/);
+        }
+
+        if( $this->oP->CanWriteOtherUsers() ) {
+            $s .= "<div class='container-fluid'><div class='row'>
+                   <div class='col-md-3'>$sLeft</div>
+                   <div class='col-md-5'>$sProfile</div>
+                   <div class='col-md-4'>$sOfficePanel</div>
+                   </div></div>";
+        } else {
+            $s .= "<div class='container-fluid'><div class='row'>
+                   <div class='col-md-3'>$sLeft</div>
+                   <div class='col-md-9'>$sProfile</div>
+                   </div></div>";
+
+        }
+
+//        $s .= $this->cgoSignup();
+
+        return( $s );
+    }
+
+
+    private function cgoSignup()
+    {
+        $s = "";
+
         include("cgo_signup.php");
 
+// oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
         $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025gc%'");
         $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025tomato%'");
         $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'");
@@ -367,94 +459,199 @@ class ProjectsTabProjects
          */
         $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
 
-        $s .= "<hr/>";
+        return($s);
+    }
+}
 
-        /* Show projects
+class ProjectsTabProjects_UI_Profile
+{
+    private $oP;
+    private $oPTP;
+    private $oProfilesReport;
+    private $oForm;
+
+    function __construct( ProjectsTabProjects $oPTP, ProjectsCommon $oP )
+    {
+        $this->oP = $oP;
+        $this->oPTP = $oPTP;
+        $this->oProfilesReport = new SLProfilesReport($this->oP->oProfilesDB, new SLProfilesDefs($this->oP->oProfilesDB), $this->oP->oApp );
+    }
+
+    function Init( int $kVI )
+    {
+        /* Process form submission before drawing any other components' content.
+         * kCurrVI is correct at this point
          */
-        $sLeft = $sRight = "";
 
+        // this should be in oCP too
+        $this->oForm = new SLProfilesForm( $this->oP->oProfilesDB, $kVI );
+        $this->oForm->Update();  // record the sl_desc_obs returned from the form
 
-        /* 2025 and 2024 projects
+        /* The code above doesn't update the VI record. If it ever does, this method should return a new kfr.
          */
-        if( ($u = intval($this->kCurrMbr)) ) {
-            $raY = [];
-            foreach([2025,2024] as $year) {
-                if(!isset($raY[$year])) {
-                    $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
-                    $raY[$year] = 1;
-                }
-                foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
-                    $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
-                }
-            }
-        }
+    }
 
+    function DrawProfile()
+    /*********************
+        Draw the profile for the selected VI
+        Switch between profile summary and profile form
+     */
+    {
+        $s = "";
 
-        if( ($kVI = SEEDInput_Int('vi')) ) {
-            $kfrVI = $oSLDB->GetKFR('VI', $kVI);
+        /* This method only makes sense if a record is selected
+         * Use the parent's copy as the one true copy shared by all ui components.
+         */
+        if( !($kfrVI = $this->oPTP->KFRCurrVI()) )  goto done;
 
-            list($psp,$sSp,$sCv) = $this->oP->oProfilesDB->ComputeVarInstName($kfrVI);
+        list($psp,$sSp,$sCv) = $this->oP->oProfilesDB->ComputeVarInstName($kfrVI);
 
-            $sRight .= "<h2>$sSp : $sCv</h2>";
+        $s .= "<h2>$sSp : $sCv</h2>";
 
-            // this should be in oCP too
-            $oF = new SLProfilesForm( $this->oP->oProfilesDB, $kVI );
-            $oF->Update();  // record the sl_desc_obs returned from the form
+//what is this for
+        $oUI = new SEEDUI();
+        $oComp = new SEEDUIComponent($oUI);
+        $oComp->Update();
+        $oComp->Set_kCurr($kfrVI->Key());   // initialize the list to the right row e.g. if we just created a new row
 
-            $oUI = new SEEDUI();
-            $oComp = new SEEDUIComponent( $oUI );
 // require $this->kCurrMbr==$this->oApp->sess->GetUID() || $this->oP->CanWriteOtherUsers()
-            $oComp->Update();
-            if( $kVI ) $oComp->Set_kCurr( $kVI );   // initialize the list to the right row e.g. if we just created a new row
+        if( SEEDInput_Int('doForm') ) {
+            // Show the form
+            $oChooseForm = new SEEDCoreForm('Plain');
+            $oChooseForm->Update();
+            if( !$oChooseForm->Value('chooseForm') )  $oChooseForm->SetValue('chooseForm', 'cgo');
 
+            $s .= "<div style='float:right'><form method='post'>
+                   <p><b>Choose Your Form</b></p>"
+                  .$oChooseForm->Select('chooseForm',
+                                  ["Trial performance form for Community Grow-outs" => 'cgo',
+                                   "Shortened descriptive form"                     => 'short',
+                                   "Full taxonomic form"                            => 'long'],
+                                  "",
+                                  ['attrs'=>"onchange='submit()'"] )
+                  ."<input type='hidden' name='doForm' value='1'/>
+                    <input type='hidden' name='vi' value='{$kfrVI->Key()}'/>
+                    </form></div>
 
-            if( SEEDInput_Int('doForm') ) {
-                // Show the form
-                $oChooseForm = new SEEDCoreForm('Plain');
-                $oChooseForm->Update();
-                if( !$oChooseForm->Value('chooseForm') )  $oChooseForm->SetValue('chooseForm', 'cgo');
-
-                $sRight  .= "<div style='float:right'><form method='post'>"
-                           ."<p><b>Choose Your Form</b></p>"
-                           .$oChooseForm->Select('chooseForm',
-                                   ["Trial performance form for Community Grow-outs" => 'cgo',
-                                    "Shortened descriptive form"                     => 'short',
-                                    "Full taxonomic form"                            => 'long'],
-                                   "",
-                                   ['attrs'=>"onchange='submit()'"] )
-                           ."<input type='hidden' name='doForm' value='1'/>
-                             <input type='hidden' name='vi' value='{$kVI}'/>
-                             </form></div>"
-
-                            ."<h3>Edit Record for $sSp : $sCv</h3>" // (#$kVI)</h3>
-                           .$oProfilesReport->DrawVIForm( $kVI, $oComp, $oChooseForm->Value('chooseForm') );
-            } else {
-                // Show the summary
-                $sRight  .= "<div style='border-left:1px solid #ddd;border-bottom:1px solid #ddd'>"
-                           ."<div style='float:left;margin-right:20px;'>"
-                               ."<form method='post'>"
-                                   //.$oComp->HiddenFormUIParms( array('kCurr', 'sortup', 'sortdown') )
-                                   //.$oComp->HiddenKCurr()
-                                   ."<input type='hidden' name='doForm' value='1'/>"
-                                   ."<input type='hidden' name='vi' value='{$kVI}'/>"
-                                   ."<input type='submit' value='Edit'/>"
-                               ."</form>"
-                           ."</div>"
-                           //."<h3>Record #$kVI</h3>"
-                           .$oProfilesReport->DrawVIRecord( $kVI, true )
-                           ."</div>";
-            }
-
+                    <h3>Edit Record</h3>" //  for $sSp : $sCv</h3>" // (#$kVI)</h3>
+                   .$this->oProfilesReport->DrawVIForm( $kfrVI, $oComp, $oChooseForm->Value('chooseForm') );
+        } else {
+            // Show the summary
+            $s .= "<div style='border-left:1px solid #ddd;border-bottom:1px solid #ddd'>
+                       <div style='float:left;margin-right:20px;'>
+                           <form method='post'>
+                               <input type='hidden' name='doForm' value='1'/>
+                               <input type='hidden' name='vi' value='{$kfrVI->Key()}'/>
+                               <input type='submit' value='Edit'/>
+                      ".        //.$oComp->HiddenFormUIParms( array('kCurr', 'sortup', 'sortdown') )
+                                     //.$oComp->HiddenKCurr()
+                      "    </form>
+                       </div>"
+                       //."<h3>Record #$kVI</h3>"
+                      .$this->oProfilesReport->DrawVIRecord( $kfrVI, true )
+                 ."</div>";
         }
 
-        $s .= "<div class='container-fluid'><div class='row'>
-              <div class='col-md-3'>$sLeft</div>
-              <div class='col-md-9'>$sRight</div>
-              </div></div>";
-
+        done:
         return( $s );
     }
 }
+
+class ProjectsTabProjects_UI_Record
+{
+    private $oP, $oPTP;
+    private $kVI = 0;
+    private $kMbr = 0;
+    private $oForm;
+
+    function __construct( ProjectsTabProjects $oPTP, ProjectsCommon $oP )
+    {
+        $this->oP = $oP;
+        $this->oPTP = $oPTP;
+    }
+
+    function Init( int $kVI, int $kMbr )
+    {
+        /* Process form submission before drawing any other components' content.
+         * kCurrVI is correct at this point
+         */
+        $this->kVI = $kVI;
+        $this->kMbr = $kMbr;
+
+        $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'A');
+        $this->oForm->Update();
+
+        /* If a record was submitted, return the form's new kfr to the caller to become the shared kfr for all ui components.
+         * Otherwise use the parent's kfr to draw the form (return that kfr redundantly to keep the code simple)
+         */
+        if( $this->oForm->GetKey() ) {
+            // A record was submitted via the form.
+            if( $kVI != -1 && $kVI != $this->oForm->GetKey() ) {
+                $this->oP->oApp->oC->AddErrMsg("mismatched varinst keys : {$kVI} and {$this->oForm->GetKey()}");
+            }
+            $kfrVI = $this->oForm->GetKFR();
+        } else {
+            // Form was not submitted, so use the pre-loaded kfr to draw the form
+            $kfrVI = $this->oPTP->KFRCurrVI();
+            if( $this->kVI == -1 ) {
+                // blank form for new record; set default values
+                if( !$this->oForm->Value('year') ) $this->oForm->SetValue('year', date('Y'));
+            } else if( $kfrVI ) {
+                $this->oForm->SetKFR($kfrVI);
+            }
+        }
+        return($kfrVI);
+    }
+
+
+    private $projcodes =
+                ["Core"              => 'core',
+                 "CGO ground cherry" => 'cgo_gc',
+                 "CGO tomato"        => 'cgo_tomato',
+                 "CGO bean"          => 'cgo_bean',
+                ];
+
+    function DrawRecord( $kMbrKluge )
+    /********************
+        Show the details of the varinst record
+        Switch between record summary and form
+     */
+    {
+        $s = "";
+
+$this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
+
+        $oExpand = new SEEDFormExpand($this->oForm);
+
+        $s .= "<div><form method='post'>"
+             .$oExpand->ExpandForm(
+                  "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+                   ||| *Project #*               || [[Key: | readonly]]
+                   ||| *Project group*           || ".$this->oForm->Select('projcode', array_merge(['-- Choose --'=>''], $this->projcodes))."
+                   ||| *Year*                    || [[Text:year]]
+                   ||| *Species* psp             || [[Text:psp]]
+                   ||| *Species* osp             || [[Text:osp]]
+                   ||| fk_sl_species             || [[Text:fk_sl_species]]
+                   ||| *Variety* pname           || [[Text:pname]]
+                   ||| *Variety* oname           || [[Text:oname]]
+                   ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
+                   ||| *SoD Lot #*               || [[Text:kLot]]
+                   ||| fl_sl_inventory           || [[Text:fk_sl_inventory]]
+                   ||| metadata                  || [[Text:metadata]]
+                   ||| &nbsp;                    || \n
+                   ||| <input type='submit' value='Save Project Record'/>
+                   |||ENDTABLE
+                   [[Hidden: action | value=saveProj]]
+                   [[Hidden: fk_mbr_contacts | value={$this->kMbr}]]
+                 ")
+             ."<input type='hidden' name='vi' value='{$this->kVI}'/>"       // -1 will cause UI to do this function, which will create new record via Update(); HiddenKey will be 0
+             ."</form></div>";
+
+        done:
+        return($s);
+    }
+}
+
 
 class ProjectsTabSites
 {

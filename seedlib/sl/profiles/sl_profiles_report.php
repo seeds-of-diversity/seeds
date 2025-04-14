@@ -20,17 +20,16 @@ class SLProfilesReport
         $this->oApp = $oApp;
     }
 
-    function DrawVIRecord( $kVI, $bBasic = true )
-    /********************************************
+    function DrawVIRecord( KeyframeRecord $kfrVI, $bBasic = true )
+    /*************************************************************
         Show the record for a variety/site/year
      */
     {
         $s = "";
 
-        if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VI', $kVI )) ) goto done;
         list($psp,$sp,$cv) = $this->oProfilesDB->ComputeVarInstName($kfrVI);
 
-        $raDO = $this->oProfilesDB->GetList( 'Obs', "fk_sl_varinst='$kVI'" );
+        $raDO = $this->oProfilesDB->GetList( 'Obs', "fk_sl_varinst='{$kfrVI->Key()}'" );
         $defsRA = $this->oProfilesDefs->GetDefsRAFromSP( $psp );
 //var_dump($raVI);
 //var_dump($raDO);
@@ -106,13 +105,12 @@ class SLProfilesReport
         return( $s );
     }
 
-    function DrawVIForm( $kVI, SEEDUIComponent $oUIComp, string $eForm )
+    function DrawVIForm( KeyframeRecord $kfrVI, SEEDUIComponent $oUIComp, string $eForm )
     {
         $s = "";
 
         if( !$eForm )  $eForm = 'default';
 
-        if( !($kfrVI = $this->oProfilesDB->GetKFR( 'VI', $kVI )) ) goto done;
         //list($psp,$sp,$cv) = $this->oProfilesDB->ComputeVarInstName($kfrVI);
 
 //        $raForms = $this->getFormsForSp( $sp );
@@ -149,6 +147,7 @@ class SLProfilesReport
         return( $s );
     }
 
+// oUIComp is not used and shouldn't ; this should take an oForm instead and the caller should render the <form> and submit button
     private function drawObservationForm( $kfrVI, $eForm, SEEDUIComponent $oUIComp )
     {
         $kVI = $kfrVI->Key();
@@ -199,6 +198,7 @@ class SLProfilesReport
 
 // Use SEEDUI to format the form
         $s = "<form method='post' action='{$this->oApp->PathToSelf()}'>"
+// vi and action should be handled by the caller so they are encapsulated in a ui system; form elements above should use a supplied oForm
             ."<input type='hidden' name='vi' value='{$kVI}'/>"                          // this is just for the UI (use profileUpdate)
             ."<br/><input type='submit' value='Save' class='slUserFormButton' />"
             ."<div style='border:1px solid #eee;padding:10px'>"
@@ -553,7 +553,7 @@ function tomatoForm( SLProfilesDefs $oSLProfilesDefs, SLProfilesDB $oDB, int $kV
         [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitsizeuniformity'],
         [   'cmd'=>'q_m', 'k'=>'tomato_SoD_m__fruitcategory'],
 
-        ['cmd'=>'section', 'title_EN'=>"Health", 'title_FR'=>"Health"],
+        ['cmd'=>'section', 'title_EN'=>"Health/Disease", 'title_FR'=>"Health"],
         [   'cmd'=>'q_b', 'k'=>'common_SoD_b__disease'],
 
         ['cmd'=>'section', 'title_EN'=>"Ratings (5 for excellent, 1 for very poor)", 'title_FR'=>"Ratings"],
