@@ -315,17 +315,22 @@ class ProjectsTabProjects
 
             $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
             $oForm->Update();
-            if( ($kMbrAdd = $oForm->Value('kMbrAdd')) ) {
-                // specified a member in the 'Add a member' control - add to the dropdown and select it
-                if( ($name = $this->oMbr->GetContactName($kMbrAdd)) ) {
-                    $raOpts["$name ($kMbrAdd)"] = $kMbrAdd;
-                    $this->kCurrMbr = $kMbrAdd;
-                }
+
+            if( ($kMbrAdd = SEEDInput_Int('kMbrAdd')) && ($name = $this->oMbr->GetContactName($kMbrAdd)) ) {
+                // specified a member in the 'Search for a member' control
+                $raOpts["$name ($kMbrAdd)"] = $kMbrAdd;     // add to the dropdown (will be there already if you save a project in their name)
+                $oForm->SetValue('kMbr', $kMbrAdd);         // make this member persistent in oFormSVA
+                $this->kCurrMbr = $kMbrAdd;                 // current in ui
+            } else if( ($kMbr = $oForm->ValueInt('kMbr')) ) {
+                // member chosen from the dropdown list - oFormSVA makes this persistent every time here until changed
+                $this->kCurrMbr = $kMbr;
             }
-            if( !$this->kCurrMbr && !($this->kCurrMbr = $oForm->Value('kMbr')) ) {
-                // if curr mbr not stored in session, initialize to the first in the dropdown
-                $this->kCurrMbr = reset($raOpts);   // returns the first value
-            }
+/* There is a minor bug here. If you search for a member who is not in the dropdown list they are added to the dropdown and made persistent in oFormSVA.
+ * If you add a project they will be in the dropdown later.
+ * If you don't add a project but instead just reload the page, they will persistently be the current member but since they are not listed in the dropdown the select control will
+ * show someone else (the top option).
+ * Worst case is an office staff searches for Bob, refreshes the page, sees Alice in the dropdown and enters project info for Alice but it is saved under Bob instead. Unlikely.
+ */
 
             $s .= "<div style='display:inline-block'>
                        <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form>
@@ -578,7 +583,7 @@ class ProjectsTabProjects_UI_Record
         $this->kVI = $kVI;
         $this->kMbr = $kMbr;
 
-        $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'A');
+        $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'R');
         $this->oForm->Update();
 
         /* If a record was submitted, return the form's new kfr to the caller to become the shared kfr for all ui components.
