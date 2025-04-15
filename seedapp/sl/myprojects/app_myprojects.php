@@ -308,7 +308,12 @@ class ProjectsTabProjects
         if( $this->oP->CanReadOtherUsers() ) {
             $y = 2024;
             $raOpts = [];
-            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y") as $kMbr ) {
+
+            $condWorkflow = "";
+            if( ($w = SEEDInput_Int('workflow')) ) {
+                $condWorkflow = " AND workflow=$w";
+            }
+            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y {$condWorkflow}") as $kMbr ) {
                 $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
             }
             ksort($raOpts);
@@ -322,8 +327,14 @@ class ProjectsTabProjects
                 $oForm->SetValue('kMbr', $kMbrAdd);         // make this member persistent in oFormSVA
                 $this->kCurrMbr = $kMbrAdd;                 // current in ui
             } else if( ($kMbr = $oForm->ValueInt('kMbr')) ) {
-                // member chosen from the dropdown list - oFormSVA makes this persistent every time here until changed
-                $this->kCurrMbr = $kMbr;
+                if( in_array($kMbr, $raOpts) ) {
+                    // member chosen from the dropdown list - oFormSVA makes this persistent every time here until changed
+                    $this->kCurrMbr = $kMbr;
+                } else {
+                    // or the dropdown list changed and the persistent mbr isn't there so select the first one
+                    $this->kCurrMbr = reset($raOpts);
+                    $oForm->SetValue('kMbr', $this->kCurrMbr);         // make this member persistent in oFormSVA
+                }
             }
 /* There is a minor bug here. If you search for a member who is not in the dropdown list they are added to the dropdown and made persistent in oFormSVA.
  * If you add a project they will be in the dropdown later.
@@ -343,6 +354,14 @@ class ProjectsTabProjects
                        new MbrContactsSelect2( { jSelect: $('#kMbrAdd'),
                                                  qUrl: '{$this->oP->oApp->UrlQ()}' } );
                    </script>";
+
+            $s .= "&nbsp;&nbsp;
+                   <div style='display:inline-block'><form method='post'>
+                       <select name='workflow' onchange='submit()'>
+                           <option value=''>-- Choose --</option>
+                           <option value='1'>1</option><option value='2'>2</option><option value='3'>3</option>
+                       </select>
+                   </form></div>";
         }
 
         // show the kCurrMbr's name on the right
@@ -396,7 +415,9 @@ class ProjectsTabProjects
                         $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
                         $raY[$year] = 1;
                     }
-                    $sLeft .= "<p><a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a></p>";
+                    $sLeft .= "<p><div style='display:inline-block;color:#777;border:1px solid #777;border-radius:3px;padding:0 2px'>{$ra['raVI']['workflow']}</div>
+                                  <a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a>
+                               </p>";
                 }
             }
             if( !$raY ) {
@@ -616,12 +637,30 @@ class ProjectsTabProjects_UI_Record
                  "CGO bean"          => 'cgo_bean',
                 ];
 
+    private $workflowcodes =
+                ["1 - Interest"       => 1,
+                 "2 - Choosing seeds" => 2,
+                 "3 - Seeds chosen"   => 3,
+                 "4 - Seeds mailed"   => 4,
+                 "5 - Growing"        => 5,
+                 "6 - Needs support"  => 6,
+                 "20 - Seeds returned successfully" => 20,
+                 "-1 - Did not start" => -1,
+                 "-2 - Problem during season" => -2,
+                 "-3 - Did not return seeds" => -3,
+                ];
+
     function DrawRecord( $kMbrKluge )
     /********************
         Show the details of the varinst record
         Switch between record summary and form
      */
     {
+        /*
+          alter table sl_varinst add projcode varchar(100) not null default '';
+          alter table sl_varinst add workflow int not null default 0;
+          alter table sl_varinst add notes_office text not null;
+         */
         $s = "";
 
 $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
@@ -631,20 +670,22 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
         $s .= "<div><form method='post'>"
              .$oExpand->ExpandForm(
                   "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+                   ||| <input type='submit' value='Save Project Record'/>
                    ||| *Project #*               || [[Key: | readonly]]
                    ||| *Project group*           || ".$this->oForm->Select('projcode', array_merge(['-- Choose --'=>''], $this->projcodes))."
                    ||| *Year*                    || [[Text:year]]
-                   ||| *Species* psp             || [[Text:psp]]
-                   ||| *Species* osp             || [[Text:osp]]
-                   ||| fk_sl_species             || [[Text:fk_sl_species]]
-                   ||| *Variety* pname           || [[Text:pname]]
-                   ||| *Variety* oname           || [[Text:oname]]
-                   ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
+                   ||| *Species* psp             || [[Text:psp | width:100%]]
+                   ||| *Species* osp             || [[Text:osp | width:100%]]
+                   ||| *Variety* pname           || [[Text:pname | width:100%]]
+                   ||| *Variety* oname           || [[Text:oname | width:100%]]
+                   ||| metadata                  || [[Text:metadata | width:100%]]
                    ||| *SoD Lot #*               || [[Text:kLot]]
                    ||| fl_sl_inventory           || [[Text:fk_sl_inventory]]
-                   ||| metadata                  || [[Text:metadata]]
+                   ||| fk_sl_species             || [[Text:fk_sl_species]]
+                   ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
                    ||| &nbsp;                    || \n
-                   ||| <input type='submit' value='Save Project Record'/>
+                   ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->workflowcodes))."
+                   ||| {replaceWith class='col-md-12'} <label>Office notes</label><br/>[[TextArea: notes_office | width:100% rows:10]]
                    |||ENDTABLE
                    [[Hidden: action | value=saveProj]]
                    [[Hidden: fk_mbr_contacts | value={$this->kMbr}]]

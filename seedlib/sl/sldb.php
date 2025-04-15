@@ -253,6 +253,9 @@ class _sldb_defs
                  ["col"=>"oname",               "type"=>"S"],   // to record user's original names
                  ["col"=>"year",                "type"=>"I"],
                  ["col"=>"metadata",            "type"=>"S"],
+                 ["col"=>"projcode",            "type"=>"S"],   // type of project
+                 ["col"=>"workflow",            "type"=>"I"],   // current status of project
+                 ["col"=>"notes_office",        "type"=>"S"],
         ] );
     }
 
