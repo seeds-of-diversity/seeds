@@ -43,7 +43,9 @@ class SLProfilesDB extends Keyframe_NamedRelations
         if( $kMbr && ($kfrc = $this->oSLDB->GetKFRC('VI', "VI.fk_mbr_contacts='$kMbr' $sCondYear")) ) {
             while( $kfrc->CursorFetch() ) {
                 list($psp,$sSp,$sCv) = $this->ComputeVarInstName($kfrc);
-                $raOut[] = ['kVI'=>$kfrc->Key(), 'psp'=>$psp, 'sp'=>$sSp, 'cv'=>$sCv];
+                $raOut[] = ['kVI'=>$kfrc->Key(), 'psp'=>$psp, 'sp'=>$sSp, 'cv'=>$sCv,
+                            'raVI'=>['workflow'=>$kfrc->Value('workflow')]  // extend this as needed
+                ];
             }
         }
         return( $raOut );
