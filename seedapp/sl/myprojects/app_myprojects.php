@@ -199,6 +199,19 @@ class ProjectsCommon
     public $oProfilesDB;
     public $oL;
 
+    public const workflowcodes =
+                ["1 - Interest"                     => 1,
+                 "2 - Choosing seeds"               => 2,
+                 "3 - Seeds chosen"                 => 3,
+                 "4 - Seeds mailed"                 => 4,
+                 "5 - Growing"                      => 5,
+                 "6 - Needs support"                => 6,
+                 "20 - Seeds returned successfully" => 20,
+                 "-1 - Did not start"               => -1,
+                 "-2 - Problem during season"       => -2,
+                 "-3 - Did not return seeds"        => -3,
+                ];
+
     function __construct( SEEDAppConsole $oApp, array $raParms = [] )
     {
         $this->oApp = $oApp;
@@ -206,7 +219,6 @@ class ProjectsCommon
         $this->oL = new SEED_Local( $this->sLocalStrs(),
                                     @$raParms['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
                                     'myprojects' );
-
     }
 
     function CanReadOtherUsers()
@@ -307,61 +319,70 @@ class ProjectsTabProjects
 // put all this in a class and get kCurrMbr in Init()
         if( $this->oP->CanReadOtherUsers() ) {
             $y = 2024;
-            $raOpts = [];
 
-            $condWorkflow = "";
-            if( ($w = SEEDInput_Int('workflow')) ) {
-                $condWorkflow = " AND workflow=$w";
+            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
+
+            // the SVA is active so you can get old values to compare
+            $iWorkflowOld = $oForm->Value('workflow');
+
+            $oForm->Update();
+
+            $iWorkflow = $oForm->ValueInt('workflow');
+            $bWorkflowChanged = $iWorkflow != $iWorkflowOld;
+
+            $kMbrSearch = SEEDInput_Int('kMbrSearch');
+
+            if( $kMbrSearch ) {
+                // reset workflow filter when a member is selected via search
+                $bWorkflowChanged = $iWorkflow != 0;
+                $iWorkflow = 0;
+                $oForm->SetValue('workflow', 0);
             }
+
+
+            /* Get list of project members, filtered by workflow state
+             */
+            $raOpts = [];
+            $condWorkflow = $iWorkflow ? " AND workflow=$iWorkflow" : "";
             foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y {$condWorkflow}") as $kMbr ) {
                 $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
             }
             ksort($raOpts);
 
-            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
-            $oForm->Update();
-
-            if( ($kMbrAdd = SEEDInput_Int('kMbrAdd')) && ($name = $this->oMbr->GetContactName($kMbrAdd)) ) {
-                // specified a member in the 'Search for a member' control
-                $raOpts["$name ($kMbrAdd)"] = $kMbrAdd;     // add to the dropdown (will be there already if you save a project in their name)
-                $oForm->SetValue('kMbr', $kMbrAdd);         // make this member persistent in oFormSVA
-                $this->kCurrMbr = $kMbrAdd;                 // current in ui
-            } else if( ($kMbr = $oForm->ValueInt('kMbr')) ) {
-                if( in_array($kMbr, $raOpts) ) {
-                    // member chosen from the dropdown list - oFormSVA makes this persistent every time here until changed
-                    $this->kCurrMbr = $kMbr;
-                } else {
-                    // or the dropdown list changed and the persistent mbr isn't there so select the first one
-                    $this->kCurrMbr = reset($raOpts);
-                    $oForm->SetValue('kMbr', $this->kCurrMbr);         // make this member persistent in oFormSVA
-                }
+            /* If member selected via search
+             */
+            if( $kMbrSearch ) {
+                $name = $this->oMbr->GetContactName($kMbrSearch);
+                $raOpts["$name ($kMbrSearch)"] = $kMbrSearch;  // add to the dropdown (idempotent if it is already there)
+                $this->kCurrMbr = $kMbrSearch;                 // current in ui
+            } else
+            /* If member chosen from dropdown or recalled from oSVA.
+             * If workflow changed, it's best to forget the kMbr state so the default reset() behaviour should happen instead.
+             * Adding to dropdown for rare cases where kMbr already selected but no projects yet. e.g. search for member without project, click Add Project : won't be loaded into dropdown
+             */
+            if( !$bWorkflowChanged && ($kMbr = $oForm->ValueInt('kMbr')) ) {
+                $name = $this->oMbr->GetContactName($kMbr);
+                $raOpts["$name ($kMbr)"] = $kMbr;           // add to the dropdown (idempotent if it is already there)
+                $this->kCurrMbr = $kMbr;                    // current in ui
+            } else {
+                $this->kCurrMbr = reset($raOpts);
             }
-/* There is a minor bug here. If you search for a member who is not in the dropdown list they are added to the dropdown and made persistent in oFormSVA.
- * If you add a project they will be in the dropdown later.
- * If you don't add a project but instead just reload the page, they will persistently be the current member but since they are not listed in the dropdown the select control will
- * show someone else (the top option).
- * Worst case is an office staff searches for Bob, refreshes the page, sees Alice in the dropdown and enters project info for Alice but it is saved under Bob instead. Unlikely.
- */
+            $oForm->SetValue('kMbr', $this->kCurrMbr);      // make this member persistent in oFormSVA
 
             $s .= "<div style='display:inline-block'>
-                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])."</form>
+                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])
+                     ."<br/><br/>"
+                     .$oForm->Select('workflow', array_merge(['-- Filter by workflow --'=>'0'],$this->oP::workflowcodes), "", ['selected'=>$iWorkflow, 'attrs'=>"onChange='submit();'"])
+                     ."</form>
                    </div>
                    &nbsp;&nbsp;
-                   <div style='display:inline-block'>
-                       <form method='post'><select id='kMbrAdd' name='kMbrAdd' style='width:40em' onChange='submit();'><option value='0'>Search for a member</option></select></form>
+                   <div style='display:inline-block;vertical-align:top'>
+                       <form method='post'><select id='kMbrSearch' name='kMbrSearch' style='width:40em' onChange='submit();'><option value='0'>Search for a member</option></select></form>
                    </div>
                    <script>
-                       new MbrContactsSelect2( { jSelect: $('#kMbrAdd'),
+                       new MbrContactsSelect2( { jSelect: $('#kMbrSearch'),
                                                  qUrl: '{$this->oP->oApp->UrlQ()}' } );
                    </script>";
-
-            $s .= "&nbsp;&nbsp;
-                   <div style='display:inline-block'><form method='post'>
-                       <select name='workflow' onchange='submit()'>
-                           <option value=''>-- Choose --</option>
-                           <option value='1'>1</option><option value='2'>2</option><option value='3'>3</option>
-                       </select>
-                   </form></div>";
         }
 
         // show the kCurrMbr's name on the right
@@ -629,25 +650,12 @@ class ProjectsTabProjects_UI_Record
         return($kfrVI);
     }
 
-
+// move to ProjectsCommon
     private $projcodes =
                 ["Core"              => 'core',
                  "CGO ground cherry" => 'cgo_gc',
                  "CGO tomato"        => 'cgo_tomato',
                  "CGO bean"          => 'cgo_bean',
-                ];
-
-    private $workflowcodes =
-                ["1 - Interest"       => 1,
-                 "2 - Choosing seeds" => 2,
-                 "3 - Seeds chosen"   => 3,
-                 "4 - Seeds mailed"   => 4,
-                 "5 - Growing"        => 5,
-                 "6 - Needs support"  => 6,
-                 "20 - Seeds returned successfully" => 20,
-                 "-1 - Did not start" => -1,
-                 "-2 - Problem during season" => -2,
-                 "-3 - Did not return seeds" => -3,
                 ];
 
     function DrawRecord( $kMbrKluge )
@@ -684,7 +692,7 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
                    ||| fk_sl_species             || [[Text:fk_sl_species]]
                    ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
                    ||| &nbsp;                    || \n
-                   ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->workflowcodes))."
+                   ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->oP::workflowcodes))."
                    ||| {replaceWith class='col-md-12'} <label>Office notes</label><br/>[[TextArea: notes_office | width:100% rows:10]]
                    |||ENDTABLE
                    [[Hidden: action | value=saveProj]]
