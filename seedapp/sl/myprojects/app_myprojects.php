@@ -625,7 +625,7 @@ class ProjectsTabProjects_UI_Record
         $this->kVI = $kVI;
         $this->kMbr = $kMbr;
 
-        $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'R');
+        $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'R', ['DSParms'=>['fn_DSPreStore'=>[$this,'DSPreStore_UIRecord']]]);
         $this->oForm->Update();
 
         /* If a record was submitted, return the form's new kfr to the caller to become the shared kfr for all ui components.
@@ -650,6 +650,16 @@ class ProjectsTabProjects_UI_Record
         return($kfrVI);
     }
 
+    function DSPreStore_UIRecord( Keyframe_DataStore $oDS )
+    {
+        if( ($kLot = intval($oDS->Value('kLot'))) ) {
+            $kI = $this->oP->oProfilesDB->oSLDB->GetRecordVal1Cond('I', "inv_number=$kLot", '_key');
+            $oDS->SetValue('fk_sl_inventory', $kI);
+        }
+        return(true);
+    }
+
+
 // move to ProjectsCommon
     private $projcodes =
                 ["Core"              => 'core',
@@ -673,6 +683,11 @@ class ProjectsTabProjects_UI_Record
 
 $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
 
+        if( ($kI = $this->oForm->Value('fk_sl_inventory')) && ($kfrInv = $this->oP->oProfilesDB->oSLDB->GetKFR('I', $kI)) ) {
+            $this->oForm->SetValue('kLot', $kfrInv->Value('inv_number'));
+        }
+
+
         $oExpand = new SEEDFormExpand($this->oForm);
 
         $s .= "<div><form method='post'>"
@@ -687,8 +702,7 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
                    ||| *Variety* pname           || [[Text:pname | width:100%]]
                    ||| *Variety* oname           || [[Text:oname | width:100%]]
                    ||| metadata                  || [[Text:metadata | width:100%]]
-                   ||| *SoD Lot #*               || [[Text:kLot]]
-                   ||| fl_sl_inventory           || [[Text:fk_sl_inventory]]
+                   ||| *SoD Lot #*               || [[Text:kLot]] (kInv [[fk_sl_inventory | readonly]])
                    ||| fk_sl_species             || [[Text:fk_sl_species]]
                    ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
                    ||| &nbsp;                    || \n
