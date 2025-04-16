@@ -683,6 +683,7 @@ class ProjectsTabProjects_UI_Record
 
 $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
 
+        $kfrInv = null;
         if( ($kI = $this->oForm->Value('fk_sl_inventory')) && ($kfrInv = $this->oP->oProfilesDB->oSLDB->GetKFR('I', $kI)) ) {
             $this->oForm->SetValue('kLot', $kfrInv->Value('inv_number'));
         }
@@ -702,7 +703,7 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
                    ||| *Variety* pname           || [[Text:pname | width:100%]]
                    ||| *Variety* oname           || [[Text:oname | width:100%]]
                    ||| metadata                  || [[Text:metadata | width:100%]]
-                   ||| *SoD Lot #*               || [[Text:kLot]]  {$kfrInv->Value('location')} &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
+                   ||| *SoD Lot #*               || [[Text:kLot]]  ".($kfrInv ? $kfrInv->Value('location') : "")." &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
                    ||| fk_sl_species             || [[Text:fk_sl_species]]
                    ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
                    ||| &nbsp;                    || \n
