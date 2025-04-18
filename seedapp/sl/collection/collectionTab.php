@@ -3,8 +3,48 @@
 include_once( "collectionTab_germtests.php" );
 include_once( "collectionTab_packetlabels.php" );
 
+class CollectionMain_NewMode
+{
+    private $oApp;
+    private $oSLDB;
 
-class CollectionMain extends KeyframeUI_ListFormUI
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oSLDB = new SLDBCollection($oApp);
+    }
+
+    function Init()
+    {
+    }
+
+    function ControlDraw()
+    {
+        $s = "";
+        return( $s );
+    }
+
+    function ContentDraw()
+    {
+        $raTmplParms = [
+            'fTemplates' => [SEEDAPP."templates/mycollection2.html"],
+            'sFormCid'   => 'Plain',
+            //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
+            'vars'       => []
+        ];
+        $oTmpl = SEEDTemplateMaker($raTmplParms);
+
+        $s = "<h3>Add New Accession</h3>"
+            .$oTmpl->ExpandTmpl('mycollStyle')
+            .$oTmpl->ExpandTmpl('mycollConsolePage_AddNewLot', ['qURL'=>$this->oApp->UrlQ(),
+                                                                'qUrlOld'=>SITEROOT_URL."app/q/index.php"]);   // rosettaPCVSearch is still in the original Q code
+
+        return($s);
+    }
+}
+
+
+class CollectionMain_EditMode extends KeyframeUI_ListFormUI
 {
     private $oSLDB;
 
@@ -76,7 +116,10 @@ class CollectionMain extends KeyframeUI_ListFormUI
 
     function ControlDraw()
     {
-        return( $this->DrawSearch() );
+        $s = "<div style='float:right'><form method='post'><button>Add new accession</button><input type='hidden' name='doAddNewAcc' value='1'/></form></div>"
+            .$this->DrawSearch();
+
+        return( $s );
     }
 
     function ContentDraw()

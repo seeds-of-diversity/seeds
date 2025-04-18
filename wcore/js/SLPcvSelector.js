@@ -7,7 +7,8 @@
        let o = new SLPcvSelector( { urlQ        : 'http://.../q.php',
                                     idTxtSearch : 'myDummyTxt',
                                     idOutReport : 'myReport',
-                                    idOutKey    : 'myPcvKey' } );
+                                    idOutKey    : 'myPcvKey',
+                                    fnResult    :  fn(array row from rosettaPCVSearch){}  } );
 
        <div style='position:relative'>
            <input type='text' id='myDummyTxt'/>       // you type here
@@ -39,7 +40,7 @@ class SLPcvSelector extends SFU_TextComplete
             this.mbrData = o['raOut'];   // save this so we can look it up in ResultChosen
             for( let i = 0; i < o['raOut'].length; ++i ) {
                 let r = o['raOut'][i];
-                raRet[i] = { val: r['P__key'], label: this.makelabel(r) };
+                raRet[i] = { val: r['P__key'], label: this.makelabel(r), rosetta: r };
             }
         }
         return( raRet );
@@ -52,6 +53,8 @@ class SLPcvSelector extends SFU_TextComplete
             if( r['P__key'] == val ) {
                 $("#"+this.raConfig['idOutReport']).html( "<input type='submit' value='Save'/> <span style='color:orange'>"+this.makelabel(r)+"</span>" );
                 $("#"+this.raConfig['idOutKey']).val( r['P__key'] );
+                
+                if(typeof(this.raConfig['fnResult']) != 'undefined' )  this.raConfig['fnResult'](r);     // send r to the callback
                 break;
             }
         }

@@ -68,7 +68,7 @@ class myDocRepCtrlView_Rename
         let name = $('#formRename_name').val();
         let title = $('#formRename_title').val();
         let permclass = $('#formRename_perms').val();
-
+//fails when formRename_perms not displayed because val returns "undefined" which is not recognized by dr--rename (should be null to be ignored)
         let rQ = SEEDJXSync( this.oCtrlView.oConfigEnv.q_url, 
                              { qcmd: 'dr--rename', 
                                kDoc: oParms.oDoc.Key(), 

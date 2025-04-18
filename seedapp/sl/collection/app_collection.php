@@ -104,7 +104,12 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oSLDB = new SLDBCollection( $this->oApp );
     }
 
-    function TabSet_main_slcollMain_Init()                              { $this->oW = new CollectionMain($this->oApp);                $this->oW->Init(); }
+    function TabSet_main_slcollMain_Init()
+    {
+        // this tab's control and content areas are multiplexed by an "Add new accession" button
+        $this->oW = SEEDInput_Int('doAddNewAcc') ? (new CollectionMain_NewMode($this->oApp)) : (new CollectionMain_EditMode($this->oApp));
+        $this->oW->Init();
+    }
     function TabSet_main_slcollBatch_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new CollectionBatchOps($this->oApp, $oT->oSVA); $this->oW->Init(); }
     function TabSet_main_slcollAdopt_Init()                             { $this->oW = new MbrAdoptionsListForm($this->oApp);          $this->oW->Init(); }
     function TabSet_main_slcollOver_Init(Console02TabSet_TabInfo $oT)   { $this->oW = new CollectionOverview($this->oApp, $oT->oSVA); $this->oW->Init(); }
@@ -133,6 +138,7 @@ echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",
                                                     $oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
+                                                    $oApp->UrlW()."js/console02.js",        // for ConsolePage
                                                     $oApp->UrlW()."js/SFUTextComplete.js",  // for SLPcvSelector.js
                                                     $oApp->UrlW()."js/SLPcvSelector.js",    // for cultivar search
                                                     $oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );

@@ -65,6 +65,7 @@ class QServerSLProfile extends SEEDQ
 
 //            if( ($kfr = $this->oProfilesDB->GetKFRCond( "VISite", "osp='".addslashes($sp)."' AND oname='".addslashes($cv)."'" )) ) {
             if( ($kfr = $this->oProfilesDB->GetKFRCond( "VISite", "fk_sl_pcv=$kPcv" )) ) {
+// DrawVIRecord now needs a kfr so this is broken
                 $s = $this->oProfilesReport->DrawVIRecord( $kfr->Key(), false );
             }
         }
