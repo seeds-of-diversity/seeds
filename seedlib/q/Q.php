@@ -2,7 +2,7 @@
 
 /* Q.php
  *
- * Copyright 2017-2023 Seeds of Diversity Canada
+ * Copyright 2017-2025 Seeds of Diversity Canada
  *
  * Main API point for Q commands
  */
@@ -166,6 +166,43 @@ class Q
 
         return( [$bAccess, $sErr] );
     }
+}
+
+
+/**
+ * Execute a qcmd with the given oApp, and return the result to stdout.
+ * This helps apps to receive their own qcmds and redirect them here, which is convenient because they
+ * can just use pathToSelf() for the q server.
+ *
+ * Usage:  if( ($qcmd = SEEDInput_Str('qcmd')) ) DoQCmd($oApp, $qcmd);     // this never returns
+
+ * @param SEEDAppBase $oApp
+ * @param string $qcmd
+ * @param array $raParms
+ */
+function DoQCmd( SEEDAppBase $oApp, string $qcmd, array $raParmsNotUsed = [] )
+{
+    $rQ = SEEDQ::GetEmptyRQ();
+
+    if( $qcmd ) {
+        $rQ = (new Q($oApp, ['bUTF8'=>true]))->Cmd( $qcmd, $_REQUEST ); // raParms could be merged with this
+
+        /* Write cmd and sLog to log file. Then unset it so we don't send our log notes to the user.
+         */
+        $oApp->Log( "q.log", $_SERVER['REMOTE_ADDR']."\t"
+                            .intval(@$rQ['bOk'])."\t"
+                            .$qcmd."\t"
+                            .(@$rQ['sLog'] ? : "") );
+        unset($rQ['sLog']);
+    }
+
+    // Allow any domain to make ajax requests - see CORS
+    // Note that this is even necessary for http://www.seeds.ca to access https://www.seeds.ca/.../q because the
+    // CORS access control policy is per (scheme|domain|port)
+    header( "Access-Control-Allow-Origin: *" );
+    echo json_encode( $rQ );
+
+    exit;
 }
 
 /* obsolete: using SEEDQCursor instead

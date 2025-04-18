@@ -114,7 +114,7 @@ class SLUtil
     	"cabbage" => 80,
     	"cabbage-chinese" => 80,
     	"canola" => 80,
-    	"carrot" => 200,
+    	"carrot" => 80,            // our book says 200 but for purposes of collection population size let's use this
     	"cauliflower" => 80,
     	"celeriac" => 80,
     	"celery" => 80,

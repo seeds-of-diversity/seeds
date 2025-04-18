@@ -270,6 +270,30 @@ var_dump($sql);
         return( array( $ok, $s ) );
     }
 
+    function DeleteGrower( int $kG )
+    /*******************************
+        Delete grower record and all their seeds
+     */
+    {
+        $sql = "DELETE PE
+                FROM seeds_1.sed_curr_growers G, seeds_1.SEEDBasket_Products S, seeds_1.SEEDBasket_ProdExtra PE
+                WHERE G.mbr_id=S.uid_seller AND PE.fk_SEEDBasket_Products=S._key  AND S.product_type='seeds'
+
+                AND G.bDelete";     // or G.mbr_id=$kG
+
+        $sql = "DELETE S
+                FROM seeds_1.sed_curr_growers G, seeds_1.SEEDBasket_Products S
+                WHERE G.mbr_id=S.uid_seller AND  S.product_type='seeds'
+
+                AND G.bDelete";     // or G.mbr_id=$kG
+
+        $sql = "delete  FROM seeds_1.sed_curr_growers   WHERE
+
+                bDelete";     // or G.mbr_id=$kG
+
+    }
+
+
     function DrawAvailability( KeyframeRecord $kfrP, KeyframeRecord $kfrGxM )
     /************************************************************************
         State the availability of a product, given a Product and a Grower kfr.
