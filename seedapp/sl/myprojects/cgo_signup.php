@@ -484,25 +484,25 @@ class CGOSignup_Bean extends CGOSignup
         $raBeans = [
             ['cat'  => "Bush varieties, Cool climate",
              'raCV' => [
-            // Blue Jay
-            // Doukhobor
-            // Drew's Dandy
+                 9676 => intval(287.0 / 30.0 * 100 / 25),  // Blue Jay
+                 9682 => 100,                              // Doukhobor  (amount is a guess)
+                 9678 => intval(206.0 / 42.0 * 100 / 25),  // Drew's Dandy
              ]],
             ['cat'  => "Bush varieties, Hot climate",
              'raCV' => [
-            // Mayocoba
-            9394 => 75,         // Rojo de Seda
-            // Xico
+                 9680 => intval(502.0 / 37.0 * 100 / 25),  // Mayocoba
+                 9394 => 75,                               // Rojo de Seda
+                 9173 => intval(614.0 / 23.0 * 100 / 25),  // Xico
              ]],
 
             ['cat'  => "Pole varieties, Cool climate",
              'raCV' => [
-            // Pezel's Giant
-            // Polish White
+                 9677 => intval(261.0 / 56.0 * 100 / 25),  // Pezel's Giant
+                 9679 => intval(169.0 / 47.0 * 100 / 25),  // Polish White
              ]],
             ['cat'  => "Pole varieties, Hot climate",
              'raCV' => [
-            // Good Mother Stallard
+                 9681 => intval(773.0 / 51.0 * 100 / 25),  // Good Mother Stallard
              ]]
         ];
 
