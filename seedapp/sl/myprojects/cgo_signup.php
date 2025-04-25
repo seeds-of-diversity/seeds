@@ -328,6 +328,9 @@ class CGOSignup_Bean extends CGOSignup
     }
 
     function Draw( bool $bRegistered )
+    /*********************************
+        For signing up but not choosing seeds
+     */
     {
         /* Sign up for CGO Beans
          */
@@ -395,4 +398,159 @@ class CGOSignup_Bean extends CGOSignup
 
         return( $this->DrawSignupBox($s1, $s2, $s3, $sImg));
     }
+
+    function Draw2()
+    /***************
+        For choosing seeds after signing up
+     */
+    {
+        list($sCvAvailable,$raCvOpts) = $this->beanVarieties();
+        $sCvOpts = SEEDCore_ArrayExpandSeries($raCvOpts, "<option value='[[v]]'>[[k]]</option>");
+
+        /* Choose CGO Beans
+         */
+        if( $this->oP->oL->GetLang() == 'EN' ) {
+            $s1 = "<h4>You've registered for our Beans for Canadian Climates project - It's time to choose your seeds!</h4>
+
+                   <b>Help Evaluate Beans for Canadian Climates</b>
+                   <p>With Dr. Richard Hebda of the University of Victoria, we've chosen several heritage bean varieties that we think hold promise to thrive in Canadian growing conditions.
+                      We're looking for gardeners who can grow some beans, take detailed notes during the growing season, and save seeds so we can continue this program next year.</p>
+                   <div style='border:1px solid #aaa;background-color:#eee;padding:1em'>
+                      <p><b>To participate in this project:</b></p>
+                         <ul>
+                         <li><b>You will need space to grow 15 to 20 feet of bean plants (you can choose bush or pole varieties).</b></li>
+                         <li><b>You are able grow your beans isolated at least 20 feet apart from any other bean varieties.</b></li>
+                         </ul>
+<!--                      <p style='color:red;margin-top:1em'><b>Reserve your space now, and choose your seeds in March.</b></p>   -->
+                   </div>";
+            $s2 = "<p><b>To participate in this project:</b></p>
+                      <ul>
+                      <li>You will sow your bean seeds in your garden after all danger of frost, <b>at least 20 feet apart</b> from any other bean variety.</li>
+                      <li>As the plants grow, take observations and photos.</li>
+                      <li>Harvest and enjoy the beans, and save seeds from at least a few pods from each plant.</li>
+                      <li>Send some of your saved seeds back to Seeds of Diversity so we can repeat the process next year.</li>
+                      <li>Share some of the seeds in your community.</li>
+                      </ul>
+                   <hr style='border-color:#888'/>
+                   <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
+                  .$sCvAvailable;
+            $s3 = "<br/><br/><br/>
+                    <div class='cgosignup-form' data-project='cgo2025bean'>
+                        <p>Please choose your bean variety:<br/>
+                            <select id='cgosignup-form-beanselect' ><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
+                            <button onclick='CGOSignup.doChooseBean($(this))'>Choose this bean</button>
+                        </p>
+                    </div>";
+        } else {
+            $s1 = "<h4>You've registered for our Beans for Canadian Climates project - It's time to choose your seeds!</h4>
+
+                   <b>Testez les haricots pour les climats canadiens</b>
+                   <p>Avec Dr. Richard Hebda de l'Universit&eacute; de Victoria, nous avons choisi plusieurs vari&eacute;t&eacute;s de haricots patrimoniales qui, selon nous, sont prometteuses pour prosp&eacute;rer dans les conditions de culture canadiennes.
+                      Nous recherchons des jardiniers capables de cultiver des haricots, de prendre des notes d&eacute;taill&eacute;es pendant la saison de croissance et de conserver les semences afin que nous puissions poursuivre ce programme l'ann&eacute;e prochaine.</p>
+                   <div style='border:1px solid #aaa;background-color:#eee;padding:1em'>
+                      <p><b>Pour participer &agrave ce projet:</b></p>
+                         <ul>
+                         <li><b>Vous aurez besoin d'espace pour cultiver 15 &agrave; 20 pieds de haricots (vous pouvez choisir des vari&eacute;t&eacute;s nains ou grimpants).</b></li>
+                         <li><b>Vous pouvez cultiver vos haricots isol&eacute;es &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de haricots.</b></li>
+                         </ul>
+<!--                      <p style='color:red;margin-top:1em'><b>R&eacute;servez votre projet maintenant, et choisissez vos semences en mars.</b></p>   -->
+                   </div>";
+            $s2 = "<p><b>Pour participer &agrave ce projet:</b></p>
+                      <ul>
+                      <li>Vous semerez vos semences de haricot dans votre jardin apr&egrave;s tout risque de gel, <b>&agrave; au moins 20 pieds de distance</b> de toute autre vari&eacute;t&eacute; de haricot.</li>
+                      <li>En &eacute;t&eacute;, faites des observations et des photos.</li>
+                      <li>R&eacute;coltez et savourez les haricots, et conservez les semences d'au moins quelques gousses de chaque plante.</li>
+                      <li>Renvoyez une partie de vos semences &agrave; Semences du patrimoine afin que nous puissions r&eacute;p&eacute;ter le processus l'ann&eacute;e prochaine.</li>
+                      <li>Partagez des semences dans votre communaut&eacute;.</li>
+                      </ul>                   <hr style='border-color:#888'/>
+                   <p style='font-weight:bold;font-size:150%'>Vari&eacute;t&eacute;s disponibles</p>"
+                  .$sCvAvailable;
+            $s3 = "<br/><br/><br/>
+                    <div class='cgosignup-form' data-project='cgo2025bean'>
+                        <p>Veuillez choisir une vari&eacute;t&eacute;:<br/>
+                            <select id='cgosignup-form-beanselect' ><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
+                            <button onclick='CGOSignup.doChooseBean($(this))'>Choose this bean</button>
+                        </p>
+                    </div>";
+        }
+
+        $sImg = "https://seeds.ca/d?n=ebulletin/2024/11-odawa-rotated.jpg";
+
+        return( $this->DrawSignupBox($s1, $s2, $s3, $sImg));
+    }
+
+    private function beanVarieties()
+    {
+        $raBeans = [
+            ['cat'  => "Bush varieties, Cool climate",
+             'raCV' => [
+            // Blue Jay
+            // Doukhobor
+            // Drew's Dandy
+             ]],
+            ['cat'  => "Bush varieties, Hot climate",
+             'raCV' => [
+            // Mayocoba
+            9394 => 75,         // Rojo de Seda
+            // Xico
+             ]],
+
+            ['cat'  => "Pole varieties, Cool climate",
+             'raCV' => [
+            // Pezel's Giant
+            // Polish White
+             ]],
+            ['cat'  => "Pole varieties, Hot climate",
+             'raCV' => [
+            // Good Mother Stallard
+             ]]
+        ];
+
+        $s = "";
+        $raOpts = [];
+
+        $raY = $raN = [];
+$n = 0;
+        $oSLDB = new SLDBCollection($this->oP->oApp);
+        foreach($raBeans as $raBeanCat ) {
+            if(!isset($raY[$raBeanCat['cat']])) $raY[$raBeanCat['cat']] = [];
+            if(!isset($raN[$raBeanCat['cat']])) $raN[$raBeanCat['cat']] = [];
+            foreach($raBeanCat['raCV'] as $kLot => $nPackets) {
+                if( ($kfrLot = $oSLDB->GetKFRCond('IxAxP', "fk_sl_collection=1 AND inv_number=$kLot")) ) {
+                    $nAssigned = $this->oP->oProfilesDB->GetCount('VI', "fk_sl_inventory='{$kfrLot->Key()}'");
+                    if( $nAssigned < $nPackets ) {
+                        $raY[$raBeanCat['cat']][] =
+                                 ['P_name'=>$kfrLot->Value('P_name'), 'P_packetLabel'=>$kfrLot->Value('P_packetLabel'),
+                                  'kLot'=>$kLot, 'nRemaining'=>($nPackets-$nAssigned), 'nPackets'=>$nPackets];
+                        $raOpts[$kfrLot->Value('P_name')] = $kLot;
+                    } else {
+                        $raN[$raBeanCat['cat']][] =
+                                 ['P_name'=>$kfrLot->Value('P_name'), 'P_packetLabel'=>$kfrLot->Value('P_packetLabel'),
+                                  'kLot'=>$kLot, 'nPackets'=>$nPackets];
+                    }
+                }
+    $n+=$nPackets;
+            }
+        }
+
+        foreach($raY as $catLabel => $raY2) {
+            $s .= "<p><b>{$catLabel}</b></p>";
+            foreach($raY2 as $ra) {
+                $sRemaining = $this->oP->CanReadOtherUsers() ? " ({$ra['nRemaining']} / {$ra['nPackets']} left)" : "";
+                $s .= SEEDCore_ArrayExpand($ra, "<div style='margin-left:3em'><b>[[P_name]]         </b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
+            }
+        }
+        $s .= "<h4 style='margin-top:2em'>{$this->oP->oL->S('Sorry no longer available')}</h4>";
+        foreach($raN as $catLabel => $raN2) {
+            $s .= "<p style='color:gray'><b>{$catLabel}</b></p>";
+            foreach($raN2 as $ra) {
+                $sAssigned = $this->oP->CanReadOtherUsers() ? " ({$ra['nPackets']} assigned)" : "";
+                $s .= SEEDCore_ArrayExpand($ra, "<div style='color:gray;margin-left:3em'><b>[[P_name]]</b> {$sAssigned}<br/>[[P_packetLabel]]</div>");
+            }
+        }
+
+if($this->oP->CanReadOtherUsers())  $s .= "<p>$n packets available</p>";
+        return([$s,$raOpts]);
+    }
+
 }
