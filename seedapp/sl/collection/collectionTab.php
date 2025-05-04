@@ -36,7 +36,7 @@ class CollectionMain_NewMode
 
         $s = "<h3>Add New Accession</h3>"
             .$oTmpl->ExpandTmpl('mycollStyle')
-            .$oTmpl->ExpandTmpl('mycollConsolePage_AddNewLot', ['qURL'=>$this->oApp->UrlQ(),
+            .$oTmpl->ExpandTmpl('mycollConsolePage_AddNewLot', ['qUrl'=>$this->oApp->UrlQ(),
                                                                 'qUrlOld'=>SITEROOT_URL."app/q/index.php"]);   // rosettaPCVSearch is still in the original Q code
 
         return($s);

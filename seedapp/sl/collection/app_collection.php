@@ -136,12 +136,15 @@ $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
                                 ['consoleSkin'=>'green',
-                                'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",
-                                                    $oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
-                                                    $oApp->UrlW()."js/console02.js",        // for ConsolePage
-                                                    $oApp->UrlW()."js/SFUTextComplete.js",  // for SLPcvSelector.js
-                                                    $oApp->UrlW()."js/SLPcvSelector.js",    // for cultivar search
-                                                    $oApp->UrlW()."seedapp/sl/collection-batch.js"] ] );
+                                 'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",
+                                                     $oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
+                                                     $oApp->UrlW()."js/console02.js",        // for ConsolePage
+                                                     $oApp->UrlW()."js/SFUTextComplete.js",  // for SLPcvSelector.js
+                                                     $oApp->UrlW()."js/SLPcvSelector.js",    // for cultivar search
+                                                     $oApp->UrlW()."seedapp/sl/SLPcvSelect2.js",    // for cultivar search
+                                                     $oApp->UrlW()."seedapp/sl/collection-batch.js"],
+                                 'bSelect2' => true
+                                ] );
 
 echo "<script>SEEDCore_CleanBrowserAddress();</script>";
 

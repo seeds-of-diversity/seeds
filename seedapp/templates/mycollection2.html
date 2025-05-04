@@ -14,13 +14,17 @@
 <div class='myc-form-section'>
     <h3>Identify the seeds</h3>
     <p>Enter the parent lot number or search for the variety name.</p>
+<!--     
     <span id='cultivarText' style='font-size:9pt'></span>
     <div style='position:relative'>
         <input type='text' id='dummy_pcv' size='40' class='SFU_TextComplete' placeholder='Search'/>
     </div>
     [[hidden:fk_sl_pcv | class:cpvar_fk_sl_pcv]]
+-->    
+    <select id='fk_sl_pcv' class='cpvar_fk_sl_pcv' style='width:40em'><option value='0'>Choose a cultivar</option></select>
 </div>
 <script>
+/*
 function setupPcvSelector() {
 let o = new SLPcvSelector( { urlQ: '[[var:qUrlOld]]',
                              idTxtSearch:'dummy_pcv',
@@ -33,6 +37,12 @@ let o = new SLPcvSelector( { urlQ: '[[var:qUrlOld]]',
                             } );    
 }
 setupPcvSelector();
+*/
+$(document).ready(function () {
+// Extend to SLPcvOrLotSelect2() which finds a lot # or searches for a cultivar name	
+    let o = new SLPcvSelect2( { jSelect: $('#fk_sl_pcv'),
+                                qUrl: '[[var:qUrl]]' } );
+});
 </script>
 
 

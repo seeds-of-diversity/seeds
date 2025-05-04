@@ -97,7 +97,7 @@ class QServerRosetta extends SEEDQ
         $raOut = [];
         $sErr = "";
 
-        if( !($dbSrch = addslashes(@$parms['sSrch'])) ) {
+        if( !($dbSrch = addslashes(@$parms['sSrch']??"")) ) {
             $sErr = "No search parameter";
             goto done;
         }
@@ -110,6 +110,7 @@ class QServerRosetta extends SEEDQ
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
+                     'sCultivar'       => $kfr->Value('name'),
                      'about_cultivar' => $kfr->Value('packetLabel')
                     ] );
             }
@@ -122,6 +123,7 @@ class QServerRosetta extends SEEDQ
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('P__key'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
+                     'sCultivar'       => $kfr->Value('P_name'),
                      'about_cultivar' => $kfr->Value('P_packetLabel')
                     ] );
             }
@@ -134,6 +136,7 @@ class QServerRosetta extends SEEDQ
                 $raOut[$kfr->Expand("[[S_psp]]|[[ocv]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key') + 10000000,
                      'sSpecies'        => $kfr->Value('S_name_en'),
+                     'sCultivar'       => $kfr->Value('ocv'),
                      'about_cultivar' => "",//$kfr->Value('P_packetLabel')
                     ] );
             }
@@ -152,12 +155,15 @@ class QServerRosetta extends SEEDQ
                 $raOut["{$kfr->Value('psp')}|{$ra['cv']}"] = $this->QCharset(
                     ['kPcv'            => $ra['k'] * -1,
                      'sSpecies'        => $kfr->Value('name_en'),
+                     'sCultivar'       => $kfr->Value('cv'),
                      'about_cultivar' => "",//$kfr->Value('P_packetLabel')
                     ] );
             }
         }
 
         ksort($raOut);
+        $raOut = array_values($raOut);
+
         $bOk = true;
 
         done:
