@@ -337,6 +337,7 @@ class ProjectsTabProjects
 
 // put all this in a class and get kCurrMbr in Init()
         if( $this->oP->CanReadOtherUsers() ) {
+// make a checkbox Show What Members See to turn off CanReadOtherUsers() -- except for that checkbox
             $y = 2024;
 
             $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
