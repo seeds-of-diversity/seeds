@@ -19,7 +19,7 @@ class CGOSignup
                    <div class='col-md-8'>
                        $s1
                        <div class='cgosignup-opener' style='padding:1em 0;text-align:center;font-size:150%;font-weight:bold;color:gray;width:60%'>
-                           {$this->oP->oL->S('More')} <br/><span class='chevron chevron-down'></span>
+                           <span style='color:green'>Click to Choose Your Bean Variety</span> <br/><span class='chevron chevron-down'></span>
                        </div>
                    </div>
                    <div class='col-md-2' style='text-align:center'></div>
