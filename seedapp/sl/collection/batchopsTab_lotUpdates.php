@@ -13,7 +13,7 @@ class CollectionBatchOps_UpdateLots
     private $oSVA;  // where to keep state info for this tool
     private $oSLDB;
 
-    private $oFormL;
+    private $oFormL, $oFormR;
     private $bCtrlSame = false;     // true if one set of controls applies to all Lots
 
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
@@ -130,7 +130,7 @@ class CollectionBatchOps_UpdateLots
         $raLots = [];
         foreach( SEEDCore_ParseRangeStrToRA($rLots) as $kLot ) {
             $raLots[$kLot] = ['kLot'=>$kLot, 'kfr'=>$this->kfrLot($kLot)];
-            $raLots[$kLot]['cv'] = $raLots[$kLot]['kfr'] ? $raLots[$kLot]['kfr']->Value('P_name') : 'Unknown Cultivar';
+            $raLots[$kLot]['psp-cv'] = $raLots[$kLot]['kfr'] ? $raLots[$kLot]['kfr']->Expand("[[P_psp]] - [[P_name]]") : 'Unknown Cultivar';
         }
 
         return( $raLots );
@@ -143,7 +143,7 @@ class CollectionBatchOps_UpdateLots
 
     private function drawLeftForm()
     {
-        $s = "<div>Lot numbers:<br/>".$this->oFormL->Text('rLots')."</div>"
+        $s = "<div>Lot numbers:<br/>".$this->oFormL->Text('rLots', '', ['width'=>'100%'])."</div>"
             ."<div>{$this->oFormL->Checkbox('defCtrl_location')} Location</div>"
             ."<div>{$this->oFormL->Checkbox('defCtrl_grams')} Grams</div>"
             ."<div>{$this->oFormL->Checkbox('defCtrl_bDeAcc')} Deaccession</div>"
@@ -155,6 +155,16 @@ class CollectionBatchOps_UpdateLots
     private function drawRightForm()
     {
         $sR = "";
+
+        if( $this->bCtrlSame ) {
+            // make one set of controls that will apply to all Lots
+            $this->oFormR->SetRowNum(0);  // values will be found in sf-row 0
+            $sR .= "<div style='margin:10px;padding:10px;border:1px solid #aaa'>These values (including blanks) will be applied to all of the below"
+                  .($this->isUpdatable('location') ? "<div>{$this->oFormR->Text('location')} Location </div>" : "")
+                  .($this->isUpdatable('grams')    ? "<div>{$this->oFormR->Text('g_weight')} Grams</div>" : "")
+                  .($this->isUpdatable('bDeAcc')   ? "<div>{$this->oFormR->Checkbox('bDeAcc')} Deaccessioned</div>" : "")
+                  ."</div>";
+        }
 
         foreach( $this->getCurrentLots( $this->oFormL->Value('rLots') ) as $ra ) {
             $sCtrlLoc = $sCtrlGrams = $sCtrlDeAcc = "";
@@ -170,7 +180,7 @@ class CollectionBatchOps_UpdateLots
 
             $sR .= "<div style='margin-bottom:10px;padding:10px;background-color:#ddd'>"
                       ."<table border='0'>"
-                          ."<tr><td>Lot {$ra['kLot']}: <em>{$ra['cv']}</em></td><td>&nbsp</td></tr>"
+                          ."<tr><td>Lot {$ra['kLot']}: <em>{$ra['psp-cv']}</em></td><td>&nbsp</td></tr>"
                           .($ra['kfr'] ?
                               ("<tr><td>Location:      {$ra['kfr']->Value('location')}</td><td>$sCtrlLoc</td></tr>"
                               ."<tr><td>Grams:         {$ra['kfr']->Value('g_weight')}</td><td>$sCtrlGrams</td></tr>"
@@ -183,16 +193,6 @@ class CollectionBatchOps_UpdateLots
                 $sR .= $this->oFormR->Hidden( 'kLot', ['value'=>$ra['kLot']] );
                 $this->oFormR->IncRowNum();
             }
-        }
-
-        if( $this->bCtrlSame ) {
-            // make one set of controls that will apply to all Lots
-            $this->oFormR->SetRowNum(0);  // values will be found in sf-row 0
-            $sR .= "<div style='margin:10px;padding:10px;border:1px solid #aaa'>These Values (including blanks) Will be Applied to All of the Above"
-                  .($this->isUpdatable('location') ? "<div>{$this->oFormR->Text('location')} Location </div>" : "")
-                  .($this->isUpdatable('grams')    ? "<div>{$this->oFormR->Text('g_weight')} Grams</div>" : "")
-                  .($this->isUpdatable('bDeAcc')   ? "<div>{$this->oFormR->Checkbox('bDeAcc')} Deaccessioned</div>" : "")
-                  ."</div>";
         }
 
         return( $sR );
