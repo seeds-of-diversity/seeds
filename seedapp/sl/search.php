@@ -100,9 +100,7 @@ class SLSearchApp
             $sTitle = "<h2>Here are some seeds that match <span class='sl_srch_header_cvname'>\"".SEEDCore_HSC($sSrch)."\"</span></h3>";
             $sBody = "<h4 style='margin-bottom:30px;'><span style='background-color:#ddd;padding:10px;border-radius:10px'>Click each name for more information</span></h4>";
             foreach( $rQ['raOut'] as $k => $ra ) {
-                list($sp,$cv) = explode( '|', $k, 2 );
-
-                $sBody .= "<div><h4><a href='?sfSp_cv={$ra['kPcv']}'>{$ra['sSpecies']}, $cv</a></h4>
+                $sBody .= "<div><h4><a href='?sfSp_cv={$ra['kPcv']}'>{$ra['sSpecies']}, {$ra['sCultivar']}</a></h4>
                                <p style='margin-left:30px'>{$ra['about_cultivar']}</p>
                            </div>";
             }

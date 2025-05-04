@@ -106,9 +106,9 @@ class QServerRosetta extends SEEDQ
          */
         if( ($kfr = $this->oSLDB->GetKFRC('PxS', "P.name LIKE '%$dbSrch%'")) ) {
             while( $kfr->CursorFetch() ) {
-// QCharSetFromLatin the keys too
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key'),
+                     'psp'             => $kfr->Value('S_psp'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
                      'sCultivar'       => $kfr->Value('name'),
                      'about_cultivar' => $kfr->Value('packetLabel')
@@ -122,6 +122,7 @@ class QServerRosetta extends SEEDQ
             while( $kfr->CursorFetch() ) {
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('P__key'),
+                     'psp'             => $kfr->Value('S_psp'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
                      'sCultivar'       => $kfr->Value('P_name'),
                      'about_cultivar' => $kfr->Value('P_packetLabel')
@@ -135,6 +136,7 @@ class QServerRosetta extends SEEDQ
             while( $kfr->CursorFetch() ) {
                 $raOut[$kfr->Expand("[[S_psp]]|[[ocv]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key') + 10000000,
+                     'psp'             => $kfr->Value('S_psp'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
                      'sCultivar'       => $kfr->Value('ocv'),
                      'about_cultivar' => "",//$kfr->Value('P_packetLabel')
@@ -154,13 +156,15 @@ class QServerRosetta extends SEEDQ
             if( ($kfr = $this->oSLDB->GetKFRCond('S',"psp='$dbSp' OR name_en='$dbSp'")) ) {  // or other synonyms or language variants
                 $raOut["{$kfr->Value('psp')}|{$ra['cv']}"] = $this->QCharset(
                     ['kPcv'            => $ra['k'] * -1,
+                     'psp'             => $kfr->Value('psp'),
                      'sSpecies'        => $kfr->Value('name_en'),
-                     'sCultivar'       => $kfr->Value('cv'),
+                     'sCultivar'       => $ra['cv'],
                      'about_cultivar' => "",//$kfr->Value('P_packetLabel')
                     ] );
             }
         }
 
+        // keys are only for sorting in this function; return an unkeyed array so json_encode(raOut) gives a normal js array
         ksort($raOut);
         $raOut = array_values($raOut);
 
