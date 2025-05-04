@@ -2,7 +2,7 @@
 
 /* Seed collection manager - batch operations - update Lot information in batches
  *
- * Copyright 2021 Seeds of Diversity Canada
+ * Copyright 2021-2025 Seeds of Diversity Canada
  */
 
 include_once( SEEDCORE."SEEDCoreFormSession.php" );
