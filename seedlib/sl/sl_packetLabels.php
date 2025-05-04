@@ -5,6 +5,8 @@
  * Copyright 2025 Seeds of Diversity Canada
  */
 
+include_once( SEEDLIB."fpdf/PDF_Label.php" );
+
 class SLPacketLabels
 {
     static function DrawPDFLabels( array $raParms )

@@ -1,5 +1,4 @@
 <?php
-include_once( SEEDLIB."fpdf/PDF_Label.php" );
 include_once( SEEDCORE."SEEDCoreForm.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 include_once( SEEDLIB."sl/sl_packetLabels.php" );
