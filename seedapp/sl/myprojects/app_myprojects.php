@@ -133,6 +133,25 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
         }
     }
 
+    if( $qcmd == 'myprojects--choosebean' ) {
+        if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
+
+        if( ($iLot = SEEDInput_Int('iLot')) &&
+            ($kfrLot = $oP->oProfilesDB->oSLDB->GetKFRCond('I', "fk_sl_collection=1 AND inv_number=$iLot") ) &&
+// oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
+            ($kfrVI = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} && metadata LIKE '%project=cgo2025bean%'")) )
+        {
+            $kfrVI->SetValue('pname', '');
+            $kfrVI->SetValue('oname', '');
+            $kfrVI->SetValue('fk_sl_inventory', $kfrLot->Key());
+            if( $kfrVI->PutDBRow() ) {
+                $rQ['bOk'] = true;
+            }
+        }
+    }
+
+
+
 //    include(SEEDLIB."q/Q.php");
 //    DoQCmd($oApp, $qcmd);
     skip:
@@ -416,6 +435,24 @@ class ProjectsTabProjects
 
         $s .= "<hr/>";
 
+
+
+        /* CGO bean selection
+         */
+        if( ($kfrBean = $this->oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'")) ) {
+            if( !$kfrBean->Value('fk_sl_inventory') ) {
+                include_once("cgo_signup.php");
+
+                $s .= (new CGOSignup_Bean($this->oP))->Draw2();
+
+                /* For Office mode, tell cgosignup the uid to sign up
+                */
+                $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
+            }
+        }
+
+
+
         /* Show projects
          */
         $sLeft = $sOfficePanel = $sProfile = "";
@@ -486,7 +523,7 @@ class ProjectsTabProjects
     {
         $s = "";
 
-        include("cgo_signup.php");
+        include_once("cgo_signup.php");
 
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
         $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025gc%'");
@@ -953,6 +990,29 @@ class CGOSignup
                          }
                      });
 
+    }
+
+    static doChooseBean(jThis)
+    {
+        let jForm = jThis.closest('.cgosignup-form');
+        let iLot = document.getElementById('cgosignup-form-beanselect').value;
+
+        iLot = parseInt(iLot) || 0;
+        if( !iLot ) return;
+
+        let o = {qcmd:'myprojects--choosebean',
+                 uid: CGOSignup_Uid,
+                 iLot: iLot};
+        let rQ = SEEDJXAsync2("myprojects.php", o,
+                     function (rQ) {
+                         if( rQ['bOk'] ) {
+                             jForm.html("<div class='alert alert-success'>Thanks! We'll send your seeds right away</div>");
+                         } else {
+                             jForm.html("<div class='alert alert-warning'>Sorry, something's wrong. Please contact our office at <a href='mailto:office@seeds.ca'>office@seeds.ca</a></div>");
+                         }
+                     });
+
+        console.log(rQ);
     }
 }
 
