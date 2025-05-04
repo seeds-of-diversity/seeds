@@ -222,7 +222,7 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
      * @return array of column names
      */
     function GetColumnNames( String $nameSheet ) : array
-    {var_dump($nameSheet);
+    {//var_dump($nameSheet);
         $ra = $this->GetValues($nameSheet);   // returns a 2D array of all rows in the sheet
         return( @$ra[0][0] ? $ra[0] : [] );
     }
@@ -400,7 +400,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
                 $this->oGoogleSheet->WriteCellsWithNamedColumns( $this->nameSheet, $iRow, ['sync_note' => "not found in db"] );
                 goto do_next;
             }
-var_dump($raRow['sync_ts'],$raRow['Timestamp'], strtotime($raRow['Timestamp']));
+//var_dump($raRow['sync_ts'],$raRow['Timestamp'], strtotime($raRow['Timestamp']));
             // 2) Sheet row has key but not sync_ts. This normally means a change has been made on the sheet so copy to db.
             if( !$raRow['sync_ts'] ) {
                 $this->copySheetRowToDb( $raRow, $kfr, $iRow );
