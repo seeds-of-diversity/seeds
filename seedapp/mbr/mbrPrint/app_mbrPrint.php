@@ -665,6 +665,7 @@ class Mbr3UpDonors
     public $mode = "";
 
     private $oApp;
+    private $oMbr, $oMbrList;
     private $lang = "EN";
     private $year;
     private $dLargeDonation;    // threshold for large donations
@@ -918,6 +919,7 @@ class Mbr3UpMemberRenewals
     private $oApp;
     private $kfdb;
     private $year;
+    private $lang;
 
     private $raMbr, $raMbrEN, $raMbrFR;
 

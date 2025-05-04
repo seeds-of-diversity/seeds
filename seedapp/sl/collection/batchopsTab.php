@@ -3,6 +3,7 @@
 include_once( SEEDCORE."console/console02ui.php");
 include_once( "batchopsTab_germtests.php" );
 include_once( "batchopsTab_lotUpdates.php" );
+include_once( "batchopsTab_packetLabels.php" );
 
 class CollectionBatchOps
 {
@@ -17,6 +18,7 @@ class CollectionBatchOps
 
         $raOps = ['Germination Tests'=>'germ',
                   'Batch Lot Update'=>'updatelots',
+                  'Seed Packet Labels'=>'packetlabels',
                   'Other Operation'=>'other'];
         $this->oOpPicker = new Console02UI_OperationPicker('batchop', $oSVA, $raOps);
     }
@@ -35,6 +37,7 @@ class CollectionBatchOps
         switch( $this->oOpPicker->Value() ) {
             case 'germ':        $s = (new CollectionBatchOps_GermTest( $this->oApp ))->Draw();                   break;
             case 'updatelots':  $s = (new CollectionBatchOps_UpdateLots( $this->oApp, $this->oSVA ))->Draw();    break;
+            case 'packetlabels':$s = (new CollectionBatchOps_PacketLabels( $this->oApp, $this->oSVA ))->Draw();  break;
         }
 
         return( $s );
