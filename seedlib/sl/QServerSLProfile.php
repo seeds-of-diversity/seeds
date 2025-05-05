@@ -16,7 +16,8 @@ include_once( SEEDLIB."sl/profiles/sl_profiles_report.php" );
 
 class QServerSLProfile extends SEEDQ
 {
-    private $oProfiles;
+    private $oProfilesDB, $oProfilesDefs, $oProfilesReport;
+    private $oSLDB, $oSLDBSrc, $oSLDBRosetta;
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
@@ -65,8 +66,7 @@ class QServerSLProfile extends SEEDQ
 
 //            if( ($kfr = $this->oProfilesDB->GetKFRCond( "VISite", "osp='".addslashes($sp)."' AND oname='".addslashes($cv)."'" )) ) {
             if( ($kfr = $this->oProfilesDB->GetKFRCond( "VISite", "fk_sl_pcv=$kPcv" )) ) {
-// DrawVIRecord now needs a kfr so this is broken
-                $s = $this->oProfilesReport->DrawVIRecord( $kfr->Key(), false );
+                $s = $this->oProfilesReport->DrawVIRecord( $kfr, false );
             }
         }
 
