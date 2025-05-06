@@ -66,6 +66,8 @@ class QServerSLProfile extends SEEDQ
 
 //            if( ($kfr = $this->oProfilesDB->GetKFRCond( "VISite", "osp='".addslashes($sp)."' AND oname='".addslashes($cv)."'" )) ) {
             if( ($kfr = $this->oProfilesDB->GetKFRCond( "VISite", "fk_sl_pcv=$kPcv" )) ) {
+// or Lot.fk_sl_pcv = $kPcv
+// wait this is not doing the right thing - it's only showing the first matching record
                 $s = $this->oProfilesReport->DrawVIRecord( $kfr, false );
             }
         }
