@@ -99,8 +99,7 @@ class SEEDXlsRead
         $n = 0;
 
         if( ($oSheet = $this->oXls->getSheet( $iSheet )) ) {
-            $max = $oSheet->getHighestDataColumn();     // returns an upper case letter ( cols > 26 not implemented here` )
-            $n = ord($max) - ord('A') + 1;
+            $n = SEEDXls::ColumnName2Index($oSheet->getHighestDataColumn());    // convert AA col code to 1-based numeric index
         }
         return( $n );
     }
@@ -251,21 +250,19 @@ class SEEDXlsWrite
         $oSheet->setTitle( $sSheetName );
 
         // Set the headers in row 1
-        $c = 'A';
+        $iCol = 1;
         foreach( $raCols as $dbfield => $label ) {
-            $oSheet->setCellValue($c.'1', $label );
-//use ColumnName2Index / Index2ColumnName to calculate double-char column letters
-            $c = chr(ord($c)+1);    // Change A to B, B to C, etc
+            $oSheet->setCellValue(SEEDXls::Index2ColumnName($iCol).'1', $label );
+            ++$iCol;
         }
 
         // Put the data starting at row 2
         $row = 2;
         foreach( $raRows as $ra ) {
-            $col = 'A';
+            $iCol = 1;
             foreach( $raCols as $dbfield => $label ) {
-                $oSheet->setCellValue($col.$row, $ra[$dbfield] );
-//use ColumnName2Index / Index2ColumnName to calculate double-char column letters
-                $col = chr(ord($col)+1);    // Change A to B, B to C, etc
+                $oSheet->setCellValue(SEEDXls::Index2ColumnName($iCol).$row, $ra[$dbfield] );
+                ++$iCol;
             }
             ++$row;
         }
@@ -286,12 +283,12 @@ class SEEDXlsWrite
     {
         $oSheet = $this->oXls->setActiveSheetIndex( $iSheet );
 
-        $col = 'A';
+        $iCol = 1;
         foreach( $raCols as $v ) {
             if( is_array($v) ) $v = "";     // some data structures can contain nested arrays, which cannot be written
 
-            $oSheet->setCellValue($col.$iRow, $v );
-            $col = chr(ord($col)+1);    // Change A to B, B to C, etc
+            $oSheet->setCellValue(SEEDXls::Index2ColumnName($iCol).$iRow, $v );
+            ++$iCol;
         }
     }
 
