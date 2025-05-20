@@ -968,6 +968,14 @@ class ProjectsTabOffice
                 $raVI[$kVI]['year'] = $year;
                 $raVI[$kVI]['kMbr'] = $vo['VI_fk_mbr_contacts'];
 
+                if( ($raMbr = $this->oMbr->GetBasicValues($vo['VI_fk_mbr_contacts'])) ) {
+                    $raVI[$kVI]['member_province'] = $raMbr['province'];
+                    $raVI[$kVI]['member_email'] = $raMbr['email'];
+                } else {
+                    $raVI[$kVI]['member_province'] = "";
+                    $raVI[$kVI]['member_email'] = "";
+                }
+
                 ($cv = $vo['VI_pname'])
                 or
                 ($cv = $vo['VI_oname'])
@@ -999,7 +1007,7 @@ class ProjectsTabOffice
                                         'creator'=>$this->oP->oApp->sess->GetName(),
                                         'author'=>$this->oP->oApp->sess->GetName()] );
 
-            $raKeys = ['member_name','member_email','year','species','cultivar'];
+            $raKeys = ['member_name','member_email','member_province','year','species','cultivar'];
 
             $oXLSX->WriteHeader( 0, array_merge(['member'],$raKeys, $raDescKeys));
 
@@ -1007,7 +1015,7 @@ class ProjectsTabOffice
             foreach( $raVI as $k => $ra ) {
                 // reorder the $ra values to the same order as $raKeys
                 $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode(
-                    array_merge( [$ra['kMbr'], '', '', $ra['year'], $ra['psp'], $ra['cv']], $ra['VO-expanded'] )) );
+                    array_merge( [$ra['kMbr'], $ra['member_email'], $ra['member_province'], $ra['year'], $ra['psp'], $ra['cv']], $ra['VO-expanded'] )) );
             }
 
             $oXLSX->OutputSpreadsheet();
@@ -1015,9 +1023,9 @@ class ProjectsTabOffice
         }
 
         $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
-               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>Species</th><th>Cultivar</th><th>Profile</th></tr>";
+               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>province</th><th>Species</th><th>Cultivar</th><th>Profile</th></tr>";
         foreach( $raVI as $kVI => $ra ) {
-            $s .= "<tr><td>{$ra['kMbr']}</td><td></td><td>{$ra['psp']}</td><td>{$ra['cv']}</td>
+            $s .= "<tr><td>{$ra['kMbr']}</td><td>{$ra['member_email']}</td><td>{$ra['member_province']}</td><td>{$ra['psp']}</td><td>{$ra['cv']}</td>
                        <td>".SEEDCore_ArrayExpandSeries($ra['VO-record'], "[[k]]=[[v]], ")."</td></tr>";
         }
         $s .= "</table>";
