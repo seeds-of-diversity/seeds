@@ -825,6 +825,7 @@ class ProjectsTabOffice
                                      ]]);
         $oForm->Update();
         $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:5px;padding:1em'><form>
+               <p>".$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Profile Observations"=>'desc_obs'])."</p>
                <p>".$oForm->Select('year', ['2025'=>2025, '2024'=>2024])."</p>
                <p>".$oForm->Checkbox('all', "All")."</p>
                <p>".$oForm->Checkbox('ground-cherry', "Ground cherry")."</p>
@@ -836,8 +837,20 @@ class ProjectsTabOffice
                    <a href='?xlsx=1' target='_blank'><img src='https://seeds.ca/w/std/img/dr/xls.png' style='height:30px'/></a>
                </div>";
 
+        switch($oForm->Value('mode')) {
+            case 'cgo_growers':     $s .= $this->drawCGOGrowers($oForm);    break;
+            case 'desc_obs':        $s .= $this->drawDescObs($oForm);       break;
+        }
+
+        return( $s );
+    }
+
+    private function drawCGOGrowers( SEEDCoreForm $oForm )
+    {
         $bShow = false;
         $raProj = [];
+        $s = "";
+
         if( $oForm->Value('all') ) {
             $bShow = true;
         } else {
@@ -878,7 +891,11 @@ class ProjectsTabOffice
                     }
                     break;
                 case 'bean':
-                    $raMbr[$kMbr]['bean'] = 1;
+                    if( $raVI['fk_sl_inventory'] && ($kfrLot = $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory'])) ) {
+                        $raMbr[$kMbr]['bean'] = $kfrLot->Value('P_name');
+                    } else {
+                        $raMbr[$kMbr]['bean'] = "[to be chosen]";
+                    }
                     break;
             }
         }
@@ -916,7 +933,97 @@ class ProjectsTabOffice
         $s .= "</table>";
 
         done:
-        return( $s );
+        return($s);
+    }
+
+    private function drawDescObs( SEEDCoreForm $oForm )
+    {
+        $bShow = false;
+        $raProj = [];
+        $s = "";
+
+        // you can only select one of these
+        $psp = '';
+        if( $oForm->Value('bean') )   $psp = 'bean';
+        if( $oForm->Value('tomato') ) $psp = 'tomato';
+        if( $oForm->Value('ground-cherry') ) $psp = 'ground-cherry';
+
+        if( !$psp) {
+            $s .= "<b>Choose a species</b>";
+            goto done;
+        }
+
+        $year = $oForm->ValueDB('year');
+        $sCond = "year='{$year}' AND VI.psp='{$psp}'";
+
+        $raMbr = [];
+        $raVI = [];
+        $raDescKeys = [];
+        foreach( $this->oSLDB->GetList('VOxVI', $sCond) as $vo ) {
+            $kVI = $vo['fk_sl_varinst'];
+            if( !isset($raVI[$kVI]) ) {
+                $raVI[$kVI]['VO'] = [];
+
+                $raVI[$kVI]['psp'] = $psp;
+                $raVI[$kVI]['year'] = $year;
+                $raVI[$kVI]['kMbr'] = $vo['VI_fk_mbr_contacts'];
+
+                ($cv = $vo['VI_pname'])
+                or
+                ($cv = $vo['VI_oname'])
+                or
+                ($vo['VI_fk_sl_pcv'] && ($cv = $this->oSLDB->GetRecordVal1('P', $vo['VI_fk_sl_pcv'], 'pname')))
+                or
+                ($vo['VI_fk_sl_inventory'] && ($cv = $this->oSLDB->GetRecordVal1('IxAxP', $vo['VI_fk_sl_inventory'], 'P_pname')));
+
+                $raVI[$kVI]['cv'] = $cv;
+            }
+            $raVI[$kVI]['VO-record'][$vo['k']] = $vo['v'];
+            $raDescKeys[$vo['k']] = 1;
+        }
+
+        // $raVI[]['VO'] is an array of descObs_k => descObs_v for each varinst : an arbitrary set of those in arbitrary order
+        // Using $raDescKeys which is a set of all descObs_k transform each ['VO'] to an identical format filling unknown values with ''
+        $raDescKeys = array_keys($raDescKeys);
+        foreach( $raVI as $kVI => $ra ) {
+            $raVI[$kVI]['VO-expanded'] = array_replace(array_fill_keys($raDescKeys,''), array_intersect_key($ra['VO-record'],array_fill_keys($raDescKeys,'')));
+        }
+
+        if( SEEDInput_Int('xlsx') ) {
+            // output as a spreadsheet
+            include_once( SEEDCORE."SEEDXLSX.php" );
+
+            $title = "Seeds of Diversity Projects {$oForm->Value('year')}";
+            $oXLSX = new SEEDXlsWrite( ['title'=> $title,
+                                        'filename'=>$title.'.xlsx',
+                                        'creator'=>$this->oP->oApp->sess->GetName(),
+                                        'author'=>$this->oP->oApp->sess->GetName()] );
+
+            $raKeys = ['member_name','member_email','year','species','cultivar'];
+
+            $oXLSX->WriteHeader( 0, array_merge(['member'],$raKeys, $raDescKeys));
+
+            $iRow = 2;  // rows are origin-1 so this is the row below the header
+            foreach( $raVI as $k => $ra ) {
+                // reorder the $ra values to the same order as $raKeys
+                $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode(
+                    array_merge( [$ra['kMbr'], '', '', $ra['year'], $ra['psp'], $ra['cv']], $ra['VO-expanded'] )) );
+            }
+
+            $oXLSX->OutputSpreadsheet();
+            exit;
+        }
+
+        $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
+               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>Species</th><th>Cultivar</th><th>Profile</th></tr>";
+        foreach( $raVI as $kVI => $ra ) {
+            $s .= "<tr><td>{$ra['kMbr']}</td><td></td><td>{$ra['psp']}</td><td>{$ra['cv']}</td>
+                       <td>".SEEDCore_ArrayExpandSeries($ra['VO-record'], "[[k]]=[[v]], ")."</td></tr>";
+        }
+        $s .= "</table>";
+
+        done:
+        return($s);
     }
 }
 
