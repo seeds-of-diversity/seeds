@@ -1015,7 +1015,7 @@ class ProjectsTabOffice
             foreach( $raVI as $k => $ra ) {
                 // reorder the $ra values to the same order as $raKeys
                 $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode(
-                    array_merge( [$ra['kMbr'], $ra['member_email'], $ra['member_province'], $ra['year'], $ra['psp'], $ra['cv']], $ra['VO-expanded'] )) );
+                    array_merge( [$ra['kMbr'], '', $ra['member_email'], $ra['member_province'], $ra['year'], $ra['psp'], $ra['cv']], $ra['VO-expanded'] )) );
             }
 
             $oXLSX->OutputSpreadsheet();
