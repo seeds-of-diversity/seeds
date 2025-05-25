@@ -530,7 +530,8 @@ $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]".$sBody, ['oTabSet'=>$oCTS] );
 echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN',
                                 ['consoleSkin'=>'green',
 // adoption cultvar select doesn't work because SLPcvSelector is authenticating on seeds_1
-                                 'raScriptFiles'=>[$oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
+                                 'raScriptFiles'=>[$oApp->UrlW()."js/SEEDCore.js",
+                                                   $oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
                                                    $oApp->UrlW()."js/SFUTextComplete.js",  // for SLPcvSelector.js
                                                    $oApp->UrlW()."js/SLPcvSelector.js",    // for cultivar search
                                                   ]
