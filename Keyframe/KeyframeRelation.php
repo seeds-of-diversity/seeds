@@ -2,7 +2,7 @@
 
 /* KeyframeRelation
  *
- * Copyright (c) 2006-2023 Seeds of Diversity Canada
+ * Copyright (c) 2006-2025 Seeds of Diversity Canada
 
 
 KeyframeRelation allows specification and management of complex multi-table data relationships.
@@ -93,6 +93,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
 
     // variables
     private $logFile = null;
+    private $raKfrelKFParms = [];       // KFParms defined in constructor and merged with parms passed to every query method
 
     function SetLogFile( $filename )    { $this->logFile = $filename; }
     function KFDB()                     { return( $this->kfdb ); }      // just nice to be able to get this for random stuff sometimes
@@ -109,6 +110,11 @@ private $raColAlias = [];        // store all field names for reference ( array 
         $this->kfdb   = $kfdb;
         $this->kfrdef = $kfrdef;
         $this->uid    = $uid;
+
+        /* These are merged with any parms passed to a method like GetRecordFromDB to easily specify relation alterations e.g. raFieldsAdd
+         * Not really meant for view/window parms like sSortCol, but you can.
+         */
+        $this->SetKFParms(@$raKfrelParms['KFParms']);
 
         if( @$raKfrelParms['logfile'] ) { $this->SetLogFile( $raKfrelParms['logfile'] ); }
 
@@ -201,6 +207,15 @@ private $raColAlias = [];        // store all field names for reference ( array 
          */
         $this->qSelect = $this->makeQSelect();
         //var_dump($this->raColAlias);
+    }
+
+    function SetKFParms( ?array $raKFParms )
+    /***************************************
+        These are merged with any parms passed to a method like GetRecordFromDB to easily specify relation alterations e.g. raFieldsAdd
+        Not really meant for view/window parms like sSortCol, but you can.
+     */
+    {
+        $this->raKfrelKFParms = $raKFParms ?? [];
     }
 
     function IsBaseColumn($col)
@@ -370,7 +385,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         This is for applications that want to work directly with SQL e.g. INSERT INTO xyz SELECT...a_relation_conveniently_defined_by_a_kfrel
      */
     {
-        return( $this->makeSelect( $cond, $parms ) );
+        return( $this->makeSelect( $cond, $this->_parms($parms) ) );
     }
 
     function GetCount( $cond = "", $parms = [] )
@@ -380,7 +395,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
     {
         $n = 0;
 
-        if( ($kfrc = $this->CreateRecordCursor( $cond, $parms )) ) {
+        if( ($kfrc = $this->CreateRecordCursor( $cond, $this->_parms($parms) )) ) {
             $n = $kfrc->CursorNumRows();
             $kfrc->CursorClose();
         }
@@ -412,7 +427,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
                raFieldsOverride => array of colalias=>fld to override the fields clause
      */
     {
-        $sSelect = $this->makeSelect( $cond, $parms );
+        $sSelect = $this->makeSelect( $cond, $this->_parms($parms) );
         $kfrc = $this->factory_KeyframeRecordCursor( $sSelect );
         return( $kfrc && $kfrc->IsOpen() ? $kfrc : null );
     }
@@ -424,7 +439,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
     {
         $ok = false;
 
-        $sSelect = $this->makeSelect( $cond, $parms );
+        $sSelect = $this->makeSelect( $cond, $this->_parms($parms) );
         if( ($kfr = $this->factory_KeyframeRecord()) &&
             ($ra = $this->kfdb->QueryRA( $sSelect )) )
         {
@@ -434,13 +449,14 @@ private $raColAlias = [];        // store all field names for reference ( array 
         return( $ok ? $kfr : null );
     }
 
-    function GetRecordFromDBKey( $key )
-    /**********************************
+    function GetRecordFromDBKey( $key, $parms = array() )
+    /****************************************************
         Return a KeyframeRecord from the database where the base row's _key is $key
      */
     {
         if( !$key ) return( null );
-        return( $this->GetRecordFromDB( "{$this->baseTableAlias}._key='$key'", array("iStatus"=>-1) ) );
+        $parms['iStatus'] = -1;     // always return the row regardless of _status
+        return( $this->GetRecordFromDB( "{$this->baseTableAlias}._key='$key'", $this->_parms($parms) ) );
     }
 
     function GetRecordSet( $cond, $parms = array() )
@@ -449,7 +465,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
      */
     {
         $ra = array();
-        if( ($kfrc = $this->CreateRecordCursor( $cond, $parms ))) {
+        if( ($kfrc = $this->CreateRecordCursor( $cond, $this->_parms($parms) ))) {
             while( $kfrc->CursorFetch() ) {
                 $kfr = $kfrc->Copy();
                 $ra[] = $kfr;
@@ -468,7 +484,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
         $raOut = [];
         $kOut = @$parms['sKeyRecordSet'] ?: "";
 
-        if( ($kfrc = $this->CreateRecordCursor( $cond, $parms )) ) {
+        if( ($kfrc = $this->CreateRecordCursor( $cond, $this->_parms($parms) )) ) {
             while( $kfrc->CursorFetch() ) {
                 $ra = $kfrc->ValuesRA();
                 if( $kOut ) {
@@ -503,6 +519,15 @@ private $raColAlias = [];        // store all field names for reference ( array 
     /*******************************************************************************************************************
      * Private
      */
+    private function _parms( array $parms ) : array
+    /**************************************
+        Any parms can be specified at the constructor if they apply to all queries. e.g. raFieldsAdd
+     */
+    {
+        return( array_merge($this->raKfrelKFParms, $parms) );
+    }
+
+
     private function makeQSelect()
     /*****************************
         Make the constant part of the SELECT statement. This is based only on kfrdef. Variable portions (filtering, sorting)
@@ -744,6 +769,13 @@ private $raColAlias = [];        // store all field names for reference ( array 
         }
         if( !$sFieldsClause ) {
             $sFieldsClause = $this->qSelectFieldsClause;
+        }
+        if( isset($parms['raFieldsAdd']) ) {
+            foreach( $parms['raFieldsAdd'] as $alias=>$fld ) {
+                $sFieldsClause .= ($sFieldsClause ? "," : "")
+                                 ."$fld as $alias";
+                $this->raExtraAliases[$alias] = $fld;
+            }
         }
 
         $q = str_replace( '[fields clause]', $sFieldsClause, $q );
@@ -1521,7 +1553,7 @@ class KeyframeRelationView
 {
     private $kfrel;
     private $p_sCond = "";
-    private $raViewParms = array();
+    private $raViewParms = [];
     private $numRowsCache = 0;
 
     function __construct( KeyFrame_Relation $kfrel, $sCond = "", $raParms = array() )
