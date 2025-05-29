@@ -21,7 +21,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                  ['label'=>"Amount",            'col'=>"amount",            'w'=>" 5%"],
                  ['label'=>"Request",           'col'=>"sPCV_request",      'w'=>"20%"],
                  ['label'=>"Variety adopted",   'col'=>"P_name",            'w'=>"20%"],    // replaced by variety name (will sort by number)
-                 ['label'=>"Total for variety", 'col'=>"tmp_total",         'w'=>" 5%", 'noSort'=>true ], // replaced by total adoptions for this variety, cannot be sorted from db data
+                 ['label'=>"Total for variety", 'col'=>"tmp_total",         'w'=>" 5%", 'noSort'=>false ], // replaced by total adoptions for this variety, cannot be sorted from db data
         ];
         $raSrch = [['label'=>'First name',    'col'=>'M.firstname'],
                    ['label'=>'Last name',     'col'=>'M.lastname'],
@@ -33,12 +33,16 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                    ['label'=>'Date received', 'col'=>'D_date_received'],
                   ];
 
+        $kfrel = $this->oMbrContacts->oDB->Kfrel('AxM_D_P_S');
+        // sum all adoptions in table (not just the current list) with the same pcv
+        $kfrel->SetKFParms(['raFieldsAdd'=>['tmp_total'=>"(select sum(amount) from sl_adoption B where B.fk_sl_pcv=A.fk_sl_pcv AND B.fk_sl_pcv<>0)"]]);
+
         $raConfig = $this->GetConfigTemplate(
             ['sessNamespace'        => 'SLAdoptionManager',
              'cid'                  => 'A',
 
              // A=Adoption, D=Donation -- different from sldb where A=Accession, D=Adoption
-             'kfrel'                => $this->oMbrContacts->oDB->Kfrel('AxM_D_P_S'),
+             'kfrel'                => $kfrel,
              'raListConfig_cols'    => $cols,
              'raSrchConfig_filters' => $raSrch,
             ]);
@@ -77,10 +81,8 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
             // show total adoptions for this variety
             $raAdopt = $this->oSLDB->Get1List('D', 'amount', "fk_sl_pcv='$kPcv'");
-            $raRow['tmp_total'] = array_sum($raAdopt);
         } else {
-            // don't show zero
-            $raRow['P_name'] = "";
+            $raRow['tmp_total'] = "";       // don't show zero
         }
 
         return($raRow);
@@ -119,7 +121,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                ||| *Amount*     || [[text:amount|readonly]]
                ||| *Received*   || [[text:D_date_received|readonly]]
                ||| &nbsp        || &nbsp;
-               ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'2'] )."
+               ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )."
                ||| &nbsp;       || <input type='submit' value='Save'/>
                |||ENDTABLE
 
