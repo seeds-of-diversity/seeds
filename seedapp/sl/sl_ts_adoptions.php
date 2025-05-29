@@ -31,6 +31,8 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                    ['label'=>'Variety name',  'col'=>'P.name'],
                    ['label'=>'Amount',        'col'=>'D_amount'],
                    ['label'=>'Date received', 'col'=>'D_date_received'],
+                   ['label'=>'Request',       'col'=>'sPCV_request'],
+//                   ['label'=>'Total for variety', 'col'=>'tmp_total'],    can't put tmp_total in WHERE because it's an alias not a column; HAVING would work
                   ];
 
         $kfrel = $this->oMbrContacts->oDB->Kfrel('AxM_D_P_S');
