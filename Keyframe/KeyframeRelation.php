@@ -845,7 +845,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
             if( $this->GetRealColName($a) ) {
                 $q = str_replace( $fullTag, $a, $q );   // replace the tagged alias with the simple alias
             } else {
-                if( SEED_DEBUG ) die( "Can't find col or alias for $p in<br/> $q" );
+                if( SEED_DEBUG ) die( "Can't find col or alias for $a in<br/> $q" );
                 $q = "";
                 goto done;
             }
