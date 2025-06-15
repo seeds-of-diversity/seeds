@@ -37,7 +37,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
         $kfrel = $this->oMbrContacts->oDB->Kfrel('AxM_D_P_S');
         // sum all adoptions in table (not just the current list) with the same pcv
-        $kfrel->SetKFParms(['raFieldsAdd'=>['tmp_total'=>"(select sum(amount) from sl_adoption B where B.fk_sl_pcv=A.fk_sl_pcv AND B.fk_sl_pcv<>0)"]]);
+        $kfrel->SetKFParms(['raFieldsAdd'=>['tmp_total'=>"(select sum(amount) from {$oApp->DBName('seeds1')}.sl_adoption B where B.fk_sl_pcv=A.fk_sl_pcv AND B.fk_sl_pcv<>0)"]]);
 
         $raConfig = $this->GetConfigTemplate(
             ['sessNamespace'        => 'SLAdoptionManager',
