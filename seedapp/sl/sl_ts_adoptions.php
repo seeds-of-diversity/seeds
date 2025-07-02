@@ -59,7 +59,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
     function ControlDraw()
     {
-        return( $this->DrawSearch() );
+        return( $this->DrawSearch() . "<div style='float:right;margin-top:-40px'>Checkbox to edit adoption record (Request, Amount, etc)<br/>Button to split current record</div>" );
     }
 
     function ContentDraw()
@@ -134,10 +134,10 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                ||| &nbsp;       || <input type='submit' value='Save'/>
                |||ENDTABLE
 
+               <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
                </div><div class='col-md-6'>
 
                <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
-               <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
                <div class='slAdoptionFormInfo'>{$this->getCollectionInfo($oForm)}</div>
                <div style='margin:2em'>{$sSyn}{$sStats}</div>
               </div></div>
@@ -180,8 +180,11 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
     private function getCollectionInfo( SEEDCoreForm $oForm )
     {
-        $s = "<p>Collection status</p>";
+        $s = "";
+
         if( !($kPcv = $oForm->ValueInt('fk_sl_pcv')) )  goto done;
+
+        $s = "<p>Collection status for <b>{$oForm->Value('P_name')}</b> {$oForm->Value('S_name_en')}</p>";
 
 //use 'rosetta-cultivaroverview' and deprecate cmd below
         $raQCmdParms = ['kCollection'=>1, 'kPcv'=>$kPcv, 'modes'=>" raIxG "];
