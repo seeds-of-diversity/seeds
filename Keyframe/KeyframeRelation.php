@@ -102,6 +102,8 @@ private $raColAlias = [];        // store all field names for reference ( array 
     function BaseTableFields()          { return( $this->baseTable['Fields'] ); }
     function ExtraAliases()             { return( $this->raExtraAliases ); }
     function TablesDef()                { return( $this->kfrdef['Tables'] ); }
+    function IsFetchFullBaseAliases()   { return( @$this->kfrdef['bFetchFullBaseAliases'] ? true : false ); }
+
 
     function __construct( KeyframeDatabase $kfdb, $kfrdef, int $uid, $raKfrelParms = array() )
     /*************************************************************************************
@@ -578,8 +580,6 @@ private $raColAlias = [];        // store all field names for reference ( array 
         $sTablesClause = "";
         $raCondClause = array();
 
-        $raTables = array();
-
         $raFKJoins = array();   // ON() conditions for fk_ autojoins  array( tableAlias => array( cond, cond, ... ), tableAlias => ... )
 
         // preprocess the kfrdef
@@ -644,7 +644,6 @@ private $raColAlias = [];        // store all field names for reference ( array 
 
         /* Step through the tables and build the Fields, Table, and Condition clauses
          */
-        $raFields = array();
         foreach( $this->kfrdef['Tables'] as $a => $t ) {
             /* Make the Fields clause
              */
@@ -653,7 +652,7 @@ private $raColAlias = [];        // store all field names for reference ( array 
 
                 // Base table column aliases don't have a prefix. Also output alias_full which is a canonical alias format.
                 // This feature is disabled by default because legacy code might enumerate array_keys($kfr->ValuesRA()) expecting only non-prefixed cols.
-                if( @$this->kfrdef['bFetchFullBaseAliases'] && $f['alias'] != $f['alias_full'] ) {
+                if( $this->IsFetchFullBaseAliases() && $f['alias'] != $f['alias_full'] ) {
                     $raFieldsClause[] = "$a.{$f['col']} as {$f['alias_full']}";
                 }
             }
@@ -926,8 +925,11 @@ class KeyframeRecord
         $this->dbNullSnap = array();
         $this->keyForce = 0;
 
-        foreach( $this->kfrel->BaseTableFields() as $k ) {
-            $this->setDefault($k);
+        foreach( $this->kfrel->BaseTableFields() as $f ) {
+            $this->setDefault($f);
+            if( $this->kfrel->IsFetchFullBaseAliases() && $f['alias'] != $f['alias_full'] ) {
+                $this->setDefault($f, $f['alias_full']);
+            }
         }
     }
 
@@ -984,6 +986,8 @@ class KeyframeRecord
         if( !$bFound ) { $this->_values[$k] = $v; }
 */
         $this->values[$k] = $v;
+//If IsFetchFullBaseAliases() and you're looking at the alias_full of a base column, e.g. A__key instead of _key, you have to use $k==alias, not $k==alias_full, because PutDBRow only uses ['alias']
+//Unless this code maps $k to the alternate alias and sets that too.
         unset($this->valuesNull[$k]);
         unset($this->valuesVerbatim[$k]);
     }
@@ -995,6 +999,8 @@ class KeyframeRecord
         $this->values[$k] = '';     // so Value() will return an empty string because that's what happens when a NULL is read from the db
         $this->valuesNull[$k] = true;
         unset($this->valuesVerbatim[$k]);
+//If IsFetchFullBaseAliases() and you're looking at the alias_full of a base column, e.g. A__key instead of _key, you have to use $k==alias, not $k==alias_full, because PutDBRow only uses ['alias']
+//Unless this code maps $k to the alternate alias and sets that too.
     }
     function SetVerbatim( string $k, string $v )
     /*******************************************
@@ -1191,6 +1197,9 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             if( !@$raParms['bNoChangeTS'] ) {
                 $raSet[] = "_updated=NOW(),_updated_by='$kfUid'";
             }
+
+            /* N.B. if $f['alias'] and $f['alias_full'] are both used, they must have the same value and only $f['alias'] is written to db
+             */
             foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( in_array($f['col'], KeyFrame_Relation::stdFields) ) continue;   // this does not include _status because StatusSet() can change it
 
@@ -1236,6 +1245,9 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
              */
             $sk = "";
             $sv = "";
+
+            /* N.B. if $f['alias'] and $f['alias_full'] are both used, they must have the same value and only $f['alias'] is written to db
+             */
             foreach( $this->kfrel->BaseTableFields() as $f ) {
                 if( !in_array($f['col'], KeyFrame_Relation::stdFields) ) {   // this does not include _status so it can be set via StatusSet() though normally it just defaults to 0
                     $sk .= ",".$f['col'];
@@ -1398,8 +1410,6 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         $bForceDefaults should be false when the record already contains values and $ra is a subset
      */
     {
-// if @kfrdef['bFetchFullBaseAliases']  also put base table values in $f['alias_full']
-
         if( isset($ra['_key']) ) {          // _key won't necessarily be in ra if these are values posted from a form
             $this->key = intval($ra['_key']);
         } else if( $bForceDefaults ) {
@@ -1407,6 +1417,11 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
         }
         foreach( $this->kfrel->BaseTableFields() as $f ) {
             $this->getValFromRA( $f, $ra, $bForceDefaults );
+
+            // also store values as full aliases if that mode is set  e.g. base alias == foo, full alias == A_foo
+            if( $this->kfrel->IsFetchFullBaseAliases() && $f['alias'] != $f['alias_full'] ) {
+                $this->getValFromRA( $f, $ra, $bForceDefaults, $f['alias_full'] );
+            }
         }
     }
 
@@ -1422,11 +1437,11 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
     }
 
 
-    private function getValFromRA( $f, $ra, $bForceDefaults )
-    /********************************************************
+    private function getValFromRA( $f, $ra, $bForceDefaults, $klugeAlias = null )
+    /****************************************************************************
      */
     {
-        $k = $f['alias'];
+        $k = $klugeAlias ?? $f['alias'];
 
         if( array_key_exists( $k, $ra ) ) {   // this seems to be the only way to test if a null value is in the array (isset returns false for null-valued variables!)
             $v = $ra[$k];
@@ -1444,24 +1459,26 @@ Why is this done via _valPrepend? Can't we just prepend to _values using a metho
             }
 
         } else if( $bForceDefaults ) {
-            $this->setDefault($f);
+            $this->setDefault($f, $klugeAlias);
         }
     }
 
-    private function setDefault( $f )
-    /********************************
+    private function setDefault( $f, $klugeAlias = null )
+    /****************************************************
         $f is one element (an array itself) of a table's Fields array
      */
     {
+        $a = $klugeAlias ?? $f['alias'];
+
         if( isset( $f['default'] ) ) {
-            $this->values[$f['alias']] = $f['default'];
+            $this->values[$a] = $f['default'];
         } else {
             switch( $f['type'] ) {
-                case 'S':   $this->values[$f['alias']] = "";               break;
-                case 'F':   $this->values[$f['alias']] = floatval(0.0);    break;
+                case 'S':   $this->values[$a] = "";               break;
+                case 'F':   $this->values[$a] = floatval(0.0);    break;
                 case 'K':
                 case 'I':
-                default:    $this->values[$f['alias']] = intval(0);        break;
+                default:    $this->values[$a] = intval(0);        break;
             }
         }
     }
