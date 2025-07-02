@@ -133,7 +133,11 @@ class QServerSLCollectionReports extends SEEDQ
                 if( !$this->normalizeParms($parms, "kCollection kPcv", $rQ['sErr']) ) {
                     goto done;
                 }
-                $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'], true, $bCanReadInternal, true );
+// deprecate
+$rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'], true, $bCanReadInternal, true );
+                if( ($raPxS = $this->oSLDB->GetRecordVals('PxS', $parms['kPcv'])) ) {
+                    $rQ['raOut'] = array_merge($rQ['raOut'],$this->getDetails_PCV( $raPxS, $parms['kCollection'], true /*adoption*/, true /*$bGetIxG*/, $bCanReadInternal ), );
+                }
                 $rQ['bOk'] = true;
                 $rQ['raMeta']['title'] = "Cultivar Information";
                 $rQ['raMeta']['name'] = $cmd;

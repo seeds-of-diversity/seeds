@@ -122,6 +122,13 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                ||| *Request*    || [[text:sPCV_request|readonly]]
                ||| *Amount*     || [[text:amount|readonly]]
                ||| *Received*   || [[text:D_date_received|readonly]]
+
+               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+               ||| &nbsp;               || <div style='position:relative'>
+                                           <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
+                                           </div>
+                                           [[hidden:fk_sl_pcv]]
+
                ||| &nbsp        || &nbsp;
                ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )."
                ||| &nbsp;       || <input type='submit' value='Save'/>
@@ -129,16 +136,9 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
                </div><div class='col-md-6'>
 
-               |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
-               ||| &nbsp;               || <div style='position:relative'>
-                                           <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
-                                           </div>
-                                           [[hidden:fk_sl_pcv]]
-               |||ENDTABLE
-
                <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
                <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
+               <div class='slAdoptionFormInfo'>{$this->getCollectionInfo($oForm)}</div>
                <div style='margin:2em'>{$sSyn}{$sStats}</div>
               </div></div>
 
@@ -161,11 +161,11 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
     private function getCultivarAdoptionHistory( SEEDCoreForm $oForm )
     {
         $s = "";
-        if( !$oForm->Value('fk_sl_pcv') )  goto done;
+        if( !($kPcv = $oForm->ValueInt('fk_sl_pcv')) )  goto done;
 
         $s = "Adoption history for <b>{$oForm->Value('P_name')}</b> {$oForm->Value('S_name_en')} : <table style='width:100%'>";
 
-        $raAdopt = $this->oMbrContacts->oDB->GetList('AxM_D_P_S', "A.fk_sl_pcv='{$oForm->Value('fk_sl_pcv')}'");
+        $raAdopt = $this->oMbrContacts->oDB->GetList('AxM_D_P_S', "A.fk_sl_pcv='{$kPcv}'");
         foreach($raAdopt as $ra) {
             $s .= "<tr><td style='width:10%'>&nbsp;</td>
                        <td>{$ra['D_date_received']}</td>
@@ -173,6 +173,33 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                        <td>{$ra['amount']}</td></tr>";
         }
         $s .= "</table>";
+
+        done:
+        return($s);
+    }
+
+    private function getCollectionInfo( SEEDCoreForm $oForm )
+    {
+        $s = "<p>Collection status</p>";
+        if( !($kPcv = $oForm->ValueInt('fk_sl_pcv')) )  goto done;
+
+//use 'rosetta-cultivaroverview' and deprecate cmd below
+        $raQCmdParms = ['kCollection'=>1, 'kPcv'=>$kPcv, 'modes'=>" raIxG "];
+        $rQ = (new QServerSLCollectionReports($this->oApp))->Cmd('collreport-cultivarinfo', $raQCmdParms);
+        if( $rQ['bOk'] ) {
+            $s .= "<table>";
+            foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
+                $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
+                $sCol2 = ($y = intval($kEncodesYear)) ? "from $y" : "";
+                $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
+
+                $s .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
+                           <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
+                           <td style='padding:0 1em;border:1px solid #bbb'>$sCol3</td>
+                       </tr>";
+            }
+            $s .= "</table>";
+        }
 
         done:
         return($s);
