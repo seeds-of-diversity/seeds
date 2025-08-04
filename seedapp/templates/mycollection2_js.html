@@ -1,0 +1,217 @@
+# Seeds of Diversity Seed Collection Manager templates
+
+%% mycollJS
+# js variables starting with t_ or cpvar_t_ are temporary within the consolePage, not stored on the server
+<script>
+var urlQ    = "[[Var:qUrl]]";
+var urlQOld = "[[Var:qUrlOld]]"; //"http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php";
+
+var config = {
+        pages: {
+            Start: {
+                 model: 'LoadStore',
+                 fnPre: function() {},
+                 fnPost: function() {
+                     let nextPage = '';
+
+                     /* User enters the parent lot number, or chooses pcv from a dropdown
+                      */
+                     let iParentLot = oCP.FormValInt('parentlot');
+                     oCP.SetVar( 'iParentLot', iParentLot );
+                     let kPcv = oCP.FormValInt('fk_sl_pcv');
+
+                     if( iParentLot ) {
+                         // look up parent lot to get pcv info
+                         let jxData = { cmd : 'collection-getLot',
+                                        lang : "EN",
+                                        kColl : 1,
+                                        nInv : iParentLot
+                                      };
+                         let o = SEEDJXSync( urlQOld, jxData );
+                         if( o && o['bOk'] ) {
+                             oCP.SetVar( 't_sname', o['raOut']['S_name_en'] );
+                             oCP.SetVar( 't_pname', o['raOut']['P_name'] );
+                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['P__key'] );
+                             bCV = true;
+                             nextPage = "Origin";
+                         } else { console.log(o); }
+                     } else if( kPcv ) {
+                         // look up pcv info
+                         let jxData = { qcmd : 'rosetta-cultivarinfo',
+                                        kPcv : kPcv,
+                                        lang : "EN",
+                                        mode : 'name'
+                                      };
+                         let o = SEEDJXSync( urlQ, jxData );
+                         if( o && o['bOk'] ) {
+                             oCP.SetVar( 't_sname', o['raOut']['PxS']['S_name_en'] );
+                             oCP.SetVar( 't_pname', o['raOut']['PxS']['P_name'] );
+                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['PxS']['P__key'] );
+                             bCV = true;
+                             nextPage = "Origin";
+                         } else { console.log(o); }
+                     }
+
+                     // Format the heading that's shown on each page
+                     oCP.SetVar('heading', 
+                                `<span class='myc-new-heading-cvname'>${oCP.GetVar('t_pname')} ${oCP.GetVar('t_sname')}</span>`
+                               +(oCP.GetVar('iParentLot') ? `<br/>grown from parent lot # ${oCP.GetVar('iParentLot')}` : "") );
+
+/*
+                     // Proceed when there is a cultivar and weight. Cultivar can be from parent_inv or fk_sl_pcv
+                     let bCV = false;
+                     let pi;
+                     if( (pi = oCP.FormVal('parent_inv')) ) {
+                         // load the inventory record and get the species/pname/P__key
+                         let jxData = { cmd : 'collection-getLot',
+                                        lang : "EN",
+                                        kColl : 1,
+                                        nInv : pi
+                                      };
+                         let o = SEEDJXSync( urlQ+"index.php", jxData );
+                         if( o && o['bOk'] ) {
+                             oCP.FormValSet( 't_sname', o['raOut']['S_name_en'] );
+                             oCP.FormValSet( 't_pname', o['raOut']['P_name'] );
+                             oCP.FormValSet( 'fk_sl_pcv', o['raOut']['P__key'] );
+                             bCV = true;
+                         }
+                     } else if( oCP.FormVal('fk_sl_pcv') ) {
+                         bCV = true;
+                     }
+                     let gtotal = oCP.FormValFloat('gtotal');
+                     return( bCV && gtotal ? 'Pop100' : '' );
+*/
+                     return(nextPage);
+                 }
+               },
+            Origin: {
+                model: 'LoadStore',
+                fnPre: function() {
+                },
+                fnPost: function() {
+                    return('AllocSeeds');
+                }
+              },   
+            AllocSeeds: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     oCP.FormValSet('t_sname', oCP.GetVar('S_name'));
+                     oCP.FormValSet('t_pname', oCP.GetVar('P_name'));
+//                     $("#consolePagePop100 .head2").remove(); // don't allow g100 and pop to interfere with inputs
+                 },
+                 fnPost: function() {
+                     let g100 = oCP.FormValFloat('g100');
+                     let pop = oCP.FormValInt('pop');
+                     return( g100 && pop ? 'Actions' : '' );
+                 }
+               },
+            Actions: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     let nSeedsGerm = 10;
+                     let nPopI2 = 3;
+                     let nPopPGRC = 3;
+                     oCP.FormValSet( 'nSeedsGerm', nSeedsGerm );
+                     oCP.FormValSet( 'nPopI2', nPopI2 );
+                     oCP.FormValSet( 'nPopPGRC', nPopPGRC );
+
+                     let pop = oCP.GetVarInt('pop');
+                     let gSeed = oCP.GetVarFloat('g100') / 100.0;
+                     let gGerm = nSeedsGerm * gSeed;
+                     let gI2 = nPopI2 * pop * gSeed;
+                     let gPGRC = nPopPGRC * pop * gSeed;
+                     let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
+                     oCP.FormValSet( 'gGerm', gGerm );
+                     oCP.FormValSet( 'gI1', gI1 );
+                     oCP.FormValSet( 'gI2', gI2 );
+                     oCP.FormValSet( 'gPGRC', gPGRC );
+                     oCP.FormValSet( 'gpop', pop * gSeed );
+                     
+                     let nPopI1 = gI1 / gSeed / pop;
+                     oCP.FormValSet( 'nPopI1', nPopI1 );
+                   },
+                 fnPost: function() {
+                     let nPopI2 = oCP.FormVal('nPopI2');
+                     
+                     let jxData = { cmd : 'collection--reserveLot',
+                             lang : "EN",
+                             kColl : 1,
+                             n     : (nPopI2 ? 2 : 1)   // one assumed for i1 and another optional for i2
+                           };
+                     let o = SEEDJXSync( urlQ+"index.php", jxData );
+                     if( o && o['bOk'] ) {
+                         oCP.SetVar( 'nLot1', o['raOut']['nLot1'] );
+                         oCP.SetVar( 'nLot2', o['raOut']['nLot2'] );
+                         return( 'Supplier' );
+                     } else {
+                         return( '' );  // a problem we can't fix
+                     }
+                 }
+               },
+            Supplier: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     let pop = oCP.GetVarInt('pop');
+                     let gSeed = oCP.GetVarFloat('g100') / 100.0;
+                     let gGerm = oCP.GetVarInt('nSeedsGerm') * gSeed;
+                     let gI2 = oCP.GetVar('nPopI2') * pop * gSeed;
+                     let gPGRC = oCP.GetVar('nPopPGRC') * pop * gSeed;
+                     let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
+
+                     oCP.FormValSet( 'gGerm', gGerm );
+                     oCP.FormValSet( 'gI1', gI1 );
+                     oCP.FormValSet( 'gI2', gI2 );
+                     oCP.FormValSet( 'gPGRC', gPGRC );
+                 },
+                 fnPost: function() {
+                     let pop = oCP.GetVarInt('pop');
+                     let gSeed = oCP.GetVarFloat('g100') / 100.0;
+                     let gGerm = oCP.GetVarInt('nSeedsGerm') * gSeed;
+                     let gI2 = oCP.GetVar('nPopI2') * pop * gSeed;
+                     let gPGRC = oCP.GetVar('nPopPGRC') * pop * gSeed;
+                     let gI1 = oCP.GetVarFloat('gtotal') - gI2 - gPGRC - gGerm;
+
+                     let loc1 = oCP.FormVal('locI1');
+                     let loc2 = oCP.FormVal('locI2');
+                     
+                     let jxData = { cmd : 'collection--addLot',
+                                    lang : "EN",
+                                    kColl : 1,
+                                    kPCV : oCP.GetVar('fk_sl_pcv'),
+                                    g1  : gI1,
+                                    g2  : gI2,
+                                    loc1 : loc1,
+                                    loc2 : loc2,
+                                    nLot1 : oCP.GetVar('nLot1'),
+                                    nLot2 : oCP.GetVar('nLot2'),
+                                    supplier : oCP.FormVal('supplier'),
+                                    dHarvest : oCP.FormVal('year'),
+                                    parent_inv : oCP.GetVar('parent_inv'),
+                                    ocv : oCP.GetVar('oname')
+                                  };console.log(jxData);
+                     let o = SEEDJXSync( urlQ+"index.php", jxData );
+                     if( o && o['bOk'] ) {
+                         let s = urlQ+"../collection/index.php?pMode=editacc&sfLui_k="+o['raOut']['kInv1']; console.log(s);
+                         location.replace(s);
+                     } else {
+                         return( '' );
+                     }
+                 }
+               },
+             Confirm: {
+                 model: 'LoadStore',
+                 fnPre: function() {
+                     
+                 },
+                 fnPost: function() {
+                     finalReport();
+                     return( 'Confirm' );
+                 },
+               }
+        }
+};
+
+var oCP = new ConsolePage( config );
+oCP.Ready();
+
+</script>

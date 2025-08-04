@@ -27,7 +27,7 @@ class CollectionMain_NewMode
     function ContentDraw()
     {
         $raTmplParms = [
-            'fTemplates' => [SEEDAPP."templates/mycollection2.html"],
+            'fTemplates' => [SEEDAPP."templates/mycollection2.html", SEEDAPP."templates/mycollection2_js.html"],
             'sFormCid'   => 'Plain',
             //'raResolvers'=> array( array( 'fn'=>array($this,'ResolveTag'), 'raParms'=>array() ) ),
             'vars'       => []
@@ -36,6 +36,8 @@ class CollectionMain_NewMode
 
         $s = "<h3>Add New Accession</h3>"
             .$oTmpl->ExpandTmpl('mycollStyle')
+            .$oTmpl->ExpandTmpl('mycollJS', ['qUrl'=>$this->oApp->UrlQ(),
+                                                                'qUrlOld'=>SITEROOT_URL."app/q/index.php"])
             .$oTmpl->ExpandTmpl('mycollConsolePage_AddNewLot', ['qUrl'=>$this->oApp->UrlQ(),
                                                                 'qUrlOld'=>SITEROOT_URL."app/q/index.php"]);   // rosettaPCVSearch is still in the original Q code
 
