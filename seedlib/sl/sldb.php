@@ -29,40 +29,41 @@ class _sldb_defs
 
     static function fldSLAccession()
     {
-        return( array( array( "col"=>"fk_sl_pcv",           "type"=>"K" ),
-                       array( "col"=>"spec",                "type"=>"S" ),   // e.g. tomato colour, bush/pole bean
+        return( [ ['col'=>"fk_sl_pcv",           'type'=>'K'],
+                  ['col'=>"kLotParent",          'type'=>'K'],
+                       array( "col"=>"parent_acc",          "type"=>"I" ),      // replace this with kLotParent
+                  ['col'=>'g_original',          'type'=>'F'],
+                  ['col'=>'g_100',               'type'=>'F'],
+                  ['col'=>'oname',               'type'=>'S'],
+                  ['col'=>'notes',               'type'=>'S'],
 
-                       array( "col"=>"batch_id",            "type"=>"S" ),
-                       array( "col"=>"location",            "type"=>"S" ),
+                  //['col'=>'sProvider',           'type'=>'S'],
+                  //['col'=>'yProvider',           'type'=>'I'],
                        array( "col"=>"parent_src",          "type"=>"S" ),
-                       array( "col"=>"parent_acc",          "type"=>"I" ),
-
-                       array( "col"=>"g_original",          "type"=>"F" ),
-                       array( "col"=>"g_have",              "type"=>"F" ),
-                       array( "col"=>"g_pgrc",              "type"=>"F" ),
-                       array( "col"=>"bDeAcc",              "type"=>"I" ),
-
-                       array( "col"=>"notes",               "type"=>"S" ),
-
-                       array( "col"=>"oname",               "type"=>"S" ),
                        array( "col"=>"x_member",            "type"=>"S" ),   // source of seeds - should just be a string?
                        array( "col"=>"x_d_harvest",         "type"=>"S" ),   // should be a date, except some are ranges and guesses
                        array( "col"=>"x_d_received",        "type"=>"S" ),   // should be a date, except some are ranges and guesses
 
-                       array( "col"=>"psp_obsolete",        "type"=>"S" ) ) );
+            // remove these
+                       array( "col"=>"spec",                "type"=>"S" ),   // e.g. tomato colour, bush/pole bean
+                       array( "col"=>"batch_id",            "type"=>"S" ),
+                       array( "col"=>"location",            "type"=>"S" ),
+                       array( "col"=>"g_have",              "type"=>"F" ),
+                       array( "col"=>"g_pgrc",              "type"=>"F" ),
+                       array( "col"=>"bDeAcc",              "type"=>"I" ),
+                       array( "col"=>"psp_obsolete",        "type"=>"S" ) ] );
     }
 
     static function fldSLInventory()
     {
-        return( array( array( "col"=>"fk_sl_collection",    "type"=>"K" ),
-                       array( "col"=>"fk_sl_accession",     "type"=>"K" ),
-                       array( "col"=>"inv_number",          "type"=>"I" ),
-                       array( "col"=>"g_weight",            "type"=>"S" ),
-                       array( "col"=>"location",            "type"=>"S" ),
-                       array( "col"=>"parent_kInv",         "type"=>"K" ),
-                       array( "col"=>"dCreation",           "type"=>"S" ),
-                       array( "col"=>"bDeAcc",              "type"=>"I" ),
-        ));
+        return( [ ['col'=>'fk_sl_collection',    'type'=>'K'],
+                  ['col'=>'fk_sl_accession',     'type'=>'K'],
+                  ['col'=>'inv_number',          'type'=>'I'],
+                  ['col'=>'g_weight',            'type'=>'S'],
+                  ['col'=>'location',            'type'=>'S'],
+                  ['col'=>'dCreation',           'type'=>'S'],
+                        array( "col"=>"parent_kInv",         "type"=>"K" ),     // this is for splitting lots?
+                  ['col'=>'bDeAcc',              'type'=>'I'] ] );
     }
 
     static function fldSLAdoption()
@@ -379,6 +380,12 @@ class SLDBCollection extends SLDBRosetta
     {
         parent::__construct( $oApp, $raConfig );
     }
+
+    function GetKFR_LotFromNumber( int $kColl, int $iLot )
+    {
+        return( $this->GetKFRCond('IxAxPxS', "fk_sl_collection='$kColl' AND inv_number='$iLot'") );
+    }
+
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {

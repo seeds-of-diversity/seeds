@@ -76,10 +76,9 @@ class Q
         }
         else
 
-        if( SEEDCore_StartsWith( $cmd, 'collection' ) ) {
-//            include_once( "_QServerCollection.php" );
-//            $o = new QServerCollection( $this->oApp, $this->raConfig );
-//            $rQ = $o->Cmd( $cmd, $parms );
+        if( SEEDCore_StartsWith( $cmd, 'collection2' ) ) {
+            include_once( SEEDLIB."sl/QServerSLCollection.php" );
+            $rQ = (new QServerCollection2($this->oApp, $this->raConfig))->Cmd( $cmd, $parms );
         }
         else
 
@@ -110,7 +109,7 @@ class Q
             $rQ = $o->Cmd( $cmd, $parms );
         }
         else {
-            $rQ['sErr'] = "Unknown cmd";
+            $rQ['sErr'] = "Unknown cmd $cmd";
         }
 
         done:
