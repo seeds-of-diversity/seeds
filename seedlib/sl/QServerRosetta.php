@@ -49,6 +49,11 @@ class QServerRosetta extends SEEDQ
             // get species name by lang, index, etc
             case 'rosetta-spname':          list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->spName($parms);     break;
 
+            /* mode=name,  return PxS
+             * mode=all,   return PxS, IxA, raSyn, fAdoption, etc
+             */
+            case 'rosetta-cultivarinfo':    list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarInfo($parms);     break;
+
             case 'rosetta-cultivarsearch':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarSearch( $parms );
                 break;
@@ -56,8 +61,9 @@ class QServerRosetta extends SEEDQ
             case 'rosetta-speciesoverview':
                 list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->speciesOverview( $parms );
                 break;
-            case 'rosetta-cultivaroverview':
-                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarOverview( $parms );
+            case 'rosetta-cultivaroverview':  // deprecate and use rosetta-cultivarinfo, mode=all
+                $parms['mode'] = 'all';
+                list($rQ['bOk'],$rQ['raOut'],$rQ['sErr']) = $this->cultivarInfo($parms);
                 break;
         }
 
@@ -271,12 +277,14 @@ class QServerRosetta extends SEEDQ
         return( [$bOk,$raOut,$sErr] );
     }
 
-    private function cultivarOverview( $parms )
-    /******************************************
+    private function cultivarInfo( $parms )
+    /**************************************
         Get a summary of all (public/office) information that we know about a cultivar.
 
         parms:
             kPcv = key of sl_pcv, or kluge sl_cv_sources, or kluge SEEDBasket_Products
+            mode = name: get PxS
+                   all:  get everything
 
         output:
             PxS       = portions of the PxS relation (if cultivar indexed in sl_pcv)
@@ -301,6 +309,8 @@ class QServerRosetta extends SEEDQ
             goto done;
         }
 
+        $eMode = SEEDCore_ArraySmartVal($parms, 'mode', ['all', 'name']);
+
         // Get more information if the user is allowed to see it
         $bOffice = $this->oApp->sess->TestPermRA( ["W SLRosetta", "A SL", "|"] );
 
@@ -311,16 +321,30 @@ class QServerRosetta extends SEEDQ
             /* Referring to a non-indexed cultivar in sl_cv_sources, all we can do is find the companies that list it there and try to find
              * the same name in MSE.
              */
-            $raOut = $this->cultivarOverviewKlugeSrccv( $kPcv - 10000000, $bOffice, $raOut );
+            $raOut = $this->cultivarInfoKlugeSrccv( $kPcv - 10000000, $bOffice, $raOut );
 
         } else if( $bKlugeMSE ) {
             /* Referring to a non-indexed cultivar in MSE, all we can do is find the information there and try to find the same name in sl_cv_sources.
              */
-            $raOut = $this->cultivarOverviewKlugeMSE( -$kPcv );
+            $raOut = $this->cultivarInfoKlugeMSE( -$kPcv );
 
         } else {
             if( !($kfrPxS = $this->oSLDB->GetKFR('PxS', $kPcv )) ) {
                 $sErr = "Unknown kPcv";
+                goto done;
+            }
+
+            if( $eMode == 'name' ) {
+                // just return PxS
+                $raOut['PxS'] = $this->QCharsetFromLatin(
+                       ['P__key' => $kfrPxS->Value('_key'),
+                        'P_name' => $kfrPxS->Value('name'),
+                        'S_name_en' => $kfrPxS->Value('S_name_en'),
+                        'S_name_fr' => $kfrPxS->Value('S_name_fr'),
+                        'S_psp' => $kfrPxS->Value('S_psp'),
+                        'S__key' => $kfrPxS->Value('S__key') ]);
+
+                $bOk = true;
                 goto done;
             }
 
@@ -343,7 +367,7 @@ class QServerRosetta extends SEEDQ
 
             /* Sources: get seed company sources
              */
-            $raOut['raSrc'] = $this->cultivarOverviewGetSources( "fk_sl_pcv='$kPcv'" );
+            $raOut['raSrc'] = $this->cultivarInfoGetSources( "fk_sl_pcv='$kPcv'" );
 
             /* MSE: get current matches in Member Seed Exchange
              */
@@ -375,8 +399,8 @@ class QServerRosetta extends SEEDQ
     }
 
 
-    private function cultivarOverviewKlugeSrccv( $kSrccv, $bOffice, &$raOut )
-    /************************************************************************
+    private function cultivarInfoKlugeSrccv( $kSrccv, $bOffice, &$raOut )
+    /********************************************************************
         Referring to a cultivar identified by a sl_cv_sources key.
 
         All we can do is report the sources, and try to look up the name in the MSE.
@@ -406,7 +430,7 @@ class QServerRosetta extends SEEDQ
          */
         $kSp = $kfr->Value('S__key');
         $dbOcv = addslashes($kfr->Value('ocv'));
-        $raOut['raSrc'] = $this->cultivarOverviewGetSources( "fk_sl_species='$kSp' AND ocv='$dbOcv'" );
+        $raOut['raSrc'] = $this->cultivarInfoGetSources( "fk_sl_species='$kSp' AND ocv='$dbOcv'" );
 
         $raOut['raMSE'] = [];   // TODO: look for the name in MSE
 
@@ -416,8 +440,8 @@ class QServerRosetta extends SEEDQ
         return( $raOut );
     }
 
-    private function cultivarOverviewKlugeMSE( int $kProduct )
-    /*********************************************************
+    private function cultivarInfoKlugeMSE( int $kProduct )
+    /*****************************************************
         Show the overview of a variety that was found in MSE with no fk_sl_pcv. The key is kluged as one random kProduct of this variety.
 
         Look up the variety in MSE, and also look for the name in sl_cv_sources
@@ -456,7 +480,7 @@ class QServerRosetta extends SEEDQ
         return( $raOut );
     }
 
-    private function cultivarOverviewGetSources( $sCond )
+    private function cultivarInfoGetSources( $sCond )
     {
         $raSrc = [];
 
