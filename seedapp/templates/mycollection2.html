@@ -148,6 +148,10 @@ $(document).ready( function() {
                              <div class='col-md-1'>[[formtext:seeds3 |width:100%]]</div>
                              <div class='col-md-1'><strong><span id='allocseeds-result3'></span></strong></div>
             </div>
+            <div class='row' style='margin-top:10px'>
+                             <div class='col-md-4' style='text-align:right'>Notes</div>
+                             <div class='col-md-4'>[[formtextarea:notesAcc|width:100% placeholder:Notes]]</div>
+            </div>
             <div class='row'><div class='col-md-4' style='text-align:right'></div>
                              <div class='col-md-1'><button id='btnSave' class='btn btn-primary' disabled>Save</button></div>
             </div>
@@ -237,6 +241,16 @@ class MyCollection_NewAcc_AllocSeeds
     {
         this._getVals();
 
+        let sSupplier = "";
+        let ySupplier 
+        if( oCP.GetVar('supplier') ) {
+            sSupplier = oCP.GetVar('supplier');
+            ySupplier = oCP.GetVarInt('year');
+        } else {
+            sSupplier = oCP.GetVar('supplier2');
+            ySupplier = oCP.GetVarInt('year2');
+        }
+
         let jxData = {
             qcmd       : 'collection2--addAccession',
 //            lang       : 'EN',
@@ -244,12 +258,13 @@ class MyCollection_NewAcc_AllocSeeds
             kPCV       : oCP.GetVar('fk_sl_pcv'),
             iParentLot : oCP.GetVar('iParentLot'),
             oname      : oCP.GetVar('oname'),
-            sSupplier  : oCP.GetVar('supplier'),
-            dYear      : oCP.GetVar('year'),
+            sSupplier  : sSupplier,
+            ySupplier  : ySupplier,
             gtotal     : this.gtotal,
             g100       : this.g100,
             g0: this.alloc.g[0], loc0: this.alloc.loc[0], 
             g1: this.alloc.g[1], loc1: this.alloc.loc[1],
+            sNotesAcc  : $('#notesAcc').val()
         };
         let o = SEEDJXSync( urlQ, jxData );console.log(urlQ,o);
         if( o && o['bOk'] ) {
@@ -334,7 +349,7 @@ class MyCollection_NewAcc_AllocSeeds
     }
 }
 </script>
-
+<!-- 
 <div class='row' style='margin-top:2em'>
     <div class='col-md-8'>
         <div class='myc-alloc-form-action' data-action='remaining'>Put remaining seeds in location [[formtext:loc1 | size:6 class:myc-alloc-form-loc]] <button>Go</button></div>
@@ -346,7 +361,7 @@ class MyCollection_NewAcc_AllocSeeds
     </div>
 </div>
 </div>
-
+-->
 
 
 

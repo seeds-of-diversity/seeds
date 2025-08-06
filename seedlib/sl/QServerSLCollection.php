@@ -67,7 +67,7 @@ class QServerCollection2 extends SEEDQ
             oname      :
             bPurchased : true=we bought the seeds, so year indicates purchase year
             sSupplier  : grower, source, company, site grown
-            dYear      : bPurchased=year purchased, !bPurchased=year harvested
+            ySupplier  : bPurchased=year purchased, !bPurchased=year harvested
 
         Output
             raOut['raILots'] : [iLot0, iLot1]
@@ -159,7 +159,7 @@ $bCanWrite = true;
         $kfrA->SetValue('g_100',       intval(@$parms['g100']));
         $kfrA->SetValue('oname',       @$parms['oname']);
         $kfrA->SetValue('x_member',    @$parms['sSupplier']);
-        $kfrA->SetValue('x_d_harvest', @$parms['dYear']);
+        $kfrA->SetValue('x_d_harvest', @$parms['ySupplier']);
         $kfrA->SetValue('notes',       @$parms['sNotesAcc']);
         $kfrA->PutDBRow();
 
