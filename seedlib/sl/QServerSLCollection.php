@@ -109,7 +109,7 @@ $bCanWrite = true;
         }
         else if($kPCV) {
             if( !($kfrP = $this->oSLDB->GetKFR('P',$kPCV)) ) {
-                $sErr = "Collection $kColl not found";
+                $sErr = "Cultivar $kPCV not found";
                 goto done;
             }
         }
@@ -117,8 +117,8 @@ $bCanWrite = true;
         /* Create New Lot(s)
          */
         $kfrA = null;
-        $raLotParms = [ ['g'=>intval(@$parms['g0']), 'loc'=>@$parms['loc0']],
-                        ['g'=>intval(@$parms['g1']), 'loc'=>@$parms['loc1']] ];
+        $raLotParms = [ ['g'=>floatval(@$parms['g0']), 'loc'=>@$parms['loc0']],
+                        ['g'=>floatval(@$parms['g1']), 'loc'=>@$parms['loc1']] ];
         foreach( [0,1] as $k ) {
             if( ($g = $raLotParms[$k]['g']) && ($loc = $raLotParms[$k]['loc']) ) {
                 // Create a new Accession record iff there is at least one valid Lot to connect to it
