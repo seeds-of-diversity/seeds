@@ -211,7 +211,7 @@ function SEEDCore_ArrayExpandSeries( $ra, $template, $bEnt = true, $raParms = []
         if( is_array($v) ) {
             // [[v|foo]] is $v['foo']
             $raMatches = [];
-            preg_match_all( "/\[\[v\|(.*)\]\]/", $tmpl, $raMatches, PREG_SET_ORDER );   // returns [ ["[[v|foo]]", "foo"], ["[[v|bar]]","bar"], ...
+            preg_match_all( "/\[\[v\|([^\]]*)\]\]/", $tmpl, $raMatches, PREG_SET_ORDER );   // returns [ ["[[v|foo]]", "foo"], ["[[v|bar]]","bar"], ...
             foreach( $raMatches as $raM ) {
                 $v1 = $v[$raM[1]];
                 if( $bEnt ) $v1 = SEEDCore_HSC($v1);
@@ -271,6 +271,8 @@ function SEEDCore_ArrayExpandSeriesWithKey( $ra, $sTemplate, $bEnt = true, $raPa
 /**
  * Replace "[[foo]]" in template with $ra[0]['foo'], repeat for $ra[1], etc
  */
+
+// deprecate : use SEEDCore_ArrayExpandSeries with arrays
 function SEEDCore_ArrayExpandRows( $raRows, $sTemplate, $bEnt = true, $raParms = array() )
 /*****************************************************************************************
     raParms: sTemplateFirst : use this template on the first element
