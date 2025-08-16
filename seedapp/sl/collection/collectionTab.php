@@ -126,36 +126,66 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
 
     function ContentDraw()
     {
+        $sAccession = $sLots = $sSubTabs = "";
+        
+        if( !$this->oComp->oForm->GetKey() ) {
+            $sAccession = "<p>Please select a seed lot from the list</p>";
+            goto draw;
+        }
+        
+        $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
+        
+        $sAccession = $this->drawAccession($raLots);
+        
+        $sLots = SEEDCore_ArrayExpandSeries(
+                        $raLots, 
+                        function ($k,$v,$parms) {
+                            if( $v['_key'] == $this->oComp->oForm->GetKey() ) {
+                                $cSelected = "lot-selected";
+                                $sHref = "";
+                            } else {
+                                $cSelected = "";
+                                $sHref = $this->oComp->oUI->HRef('C', ['kCurr'=>$v['_key']]);
+                            }
+                            $sRet = "<div class='lotsummary $cSelected'>
+                                    <p><span style='font-size:150%'>Lot # [[v|inv_number]]</span> &nbsp;&nbsp;&nbsp; [[v|g_weight]] g @ [[v|location]]</p>
+                                    </div>";
+                            
+                            return("<div class='col-md-3'>"
+                                  .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)                              
+                                  ."</div>" ); 
+                        });
+        
+        $sSubTabs = $this->drawCollectionSubtabs();
+        
+        draw:
+        
         $s = $this->DrawStyle()
            ."<style>
                 #summary-table tr:nth-last-child(2) .weight {
                     border-bottom: 1px dotted black;
                 }
                 #summary-table td { padding-right:10px }
-             </style>"
-           ."<div class='container-fluid'><div class='row'>"
-           ."<div class='col-sm-3'>".$this->drawSummary()."</div>"
-           ."<div class='col-sm-9'>".$this->DrawList()."</div>"
-           ."</div></div>"
-           ."<div style='margin-top:15px'>"
-               ."<h4 style='margin-left:30px'>Lot # {$this->oComp->oForm->Value('inv_number')}</h4>"
-               .$this->drawCollectionSubtabs()
-           ."</div>";
+                .lotsummary { border:1px solid #aaa; border-radius:10px; padding:1em }
+                .lot-selected { border:2px solid blue !important; background-color:#f0f0ff }
+             </style>
+             <div class='container-fluid'>
+               <div class='row'>
+                 <div class='col-sm-3'>{$sAccession}</div>
+                 <div class='col-sm-9'>{$this->DrawList()}</div>
+               </div>
+               <div class='row' style='margin-top:1em'>{$sLots}</div>
+             </div>
+             <div style='margin-top:1em'>{$sSubTabs}</div>";
            //."<div style='margin-top:20px;padding:20px;border:2px solid #999'>".$this->DrawForm()."</div>";
 
         return( $s );
     }
 
-    private function drawSummary()
+    private function drawAccession( array $raLots )
     {
         $s = "";
 
-        if( !$this->oComp->oForm->GetKey() ) {
-            $s = "<p>Please select a seed lot from the list</p>";
-            goto done;
-        }
-
-        $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
         $totalWeight = array_sum(array_column($raLots, "g_weight"));
 
         $s = "<table id='summary-table'>
