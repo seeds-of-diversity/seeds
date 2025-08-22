@@ -127,18 +127,18 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
     function ContentDraw()
     {
         $sAccession = $sLots = $sSubTabs = "";
-        
+
         if( !$this->oComp->oForm->GetKey() ) {
             $sAccession = "<p>Please select a seed lot from the list</p>";
             goto draw;
         }
-        
+
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
-        
+
         $sAccession = $this->drawAccession($raLots);
-        
+
         $sLots = SEEDCore_ArrayExpandSeries(
-                        $raLots, 
+                        $raLots,
                         function ($k,$v,$parms) {
                             if( $v['_key'] == $this->oComp->oForm->GetKey() ) {
                                 $cSelected = "lot-selected";
@@ -148,18 +148,18 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
                                 $sHref = $this->oComp->oUI->HRef('C', ['kCurr'=>$v['_key']]);
                             }
                             $sRet = "<div class='lotsummary $cSelected'>
-                                    <p><span style='font-size:150%'>Lot # [[v|inv_number]]</span> &nbsp;&nbsp;&nbsp; [[v|g_weight]] g @ [[v|location]]</p>
+                                    <p><span style='font-size:150%'>Lot # [[v|inv_number]]</span>&nbsp;&nbsp;&nbsp;[[v|location]]&nbsp;&nbsp;&nbsp;[[v|g_weight]] g</p>
                                     </div>";
-                            
+
                             return("<div class='col-md-3'>"
-                                  .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)                              
-                                  ."</div>" ); 
+                                  .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)
+                                  ."</div>" );
                         });
-        
+
         $sSubTabs = $this->drawCollectionSubtabs();
-        
+
         draw:
-        
+
         $s = $this->DrawStyle()
            ."<style>
                 #summary-table tr:nth-last-child(2) .weight {
