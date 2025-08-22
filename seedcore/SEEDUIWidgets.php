@@ -94,6 +94,16 @@ class SEEDUIWidget_Base
     {
         return( "OVERRIDE Draw()" );
     }
+
+    function HandleRequest( string $sRequest, array $raParms )
+    /*********************************************************
+        Every widget can handle arbitrary requests
+     */
+    {
+        $bHandled = false;
+        $raRet = [];
+        return([$bHandled,$raRet]);
+    }
 }
 
 
@@ -795,5 +805,22 @@ $raParms = array_merge( $this->raConfig, $raParms );
                            ."<img src='".W_CORE_URL."img/ctrl/triangle_blue.png' style='$sCrop' border='0'/></div>") : "")
             ."</a>";
         return( $s );
+    }
+
+    function HandleRequest( string $sRequest, array $raParms )
+    {
+        $bHandled = false;
+        $raRet = [];
+
+        if( $sRequest == 'VIEW_SEARCH_FOR_ITEM_IF_LOADED' ) {
+            // find the View offset and row for the row where $k=>$v
+            list($iRow,$raRow) = $this->oViewWindow->SearchForItem__IfLoaded($raParms['k'], $raParms['v']);
+            if($iRow > -1) {
+                $bHandled = true;
+                $raRet = ['iRow'=>$iRow, 'raRow'=>$raRow];
+            }
+        }
+
+        return([$bHandled,$raRet]);
     }
 }
