@@ -687,15 +687,18 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 }
 
                 $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
-                if( ($seedsPerGram = SLUtil::GetSeedsPerGram($psp)) > 0 ) {
-                    $raOut['total_viable_seeds'] = round($raOut['total_viable_grams'] * $seedsPerGram);
-                    $raOut['total_viable_pops'] = $raOut['total_viable_seeds'] / SLUtil::GetPopulationCommercial($psp);
-                }
+// look up g_100 for lot, another lot of the same pcv, rosetta, etc                
+                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>0, 'psp'=>$psp]);
+                $raOut['total_viable_pops'] = SLUtil::PopsFromSeeds($raOut['total_viable_seeds'], ['psp'=>$psp]);
             }
 
             if( $bGetIxG || $bFullDetails ) {
                 /* Note that everything returned by this method has QCharset, so avoid double-converting by clients.
                  */
+                $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
+                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>0, 'psp'=>$psp]);
+                $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
+                
                 $raOut['raIxA']["0$y $i"] = $this->QCharsetFromLatin(
                             ['inv_number' => $kfrcI->Value('inv_number'),
                              'g_weight'   => $g,
@@ -706,7 +709,8 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                              'latest_germtest_result' => $nGermLatest,
                              'current_germ_estimate' => $nGermNow,
                              'current_germ_model' => $nGermModel,
-                             'g_weight_viable_estimate' => $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0,
+                             'g_weight_viable_estimate' => $fGramsViableEstimate,
+                             'pops_estimate' => $fPopsViableEstimate,
                              'notes' => (($bFullDetails && $bCanReadInternal) ? trim($kfr->Expand("[[notes]] [[A_notes]]")) : ""),
                             ]);
             }

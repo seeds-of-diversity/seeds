@@ -2,6 +2,37 @@
 
 class SLUtil
 {
+    /**
+     * @param float $g
+     * @param array $raParms g_100 => weight of 100 seeds ; or psp to use standard amount
+     * @return int number of seeds
+     */
+    static function SeedsFromGrams( float $g, array $raParms ) : int
+    {
+        $nSeeds = 0;
+        
+        if( @$raParms['g_100'] ) {
+            // weight of 100 seeds is given
+            $nSeeds = intval($g * 100 / $raParms['g_100']);
+        } else 
+        if( ($seedsPerGram = self::GetSeedsPerGram(@$raParms['psp'])) > 0 ) {
+            // use standard seeds/gram
+            $nSeeds = intval($g * $seedsPerGram); 
+        }
+        return($nSeeds);
+    }
+
+    /**
+     * @param int $nSeeds number of seeds
+     * @param array $raParms pop => population size ; psp to use standard population size
+     * @return float
+     */
+    static function PopsFromSeeds( int $nSeeds, array $raParms ) : float
+    {
+        return( $nSeeds / (@$raParms['pop'] ?: self::GetPopulationCommercial($raParms['psp'])) );
+    }
+    
+    
     static function GetPopulationCommercial( string $psp )
     {
         $psp = self::normalizePSP($psp);
