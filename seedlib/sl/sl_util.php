@@ -24,12 +24,12 @@ class SLUtil
 
     /**
      * @param int $nSeeds number of seeds
-     * @param array $raParms pop => population size ; psp to use standard population size
+     * @param array $raParms popsize => population size ; psp to use standard population size
      * @return float
      */
     static function PopsFromSeeds( int $nSeeds, array $raParms ) : float
     {
-        return( $nSeeds / (@$raParms['pop'] ?: self::GetPopulationCommercial($raParms['psp'])) );
+        return( $nSeeds / (@$raParms['popsize'] ?: self::GetPopulationCommercial($raParms['psp'])) );
     }
     
     
