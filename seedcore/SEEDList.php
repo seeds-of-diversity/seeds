@@ -180,4 +180,29 @@ class SEEDList_ArraySlices
 
         done:;
     }
+
+    /**
+     * If the array contains arrays that are keyed by strings, return the item index of the array with key==value
+     * Only if that item happens to be currently loaded
+     *
+     * e.g. $this->raData == [ ['foo'=>'A', 'bar'=>'B'], ['foo'=>'C', 'bar'=>'D'] ]
+     *      SearchForItemIn2DArray('foo', 'C') returns $this->iOffset + 1
+
+     * Use GetItem(SearchForItemIn2DArray('foo', 'C')) to get the array containing 'foo'=>'C' if it is currently loaded
+     *
+     * @param array $raSlice - array to insert into raData
+     * @param int $iPos - 0-based offset of this slice within the actual data set
+     */
+    function SearchForItemIn2DArray( string $key, mixed $value )
+    {
+        $iFound = -1;
+
+        if(!$this->raData || !is_array($this->raData[0]))  goto done;   // raData must contain arrays
+
+        $ra = array_column($this->raData, $key);                            // not sure if this fails when slices are padded with nulls
+        if( ($i = array_search($value, $ra)) !== false )  $iFound = $i + $this->iOffset;
+
+        done:
+        return($iFound);
+    }
 }

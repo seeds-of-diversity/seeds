@@ -547,8 +547,8 @@ groupcol
          return( $s );
     }
 
-    function HRefForWidget( SEEDUIWidget_Base $oWidget, $raUIParms )
-    /***************************************************************
+    function HRefForWidget( ?SEEDUIWidget_Base $oWidget, $raUIParms )
+    /****************************************************************
         Make a href with the given uiparms, plus the uiparms for other widgets.
         i.e. raUIParms are assumed to be all the uiparms for the given widget, plus any base uiparms that need to change, if the link is clicked.
      */
@@ -735,6 +735,30 @@ groupcol
         $nViewSize = 0;                 // total size of the view (in case we didn't have it yet)
         return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
     }
+
+    function SearchForRowIfLoaded( string $k, mixed $v )
+    /***************************************************
+        Get the row that contains the value k=>v, if it is already loaded in the View.
+        Also get its index in the View.
+        This is useful for finding the offset of an arbitrary row, to make changing kCurr/iCurr faster by avoiding the usual initialization search on kCurr>0,iCurr=-1
+        If not already loaded in the View, then use the usual initialization search by setting iCurr=-1.
+     */
+    {
+        $iRow = -1;
+        $raOut = [];
+
+        // use SEEDUIComponent_ViewWindow::$oViewSlices->SearchForItemIn2DArray($k, $v) but that lives in the list widget so have to send a widget communication
+        foreach($this->raWidgets as $ra) {
+            list($bHandled, $raRequest) = $ra['oWidget']->HandleRequest('VIEW_SEARCH_FOR_ITEM_IF_LOADED', ['k'=>$k, 'v'=>$v]);
+            if($bHandled) {
+                $iRow = $raRequest['iRow'];
+                $raOut = $raRequest['raRow'];
+                break;
+            }
+        }
+
+        return([$iRow, $raOut]);
+    }
 }
 
 include_once(SEEDCORE."SEEDList.php");
@@ -903,6 +927,22 @@ if($this->debug) var_dump("GetViewData: $iRowStart $nRows  FetchViewSlice ".coun
         return( $ra );
     }
 
+    function SearchForItem__IfLoaded( string $k, mixed $v )
+    /******************************************************
+        Find the View row where $k=>$v
+
+        N.B. If this doesn't work, make sure GetViewData() or GetWindowData() has been called. That could mean ensuring that the List has been drawn before this is called.
+     */
+    {
+        $iRow = -1;
+        $raRow = [];
+
+        if( ($iRow = $this->oViewSlices->SearchForItemIn2DArray($k, $v)) != -1 ) {
+            $raRow = $this->oViewSlices->GetItem($iRow);
+        }
+
+        return([$iRow,$raRow]);
+    }
 
     function InitViewWindow()
     /************************

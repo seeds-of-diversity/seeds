@@ -127,39 +127,46 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
     function ContentDraw()
     {
         $sAccession = $sLots = $sSubTabs = "";
-        
+
         if( !$this->oComp->oForm->GetKey() ) {
             $sAccession = "<p>Please select a seed lot from the list</p>";
             goto draw;
         }
-        
+
+        $sDrawList = $this->DrawList();
+
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
-        
+
         $sAccession = $this->drawAccession($raLots);
-        
+
         $sLots = SEEDCore_ArrayExpandSeries(
-                        $raLots, 
+                        $raLots,
                         function ($k,$v,$parms) {
                             if( $v['_key'] == $this->oComp->oForm->GetKey() ) {
                                 $cSelected = "lot-selected";
                                 $sHref = "";
                             } else {
                                 $cSelected = "";
-                                $sHref = $this->oComp->oUI->HRef('C', ['kCurr'=>$v['_key']]);
+
+                                // Try to look up the view offset of the lot in the List, so kCurr/iCurr can both be specified in the link. This avoids searching the whole View.
+                                // If not found, link to kCurr>0,iCurr=-1 which forces a search for the row containing that key, which can be several seconds (same as the initial search).
+                                // SearchForRowIfLoaded() returns $iRow==-1 if not found
+                                list($iRow,$raRow) = $this->oComp->SearchForRowIfLoaded('_key', $v['_key']);
+                                $sHref = $this->oComp->HRefForWidget(null, ['kCurr'=>$v['_key'], 'iCurr'=>$iRow]);
                             }
                             $sRet = "<div class='lotsummary $cSelected'>
-                                    <p><span style='font-size:150%'>Lot # [[v|inv_number]]</span> &nbsp;&nbsp;&nbsp; [[v|g_weight]] g @ [[v|location]]</p>
+                                    <p><span style='font-size:150%'>Lot # [[v|inv_number]]</span>&nbsp;&nbsp;&nbsp;[[v|location]]&nbsp;&nbsp;&nbsp;[[v|g_weight]] g</p>
                                     </div>";
-                            
+
                             return("<div class='col-md-3'>"
-                                  .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)                              
-                                  ."</div>" ); 
+                                  .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)
+                                  ."</div>" );
                         });
-        
+
         $sSubTabs = $this->drawCollectionSubtabs();
-        
+
         draw:
-        
+
         $s = $this->DrawStyle()
            ."<style>
                 #summary-table tr:nth-last-child(2) .weight {
@@ -172,7 +179,7 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
              <div class='container-fluid'>
                <div class='row'>
                  <div class='col-sm-3'>{$sAccession}</div>
-                 <div class='col-sm-9'>{$this->DrawList()}</div>
+                 <div class='col-sm-9'>{$sDrawList}</div>
                </div>
                <div class='row' style='margin-top:1em'>{$sLots}</div>
              </div>
