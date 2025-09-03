@@ -3,6 +3,7 @@
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 include_once( SEEDLIB."mbr/MbrDonations.php" );
 include_once(SEEDLIB."sl/sl_integrity.php");
+include_once(SEEDLIB."sl/QServerRosetta.php");
 
 class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 {
@@ -186,19 +187,19 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
         $s = "<p>Collection status for <b>{$oForm->Value('P_name')}</b> {$oForm->Value('S_name_en')}</p>";
 
-//use 'rosetta-cultivaroverview' and deprecate cmd below
-        $raQCmdParms = ['kCollection'=>1, 'kPcv'=>$kPcv, 'modes'=>" raIxG "];
-        $rQ = (new QServerSLCollectionReports($this->oApp))->Cmd('collreport-cultivarinfo', $raQCmdParms);
+        $rQ = (new QServerRosetta($this->oApp))->Cmd('rosetta-cultivarinfo', ['kCollection'=>1 /*ignored currently*/, 'kPcv'=>$kPcv, 'mode'=>"all"]);
         if( $rQ['bOk'] ) {
             $s .= "<table>";
             foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
                 $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
                 $sCol2 = ($y = intval($kEncodesYear)) ? "from $y" : "";
                 $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
+                $sCol4 = $raI['pops_estimate'] ? "<nobr>{$raI['pops_estimate']} est pops</nobr>" : "";
 
                 $s .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
                            <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
                            <td style='padding:0 1em;border:1px solid #bbb'>$sCol3</td>
+                           <td style='padding:0 1em;border:1px solid #bbb'>$sCol4</td>
                        </tr>";
             }
             $s .= "</table>";
