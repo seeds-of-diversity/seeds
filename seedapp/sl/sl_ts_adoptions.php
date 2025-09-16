@@ -120,6 +120,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
                |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| *Adopter*    || $sAdopter ([[text:fk_mbr_contacts|readonly]])
+               ||| *Recognized as* || [[text:public_name|readonly]]
                ||| *Request*    || [[text:sPCV_request|readonly]]
                ||| *Amount*     || [[text:amount|readonly]]
                ||| *Received*   || [[text:D_date_received|readonly]]
