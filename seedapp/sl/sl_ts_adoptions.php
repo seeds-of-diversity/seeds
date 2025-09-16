@@ -189,12 +189,12 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
         $rQ = (new QServerRosetta($this->oApp))->Cmd('rosetta-cultivarinfo', ['kCollection'=>1 /*ignored currently*/, 'kPcv'=>$kPcv, 'mode'=>"all"]);
         if( $rQ['bOk'] ) {
-            $s .= "<table>";
+            $s .= "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est viable pops</th></tr>";
             foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
                 $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
-                $sCol2 = ($y = intval($kEncodesYear)) ? "from $y" : "";
+                $sCol2 = ($y = intval($kEncodesYear)) ?: "";
                 $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
-                $sCol4 = $raI['pops_estimate'] ? "<nobr>{$raI['pops_estimate']} est pops</nobr>" : "";
+                $sCol4 = $raI['pops_estimate'];
 
                 $s .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
                            <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
