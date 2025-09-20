@@ -44,7 +44,9 @@ class SLProfilesDB extends Keyframe_NamedRelations
             while( $kfrc->CursorFetch() ) {
                 list($psp,$sSp,$sCv) = $this->ComputeVarInstName($kfrc);
                 $raOut[] = ['kVI'=>$kfrc->Key(), 'psp'=>$psp, 'sp'=>$sSp, 'cv'=>$sCv,
-                            'raVI'=>['workflow'=>$kfrc->Value('workflow')]  // extend this as needed
+                            'raVI'=>['workflow'=>$kfrc->Value('workflow'),
+                                     'projcode'=>$kfrc->Value('projcode'),
+                                    ]  // extend this as needed
                 ];
             }
             // sort by sp|cv -- N.B. strcasecmp doesn't know about UTF-8 but doesn't break with it either

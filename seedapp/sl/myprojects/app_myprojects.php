@@ -493,11 +493,17 @@ class ProjectsTabProjects
                         $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
                         $raY[$year] = 1;
                     }
+
+                    $namelink = "<a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a>";
                     $iWorkflow = $ra['raVI']['workflow'];
-                    $sLeft .= "<div class='projlist-item'>
-                                  <div class='projlist-item-workflow projlist-item-workflow-{$iWorkflow}'>{$iWorkflow}</div>
-                                  <a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a>
-                               </div>";
+
+                    if( $this->oP->CanReadOtherUsers() ) {
+                        $sItem = "<div class='col-md-1'><div class='projlist-item-workflow projlist-item-workflow-{$iWorkflow}'>{$iWorkflow}</div></div>
+                                  <div class='col-md-11'>$namelink {$ra['raVI']['projcode']}</div>";
+                    } else {
+                        $sItem = "<div class='col-md-12'>$namelink</div>";
+                    }
+                    $sLeft .= "<div class='row projlist-item'>$sItem</div>";
                 }
             }
             if( !$raY ) {
