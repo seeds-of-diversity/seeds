@@ -319,7 +319,7 @@ class ProjectsTabProjects
         /* Create kfr for selected project, or empty kfr for -1
          * It's best to check this for null later anyway, in case of error
          */
-        if( $this->kCurrVI )  $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $this->kCurrVI);
+        if( $this->kCurrVI > 0 )  $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $this->kCurrVI);
 
         /* kCurrMbr is GetUID unless office mode allows member selection
          */
@@ -330,6 +330,7 @@ class ProjectsTabProjects
          */
         $this->oUIProfile->Init($this->kCurrVI);
         $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrVI, $this->kCurrMbr);
+        if( $this->kfrCurrVI )  $this->kCurrVI = $this->kfrCurrVI->Key();   // because a new record might have been created via form Update()
     }
 
     function StyleDraw()
@@ -350,6 +351,7 @@ class ProjectsTabProjects
                  .projlist-item-workflow--3 {color:black; background-color:#fdd}
              </style>");
     }
+
     function ControlDraw()
     {
         $s = "";
@@ -701,15 +703,19 @@ class ProjectsTabProjects_UI_Record
             if( $kVI != -1 && $kVI != $this->oForm->GetKey() ) {
                 $this->oP->oApp->oC->AddErrMsg("mismatched varinst keys : {$kVI} and {$this->oForm->GetKey()}");
             }
+            if( $this->kVI == -1 ) {
+                // a new record was created via form Update()
+                $this->kVI = $this->oForm->GetKey();
+            }
             $kfrVI = $this->oForm->GetKFR();
         } else {
             // Form was not submitted, so use the pre-loaded kfr to draw the form
             $kfrVI = $this->oPTP->KFRCurrVI();
-            if( $this->kVI == -1 ) {
+            if( $kfrVI ) {
+                $this->oForm->SetKFR($kfrVI);
+            } else {
                 // blank form for new record; set default values
                 if( !$this->oForm->Value('year') ) $this->oForm->SetValue('year', date('Y'));
-            } else if( $kfrVI ) {
-                $this->oForm->SetKFR($kfrVI);
             }
         }
         return($kfrVI);
