@@ -195,6 +195,7 @@ class MyConsole02TabSet extends Console02TabSet
 
 
     function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this); $this->oW->Init(); }
+    function TabSet_main_projects_StyleDraw()    { return( $this->oW->StyleDraw() ); }
     function TabSet_main_projects_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_projects_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
@@ -331,6 +332,24 @@ class ProjectsTabProjects
         $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrVI, $this->kCurrMbr);
     }
 
+    function StyleDraw()
+    {
+        return(
+            "<style>
+                 .projlist-item-workflow { display:inline-block; color:#777; border:1px solid #777; border-radius:3px; padding:0 2px }
+                 .projlist-item-workflow-0  {}
+                 .projlist-item-workflow-1  {}
+                 .projlist-item-workflow-2  {}
+                 .projlist-item-workflow-3  {color:orange; background-color:#ffa}
+                 .projlist-item-workflow-4  {color:blue; background-color:#ddf}
+                 .projlist-item-workflow-5  {color:blue; background-color:#ddf}
+                 .projlist-item-workflow-6  {color:red; background-color:#fdd}
+                 .projlist-item-workflow-20 {color:green; background-color:#dfd}
+                 .projlist-item-workflow--1 {color:black; background-color:#fdd}
+                 .projlist-item-workflow--2 {color:black; background-color:#fdd}
+                 .projlist-item-workflow--3 {color:black; background-color:#fdd}
+             </style>");
+    }
     function ControlDraw()
     {
         $s = "";
@@ -474,9 +493,11 @@ class ProjectsTabProjects
                         $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
                         $raY[$year] = 1;
                     }
-                    $sLeft .= "<p><div style='display:inline-block;color:#777;border:1px solid #777;border-radius:3px;padding:0 2px'>{$ra['raVI']['workflow']}</div>
+                    $iWorkflow = $ra['raVI']['workflow'];
+                    $sLeft .= "<div class='projlist-item'>
+                                  <div class='projlist-item-workflow projlist-item-workflow-{$iWorkflow}'>{$iWorkflow}</div>
                                   <a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a>
-                               </p>";
+                               </div>";
                 }
             }
             if( !$raY ) {
