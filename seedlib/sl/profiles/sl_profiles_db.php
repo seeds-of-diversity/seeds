@@ -47,6 +47,8 @@ class SLProfilesDB extends Keyframe_NamedRelations
                             'raVI'=>['workflow'=>$kfrc->Value('workflow')]  // extend this as needed
                 ];
             }
+            // sort by sp|cv -- N.B. strcasecmp doesn't know about UTF-8 but doesn't break with it either
+            usort($raOut, fn($a,$b) => strcasecmp("{$a['sp']}|{$a['cv']}", "{$b['sp']}|{$b['cv']}"));
         }
         return( $raOut );
     }

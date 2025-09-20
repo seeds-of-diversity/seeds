@@ -440,18 +440,18 @@ class ProjectsTabProjects
 
         /* CGO bean selection
          */
+/*
         if( ($kfrBean = $this->oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'")) ) {
             if( !$kfrBean->Value('fk_sl_inventory') ) {
                 include_once("cgo_signup.php");
 
                 $s .= (new CGOSignup_Bean($this->oP))->Draw2();
 
-                /* For Office mode, tell cgosignup the uid to sign up
-                */
+                // For Office mode, tell cgosignup the uid to sign up
                 $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
             }
         }
-
+*/
 
 
         /* Show projects
@@ -736,16 +736,17 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
                    ||| *Project #*               || [[Key: | readonly]]
                    ||| *Project group*           || ".$this->oForm->Select('projcode', array_merge(['-- Choose --'=>''], $this->projcodes))."
                    ||| *Year*                    || [[Text:year]]
+                   ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->oP::workflowcodes))."
+                   ||| *SoD Lot #*               || [[Text:kLot]]  ".($kfrInv ? $kfrInv->Value('location') : "")." &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
+                   ||| &nbsp;
                    ||| *Species* psp             || [[Text:psp | width:100%]]
                    ||| *Species* osp             || [[Text:osp | width:100%]]
                    ||| *Variety* pname           || [[Text:pname | width:100%]]
                    ||| *Variety* oname           || [[Text:oname | width:100%]]
                    ||| metadata                  || [[Text:metadata | width:100%]]
-                   ||| *SoD Lot #*               || [[Text:kLot]]  ".($kfrInv ? $kfrInv->Value('location') : "")." &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
                    ||| fk_sl_species             || [[Text:fk_sl_species]]
                    ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
                    ||| &nbsp;                    || \n
-                   ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->oP::workflowcodes))."
                    ||| {replaceWith class='col-md-12'} <label>Office notes</label><br/>[[TextArea: notes_office | width:100% rows:10]]
                    |||ENDTABLE
                    [[Hidden: action | value=saveProj]]
