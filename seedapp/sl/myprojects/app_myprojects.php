@@ -281,8 +281,8 @@ class ProjectsTabProjects
     private $oUIProfile, $oUIRecord;
 
     private $kCurrMbr = 0;
-    private $kCurrVI = 0;
     private $kfrCurrVI = null;
+    private $bNew = false;      // a new record is requested
 
     function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
     {
@@ -303,6 +303,7 @@ class ProjectsTabProjects
      * Use this as the one true copy, allowing Updates to change it.
      */
     function KFRCurrVI()  { return($this->kfrCurrVI); }
+    function KCurrVI()    { return($this->kfrCurrVI ? $this->kfrCurrVI->Key() : 0); }
 
     function Init()
     {
@@ -310,27 +311,19 @@ class ProjectsTabProjects
          * vi > 0   when user clicks in project list. forms must propagate this because it is not persistent
          */
         if( SEEDInput_Str('action') == 'Add New Project' ) {
-            $this->kCurrVI = -1;
-        } else {
-            $this->kCurrVI = SEEDInput_Int('vi');
+            $this->bNew = true;
+        } else if( ($kVI = SEEDInput_Int('vi')) > 0 ) {
+            $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $kVI);
         }
-        if( $this->kCurrVI < -1 ) $this->kCurrVI = 0;
-
-        /* Create kfr for selected project, or empty kfr for -1
-         * It's best to check this for null later anyway, in case of error
-         */
-        if( $this->kCurrVI > 0 )  $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $this->kCurrVI);
 
         /* kCurrMbr is GetUID unless office mode allows member selection
          */
 
-        /* kCurrVI and kCurrMbr must be correct before initializing ui components
-         *
-         * Each Init() can potentially change the record via form Update(), so if that happens a different kfr is returned to keep all components synced.
+        /* kfrCurrVI and kCurrMbr must be correct before initializing ui components
          */
-        $this->oUIProfile->Init($this->kCurrVI);
-        $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrVI, $this->kCurrMbr);
-        if( $this->kfrCurrVI )  $this->kCurrVI = $this->kfrCurrVI->Key();   // because a new record might have been created via form Update()
+        $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrMbr);     // returns kfrCurrVI because Update could have created a new record (if bNew)
+
+        $this->oUIProfile->Init();
     }
 
     function StyleDraw()
@@ -513,19 +506,16 @@ class ProjectsTabProjects
             }
         }
 
-
-        if( $this->kCurrVI > 0 ) {
-            // User clicked in the project list. This is propagated by project forms too.
-            if( $this->kfrCurrVI ) {
-                $sProfile .= $this->oUIProfile->DrawProfile();
-            }
+        /* Show profile if project selected in the list or new project created
+         */
+        if( $this->kfrCurrVI ) {
+            $sProfile .= $this->oUIProfile->DrawProfile();
         }
 
-        if( $this->kCurrVI && $this->oP->CanWriteOtherUsers() ) {
-            /* Show the project record : >0 means a project was selected in the list
-             *                           -1 means new project button was clicked
-             */
-            $sOfficePanel .= ("<h3>".($this->kCurrVI == -1 ? "New " : "")."Project Record</h3>")
+        /* Show record form if project selected in the list or new project requested (Add New Project)
+         */
+        if( ($this->bNew || $this->kfrCurrVI) && $this->oP->CanWriteOtherUsers() ) {
+            $sOfficePanel .= ("<h3>".($this->bNew ? "New " : "")."Project Record</h3>")
                             .$this->oUIRecord->DrawRecord( $this->kCurrMbr /*kluge: remove when kCurrMbr is known in Init()*/);
         }
 
@@ -591,14 +581,12 @@ class ProjectsTabProjects_UI_Profile
         $this->oProfilesReport = new SLProfilesReport($this->oP->oProfilesDB, new SLProfilesDefs($this->oP->oProfilesDB), $this->oP->oApp );
     }
 
-    function Init( int $kVI )
+    function Init()
     {
         /* Process form submission before drawing any other components' content.
-         * kCurrVI is correct at this point
+         * kfrCurrVI is correct at this point
          */
-
-        // this should be in oCP too
-        $this->oForm = new SLProfilesForm( $this->oP->oProfilesDB, $kVI );
+        $this->oForm = new SLProfilesForm( $this->oP->oProfilesDB, $this->oPTP->KCurrVI() );
         $this->oForm->Update();  // record the sl_desc_obs returned from the form
 
         /* The code above doesn't update the VI record. If it ever does, this method should return a new kfr.
@@ -613,10 +601,8 @@ class ProjectsTabProjects_UI_Profile
     {
         $s = "";
 
-        /* This method only makes sense if a record is selected
-         * Use the parent's copy as the one true copy shared by all ui components.
-         */
-        if( !($kfrVI = $this->oPTP->KFRCurrVI()) )  goto done;
+        $kfrVI = $this->oPTP->KFRCurrVI();
+        if( !$kfrVI || !$kfrVI->Key() )  goto done;
 
         list($psp,$sSp,$sCv) = $this->oP->oProfilesDB->ComputeVarInstName($kfrVI);
 
@@ -684,12 +670,12 @@ class ProjectsTabProjects_UI_Record
         $this->oPTP = $oPTP;
     }
 
-    function Init( int $kVI, int $kMbr )
+    function Init( int $kMbr )
     {
         /* Process form submission before drawing any other components' content.
          * kCurrVI is correct at this point
          */
-        $this->kVI = $kVI;
+        $this->kVI = $this->oPTP->KCurrVI();
         $this->kMbr = $kMbr;
 
         $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'R', ['DSParms'=>['fn_DSPreStore'=>[$this,'DSPreStore_UIRecord']]]);
@@ -700,18 +686,14 @@ class ProjectsTabProjects_UI_Record
          */
         if( $this->oForm->GetKey() ) {
             // A record was submitted via the form.
-            if( $kVI != -1 && $kVI != $this->oForm->GetKey() ) {
-                $this->oP->oApp->oC->AddErrMsg("mismatched varinst keys : {$kVI} and {$this->oForm->GetKey()}");
-            }
-            if( $this->kVI == -1 ) {
-                // a new record was created via form Update()
-                $this->kVI = $this->oForm->GetKey();
+            if( $this->kVI && $this->kVI != $this->oForm->GetKey() ) {
+                // some bad hacky thing is going on
+                $this->oP->oApp->oC->AddErrMsg("mismatched varinst keys : {$this->kVI} and {$this->oForm->GetKey()}");
             }
             $kfrVI = $this->oForm->GetKFR();
         } else {
             // Form was not submitted, so use the pre-loaded kfr to draw the form
-            $kfrVI = $this->oPTP->KFRCurrVI();
-            if( $kfrVI ) {
+            if( ($kfrVI = $this->oPTP->KFRCurrVI()) ) {
                 $this->oForm->SetKFR($kfrVI);
             } else {
                 // blank form for new record; set default values
