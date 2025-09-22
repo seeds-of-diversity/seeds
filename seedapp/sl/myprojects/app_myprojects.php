@@ -705,10 +705,14 @@ class ProjectsTabProjects_UI_Record
 
     function DSPreStore_UIRecord( Keyframe_DataStore $oDS )
     {
-        if( ($kLot = intval($oDS->Value('kLot'))) ) {
-            $kI = $this->oP->oProfilesDB->oSLDB->GetRecordVal1Cond('I', "inv_number=$kLot", '_key');
-            $oDS->SetValue('fk_sl_inventory', $kI);
+        /* Lot #: we store fk_sl_inventory but use inv_number in the form.
+         */
+        $kI = 0;
+        if( ($iLot = $oDS->ValueInt('iLot')) ) {
+            $kI = $this->oP->oProfilesDB->oSLDB->GetRecordVal1Cond('I', "inv_number=$iLot", '_key');
         }
+        $oDS->SetValue('fk_sl_inventory', $kI);     // even if 0 because iLot could have changed to 0 or blank
+
         return(true);
     }
 
@@ -738,7 +742,7 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
 
         $kfrInv = null;
         if( ($kI = $this->oForm->Value('fk_sl_inventory')) && ($kfrInv = $this->oP->oProfilesDB->oSLDB->GetKFR('I', $kI)) ) {
-            $this->oForm->SetValue('kLot', $kfrInv->Value('inv_number'));
+            $this->oForm->SetValue('iLot', $kfrInv->Value('inv_number'));
         }
 
 
@@ -752,7 +756,7 @@ $this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
                    ||| *Project group*           || ".$this->oForm->Select('projcode', array_merge(['-- Choose --'=>''], $this->projcodes))."
                    ||| *Year*                    || [[Text:year]]
                    ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->oP::workflowcodes))."
-                   ||| *SoD Lot #*               || [[Text:kLot]]  ".($kfrInv ? $kfrInv->Value('location') : "")." &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
+                   ||| *SoD Lot #*               || [[Text:iLot]]  ".($kfrInv ? $kfrInv->Value('location') : "")." &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
                    ||| &nbsp;
                    ||| *Species* psp             || [[Text:psp | width:100%]]
                    ||| *Species* osp             || [[Text:osp | width:100%]]
