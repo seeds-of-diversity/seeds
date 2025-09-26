@@ -884,7 +884,9 @@ class ProjectsTabOffice
 
         if( !$bShow )  goto done;
 
-        $sCond = "year='{$oForm->ValueDB('year')}'";
+        $sCond = "year='{$oForm->ValueDB('year')}'"
+// parameterize
+                ." AND workflow >= 4";
         if( $raProj )  $sCond .= " AND psp in ('".implode("','", $raProj)."')";
 
         $raMbr = [];
@@ -906,15 +908,9 @@ class ProjectsTabOffice
                     $raMbr[$kMbr]['ground-cherry'] = 1;
                     break;
                 case 'tomato':
-                    if( $raVI['fk_sl_inventory'] && ($kfrLot = $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory'])) ) {
-                        $raMbr[$kMbr]['tomato'] = $kfrLot->Value('P_name');
-                    }
-                    break;
                 case 'bean':
                     if( $raVI['fk_sl_inventory'] && ($kfrLot = $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory'])) ) {
-                        $raMbr[$kMbr]['bean'] = $kfrLot->Value('P_name');
-                    } else {
-                        $raMbr[$kMbr]['bean'] = "[to be chosen]";
+                        $raMbr[$kMbr][$raVI['psp']] .= "{$kfrLot->Value('P_name')} ({$kfrLot->Value('inv_number')}) ";
                     }
                     break;
             }
