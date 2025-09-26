@@ -903,13 +903,16 @@ class ProjectsTabOffice
                 ];
             }
 
-            switch( $raVI['psp'] ) {
+            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
+            $psp = $kfrLot ? $kfrLot->Value('psp') : $raVI['psp'];
+
+            switch( $psp ) {
                 case 'ground-cherry':
                     $raMbr[$kMbr]['ground-cherry'] = 1;
                     break;
                 case 'tomato':
                 case 'bean':
-                    if( $raVI['fk_sl_inventory'] && ($kfrLot = $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory'])) ) {
+                    if( $kfrLot ) {
                         $raMbr[$kMbr][$raVI['psp']] .= "{$kfrLot->Value('P_name')} ({$kfrLot->Value('inv_number')}) ";
                     }
                     break;
