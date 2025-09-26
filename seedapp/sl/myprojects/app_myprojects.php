@@ -904,7 +904,7 @@ class ProjectsTabOffice
             }
 
             $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
-            $psp = $kfrLot ? $kfrLot->Value('psp') : $raVI['psp'];
+            $psp = $kfrLot ? $kfrLot->Value('P_psp') : $raVI['psp'];
 
             switch( $psp ) {
                 case 'ground-cherry':
@@ -913,7 +913,7 @@ class ProjectsTabOffice
                 case 'tomato':
                 case 'bean':
                     if( $kfrLot ) {
-                        $raMbr[$kMbr][$raVI['psp']] .= "{$kfrLot->Value('P_name')} ({$kfrLot->Value('inv_number')}) ";
+                        $raMbr[$kMbr][$psp] .= "{$kfrLot->Value('P_name')} ({$kfrLot->Value('inv_number')}) ";
                     }
                     break;
             }
