@@ -845,13 +845,17 @@ class ProjectsTabOffice
                                      ]]);
         $oForm->Update();
         $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:5px;padding:1em'><form>
-               <p>".$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Profile Observations"=>'desc_obs'])."</p>
+               <p>".$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Core growers"=>'core_growers', "Profile Observations"=>'desc_obs'])."</p>
                <p>".$oForm->Select('year', ['2025'=>2025, '2024'=>2024])."</p>
+               <p>".$oForm->Text('workflow','',['size'=>4])." min workflow</p>"
+
+/*
                <p>".$oForm->Checkbox('all', "All")."</p>
                <p>".$oForm->Checkbox('ground-cherry', "Ground cherry")."</p>
                <p>".$oForm->Checkbox('tomato', "Tomato")."</p>
                <p>".$oForm->Checkbox('bean', "Bean")."</p>
-               <p><input type='submit' value='Show'/></p>
+*/
+             ."<p><input type='submit' value='Show'/></p>
                </form></div>
                <div style='display:inline-block;vertical-align:top;padding-left:1em'>
                    <a href='?xlsx=1' target='_blank'><img src='https://seeds.ca/w/std/img/dr/xls.png' style='height:30px'/></a>
@@ -859,6 +863,7 @@ class ProjectsTabOffice
 
         switch($oForm->Value('mode')) {
             case 'cgo_growers':     $s .= $this->drawCGOGrowers($oForm);    break;
+            case 'core_growers':    $s .= $this->drawCoreGrowers($oForm);   break;
             case 'desc_obs':        $s .= $this->drawDescObs($oForm);       break;
         }
 
@@ -867,7 +872,7 @@ class ProjectsTabOffice
 
     private function drawCGOGrowers( SEEDCoreForm $oForm )
     {
-        $bShow = false;
+        $bShow = true;
         $raProj = [];
         $s = "";
 
@@ -884,10 +889,26 @@ class ProjectsTabOffice
 
         if( !$bShow )  goto done;
 
-        $sCond = "year='{$oForm->ValueDB('year')}'"
-// parameterize
-                ." AND workflow >= 4";
-        if( $raProj )  $sCond .= " AND psp in ('".implode("','", $raProj)."')";
+        /* Integrity tests
+         */
+        if( ($n = $this->oSLDB->GetCount('VI', "year='{$oForm->ValueDB('year')}' AND projcode<>'core' AND projcode NOT LIKE 'cgo_%'")) ) {
+            $this->oP->oApp->oC->AddErrMsg("$n records have invalid projcode<br/>");
+        }
+
+        if( ($raTest = $this->oP->oApp->kfdb->QueryRowsRA(
+                "SELECT V1.fk_mbr_contacts as kMbr , V1._key FROM {$this->oP->oApp->DBName('seeds1')}.sl_varinst V1, {$this->oP->oApp->DBName('seeds1')}.sl_varinst V2
+                 WHERE V1._status=0 AND V2._status=0 AND
+                       V1.year={$oForm->ValueDB('year')} AND V2.year={$oForm->ValueDB('year')} AND
+                       V1.fk_mbr_contacts=V2.fk_mbr_contacts AND
+                       V1._key < V2._key AND
+                       V1.projcode <> V2.projcode")) )
+        {
+            $this->oP->oApp->oC->AddErrMsg(count($raTest)." growers are in multiple projects: ".SEEDCore_ArrayExpandRows($raTest, "[[kMbr]] ")."<br/>");
+        }
+
+        $sCond = "year='{$oForm->ValueDB('year')}' AND projcode LIKE 'cgo_%'"
+                .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "")
+                .($raProj ? (" AND psp in ('".implode("','", $raProj)."')") : "");
 
         $raMbr = [];
         foreach( $this->oSLDB->GetList('VI', $sCond) as $raVI ) {
@@ -895,14 +916,15 @@ class ProjectsTabOffice
 
             if( !isset($raMbr[$kMbr]) ) {
                 $ra = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
-                $raMbr[$kMbr] = ['member_name' => $this->oMbr->GetContactNameFromMbrRA($ra),
-                                 'member_email'=> $ra['email'],
+                $raMbr[$kMbr] = ['member_name' => $ra ? $this->oMbr->GetContactNameFromMbrRA($ra) : "",
+                                 'member_email'=> @$ra['email'],
                                  'ground-cherry' => '',
                                  'tomato' => '',
                                  'bean' => '',
                 ];
             }
 
+// use ComputeVarInstName - needs kfrVI instead of raVI
             $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
             $psp = $kfrLot ? $kfrLot->Value('P_psp') : $raVI['psp'];
 
@@ -923,7 +945,7 @@ class ProjectsTabOffice
             // output as a spreadsheet
             include_once( SEEDCORE."SEEDXLSX.php" );
 
-            $title = "Seeds of Diversity Projects {$oForm->Value('year')}";
+            $title = "Seeds of Diversity CGO Projects {$oForm->Value('year')}";
             $oXLSX = new SEEDXlsWrite( ['title'=> $title,
                                         'filename'=>$title.'.xlsx',
                                         'creator'=>$this->oP->oApp->sess->GetName(),
@@ -948,6 +970,77 @@ class ProjectsTabOffice
         foreach( $raMbr as $kMbr => $ra ) {
             $s .= "<tr><td>{$ra['member_name']} ({$kMbr})</td><td>{$ra['member_email']}</td>
                        <td>{$ra['ground-cherry']}</td><td>{$ra['tomato']}</td><td>{$ra['bean']}</td></tr>";
+        }
+        $s .= "</table>";
+
+        done:
+        return($s);
+    }
+
+    private function drawCoreGrowers( SEEDCoreForm $oForm )
+    {
+        $s = "";
+
+        /* We want to show all seeds being grown by Core growers, but those aren't necessarily all Core seeds. e.g. some will be cgo_gc
+         * Get distinct kMbr of all the growers doing Core projects of the chosen workflow,
+         * then get all their projects regardless of projcode.
+         */
+        $sCond = "year='{$oForm->ValueDB('year')}'"
+                .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "");
+
+        // growers doing projects with the basic constraints where at least one is a Core project - this returns [kMbr1, kMbr2, kMbr2, ...]
+        $raMbr = $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', $sCond." AND projcode='core'", ['sGroupAliases'=>"fk_mbr_contacts"]);
+        // all projects with the basic constraints, for those growers, regardless of projcode
+        $raVIRows = $this->oSLDB->GetList('VI', $sCond." AND fk_mbr_contacts IN (".implode(',',$raMbr).")", ['sSortCol'=>"fk_mbr_contacts"]);
+
+// make VIxM_IxAxP_P2
+        $raOut = [];
+        foreach( $raVIRows as $raVI ) {
+            $kMbr = $raVI['fk_mbr_contacts'];
+            $raM = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
+
+// use ComputeVarInstName - needs kfrVI instead of raVI
+            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
+
+            $raOut[] = ['member' => $kMbr,
+                        'member_name'  => ($raM ? $this->oMbr->GetContactNameFromMbrRA($raM) : ""),
+                        'member_email' => $raM['email'],
+                        'projcode'     => $raVI['projcode'],
+                        'psp'          => $kfrLot ? $kfrLot->Value('P_psp')  : ($raVI['psp'] ?: $raVI['osp']),
+                        'pname'        => $kfrLot ? $kfrLot->Value('P_name') : ($raVI['pname'] ?: $raVI['oname']),
+                        'lot'          => $kfrLot ? $kfrLot->Value('inv_number') : ""
+                       ];
+        }
+
+        if( SEEDInput_Int('xlsx') ) {
+            // output as a spreadsheet
+            include_once( SEEDCORE."SEEDXLSX.php" );
+
+            $title = "Seeds of Diversity Core Projects {$oForm->Value('year')}";
+            $oXLSX = new SEEDXlsWrite( ['title'=> $title,
+                                        'filename'=>$title.'.xlsx',
+                                        'creator'=>$this->oP->oApp->sess->GetName(),
+                                        'author'=>$this->oP->oApp->sess->GetName()] );
+
+            $raKeys = ['member','member_name','member_email','projcode','psp','pname','lot'];
+
+            $oXLSX->WriteHeader( 0, $raKeys);
+
+            $iRow = 2;  // rows are origin-1 so this is the row below the header
+            foreach( $raOut as $ra ) {
+                // reorder the $ra values to the same order as $raKeys
+                $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode( array_replace(array_fill_keys($raKeys,''), array_intersect_key($ra,array_fill_keys($raKeys,'')))) );
+            }
+
+            $oXLSX->OutputSpreadsheet();
+            exit;
+        }
+
+        $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
+               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>project</th><th>psp</th><th>pname</th><th>Lot</th></tr>";
+        foreach( $raOut as $ra ) {
+            $s .= "<tr><td>{$ra['member_name']} ({$ra['member']})</td><td>{$ra['member_email']}</td>
+                       <td>{$ra['projcode']}</td><td>{$ra['psp']}</td><td>{$ra['pname']}</td><td>{$ra['lot']}</td></tr>";
         }
         $s .= "</table>";
 
