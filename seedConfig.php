@@ -2,7 +2,7 @@
 
 /* seedConfig
  *
- * Copyright (c) 2019-2021 Seeds of Diversity Canada
+ * Copyright (c) 2019-2025 Seeds of Diversity Canada
  *
  * Definitions for locations of seeds components.
  *
@@ -212,7 +212,7 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
      * See above for general error reporting.
      */
     if( !defined('SEED_display_errors') && in_array($oApp->sess->GetUID(), [1,1499]) ) {
-        error_reporting(E_ALL | E_STRICT);
+        error_reporting(E_ALL);
         ini_set('display_errors', 1);
         ini_set('html_errors', 1);
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
