@@ -38,7 +38,7 @@ class SEEDTemplate2
     protected $oLoader = null;
     protected $raProcessors = array();
 
-    function __construct( $raConfig = array(), SEEDDataStore $oDSVars = null )
+    function __construct( $raConfig = array(), ?SEEDDataStore $oDSVars = null )
     {
         $this->raProcessors = $raConfig['processors'];   // required
 

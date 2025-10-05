@@ -30,7 +30,7 @@ class SEEDTagParser
     private $bEatUnknownTags = true;
     private $bDebug = false;    // true: write error messages to the output
 
-    function __construct( $raParms = array(), SEEDDataStore $oDSVars = null ) {
+    function __construct( $raParms = array(), ?SEEDDataStore $oDSVars = null ) {
         $this->raParms = $raParms;
         $this->bEatUnknownTags = SEEDCore_ArraySmartBool( $raParms, 'bEatUnknownTags', true );
 

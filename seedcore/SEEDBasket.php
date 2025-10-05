@@ -68,7 +68,7 @@ class SEEDBasketCore
 
     private $dbname;
 
-    function __construct( KeyframeDatabase $kfdb = null, SEEDSession $sess = null,      // deprecate these -- null means use oApp
+    function __construct( ?KeyframeDatabase $kfdb = null, ?SEEDSession $sess = null,      // deprecate these -- null means use oApp
                           SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
     {
         /* raParms:
