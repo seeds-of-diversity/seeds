@@ -203,16 +203,21 @@ class KeyFrameUI_ListFormUI
      */
     function ContentDraw_NewDelete() { return($this->ContentDraw_Vert_NewDelete()); }  // deprecate
 
+    function ContentDraw_Style_Vert()
+    {
+        return("<style>
+                .content-upper-section  { }
+                .content-lower-section  { border:1px solid #777; padding:15px; }
+                .content-form-container { width:100%;padding:20px;border:2px solid #999;clear:both }
+                </style>");
+    }
+
     function ContentDraw_Vert_NewDelete()
     {
-        $cid = $this->oComp->Cid();
+        //$cid = $this->oComp->Cid();
 
         $s = $this->DrawStyle()
-           ."<style>
-             .content-upper-section  { }
-             .content-lower-section  { border:1px solid #777; padding:15px; }
-             .content-form-container { width:100%;padding:20px;border:2px solid #999;clear:both }
-             </style>"
+           .$this->ContentDraw_Style_Vert()
            ."<div class='content-upper-section'>{$this->DrawList()}</div>"
            ."<div class='content-lower-section'>
                  {$this->Buttons_NewDeleteMsg()}
@@ -224,7 +229,7 @@ class KeyFrameUI_ListFormUI
 
     function ContentDraw_Horz_NewDelete()
     {
-        $cid = $this->oComp->Cid();
+        //$cid = $this->oComp->Cid();
 
         $s = $this->DrawStyle()
            ."<style>
