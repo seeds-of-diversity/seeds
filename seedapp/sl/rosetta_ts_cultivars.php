@@ -34,7 +34,33 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
 
     function Init()         { parent::Init(); }
     function ControlDraw()  { return( $this->DrawSearch() ); }
-    function ContentDraw()  { return( $this->ContentDraw_NewDelete() ); }
+    function ContentDraw()
+    {
+        $s = "";
+
+        $oCTS = new Rosetta_CultivarTabs_Console02TabSet( $this, $this->oApp, $this->oComp->oForm->ValueInt('_key') );  // tell the subtabs the current selection in the list
+
+        $s .= $this->DrawStyle()
+             ."<div class='content-upper-section'>{$this->DrawList()}</div>"
+             .$this->cultivarInfo()
+             .$oCTS->TabSetDraw('cultivartabs');
+
+        return($s);
+    }
+
+    private function cultivarInfo()
+    {
+        $s = "";
+
+        if( !$kPcv = $this->oComp->oForm->ValueInt('_key') )  goto done;
+
+        $s .= "<div style='margin:1em 0'>Foo</div>";
+
+        done:
+        return($s);
+    }
+
+
 
     /* These are not called directly, but referenced in raConfig
      */
@@ -118,3 +144,31 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
         return( $bOk );
     }
 }
+
+
+class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
+{
+    private $oR;
+    private $oApp;
+    private $oW;
+    private $kInventory;    // the key of the sl_inventory currently selected in the list
+
+    function __construct( RosettaCultivarListForm $oR, $oApp, $kPcv )
+    {
+        global $consoleConfig;
+        parent::__construct( $oApp->oC, $consoleConfig['TABSETS'] );
+
+        $this->oR = $oR;
+        $this->oApp = $oApp;
+        $this->kInventory = $kPcv;
+    }
+
+    function TabSet_colltabs_germ_Init()         { $this->oW = new CollectionTab_GerminationTests( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_germ_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_cultivartabs_edit_ContentDraw()  { return( $this->oR->Buttons_NewDeleteMsg()."<div class='content-form-container'>{$this->oR->DrawForm()}</div>" ); }  //return( $this->oW->ContentDraw() ); }
+
+    function TabSet_colltabs_packetlabels_Init()         { $this->oW = new CollectionTab_PacketLabels( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_packetlabels_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_colltabs_packetlabels_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+}
+
