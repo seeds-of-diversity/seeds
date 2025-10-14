@@ -107,7 +107,9 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
     {
         $sAdopter = $this->oMbrContacts->GetContactName($oForm->Value('fk_mbr_contacts'));
         $sLinkRosetta = ($k = $oForm->Value('P__key')) ? "<a href='./rosetta.php?c02ts_main=cultivar&sfRui_k=$k' target='_blank'>See this in Rosetta</a>" : "";
-        list($sSyn,$sStats) = ($kPcv = $oForm->Value('fk_sl_pcv')) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv) : ["",""];
+        $raPCVReport = ($kPcv = $oForm->Value('fk_sl_pcv')) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv, " ALL ") : [];
+        $sSyn   = @$raPCVReport['syn'] ?? "";
+        $sStats = @$raPCVReport['stats'] ?? "";
 
         $urlQ = SITEROOT_URL."app/q/index.php";     // rosettaPCVSearch is still in the original Q code
 

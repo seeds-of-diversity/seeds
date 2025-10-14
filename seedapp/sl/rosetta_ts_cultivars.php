@@ -42,24 +42,11 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
 
         $s .= $this->DrawStyle()
              ."<div class='content-upper-section'>{$this->DrawList()}</div>"
-             .$this->cultivarInfo()
+             ."<br/>"
              .$oCTS->TabSetDraw('cultivartabs');
 
         return($s);
     }
-
-    private function cultivarInfo()
-    {
-        $s = "";
-
-        if( !$kPcv = $this->oComp->oForm->ValueInt('_key') )  goto done;
-
-        $s .= "<div style='margin:1em 0'>Foo</div>";
-
-        done:
-        return($s);
-    }
-
 
 
     /* These are not called directly, but referenced in raConfig
@@ -67,7 +54,9 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
     function FormTemplate( SEEDCoreForm $oForm )
     {
         // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
-        list($sSyn,$sStats) = ($kPcv = $this->oComp->Get_kCurr()) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv) : ["",""];
+        $raPCVReport = ($kPcv = $this->oComp->Get_kCurr()) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv, " ALL ") : [];
+        $sSyn   = @$raPCVReport['syn'] ?? "";
+        $sStats = @$raPCVReport['stats'] ?? "";
 
         // get all species for dropdown
         $raSpOpts = ["-- Choose --"=>0];
@@ -151,7 +140,7 @@ class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
     private $oR;
     private $oApp;
     private $oW;
-    private $kInventory;    // the key of the sl_inventory currently selected in the list
+    private $kPcv;
 
     function __construct( RosettaCultivarListForm $oR, $oApp, $kPcv )
     {
@@ -160,15 +149,28 @@ class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
 
         $this->oR = $oR;
         $this->oApp = $oApp;
-        $this->kInventory = $kPcv;
+        $this->kPcv = $kPcv;
     }
 
-    function TabSet_colltabs_germ_Init()         { $this->oW = new CollectionTab_GerminationTests( $this->oApp, $this->kInventory ); $this->oW->Init(); }
-    function TabSet_colltabs_germ_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+    function TabSet_cultivartabs_overview_ContentDraw()  { return( $this->drawOverview() ); }
+
+    // the Edit form could be defined here or in a subclass but it is closely tied to the List so it's fine to define it in the parent
     function TabSet_cultivartabs_edit_ContentDraw()  { return( $this->oR->Buttons_NewDeleteMsg()."<div class='content-form-container'>{$this->oR->DrawForm()}</div>" ); }  //return( $this->oW->ContentDraw() ); }
 
-    function TabSet_colltabs_packetlabels_Init()         { $this->oW = new CollectionTab_PacketLabels( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_packetlabels_Init()         {} // $this->oW = new CollectionTab_PacketLabels( $this->oApp, $this->kInventory ); $this->oW->Init(); }
     function TabSet_colltabs_packetlabels_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_colltabs_packetlabels_ContentDraw()  { return( $this->oW->ContentDraw() ); }
-}
 
+
+    private function drawOverview()
+    {
+        $s = "";
+
+        if( !$this->kPcv )  goto done;
+
+        $s = "<div>{$this->kPcv}</div>";
+
+        done:
+        return($s);
+    }
+}
