@@ -119,7 +119,13 @@ class KeyframeDB_Connection_MySQLI extends KeyFrameDB_Connection
             // Replace the placeholders in the SQL with the parameter values
             // This defeats the purpose of using prepared statements but is backwards compatible with PHP versions < 8.2
             $sql = preg_replace_callback('/\?/', function() use (&$i, $params) {
-                return isset($params[$i]) ? $this->_escapeString($params[$i++]) : '?';
+                if (isset($params[$i])) {
+                    if (is_string($params[$i])) {
+                        return "'{$this->_escapeString($params[$i])}'";
+                    }
+                    return $this->_escapeString($params[$i]);
+                }
+                return '?';
             }, $str);
         }
         return mysqli_query( $this->_conn, $sql );
