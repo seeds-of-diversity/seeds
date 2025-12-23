@@ -2,7 +2,7 @@
 
 /* MSDCore
  *
- * Copyright (c) 2018-2024 Seeds of Diversity
+ * Copyright (c) 2018-2025 Seeds of Diversity
  *
  *  Basic Member Seed Directory support built on top of SEEDBasket.
  */
@@ -184,14 +184,14 @@ class MSDCore
      * @param array $raParms
      * @return array
      */
-    function GetGrowerList( array $raParms )
+    function GetGrowerList( array $raParms ) : array
     {
         $raG = [];
-        $raCond = ["P.product_type='seeds'"];
+        $raCond = [];
         $bRequireSeedGroup = false;
 
         if( @$raParms['bNotGDelete'] )         { $raCond[] = "NOT G.bDelete"; }
-        if( @$raParms['bSActiveOrInactive'] )  { $raCond[] = "P.eStatus IN ('ACTIVE', 'INACTIVE')";  $bRequireSeedGroup = true; }
+        if( @$raParms['bSActiveOrInactive'] )  { $raCond[] = "P.product_type='seeds' AND P.eStatus IN ('ACTIVE', 'INACTIVE')";  $bRequireSeedGroup = true; }
         if( @$raParms['bNotDoneForCurrYear'])  { $raCond[] = "NOT ({$this->CondIsGrowerDoneForCurrYear('G')})"; }
 
         $sCond = "(".implode(" AND ", $raCond).")";
@@ -203,6 +203,21 @@ class MSDCore
         }
 
         return($raG);
+    }
+
+    /**
+     * Return a KFRC of growers who meet the requested criteria
+     * @param array $raParms
+     * @return KeyframeRecordCursor
+     */
+    function GetGrowerKFRC( array $raParms ) : KeyframeRecordCursor
+    {
+        $raCond = [];
+        if( @$raParms['bNotGDelete'] )         { $raCond[] = "NOT G.bDelete"; }
+        if( @$raParms['bGDelete'] )            { $raCond[] = "G.bDelete"; }
+
+        $sCond = "(".implode(" AND ", $raCond).")";
+        return( $this->oSBDB->GetKFRC("GxM", $sCond) );
     }
 
     // deprecate, use the indirection instead because this is a low-level (even oSBDB kind of thing)
@@ -273,13 +288,23 @@ class MSDCore
         return( $this->oSBDB->GetKFRC( 'PxPEMSD', $sCond, $raKFRParms ) );   // use custom SBDB kfrel
     }
 
-    function GetSeedKFRC2( string $rel, string $sCond, array $raKFRParms = [] )
-    /**************************************************************************
-        Like GetSeedKFRC2 but you can specify the named relation
+    function GetSeedKFRC2( string $rel, array $raParms = [] )
+    /********************************************************
+        Like GetSeedKFRC but you can specify the named relation (must start with P), and conditions are parameterized.
+
+        raParms: sCond
+                 uid_seller
+                 bDelete
+                 raKFParms
      */
     {
-        $sCond .= ($sCond ? " AND " : "")."P.product_type='seeds'";
-        return( $this->oSBDB->GetKFRC( $rel, $sCond, $raKFRParms ) );   // use custom SBDB kfrel
+        $raCond = ["P.product_type='seeds'"];
+
+        if( @$raParms['uid_seller'] )  $raCond[] = "P.uid_seller='{$raParms['uid_seller']}'";
+        if( @$raParms['bDelete'] )     $raCond[] = "P.eStatus='DELETED'";
+        if( @$raParms['sCond'] )       $raCond[] = "({$raParms['sCond']})";
+
+        return( $this->oSBDB->GetKFRC( $rel, implode(' AND ', $raCond), @$raParms['raKFRParms'] ?? [] ) );   // use custom SBDB kfrel
     }
 
     function GetSeedSql( $sCond, $raKFRParms = array() )

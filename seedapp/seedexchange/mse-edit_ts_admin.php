@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for admin tab
  *
- * Copyright (c) 2018-2024 Seeds of Diversity
+ * Copyright (c) 2018-2025 Seeds of Diversity
  *
  */
 
@@ -99,6 +99,8 @@ class MSEEditAppAdminTab
                 $s .= "<div class='well'>$sTest</div>";
             }
 
+            /* Archive
+             */
             $s .= "<p><a href='?archiveCurrentMSD=1'>Archive: replace $Y archive with current 'Done' growers and seeds where grower year=$Y</a></p>";
             if( SEEDInput_Int('archiveCurrentMSD') ) {
                 // delete archive records for $Y, copy current active growers and seeds there and give them year $Y
@@ -106,6 +108,8 @@ class MSEEditAppAdminTab
                 $s .= "<div class='indent'>$s1</div>";
             }
 
+            /* Prepare for data entry
+             */
             $s .= "<p><a href='?prepareForDataEntry=1'>Show steps to prepare for data entry in fall</a></p>";
             if( SEEDInput_Int('prepareForDataEntry') ) {
                 $s .= "<p><pre style='margin-left:30px'>"
@@ -122,6 +126,21 @@ class MSEEditAppAdminTab
                      ."<br/>  todo: bChanged is unnecessary if you use _updated the way seeds do"
                      ."</pre></p>";
             }
+
+            /* Delete growers and seeds
+             */
+            if( SEEDInput_Int('deleteGrowers') ) {
+                $this->oMSDLib->PurgeDeletedGrowersAndTheirSeeds();
+                $raQStats['raOut']['nGrowersDeleted'] = 0;
+            }
+            if( SEEDInput_Int('deleteSeeds') ) {
+                $this->oMSDLib->PurgeDeletedSeeds();
+                $raQStats['raOut']['nSeedsDeleted'] = 0;
+            }
+            $s .= $raQStats['raOut']['nGrowersDeleted'] ? "<p><a href='?deleteGrowers=1'>Purge {$raQStats['raOut']['nGrowersDeleted']} DELETED growers and their seeds</a></p>"
+                                                        : "<p>There are no growers with bDelete</p>";
+            $s .= $raQStats['raOut']['nSeedsDeleted']   ? "<p><a href='?deleteSeeds=1'>Purge {$raQStats['raOut']['nSeedsDeleted']} DELETED seeds</a></p>"
+                                                        : "<p>There are no seeds with deleted eStatus</p>";
         }
 
         done:
