@@ -49,9 +49,9 @@ if( ($cmd = SEEDInput_Str('cmd')) ) {
     if( $cmd == 'putNewMbrInDB' ) {
         $raMbr = [];
         foreach(['email','firstname','lastname','address','city','province','postcode'] as $k )  $raMbr[$k] = SEEDInput_Str($k);
-        $ret = (new Mbr_Contacts($oApp))->PutContact( $raMbr, $eDetail = Mbr_Contacts::DETAIL_BASIC, true );
+        $kfrM = (new Mbr_Contacts($oApp))->PutContact( $raMbr, $eDetail = Mbr_Contacts::DETAIL_BASIC, true );
 
-        echo json_encode($ret ? "Added contact $ret" : "Failed");
+        echo json_encode($kfrM ? "Added contact {$kfrM->Key()}" : "Failed");
     }
     exit;
 }
