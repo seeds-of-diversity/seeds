@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2024 Seeds of Diversity Canada
+ * Copyright 2020-2025 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
