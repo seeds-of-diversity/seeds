@@ -126,7 +126,7 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
 
     function ContentDraw()
     {
-        $sAccession = $sLots = $sSubTabs = "";
+        $sAccession = $sDrawList = $sLots = $sSubTabs = "";
 
         if( !$this->oComp->oForm->GetKey() ) {
             $sAccession = "<p>Please select a seed lot from the list</p>";
