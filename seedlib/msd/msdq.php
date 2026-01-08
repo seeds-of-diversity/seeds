@@ -88,7 +88,7 @@ class MSDQ extends SEEDQ
 
             case 'msdSeedList-Draw':
                 // do msdSeedList-GetData and draw the list using various display parms
-                list($rQ['bOk'],$rQ['sOut'],$rQ['sErr']) = $this->seedListDraw( $raParms );
+                list($rQ['bOk'],$rQ['sOut'],$rQ['raMeta']['nListings'],$rQ['sErr']) = $this->seedListDraw( $raParms );
                 break;
 
             case 'msdSeed-Draw':
@@ -419,6 +419,7 @@ class MSDQ extends SEEDQ
     {
         $ok = false;
         $s = $sErr = "";
+        $nListings = 0;
 
 // TODO: there must be some good way to this without double fetching the seed records
 
@@ -430,6 +431,8 @@ class MSDQ extends SEEDQ
         }
 
         $ok = true;
+
+        $nListings = count($rQ['raOut']);
 
 //$raGrowers = $this->oApp->kfdb->QueryRowsRA("SELECT * from {$this->oApp->DBName('seeds1')}.sed_curr_growers WHERE _status=0");
 
@@ -457,7 +460,7 @@ class MSDQ extends SEEDQ
         }
 
         done:
-        return( [$ok,$s,$sErr] );
+        return( [$ok,$s,$nListings,$sErr] );
     }
 
     private function seedUpdate( KeyframeRecord &$kfrS, $raParms )

@@ -2,7 +2,7 @@
 
 /* MbrContacts
  *
- * Copyright 2021-2024 Seeds of Diversity Canada
+ * Copyright 2021-2025 Seeds of Diversity Canada
  *
  * Keep track of our contacts, members, donors.
  */
@@ -238,13 +238,13 @@ class Mbr_Contacts
                                    : $this->oDB->GetKFRCond( 'M', "email='".addslashes($mbrid)."'", [] ) );
     }
 
-    function PutContact( $raMbr, $eDetail = self::DETAIL_BASIC, $bInputUTF8 = false )
+    function PutContact( $raMbr, $eDetail = self::DETAIL_BASIC, $bInputUTF8 = false ) : KeyframeRecord
     /********************************************************************************
         Add or update a contact.
         eDetail restricts what the caller can do - helpful for limiting things like ajax commands
      */
     {
-        $ret = false;
+        $kfrRet = null;
 
         if( ($kMbr = intval(@$raMbr['kMbr'])) || ($kMbr = intval(@$raMbr['_key'])) ) {
             $kfr = $kfr = $this->oDB->GetKFR('M',$kMbr);
@@ -262,10 +262,10 @@ class Mbr_Contacts
                 }
             }
             if( $kfr->PutDBRow() ) {
-                $ret = $kfr->Key();
+                $kfrRet = $kfr;
             }
         }
-        return( $ret );
+        return( $kfrRet );
     }
 
     function EBullSubscribe( $mbrid, $bSubscribe )

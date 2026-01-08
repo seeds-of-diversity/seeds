@@ -2,7 +2,7 @@
 
 /* Mailing List Generator
  *
- * Copyright 2013-2024 Seeds of Diversity Canada
+ * Copyright 2013-2025 Seeds of Diversity Canada
  *
  * Generates mail and email lists for various categories of members and subscribers
  */
@@ -68,7 +68,17 @@ $sLeft .=
     ."<div class='formsection'>"
         ."<p>Choose Members</p>"
         ."<div style='margin-bottom:10px'>"
-        .$oForm->Select( 'yMbrExpires', ["-- No Members --" => 0,
+        .$oForm->Select( 'eMbrGroup',   ["-- Choose --" => 0,
+                                         "Members and donors of $yMinus2 and greater"                                   => 'md_membersAndDonors2Years',
+                                         "Members and donors of $yMinus2 and greater, no donation in past six months"   => 'md_membersAndDonors2YearsNoDonationInSixMonths',
+                                         "Ebulletin subscribers who are not members or donors in $yMinus2 and greater"  => 'md_ebullNotMembersOrDonors2Years',
+                                         "Donors of $year who have not accessed those receipts"                         => 'donorsNeedReceiptsFromThisYear',
+                                         "Donors of $yMinus1 who have not accessed those receipts"                      => 'donorsNeedReceiptsFromPreviousYear',
+                                         "Seed Exchange growers with Active or Skipped seeds"                           => 'mseGrowers',
+                                         "Seed Exchange growers with Active or Skipped seeds not Done this year"        => 'mseGrowersNotDone',
+                                        ] )
+        ."</div><div style='margin-bottom:10px'>"
+        .$oForm->Select( 'yMbrExpires', ["-- Or choose member expiry --" => 0,
                                          "Current Members ($year and greater)" => "$year+",
                                          "All members since $yMinus1 ($yMinus1 and greater)" => "$yMinus1+",
                                          "All members since $yMinus2 ($yMinus2 and greater)" => "$yMinus2+",
@@ -76,21 +86,13 @@ $sLeft .=
                                          "Non-current members expired in $yMinus1" => $yMinus1,
                                          "Non-current members expired in $yMinus2" => $yMinus2 ] )
         ."</div><div style='margin-bottom:10px'>"
-        .$oForm->Select( 'eMbrGroup',   ["-- OR (choose) --" => 0,
-                                         "Members and donors of $yMinus2 and greater" => 'membersAndDonors2Years',
-                                         "Members and donors of $yMinus2 and greater, no donation in past six months" => 'membersAndDonors2YearsNoDonationInSixMonths',
-                                         "Ebulletin subscribers who are not members or donors in $yMinus2 and greater" => 'ebullNotMembersOrDonors2Years',
-                                         "Donors of $year who have not accessed those receipts" => 'donorsNeedReceiptsFromThisYear',
-                                         "Donors of $yMinus1 who have not accessed those receipts" => 'donorsNeedReceiptsFromPreviousYear',
-                                        ] )
-        ."</div><div style='margin-bottom:10px'>"
         .$oForm->Select( 'eMbrFilter1', ["-- (No filter) --" => 0,
                                          "Who receive the e-bulletin"             => 'getEbulletin',
                                          "Who receive donation appeals"           => 'getDonorAppeals',
-                                         "Who receive the magazine"               => 'getMagazine',
                                          "Who receive the printed Seed Directory" => 'getPrintedMSD',
-                                         "Who list seeds in the Seed Exchange (active or skipped)" => 'mseGrowers',
-                                         "Who list seeds in the Seed Exchange (active or skipped) but are not Done this year" => 'mseGrowersNotDone'] )
+//                                         "Who list seeds in the Seed Exchange (active or skipped)" => 'mseGrowers',
+//                                         "Who list seeds in the Seed Exchange (active or skipped) but are not Done this year" => 'mseGrowersNotDone'
+                                        ] )
 // Implemented within eMbrGroup-membersAndDonors2Years only
 //        ."</div><div style='margin-bottom:10px'>"
 //        .$oForm->Select( 'eMbrFilter2', ["-- AND (No filter) --" => 0,
@@ -102,9 +104,6 @@ $sLeft .=
                                         "Eastern Canada"      => 'locEasternCanada',
                                        ] )
         ."</div>"
-    ."</div>"
-    ."<div class='formsection'>"
-        .$oForm->Checkbox( "chkEbulletin", "Emails for e-Bulletin subscribers who signed up on the web site" )
     ."</div>"
     ."<div class='formsection'>"
         ."<p>Language</p>"
@@ -141,75 +140,79 @@ $raEmail = []; // list of emails
 $raMbrid = []; // list of mbr keys
 $raMbr = [];   // list of full mbr records
 
+
+$dStart = "$yMinus2-01-01";                        // include members and donors from two years ago
+$dSixMonthsAgo = date("Y-m-d", strtotime("-6 months"));  // who haven't made donations during the past six months
+$sql = "";
+$oMbr = new Mbr_Contacts( $oApp );
+
+
 if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
-// Make these groups in MbrContactsList
+    // Make these groups in MbrContactsList
 
-    $dStart = "$yMinus2-01-01";                        // include members and donors from two years ago
-    $dSixMonthsAgo = date("Y-m-d", strtotime("-6 months"));  // who haven't made donations during the past six months
-    $sql = "";
-    $oMbr = new Mbr_Contacts( $oApp );
+    if( SEEDCore_StartsWith($eGroup, 'md_') ) {     // these use GetContacts_MostRecentDonations()
 
-    $condFilter = "1=1";
-    $condFilter .= $p_lang ? ($p_lang=='FR'? " AND M.lang IN ('B','F')" : " AND M.lang IN ('','B','E')") : "";
-// Duplicated below
-    switch( $p_mbrFilter1 ) {
-        case 'getMagazine':                                                  break;  // all members get the magazine
-        case 'getEbulletin':    $condFilter .= " AND NOT M.bNoEBull";        break;
-        case 'getPrintedMSD':   $condFilter .= " AND M.bPrintedMSD";         break;
-        case 'getDonorAppeals': $condFilter .= " AND NOT M.bNoDonorAppeals"; break; // could add bEnforceNoDonorAppeals to mrdParms instead
-    }
-    switch( $p_locFilter ) {
-//        case 'locOntario':       $qParms['provinceIn'] = "ON";                    break;
-//        case 'locEasternCanada': $qParms['provinceIn'] = "ON QC NB NS PE NF NL";  break;
-//        case 'locTorontoArea':   $qParms['postcodeIn'] = "M L N1 N2 N3 K9";       break;    // not implemented; translate to "(LEFT(postcode,1) IN ('M','L') OR LEFT(postcode,2) IN ('N1','N2','N3','K9'))"
-//        case 'locOntarioSouth':  $qParms['postcodeIn'] = "K L M N";               break;    // not implemented; translate to "(LEFT(postcode,1) IN ('K','L','M','N'))"
-    }
-
-
-    // get all members and/or donors since $dStart, optionally exclude those with donations within 6 months ago
-    $mrdParms = ['condM_D' => $condFilter,
-                 'bRequireEmail'=>true,                     // we'll email an appeal
-                 'bRequireAddress'=>false,                  // not sending paper mail
-               //'bEnforceNoPaperMail'                      // not sending paper mail so don't care
-                 'dIncludeIfMbrAfter' => $dStart,           // anyone with a membership after dStart
-                 'dIncludeIfDonAfter' => $dStart            // anyone with a donation after dStart
-    ];
-    if( $eGroup == 'membersAndDonors2YearsNoDonationInSixMonths' ) {
-        $mrdParms['dExcludeIfDonAfter'] = $dSixMonthsAgo;   // but not if they've given a donation recently
-    }
-    $raMD = $oMbr->oDB->GetContacts_MostRecentDonation( $mrdParms, $sql );
-
-    if( $eGroup =='membersAndDonors2Years' ) {
-        /* Contacts who have been members and/or donors within the past 2 years
-         */
-        // put keys and emails in $raMbr so they can be retrieved in the canonical way below
-        foreach( $raMD as $ra )  $raMbr[] = ['_key'=>$ra['M__key'],'email'=>$ra['M_email']];
-
-        $sRight .= "Members and Donors since $yMinus2:<br/>$sql<br/>Found ".count($raMD)." emails<br/><br/>";
-    }
-    if( $eGroup =='membersAndDonors2YearsNoDonationInSixMonths' ) {
-        /* Contacts who have been members and/or donors within the past 2 years, but did not make a donation in the past six months
-         */
-        // put keys and emails in $raMbr so they can be retrieved in the canonical way below
-        foreach( $raMD as $ra )  $raMbr[] = ['_key'=>$ra['M__key'],'email'=>$ra['M_email']];
-
-        $sRight .= "Members and Donors since $yMinus2 who did not donate since $dSixMonthsAgo:<br/>$sql<br/>Found ".count($raMD)." emails<br/><br/>";
-    }
-    if( $eGroup =='ebullNotMembersOrDonors2Years' ) {
-        /* Ebulletin subscribers who are not members and/or donors within the past 2 years.
-         */
-        $oBull = new MbrEbulletin( $oApp );
-        $raE = $oBull->GetSubscriberEmails( $p_lang );
-        $raE = array_flip($raE);    // values to keys so unset() removes emails
-
-        $sRight .= "Ebulletin subscribers who are not members and/or donors since $yMinus2:<br/>".count($raE)." subscribers<br/>";
-        foreach( $raMD as $ra ) {
-            unset($raE[$ra['M_email']]);   // remove the member/donor email from raE if it exists
+        $condFilter = "1=1";
+        $condFilter .= $p_lang ? ($p_lang=='FR'? " AND M.lang IN ('B','F')" : " AND M.lang IN ('','B','E')") : "";
+        // Duplicated below
+        switch( $p_mbrFilter1 ) {
+            case 'getEbulletin':    $condFilter .= " AND NOT M.bNoEBull";        break;
+            case 'getPrintedMSD':   $condFilter .= " AND M.bPrintedMSD";         break;
+            case 'getDonorAppeals': $condFilter .= " AND NOT M.bNoDonorAppeals"; break; // could add bEnforceNoDonorAppeals to mrdParms instead
         }
-        $sRight .= "Reduced to ".count($raE)." using Member/Donor list<br>";
+        switch( $p_locFilter ) {
+        //        case 'locOntario':       $qParms['provinceIn'] = "ON";                    break;
+        //        case 'locEasternCanada': $qParms['provinceIn'] = "ON QC NB NS PE NF NL";  break;
+        //        case 'locTorontoArea':   $qParms['postcodeIn'] = "M L N1 N2 N3 K9";       break;    // not implemented; translate to "(LEFT(postcode,1) IN ('M','L') OR LEFT(postcode,2) IN ('N1','N2','N3','K9'))"
+        //        case 'locOntarioSouth':  $qParms['postcodeIn'] = "K L M N";               break;    // not implemented; translate to "(LEFT(postcode,1) IN ('K','L','M','N'))"
+        }
 
-        $raEmail = array_flip($raE);
+        // get all members and/or donors since $dStart, optionally exclude those with donations within 6 months ago
+        $mrdParms = ['condM_D' => $condFilter,
+                     'bRequireEmail'=>true,                     // we'll email an appeal
+                     'bRequireAddress'=>false,                  // not sending paper mail
+                   //'bEnforceNoPaperMail'                      // not sending paper mail so don't care
+                     'dIncludeIfMbrAfter' => $dStart,           // anyone with a membership after dStart
+                     'dIncludeIfDonAfter' => $dStart            // anyone with a donation after dStart
+        ];
+        if( $eGroup == 'md_membersAndDonors2YearsNoDonationInSixMonths' ) {
+            $mrdParms['dExcludeIfDonAfter'] = $dSixMonthsAgo;   // but not if they've given a donation recently
+        }
+        $raMD = $oMbr->oDB->GetContacts_MostRecentDonation( $mrdParms, $sql );
+
+        if( $eGroup =='md_membersAndDonors2Years' ) {
+            /* Contacts who have been members and/or donors within the past 2 years
+             */
+            // put keys and emails in $raMbr so they can be retrieved in the canonical way below
+            foreach( $raMD as $ra )  $raMbr[] = ['_key'=>$ra['M__key'],'email'=>$ra['M_email']];
+
+            $sRight .= "Members and Donors since $yMinus2:<br/>$sql<br/>Found ".count($raMD)." emails<br/><br/>";
+        }
+        if( $eGroup =='md_membersAndDonors2YearsNoDonationInSixMonths' ) {
+            /* Contacts who have been members and/or donors within the past 2 years, but did not make a donation in the past six months
+             */
+            // put keys and emails in $raMbr so they can be retrieved in the canonical way below
+            foreach( $raMD as $ra )  $raMbr[] = ['_key'=>$ra['M__key'],'email'=>$ra['M_email']];
+
+            $sRight .= "Members and Donors since $yMinus2 who did not donate since $dSixMonthsAgo:<br/>$sql<br/>Found ".count($raMD)." emails<br/><br/>";
+        }
+        if( $eGroup =='md_ebullNotMembersOrDonors2Years' ) {
+            /* Ebulletin subscribers who are not members and/or donors within the past 2 years.
+             */
+            $oBull = new MbrEbulletin( $oApp );
+            $raE = $oBull->GetSubscriberEmails( $p_lang );
+            $raE = array_flip($raE);    // values to keys so unset() removes emails
+
+            $sRight .= "Ebulletin subscribers who are not members and/or donors since $yMinus2:<br/>".count($raE)." subscribers<br/>";
+            foreach( $raMD as $ra ) {
+                unset($raE[$ra['M_email']]);   // remove the member/donor email from raE if it exists
+            }
+            $sRight .= "Reduced to ".count($raE)." using Member/Donor list<br>";
+
+            $raEmail = array_flip($raE);
+        }
     }
+
     if( $eGroup == 'donorsNeedReceiptsFromThisYear' || $eGroup == 'donorsNeedReceiptsFromPreviousYear' ) {
         /* Donors from current/previous year who have not accessed one or more donation receipts from this/that year
          */
@@ -221,6 +224,35 @@ if( ($eGroup = $oForm->Value('eMbrGroup')) ) {
         }
 
         $sRight .= "Donors who have not retrieved at least one of their $y receipts:<br/><br/>Found ".count($raMbr)." emails<br/><br/>";
+    }
+    if( $eGroup == 'mseGrowers' || $eGroup == 'mseGrowersNotDone' ) {
+        /* Look up sed_grower_curr X SEEDBasket_Products where grower not deleted and seed not deleted
+         *     Does not list growers with no active or skipped seeds
+         *     Does not list growers with blank email addresses
+         */
+        include( SEEDLIB."msd/msdlib.php" );
+        $oMSDCore = new MSDCore($oApp);
+
+        $oApp->kfdb->SetDebug(2);   // to show the sql
+        $raGList = $oMSDCore->GetGrowerList(['bNotGDelete'=>true,                                       // do not list deleted growers
+                                             'bSActiveOrInactive'=>true,                                // only list growers with active or skipped seeds
+                                             'bNotDoneForCurrYear'=>$eGroup=='mseGrowersNotDone']);     // optionally those not done for current year
+        $oApp->kfdb->SetDebug(0);
+
+        foreach(array_column($raGList,'G_mbr_id') as $kG) {
+            if( !($raM = $oMbr->GetBasicValues($kG)) ) {
+                $oApp->oC->AddErrMsg("Could not find member record for grower $kG");
+                continue;
+            }
+            if(!$raM['email']) continue;     // don't list growers who don't have email addresses
+
+            if( $p_lang == "EN" && !in_array($raM['lang'], ['','B','E']) ) continue;
+            if( $p_lang == "FR" && !in_array($raM['lang'], ['B','F']) )    continue;
+
+            $raMbr[] = ['_key'=>$raM['_key'],'email'=>$raM['email']];
+        }
+
+        $sRight .= "Seed Exchange growers with Active or Skipped seeds".($eGroup=='mseGrowersNotDone' ? ", not Done this year" : "").":<br/><br/>Found ".count($raMbr)." growers<br/><br/>";
     }
 }
 else
@@ -236,7 +268,6 @@ if( ($yMbrExpires = $oForm->Value('yMbrExpires')) &&
 
 // Duplicated above
     switch( $p_mbrFilter1 ) {
-        case 'getMagazine':                                                  break;  // all members get the magazine
         case 'getEbulletin':    $qParms['bGetEbulletin'] = !$bOverrideNoEmail;       // filter out members who don't want email, unless the override box is checked
                                 $qParms['bExistsEmail'] = true;              break;
         case 'getPrintedMSD':   $qParms['bGetPrintedMSD'] = true;            break;
@@ -255,62 +286,6 @@ if( ($yMbrExpires = $oForm->Value('yMbrExpires')) &&
     $raMbr += $rQ['raOut'];
 
     $sRight .= "Members:<br/>{$rQ['sOut']}<br/>Found ".count($rQ['raOut'])." members<br/><br/>";
-}
-
-
-/* Look up bull_list
- * This does not implement spreadsheet output
- */
-if( $oForm->Value('chkEbulletin') ) {
-// use MbrEbulletin::GetSubscriberEmails()
-    $n = 0;
-    switch( $p_lang ) {
-        case 'EN': $sCond = "lang IN ('','B','E')";      break;     // '' in db is interpreted as E by default
-        case 'FR': $sCond = "lang IN ('B','F')";         break;
-        case '':
-        default:   $sCond = "lang IN ('','B','E','F')";  break;     // '' in this form's ctrl is interpreted as All
-    }
-
-    if( ($dbc = $oApp->kfdb->CursorOpen( "SELECT email FROM {$oApp->DBName('seeds1')}.bull_list WHERE status>0 AND $sCond" ) ) ) {
-        while( $ra = $oApp->kfdb->CursorFetch( $dbc ) ) {
-            $raEmail[] = $ra['email'];
-            ++$n;
-        }
-    }
-
-    $sRight .= "e-Bulletin:<br/>$sCond<br/>Found $n emails<br/><br/>";
-}
-
-
-/* Look up sed_grower_curr
- * This does not implement expiry dates nor spreadsheet output
- */
-if( SEEDCore_StartsWith($p_mbrFilter1,'mseGrowers') ) {
-    include( SEEDLIB."msd/msdlib.php" );
-    $oMSDLib = new MSDLib( $oApp );
-
-// also exclude growers who have no seeds (not nTotal=0, no SEEDBasket_Products at all) because those are people who created premature grower records
-    $raCond = ["NOT G.bDelete",
-               "M.email IS NOT NULL AND M.email <> ''"];
-    if( $p_lang == "EN" )  $raCond[] = "M.lang IN ('','B','E')";
-    if( $p_lang == "FR" )  $raCond[] = "M.lang IN ('B','F')";
-    if( $p_mbrFilter1=='mseGrowersNotDone' )  $raCond[] = "(NOT ({$oMSDLib->CondIsGrowerDoneForCurrYear()}))";
-
-    $sCond = "(".implode( " AND ", $raCond ).")";
-
-    $n = 0;
-    if( ($kfr = $oMSDLib->KFRelGxM()->CreateRecordCursor($sCond)) ) {
-        while( $kfr->CursorFetch() ) {
-            if( $p_outFormat == 'mbrid' ) {
-                $raMbrid[] = $kfr->value('mbr_id');
-            } else if( $p_outFormat == 'email' ){
-                $raEmail[] = $kfr->value('M_email');
-            }
-            ++$n;
-        }
-    }
-
-    $sRight .= "Seed Directory Growers <span style='color:red'>***includes growers with no seeds - need to exclude these***</span>:<br/>$sCond<br/>Found $n growers<br/><br/>";
 }
 
 

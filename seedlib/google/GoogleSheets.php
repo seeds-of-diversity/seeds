@@ -343,7 +343,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
 
     function __construct( SEEDAppDB $oApp, array $raConfig )
     {
-        $this->oApp;
+        $this->oApp = $oApp;
         $this->raConfig = $raConfig;
     }
 
@@ -356,7 +356,10 @@ class SEEDGoogleSheets_SyncSheetAndDb
         kfrel       = the Keyframe_Relation for the db table
         mapCols     = [ ['sheetcol'=>'foo', 'dbcol'=>'foo'], ['sheetcol'=>'bar', 'dbcol'=>'bar'] ]  syncs columns foo and bar across the two data sets
         raParms:
+
+        raConfig:
             fnValidateSheetRow = function that returns true if a sheet row contains valid data
+            sLogfile = base name of log file where changes/errors are recorded
 
         The sheet must have two required columns, which can be hidden to manual users.
             sync_ts  = a timestamp written by this script. This is never in mapCols.
@@ -369,7 +372,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
             tsSync  = copy of the timestamp in the script
 
         1) Sheet row with no key.                       A new sheet row: add to db, write key and ts to sheet.
-        2) Sheet row with key but no ts.                An edited sheet row: copy to db, write ts to sheet.     (AppScript blanks the tsSync when a cell is edited)
+        2) Sheet row with key but no ts.                An edited sheet row: copy to db, write ts to sheet.     (AppScript blanks the sync_ts when a cell is edited)
         3) Sheet row with no corresponding db row.      Was deleted in db: delete in sheet.
         4) Db row with no sheet row, db.tsSync==0.      A new db row: add to sheet, with key and ts.
         4) Db row with no sheet row, db.tsSync!=0       Was deleted in sheet: delete in db.
@@ -382,12 +385,12 @@ class SEEDGoogleSheets_SyncSheetAndDb
         $this->nameSheet = $nameSheet;
 
         $raColumns = $this->oGoogleSheet->GetColumnNames($nameSheet);
-        $raEvents = $this->oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
-        //var_dump($raColumns,$raEvents);
+        $raRows = $this->oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
+        //var_dump($raColumns,$raRows);
         //var_dump($mapCols);
 
         $iRow = 2;
-        foreach( $raEvents as $raRow ) {
+        foreach( $raRows as $raRow ) {
             $kSync = intval(@$raRow['sync_key']);
 
             // 1) Sheet row with no sync_key
@@ -448,6 +451,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
         done:
         if( $ok || $writeCells['sync_note'] ) {
             $this->oGoogleSheet->WriteCellsWithNamedColumns( $this->nameSheet, $iRow, $writeCells );
+            if(@$this->raConfig['sLogfile'])  $this->oApp->Log($this->raConfig['sLogfile'], intval($writeCells['sync_key'])." ".intval($writeCells['sync_ts'])." | ".$writeCells['sync_note']);
         }
     }
 
