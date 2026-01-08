@@ -105,6 +105,8 @@ var config = {
                      oCP.FormValSet('t_sname', oCP.GetVar('S_name'));
                      oCP.FormValSet('t_pname', oCP.GetVar('P_name'));
                      $('#myc_collreport').html(oCP.GetVar('sTable_IxA'));
+                     let heading = oCP.GetVar('heading');
+                     oCP.FormValSet('heading', heading + `<br/>by ${oCP.GetVar('supplier')} in ${oCP.GetVar('year')} with rating ${oCP.GetVar('iGrowerRating')}`);
                  },
                  fnPost: function() {
                      let g100 = oCP.FormValFloat('g100');

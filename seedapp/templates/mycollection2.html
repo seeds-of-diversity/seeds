@@ -59,8 +59,23 @@
             </ul>
 
             <div class='myc-where-form' id='homegrown' style=''>
-                <div style='display:inline-block;text-align:right'>Grower and site&nbsp;&nbsp;<br/><br/>Year of harvest&nbsp;&nbsp;</div>
-                <div style='display:inline-block;text-align:left'>[[formtext:supplier | size:40 class:cpvar_supplier]]<br/><br/>[[formtext:year | class:cpvar_year]]</div>
+                <table style='margin:0 auto'>
+                <tr><td valign='top' style='text-align:right'>Grower and site&nbsp;&nbsp;</td>
+                    <td valign='top' style='text-align:left'>[[formtext:supplier | size:40 class:cpvar_supplier]]<br/><br/></td></tr>
+                <tr><td valign='top' style='text-align:right'>Year of harvest&nbsp;&nbsp;</td>
+                    <td valign='top' style='text-align:left'>[[formtext:year | class:cpvar_year]]<br/><br/></td></tr>
+                <tr><td valign='top' style='text-align:right'>Rating&nbsp;&nbsp;</td>         
+                    <td valign='top' style='text-align:left'>
+                        <select name='iGrowerRating' class='cpvar_iGrowerRating'>
+	                        <option value='0'>not rated</option>
+	                        <option value='3'>3 stars * * *</option>
+	                        <option value='2'>2 stars * *</option>
+	                        <option value='1'>1 star  *</option>
+	                        <option value='-1'>negative, uh oh!</option>
+                        </select>
+	                    <p style='font-size:8pt'>Rate this grower's capability with this species.<br/>"Not rated" will not count for or against them.</p>
+                    </td></tr>
+                </table>
             </div>
             <div class='myc-where-form' id='purchased' style='display:none'>
                 <div style='display:inline-block;text-align:right'>Company or supplier&nbsp;&nbsp;<br/><br/>Year of purchase [what does this mean]&nbsp;&nbsp;</div>
@@ -265,6 +280,7 @@ class MyCollection_NewAcc_AllocSeeds
             oname      : oCP.GetVar('oname'),
             sSupplier  : sSupplier,
             ySupplier  : ySupplier,
+            iGrowerRating : oCP.GetVar('iGrowerRating'),
             gtotal     : this.gtotal,
             g100       : this.g100,
             g0: this.alloc.g[0], loc0: this.alloc.loc[0], 
