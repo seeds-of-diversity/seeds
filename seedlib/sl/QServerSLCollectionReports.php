@@ -138,6 +138,25 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 if( ($raPxS = $this->oSLDB->GetRecordVals('PxS', $parms['kPcv'])) ) {
                     $rQ['raOut'] = array_merge($rQ['raOut'],$this->getDetails_PCV( $raPxS, $parms['kCollection'], true /*adoption*/, true /*$bGetIxG*/, $bCanReadInternal ), );
                 }
+
+                /* format an html table showing the IxA status
+this is for sure not the best place to put this
+                 */
+                $rQ['raOut']['sTable_IxA'] = "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est viable pops</th></tr>";
+                foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
+                    $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
+                    $sCol2 = ($y = intval($kEncodesYear)) ?: "";
+                    $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
+                    $sCol4 = $raI['pops_estimate'];
+
+                    $rQ['raOut']['sTable_IxA'] .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
+                               <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
+                               <td style='padding:0 1em;border:1px solid #bbb'>$sCol3</td>
+                               <td style='padding:0 1em;border:1px solid #bbb'>$sCol4</td>
+                           </tr>";
+                }
+                $rQ['raOut']['sTable_IxA'] .= "</table>";
+
                 $rQ['bOk'] = true;
                 $rQ['raMeta']['title'] = "Cultivar Information";
                 $rQ['raMeta']['name'] = $cmd;
@@ -687,7 +706,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 }
 
                 $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
-// look up g_100 for lot, another lot of the same pcv, rosetta, etc                
+// look up g_100 for lot, another lot of the same pcv, rosetta, etc
                 $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>0, 'psp'=>$psp]);
                 $raOut['total_viable_pops'] = SLUtil::PopsFromSeeds($raOut['total_viable_seeds'], ['psp'=>$psp]);
             }
@@ -698,7 +717,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
                 $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>0, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
-                
+
                 $raOut['raIxA']["0$y $i"] = $this->QCharsetFromLatin(
                             ['inv_number' => $kfrcI->Value('inv_number'),
                              'g_weight'   => $g,

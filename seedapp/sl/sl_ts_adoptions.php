@@ -60,8 +60,22 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
     function ControlDraw()
     {
-        return( $this->DrawSearch() . "<div style='float:right;margin-top:-40px'>Checkbox to edit adoption record (Request, Amount, etc)<br/>Button to split current record</div>" );
+        return( "<div style='float:right;background-color:white;padding:5px;border-radius:5px'>
+                     <form><input type='checkbox' onclick='doEditButton(this)'/> Edit mode</form>
+                     <br/>Button to split current record</div>"
+                .$this->jsDoEditButton
+                .$this->DrawSearch() );
     }
+
+    private $jsDoEditButton = <<<JSEditButton
+        <script>
+        function doEditButton(that)
+        {
+            $(that).closest('form').submit();console.log($(that).closest('form'));
+        }
+        </script>
+JSEditButton;
+
 
     function ContentDraw()
     {
@@ -192,20 +206,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
         $rQ = (new QServerRosetta($this->oApp))->Cmd('rosetta-cultivarinfo', ['kCollection'=>1 /*ignored currently*/, 'kPcv'=>$kPcv, 'mode'=>"all"]);
         if( $rQ['bOk'] ) {
-            $s .= "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est viable pops</th></tr>";
-            foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
-                $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
-                $sCol2 = ($y = intval($kEncodesYear)) ?: "";
-                $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
-                $sCol4 = $raI['pops_estimate'];
-
-                $s .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
-                           <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
-                           <td style='padding:0 1em;border:1px solid #bbb'>$sCol3</td>
-                           <td style='padding:0 1em;border:1px solid #bbb'>$sCol4</td>
-                       </tr>";
-            }
-            $s .= "</table>";
+            $s .= $rQ['raOut']['sTable_IxA'];   // html table showing collection status of kPcv
         }
 
         done:

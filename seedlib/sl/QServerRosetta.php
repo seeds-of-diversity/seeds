@@ -17,7 +17,7 @@ class QServerRosetta extends SEEDQ
     private $oSLDBSrc;
     private $oSLDBColl;
 
-    const emptyRAOut = ['PxS'=>[], 'raIxA'=>[], 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSE'=>[] ];
+    const emptyRAOut = ['PxS'=>[], 'raIxA'=>[], 'sTable_IxA'=>"", 'fAdoption'=>0, 'raSrc'=>[], 'raProfile'=>[], 'raMSE'=>[] ];
 
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
@@ -355,6 +355,7 @@ class QServerRosetta extends SEEDQ
             if( $rQ['bOk'] ) {
                 $raOut['PxS'] = $rQ['raOut']['PxS'];                // already QCharset
                 $raOut['raIxA'] = $rQ['raOut']['raIxA'];
+                $raOut['sTable_IxA'] = $rQ['raOut']['sTable_IxA'];
                 $raOut['fAdoption'] = $rQ['raOut']['fAdoption'];
             }
 
