@@ -17,11 +17,13 @@ var config = {
                      /* User enters the parent lot number, or chooses pcv from a dropdown
                       */
                      let iParentLot = oCP.FormValInt('parentlot');
-                     oCP.SetVar( 'iParentLot', iParentLot );
                      let kPcv = oCP.FormValInt('fk_sl_pcv');
 
+                     oCP.SetVar( 'iParentLot', iParentLot );
+
+                     /* if parent lot is specified, use that to look up kPcv
+                      */
                      if( iParentLot ) {
-                         // look up parent lot to get pcv info
                          let jxData = { cmd : 'collection-getLot',
                                         lang : "EN",
                                         kColl : 1,
@@ -29,25 +31,30 @@ var config = {
                                       };
                          let o = SEEDJXSync( urlQOld, jxData );
                          if( o && o['bOk'] ) {
-                             oCP.SetVar( 't_sname', o['raOut']['S_name_en'] );
-                             oCP.SetVar( 't_pname', o['raOut']['P_name'] );
-                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['P__key'] );
-                             bCV = true;
-                             nextPage = "Origin";
+//                             oCP.SetVar( 't_sname', o['raOut']['S_name_en'] );
+//                             oCP.SetVar( 't_pname', o['raOut']['P_name'] );
+//                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['P__key'] );
+                             kPcv = o['raOut']['P__key'];
+//                             bCV = true;
                          } else { console.log(o); }
-                     } else if( kPcv ) {
-                         // look up pcv info
+                     }
+                     
+                     /* if parent lot lookup was successful, or kPcv specified, get cv info and proceed to next screen
+                      */
+                     if( kPcv ) {
                          let jxData = { qcmd : 'rosetta-cultivarinfo',
                                         kPcv : kPcv,
                                         lang : "EN",
-                                        mode : 'name'
+                                        mode : 'all'
                                       };
                          let o = SEEDJXSync( urlQ, jxData );
                          if( o && o['bOk'] ) {
                              oCP.SetVar( 't_sname', o['raOut']['PxS']['S_name_en'] );
                              oCP.SetVar( 't_pname', o['raOut']['PxS']['P_name'] );
-                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['PxS']['P__key'] );
-                             bCV = true;
+//                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['PxS']['P__key'] );
+                             oCP.SetVar( 'fk_sl_pcv', kPcv );
+                             oCP.SetVar( 'sTable_IxA', o['raOut']['sTable_IxA']);
+//                             bCV = true;
                              nextPage = "Origin";
                          } else { console.log(o); }
                      }
@@ -97,6 +104,7 @@ var config = {
                  fnPre: function() {
                      oCP.FormValSet('t_sname', oCP.GetVar('S_name'));
                      oCP.FormValSet('t_pname', oCP.GetVar('P_name'));
+                     $('#myc_collreport').html(oCP.GetVar('sTable_IxA'));
                  },
                  fnPost: function() {
                      let g100 = oCP.FormValFloat('g100');
