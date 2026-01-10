@@ -58,11 +58,13 @@ $consoleConfig = [
                            ],
 
                   // sub-tabs for collection
-                  'colltabs'=> ['tabs' => [ 'germ' => ['label'=>'Germination Tests'],
+                  'colltabs'=> ['tabs' => [ 'accession'    => ['label'=>'Accession'],
+                                            'germ'         => ['label'=>'Germination Tests'],
                                             'packetlabels' => ['label'=>'Packet Labels'],
                                           ],
-                                'perms' =>[ 'germ'   => ["PUBLIC"],
-                                            'packetlabels'   => ["PUBLIC"],
+                                'perms' =>[ 'accession'    => ["PUBLIC"],
+                                            'germ'         => ["PUBLIC"],
+                                            'packetlabels' => ["PUBLIC"],
                                             '|'
                                           ]
                                 ],

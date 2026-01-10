@@ -1,5 +1,6 @@
 <?php
 
+include_once( "collectionTab_accession.php" );
 include_once( "collectionTab_germtests.php" );
 include_once( "collectionTab_packetlabels.php" );
 
@@ -268,11 +269,10 @@ class Collection_Console02Tabset extends Console02TabSet
         $this->kInventory = $kInventory;
     }
 
-    function TabSet_colltabs_germ_Init()         { $this->oW = new CollectionTab_GerminationTests( $this->oApp, $this->kInventory ); $this->oW->Init(); }
-    function TabSet_colltabs_germ_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_colltabs_germ_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSet_colltabs_accession_Init()     { $this->oW = new CollectionTab_Accession( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_germ_Init()          { $this->oW = new CollectionTab_GerminationTests( $this->oApp, $this->kInventory ); $this->oW->Init(); }
+    function TabSet_colltabs_packetlabels_Init()  { $this->oW = new CollectionTab_PacketLabels( $this->oApp, $this->kInventory ); $this->oW->Init(); }
 
-    function TabSet_colltabs_packetlabels_Init()         { $this->oW = new CollectionTab_PacketLabels( $this->oApp, $this->kInventory ); $this->oW->Init(); }
-    function TabSet_colltabs_packetlabels_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_colltabs_packetlabels_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSetControlDraw( $tsid, $tabname ) { return( $this->oW->ControlDraw() ); }
+    function TabSetContentDraw( $tsid, $tabname ) { return( $this->oW->ContentDraw() ); }
 }
