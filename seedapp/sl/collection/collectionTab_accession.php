@@ -16,6 +16,12 @@ class CollectionTab_Accession
 
     function Init()
     {
+//use these to draw the form
+        $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []);
+        $oFormA->Update();
+        $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', []);
+        $oFormI->Update();
+
 /*
         $this->oForm = new KeyframeForm($this->sldbCollection->GetKfrel("G"), 'G', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]);
         $this->oForm->Update();
@@ -43,42 +49,28 @@ class CollectionTab_Accession
             goto done;
         }
 
-        $oFormA = new KeyframeForm( $this->sldbCollection->KFRel('AxPxS'), 'A', [] ); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
+        $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
         $oFormA->SetKFR($kfrA);
 
-// $this already has a Console01, maybe it can be a Console01KFUI?
-$raParms = array();
+        /* Left side is the Accession information
+         */
+        $sLeft = $oFormA->HiddenKey()
+                .(new SEEDFormExpand($oFormA))->ExpandForm($this->accForm());
 
-
-        $oFormAExpand = new SEEDFormExpand($oFormA);
-        $sLeft = "<table border='0' cellpadding='0' width='90%' style='position:relative' class='SFUAC_Anchor'>"
-             .$oFormA->HiddenKey()
-             .$oFormAExpand->ExpandForm($this->accForm())
-           ."</table>";
-
-goto done;
-        if( $this->oFormA->GetKey() ) {
-            $raKFR = $this->kfrelI->GetRecordSet( "A._key='".$this->oFormA->GetKey()."'" );
-            $raKFR[] = $this->kfrelI->CreateRecord();
-        } else {
-            // New Accession:  make two empty inventory subforms
-            $raKFR = array();
-            $raKFR[] = $this->kfrelI->CreateRecord();
-            $raKFR[] = $this->kfrelI->CreateRecord();
-        }
-
-        $kfrC = $this->oSCA->oSLDBMaster->GetKFR( "C", $this->oSCA->kCurrCollection );
+        /* Right side is the Lot information
+         */
+        $kfrC = $this->sldbCollection->GetKFR('C', 1); // $this->oSCA->kCurrCollection   this app doesn't have multiple collections
         $nNextInv = $kfrC ? $kfrC->Value('inv_counter') : 0;
 
-        $iRow = 0;
-        foreach( $raKFR as $kfr ) {
+        if( ($kfrcI = $this->sldbCollection->GetKFRC('I', "fk_sl_accession='{$kfrA->Key()}'")) ) {
+            $iRow = 0;
+            $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', []); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
 
-            $this->oFormI->SetKFR( $kfr );
-            $this->oFormI->SetRowNum( $iRow++ );
-
-            $this->oFormI->SetValue( 'fk_sl_accession', $this->oFormA->GetKey() );
-
-            $sRight .= $this->oSCA->drawInvForm( $this->oFormI, $nNextInv );
+            while( $kfrcI->CursorFetch() ) {
+                $oFormI->SetKFR($kfrcI);
+                $oFormI->SetRowNum($iRow++);
+                $sRight .= $this->drawInvForm( $oFormI, $nNextInv );
+            }
         }
 
         done:
@@ -139,7 +131,7 @@ goto done;
 
     private function accForm()
     {
-        $s =  "<div class='container-fluid'><div class='row'><div class='col-md-6'>"
+        $s =  "<div id='myc_accform_static'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| *Cultivar*                || [[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])
@@ -147,28 +139,36 @@ goto done;
                ||| *Grower/Source*           || [[Value:x_member]]
                ||| *Date Harvested*          || [[Value:x_d_harvest]]
                ||| *Notes* || &nbsp;
-               ||| {replaceWith class='col-md-12'} [[Textarea:notes| width:100% | readonly]]
+               ||| {replaceWith class='col-md-12'} <div style='border:1px solid #aaa;padding:5px'>[[Value:notes]]</div>
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[Value:g_original]]
                ||| *Grams 100 seeds*   || [[Value:g_100]]
                ||| *Parent Lot #*   || [[Value:kLotParent]]
+               ||| *Grower rating* || [[Value:iGrowerRating]]
+               ||| <button onclick='doEdit()'>Edit</button> || \n"
+
+             .($this->oApp->sess->GetUID() == 1499 ?
+              "||| &nbsp; || \n
+               ||| *--- deprecate ---* || \n
                ||| old Parent Lot #   || [[Value:parent_acc]]
                ||| Parent Desc    || [[Value:parent_src]]
                ||| Date Received (no parent lot) || [[Value:x_d_received]]
                ||| Batch || [[Value:batch_id]]
-               ||| *Grower rating* || [[Value:iGrowerRating]]
-               ||| &nbsp;     || \n
                ||| spec || [[Value:spec]]
                ||| location || [[Value:location]]
                ||| g have || [[Value:g_have]]
                ||| g pgrc || [[Value:g_pgrc]]
                ||| bDeAcc || [[Value:bDeAcc]]
-               ||| psp_obsolete || [[Value:psp_obsolete]]
-               |||ENDTABLE "
+               ||| psp_obsolete || [[Value:psp_obsolete]]"
+              : "")
+             ."|||ENDTABLE "
 
-             ."</div><div class='col-md-6'>"
+             ."</div>" // myc_accform_static
+
+             ."<div id='myc_accform_edit' style='display:none'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+               ||| <input type='submit' value='Save'> || \n
                ||| *Cultivar*                || <span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
                                                 [[dummy_pcv | size:10 class:SFU_AutoComplete | placeholder='Search']]
                                                 [[hidden:fk_sl_pcv]]
@@ -182,26 +182,80 @@ goto done;
                ||| *Grams original*   || [[g_original]]
                ||| *Grams 100 seeds*   || [[g_100]]
                ||| *Parent Lot #*   || [[kLotParent]]
+               ||| *Grower rating* || [[iGrowerRating]]"
+
+             .($this->oApp->sess->GetUID() == 1499 ?
+              "||| &nbsp; || \n
+               ||| *--- deprecate ---* || \n
                ||| old Parent Lot #   || [[parent_acc]]
                ||| Parent Desc    || [[parent_src | width:100%]]
                ||| Date Received (no parent lot) || [[x_d_received]]
                ||| Batch || [[batch_id]]
-               ||| *Grower rating* || [[iGrowerRating]]
-               ||| &nbsp;     || \n
                ||| spec || [[spec]]
                ||| location || [[location]]
                ||| g have || [[g_have]]
                ||| g pgrc || [[g_pgrc]]
                ||| bDeAcc || [[bDeAcc]]
-               ||| psp_obsolete || [[psp_obsolete]]
-               |||ENDTABLE "
-            ."</div>
-              </div>
-              <input type='submit' value='Save'>
-              </div>";
+               ||| psp_obsolete || [[psp_obsolete]]"
+              : "")
+             ."|||ENDTABLE "
+
+            ."</div>";
+
+        $s .= "<script>
+function doEdit()
+{
+    event.preventDefault();
+    $('#myc_accform_static').hide();
+    $('#myc_accform_edit').show();
+}
+</script>";
 
         return($s);
     }
+
+
+    function drawInvForm( $oFormI, $nNextInv, $bShowDeacc = true, $bWeightRO = false, $bShowLoc = true )
+    {
+        $s = "";
+
+        if( $oFormI->GetKey() ) {
+            $sInvPrefix = ($kfrC = $this->sldbCollection->GetKFR('C', $oFormI->Value('fk_sl_collection'))) ? $kfrC->Value('inv_prefix') : "X";
+        } else {
+            goto done;
+
+            // this is a blank form
+            if( !$this->kCurrCollection )  return( "" );    // don't allow new inventory on All Collections
+
+            $kfrC = $this->oSLDBMaster->GetKFR( "C", $this->kCurrCollection );
+            $sNextInv = $kfrC ? ($kfrC->Value('inv_prefix')."-".($nNextInv++)) : "unknown";
+        }
+
+        $s = "<fieldset>" //"<DIV style='border:1px solid #333;margin:20px;padding:10px;'>"
+            ."<legend>".($oFormI->GetKey() ? ("Lot # $sInvPrefix-".$oFormI->Value('inv_number'))
+                                           : "Add New Lot <span style='font-size:10pt'>( next number is $sNextInv )</span>" )
+            ."</legend>"
+            .$oFormI->HiddenKey()
+            .$oFormI->Hidden( 'fk_sl_collection' )
+            .$oFormI->Hidden( 'fk_sl_accession' )
+
+                .(new SEEDFormExpand($oFormI))->ExpandForm(
+                     "|||TABLE(border='0')
+                      ||| Weight (g)    || ".($bWeightRO ? "[[Value:g_weight]]" : "[[g_weight]]")
+                    .($bShowLoc ? "||| Location      || [[location]]" : "")
+." ".($oFormI->GetKey() ? ($this->oApp->kfdb->Query1( "SELECT loc_old FROM sl_inventory WHERE _key='".$oFormI->GetKey()."'")) : "")
+//                    ."||| Split from    || [[parent_kInv]]"
+//                    ."||| Split date    || [[dCreation]]"
+                    .($bShowDeacc ? "||| Deaccessioned || [[bDeAcc]]" : "")
+                    ."|||ENDTABLE"
+                 )
+             ."</fieldset><P>&nbsp;</P>";
+
+        done:
+        return( $s );
+    }
+
+
 
     private function germPercent( $nSown, $nGerm_count )
     {
