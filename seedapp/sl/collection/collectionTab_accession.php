@@ -131,7 +131,8 @@ class CollectionTab_Accession
 
     private function accForm()
     {
-        $s =  "<div id='myc_accform_static'>"
+        $s =  "<div class='container-fluid'>
+               <div class='myc_accform_static'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| *Cultivar*                || [[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])
@@ -145,7 +146,7 @@ class CollectionTab_Accession
                ||| *Grams 100 seeds*   || [[Value:g_100]]
                ||| *Parent Lot #*   || [[Value:kLotParent]]
                ||| *Grower rating* || [[Value:iGrowerRating]]
-               ||| <button onclick='doEdit()'>Edit</button> || \n"
+               ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n"
 
              .($this->oApp->sess->GetUID() == 1499 ?
               "||| &nbsp; || \n
@@ -165,7 +166,7 @@ class CollectionTab_Accession
 
              ."</div>" // myc_accform_static
 
-             ."<div id='myc_accform_edit' style='display:none'>"
+             ."<div class='myc_accform_edit' style='display:none'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| <input type='submit' value='Save'> || \n
@@ -200,14 +201,16 @@ class CollectionTab_Accession
               : "")
              ."|||ENDTABLE "
 
-            ."</div>";
+            ."</div>
+              </div>";
 
         $s .= "<script>
 function doEdit()
 {
     event.preventDefault();
-    $('#myc_accform_static').hide();
-    $('#myc_accform_edit').show();
+    $('.myc_accform_static').hide();
+    $('.myc_accform_edit').show();
+    $('#editbutton').html('');      /* remove the edit button so typing Enter in text field goes to Save instead of this (even though it's hidden) */
 }
 </script>";
 
@@ -231,7 +234,8 @@ function doEdit()
             $sNextInv = $kfrC ? ($kfrC->Value('inv_prefix')."-".($nNextInv++)) : "unknown";
         }
 
-        $s = "<fieldset>" //"<DIV style='border:1px solid #333;margin:20px;padding:10px;'>"
+        $s = "<div class='myc_accform_edit' style='display:none'>"
+            ."<fieldset>" //"<DIV style='border:1px solid #333;margin:20px;padding:10px;'>"
             ."<legend>".($oFormI->GetKey() ? ("Lot # $sInvPrefix-".$oFormI->Value('inv_number'))
                                            : "Add New Lot <span style='font-size:10pt'>( next number is $sNextInv )</span>" )
             ."</legend>"
@@ -249,7 +253,26 @@ function doEdit()
                     .($bShowDeacc ? "||| Deaccessioned || [[bDeAcc]]" : "")
                     ."|||ENDTABLE"
                  )
-             ."</fieldset><P>&nbsp;</P>";
+             ."</fieldset></div>";
+
+        $s .=  "<div class='myc_accform_static'>"
+            ."<fieldset>" //"<DIV style='border:1px solid #333;margin:20px;padding:10px;'>"
+            ."<legend>".($oFormI->GetKey() ? ("Lot # $sInvPrefix-".$oFormI->Value('inv_number'))
+                                           : "Add New Lot <span style='font-size:10pt'>( next number is $sNextInv )</span>" )
+            ."</legend>"
+
+                .(new SEEDFormExpand($oFormI))->ExpandForm(
+                     "|||TABLE(border='0')
+                      ||| Weight (g)    || [[Value:g_weight]]"
+                    .($bShowLoc ? "||| Location      || [[Value:location]]" : "")
+." ".($oFormI->GetKey() ? ($this->oApp->kfdb->Query1( "SELECT loc_old FROM sl_inventory WHERE _key='".$oFormI->GetKey()."'")) : "")
+//                    ."||| Split from    || [[parent_kInv]]"
+//                    ."||| Split date    || [[dCreation]]"
+                    .($bShowDeacc ? "||| Deaccessioned &nbsp;&nbsp; || [[Value:bDeAcc]]" : "")
+                    ."|||ENDTABLE"
+                 )
+             ."</fieldset></div><P>&nbsp;</P>";
+
 
         done:
         return( $s );
