@@ -269,6 +269,7 @@ class SEEDBasket_Purchase_seeds extends sub_SEEDBasket_Purchase_mailable
     {
 // should be a much better way to do this e.g. it should be built into SEEDBasket_Product_seeds
         $oHandler = new SEEDBasketProductHandler_Seeds($this->oSB);
+// get rid of this in SEEDBasket_Purchase
         $kfr = $this->_getKFR();
 
         $kfr = $this->oSB->oDB->GetProductKFR( $this->GetProductKey() );
