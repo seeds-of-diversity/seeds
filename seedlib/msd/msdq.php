@@ -101,6 +101,7 @@ class MSDQ extends SEEDQ
                  *
                  * output: bOk, sErr, raOut=validated and stored seed record, sOut=revised html seedDraw
                  */
+//if login times out this is what people see
                 if( ($this->kUidSeller == 0 || $this->kUidSeller == -1) && !$kSeed ) {
                     // -1 is only possible with MSDOffice. It means don't override uid_seller, not allowed for Add
                     $rQ['sErr'] = "Cannot add a seed item in species-edit mode";
