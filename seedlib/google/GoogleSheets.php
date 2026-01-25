@@ -193,7 +193,7 @@ class SEEDGoogleSheets
      * @param int $columnNumber
      * @return string column letter
      */
-// see SEEDXls::Index2ColumnName
+// see SEEDXls::Index2ColumnName which uses origin-0 column numbers
     static function NumberToColumnLetter( int $columnNumber )
     {
         $columnName = "";
