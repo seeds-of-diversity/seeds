@@ -125,6 +125,7 @@ $bUnionCSCI = false;
 
         /* raIxA data is shown for reference. It is aggregated into into other values e.g. total_grams, and not available in xlsx output.
          */
+// this is sort of formatted in getLotDetails_PCV and it could be done this way there too?
         foreach( (@$ra['raIxA'] ?? []) as $kEncodesYear => $raI ) {
             $y = intval($kEncodesYear);
             $sCol1 .= "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g from $y</nobr><br/>";
@@ -137,7 +138,7 @@ $bUnionCSCI = false;
         $clrPop = $ra['est_total_viable_pops'] >= 10.0 ? 'green' : ($ra['est_total_viable_pops'] >= 5.0 ? 'orange' : 'red');
         $s .= "<tr>
                <td $sTDClass>{$ra['species']}</td><td $sTDClass>{$ra['cultivar']}</td>
-               <td $sTDClass>{$ra['csci_count']}</td><td $sTDClass>{$ra['adoption']}</td>
+               <td $sTDClass>{$ra['csci_count']} : <span style='font-size:60s%'>{$ra['csci_list']}</span></td><td $sTDClass>{$ra['adoption']}</td>
                <td $sTDClass>{$ra['total_grams']}</td>
                <td $sTDClass>{$ra['est_total_viable_grams']}</td>
                <td $sTDClass>{$ra['est_total_viable_seeds']}</td>

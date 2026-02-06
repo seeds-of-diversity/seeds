@@ -13,7 +13,7 @@
 
 /* QServerSLCollectionReports
  *
- * Copyright 2017-2025 Seeds of Diversity Canada
+ * Copyright 2017-2026 Seeds of Diversity Canada
  *
  * Serve reports about sl_collection, sl_accession, sl_adoption, etc
  */
@@ -509,6 +509,7 @@ this is for sure not the best place to put this
                         'species'                => $ra['S_psp'],
                         'cultivar'               => $this->QCharSetFromLatin($ra['P_name']),
                         'csci_count'             => $ra['nCSCI'],
+                        'csci_list'              => "",
                         'adoption'               => '',
                         //'newest_lot_year'        => '',
                         //'newest_lot_grams'       => '',
@@ -520,6 +521,7 @@ this is for sure not the best place to put this
                         'total_grams'            => '',
                         'notes'                  => '',
                         'raIxA'                  => [],
+                        'sIxA'                   => "",
                     ];
                 }
             }
@@ -554,13 +556,17 @@ this is for sure not the best place to put this
         $sNotes = $bCanReadInternal ? $ra['sNotes'] : "";
         $fAdoption = $ra['fAdoption'];  // ok to show the amount publicly
 
-        // Get the number of csci companies that have the given pcv
-        $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
+        // Get the number and names of csci companies that have the given pcv
+        $raCSCI = $this->oApp->kfdb->QueryRA(
+                    "SELECT count(*) as c, group_concat(SRC.name_en separator ', ') as list
+                     FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources SRCCV JOIN {$this->oApp->DBName('seeds1')}.sl_sources SRC ON (SRCCV.fk_sl_sources=SRC._key)
+                     WHERE SRC._status=0 AND SRCCV._status=0 AND SRCCV.fk_sl_pcv='{$raPCV['P__key']}' AND SRCCV.fk_sl_sources>='3'" );
 
         $raOut = ['kPcv'                   => $raPCV['P__key'],
                   'species'                => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
                   'cultivar'               => $this->QCharSetFromLatin( $raPCV['P_name'] ),
-                  'csci_count'             => $nCSCI,
+                  'csci_count'             => $raCSCI['c'],
+                  'csci_list'              => $this->QCharSetFromLatin($raCSCI['list']),
                   'adoption'               => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
 //                  'newest_lot_year'        => $yNewest,
 //                  'newest_lot_grams'       => $ra['newest_lot_grams'],
@@ -572,6 +578,7 @@ this is for sure not the best place to put this
                   'est_total_viable_pops'  => round($ra['total_viable_pops'], 1),
                   'notes'                  => $sNotes,           // already QCharset in the method that aggregates it
                   'raIxA'                  => @$ra['raIxA'] ?? [],
+                  'sIxA'                   => $ra['sIxA'],
                  ];
 
         return( $raOut );
@@ -601,6 +608,7 @@ this is for sure not the best place to put this
                    'fAdoption' => 0.0,
                    'sNotes' => "",
                    'raIxA' => [],
+                   'sIxA' => "", // readable version of raIxA
                    'PxS' => [],
                    'total_viable_grams' => 0.0,
                    'total_viable_seeds' => 0,
@@ -718,10 +726,12 @@ this is for sure not the best place to put this
                 $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>0, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
 
+                $loc = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T';
+                $invnum = $kfrcI->Value('inv_number');
                 $raOut['raIxA']["0$y $i"] = $this->QCharsetFromLatin(
-                            ['inv_number' => $kfrcI->Value('inv_number'),
+                            ['inv_number' => $invnum,
                              'g_weight'   => $g,
-                             'location'   => SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T',
+                             'location'   => $loc,
                              'year_harvested' => $yHarvested,
                              'year_received'  => $yReceived,
                              'latest_germtest_date' => $dGermLatest,
@@ -740,6 +750,17 @@ this is for sure not the best place to put this
         }
         krsort($raNotes);
         krsort($raOut['raIxA']);
+
+        /* Make sIxA - formatted for xlsx
+         */
+        foreach( $raOut['raIxA'] as $kEncodesYear => $raI ) {
+            $y = intval($kEncodesYear);
+                // this is formatted for xlsx output
+            $raOut['sIxA'] .= "{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g from $y @ "
+                             .($raI['latest_germtest_date'] ? "{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']} -> " : "")
+                             ."{$raI['current_germ_estimate']}% = {$raI['g_weight_viable_estimate']} viable g = {$raI['pops_estimate']} viable pops\n";
+        }
+
         foreach( $raNotes as $y => $g ) {
             $y = intval($y);
             $raOut['sNotes'] .= ($raOut['sNotes'] ? " | " : "")."$g g from ".($y ? $y : "unknown year");

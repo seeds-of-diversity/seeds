@@ -2,7 +2,7 @@
 
 /* Seed collection manager
  *
- * Copyright 2020-2025 Seeds of Diversity Canada
+ * Copyright 2020-2026 Seeds of Diversity Canada
  */
 
 /* You can either execute this script directly and use SEED_APP_BOOT_REQUIRED to initialize config
@@ -135,8 +135,13 @@ $oCTS = new MyConsole02TabSet( $oApp );
 
 $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
+/* Overview tab gets data from QServer in utf8, others are iso8859
+ */
+if( $oCTS->TabSetGetCurrentTab('main') != 'slcollOver' ) {
+    $s = SEEDCore_utf8_encode($s);
+}
 
-echo Console02Static::HTMLPage( SEEDCore_utf8_encode($s), "", 'EN',
+echo Console02Static::HTMLPage( $s, "", 'EN',
                                 ['consoleSkin'=>'green',
                                  'raScriptFiles' => [$oApp->UrlW()."js/SEEDCore.js",
                                                      $oApp->UrlW()."js/SEEDUI.js",           // for SearchControl reset button
