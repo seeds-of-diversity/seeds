@@ -101,7 +101,7 @@ class MSDQ extends SEEDQ
                  *
                  * output: bOk, sErr, raOut=validated and stored seed record, sOut=revised html seedDraw
                  */
-//if login times out this is what people see
+// if login times out this is what people see
                 if( ($this->kUidSeller == 0 || $this->kUidSeller == -1) && !$kSeed ) {
                     // -1 is only possible with MSDOffice. It means don't override uid_seller, not allowed for Add
                     $rQ['sErr'] = "Cannot add a seed item in species-edit mode";
@@ -439,6 +439,7 @@ class MSDQ extends SEEDQ
 
         $sBetween = @$raParms['sBetween'];  // string to put between each seed listing
         foreach( $rQ['raOut'] as $ra ) {
+// this doesn't do charset conversion like GetSeedRAFromKfr
             if( !($kfrS = $this->oMSDCore->GetSeedKfr($ra['_key'])) || !$this->canReadSeed($kfrS) ) {
                 $sErr .= "<p>Cannot read seed {$ra['_key']}</p>";
                 continue;
@@ -596,9 +597,10 @@ class MSDQ extends SEEDQ
                     ? "<span style='color:#428bca;cursor:pointer;'>$sV</span>"  // color is bootstrap's link color
                     : $sV;
 
-
+        $dtm = $raSeed['days_maturity'];    // can be numeric, string, accented string
         $sOut .= "<br/>"
-                .$kfrS->ExpandIfNotEmpty( 'days_maturity', "[[]] dtm. " )
+                .($dtm ? (is_numeric($dtm) ? "$dtm dtm. " : "$dtm ") : "")
+// days_maturity_seed is not used
                // this doesn't have much value and it's readily mistaken for the year of harvest
                //  .($this->bReport ? "@Y@: " : "Y: ").$kfrS->value('year_1st_listed').". "
                 .$raSeed['description']." "
@@ -609,8 +611,8 @@ class MSDQ extends SEEDQ
          * A literal zero becomes 0.00, which suppresses the Price label.
          * We don't show prices of $3.50 in PRINT mode.
          */
-        $price = $kfrS->Value('item_price');
-        if( $price != '0.00' && !($eView=='PRINT' && $price == '3.50') ) {
+        $price = $raSeed['item_price'];
+        if( $price != '0.00' && !($eView=='PRINT' && $price == '4.00') ) {
              $sOut .= " ".($this->oApp->lang=='FR' ? "Prix:" : "Price:")." "
                      .(is_numeric($price) ? SEEDCore_Dollar( $price, $this->oApp->lang ) : $price);
         }
@@ -663,7 +665,6 @@ class MSDQ extends SEEDQ
         // close the text in an outer div
 // if( $eView!='PRINT' ) -- not sure whether this div is good with print
         $sOut = "<div class='sed_seed' id='Seed".$kfrS->Key()."'>$sOut</div>";
-
 
         $bOk = true;
 
