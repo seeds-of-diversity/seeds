@@ -2,7 +2,7 @@
 
 /* Seed Sources app
  *
- * Copyright (c) 2012-2020 Seeds of Diversity Canada
+ * Copyright (c) 2012-2026 Seeds of Diversity Canada
  *
  */
 
@@ -11,8 +11,8 @@ include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_lib.php" );
-include_once( "_sources_edit.php" );
-include_once( "_sources_download.php" );
+include_once( "sources_ts_edit.php" );
+include_once( "sources_ts_download.php" );
 
 $consoleConfig = [
     'CONSOLE_NAME' => "sources",
