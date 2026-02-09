@@ -114,6 +114,10 @@ class SLUtil
             'tomato-cherry' => 353,
             'turnip' => 335,
             'watermelon' => 14,
+            
+            'emmer' => 18,  // should be wheat-emmer in rosetta
+            'einkorn' => 18,  // should be wheat-einkorn in rosetta
+            
             'wheat' => 18,
         ];
 
@@ -204,6 +208,10 @@ class SLUtil
     	"turnip" => 80,
     	"turnip-rutabaga" => 80,
     	"watermelon-citron" => 20,
+        
+        'emmer' => 80,  // should be wheat-emmer in rosetta
+        'einkorn' => 80,  // should be wheat-einkorn in rosetta
+        
         'wheat'        => 80,
         'wheat, durum' => 80,
     ];
