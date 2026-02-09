@@ -5,6 +5,7 @@ include_once( SEEDCORE."SEEDTableSheets.php" );
 include_once( SEEDCORE."console/console02ui.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_db.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_cv_upload.php" );
+include_once( SEEDLIB."google/GoogleSheets.php" );
 
 class SLSourcesAppDownload
 {
@@ -20,6 +21,7 @@ class SLSourcesAppDownload
         $this->oSrcLib = new SLSourcesLib( $this->oApp );
 
         $raPills = array( 'companies'      => array( "Seed Companies"),
+                          'google-sync'    => ["Google Sheet Sync"],
                           'companies-test' => array( "Seed Companies Test"),
                           'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
                           'npgs'           => array( "USA: National Plant Germplasm System (NPGS)" ),
@@ -35,12 +37,9 @@ class SLSourcesAppDownload
         $sMenu = $this->oUIPills->DrawPillsVertical();
         $sBody = "";
         switch( $this->oUIPills->GetCurrPill() ) {
-            case 'companies':
-                $sBody = $this->companies();
-                break;
-            case 'companies-test':
-                $sBody = $this->companiesTest();
-                break;
+            case 'companies':           $sBody = $this->companies();        break;
+            case 'google-sync':         $sBody = $this->googleSheetSync();  break;
+            case 'companies-test':      $sBody = $this->companiesTest();    break;
         }
 
         $s = "<div class='container-fluid'><div class='row'>"
@@ -244,6 +243,26 @@ class SLSourcesAppDownload
         return( $s );
     }
 
+    private function googleSheetSync()
+    {
+        $s = "";
+
+        $oForm = new SEEDCoreFormSession($this->oApp->sess, 'SLSources_GoogleSheetSync');
+        $oForm->Update();
+
+        if( SEEDInput_Int('doGoogleSheetSync') ) {
+            $s .= (new SLSources_GoogleSheetSync($this->oApp, ['idSpreadsheet'=>$oForm->Value('idSpreadsheet'), 'nameSheet'=>"Worksheet"]))->DoSync();
+        }
+
+        $s .= "<form method='post'>
+                   {$oForm->Text('idSpreadsheet', "", ['size'=>50])}
+                   <input type='hidden' name='doGoogleSheetSync' value='1'/>
+                   <button>Sync Now</button>
+               </form>";
+
+        return($s);
+    }
+
 
     private function companiesTest()
     {
@@ -271,4 +290,100 @@ class SLSourcesAppDownload
         return( $s );
     }
 
+}
+
+class SLSources_GoogleSheetSync
+{
+    private $oApp;
+    private $oGoogleSheet;
+    private $nameSheet;
+
+    private const raSheetColnames = ['k'=>'I','company'=>'S','species'=>'S','cultivar'=>'S','organic'=>'I','bulk'=>'I','hybrid'=>'S','synonym'=>'S','notes'=>'S'];
+
+    function __construct( SEEDAppConsole $oApp,  array $raConfig )
+    {
+        $idSpreadsheet = $raConfig['idSpreadsheet'];
+        $this->nameSheet = $raConfig['nameSheet'];
+
+        $this->oApp = $oApp;
+        $this->oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
+                                    ['appName' => 'My PHP App',
+                                     'authConfigFname' => SEEDCONFIG_DIR."sod-public-outreach-info-e36071bac3b1.json",
+                                     'idSpreadsheet' => $idSpreadsheet] );
+    }
+
+    function DoSync()
+    {
+        $s = "";
+
+        $this->initDb();
+
+        $raProperties = $this->oGoogleSheet->GetProperties($this->nameSheet);
+        $s .= "<p>Spreadsheet has {$raProperties['rowsUsed']} rows, {$raProperties['colsUsed']} columns";
+
+        /* Verify spreadsheet has the required column headers
+         */
+        $raColnames = $this->oGoogleSheet->GetColumnNames($this->nameSheet, ['bFetchAllRows'=>true]);
+        foreach(self::raSheetColnames as $col => $type) {
+            if(!in_array($col,$raColnames)) {
+                $s .= "<div class='alert alert-danger'>Required columns: ".SEEDCore_ArrayExpandSeries(self::raSheetColnames,"[[k]],")."<br/>
+                       but found".SEEDCore_ArrayExpandSeries($raColnames,"[[]],")."</div>";
+                goto done;
+            }
+        }
+
+        /* Fetch data in column-keyed array
+         */
+        $raRows = $this->oGoogleSheet->GetRowsWithNamedColumns($this->nameSheet);
+
+        $sql = "INSERT INTO gsheettest VALUES ";
+        for( $i = 0; $i < 1000; $i++ ) {
+            $raSql = [];
+            foreach(self::raSheetColnames as $col => $type) {
+                $raSql[] = $type=='I' ? intval(@$raRows[$i][$col]) : ("'".addslashes(@$raRows[$i][$col]??"")."'");
+            }
+            $raSql[] = $i;  // the row number
+
+            // build ,(v1,v2,'v3',...)
+            $sql .= ($i ? "," : "")
+                   ."(".implode(',', $raSql).")";
+        }
+        $this->oApp->kfdb->Execute($sql);
+
+        $this->oApp->kfdb->Execute("UPDATE gsheettest G, sl_species S, sl_pcv P, sl_pcv_syn PS SET G.synonym=P.name
+                                    WHERE G.species=S.psp AND S._key=P.fk_sl_species AND P._key=PS.fk_sl_pcv AND PS.name=G.cultivar");
+
+        if( ($dbc = $this->oApp->kfdb->CursorOpen("SELECT synonym,i FROM gsheettest")) ) {
+            $nRows = $this->oApp->kfdb->CursorGetNumRows($dbc);
+            $raPcv = array_fill(0,$nRows,[""]);
+            while( ($ra = $this->oApp->kfdb->CursorFetch($dbc)) ) {
+                $raPcv[$ra[1]][0] = $ra[0];
+            }
+            //var_dump($raPcv);
+            $nBottom = $nRows+1;    // A1 row number of the last row
+$this->oGoogleSheet->WriteValues($this->nameSheet."!I2:I{$nBottom}", $raPcv);
+        }
+
+        done:
+        return($s);
+    }
+
+    private function initDb()
+    {
+        $table = "{$this->oApp->DBName('seeds1')}.gsheettest";
+        $this->oApp->kfdb->Execute(
+            "CREATE TABLE IF NOT EXISTS $table (
+                 k        integer,
+                 company  text,
+                 species  text,
+                 cultivar text,
+                 organic  int,
+                 bulk     int,
+                 hybrid   text,
+                 synonym  text,
+                 notes    text,
+                 i        int )
+            ");
+        $this->oApp->kfdb->Execute("DELETE FROM $table");
+    }
 }
