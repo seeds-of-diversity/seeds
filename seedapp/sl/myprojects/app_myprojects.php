@@ -2,7 +2,7 @@
 
 /* MyProjects app
  *
- * Copyright (c) 2024-2025 Seeds of Diversity Canada
+ * Copyright (c) 2024-2026 Seeds of Diversity Canada
  */
 
 /*
@@ -75,26 +75,21 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
         switch( ($sProjname = SEEDInput_Str('projectName')) ) {
-            case 'cgo2025gc':
+            case 'cgo2026gc':
                 /* record project, psp, oname
                  */
                 $psp = 'ground-cherry';
-                $oname = "Tall-bearing selection from 2024";
+                $oname = "Tall-bearing selection from ".(date('Y')-1)."";
                 break;
-            case 'cgo2025tomato':
+            case 'cgo2026tomato':
+            case 'cgo2026bean':
                 /* record project, kLot, and psp just for good measure
                  */
-                $psp = 'tomato';
+                $psp = substr($sProjname,7); // 'tomato' or 'bean'
                 if( ($iLot = SEEDInput_Int('iLot')) ) {
                     $kLot = (new SLDBCollection($oApp))->GetRecordVal1Cond('I', "fk_sl_collection='1' AND inv_number='$iLot'", '_key');
                 }
                 if(!$kLot)  goto skip;
-                break;
-            case 'cgo2025bean':
-                /* record project, psp, oname
-                 */
-                $psp = 'bean';
-                $oname = '[To be chosen]';
                 break;
             default:
                 $rQ['sErr'] = "no project";
@@ -108,7 +103,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
             $kfr->SetValue('oname', $oname);
             $kfr->SetValue('fk_sl_inventory', $kLot);
             $kfr->UrlParmSet('metadata', 'project', $sProjname);
-            $kfr->SetValue('year', 2025);
+            $kfr->SetValue('year', 2026);
 
             if( $kfr->PutDBRow() ) {
                 $rQ['bOk'] = true;
@@ -450,6 +445,9 @@ class ProjectsTabProjects
 
         $s .= "<hr/>";
 
+// TODO: Each project configurable by control panel in Office tab
+// TODO: Add a lettuce project as an entry point for future core growers
+        $s .= $this->cgoSignup();
 
 
         /* CGO bean selection
@@ -478,11 +476,12 @@ class ProjectsTabProjects
         }
 
 
+// TODO: show current year projects before sign-ups, past project after sign-ups. When sign-ups go invisible they will all be together, but still would be good to have a marker between.
         /* 2025 and 2024 projects
          */
         if( ($u = intval($this->kCurrMbr)) ) {
             $raY = [];
-            foreach([2025,2024] as $year) {
+            foreach([2026,2025,2024] as $year) {
                 foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
                     if(!isset($raY[$year])) {
                         $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
@@ -533,8 +532,6 @@ class ProjectsTabProjects
 
         }
 
-//        $s .= $this->cgoSignup();
-
         return( $s );
     }
 
@@ -546,11 +543,11 @@ class ProjectsTabProjects
         include_once("cgo_signup.php");
 
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
-        $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025gc%'");
-        $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025tomato%'");
-        $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'");
+        $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026gc%'");
+        $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026tomato%'");
+        $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026bean%'");
 
-        $s .= "<h4 class='alert alert-success' style='color:green'>We have lots of seeds left so we've extended the deadline!</h4>";
+        //$s .= "<h4 class='alert alert-success' style='color:green'>We have lots of seeds left so we've extended the deadline!</h4>";
 
         $s .= "<h3>{$this->oP->oL->S('Join Our Community Seed Growouts')}</h3>";
         $s .= (new CGOSignup_GC($this->oP))->Draw($bRegisteredGC)
@@ -1183,8 +1180,11 @@ class CGOSignup
         let projName = jForm.data('project');
         let iLot = 0;
 
-        if(projName=='cgo2025tomato') {
+        if(projName=='cgo2026tomato') {
             iLot = document.getElementById('cgosignup-form-tomatoselect').value;
+        }
+        if(projName=='cgo2026bean') {
+            iLot = document.getElementById('cgosignup-form-beanselect').value;
         }
 
         let o = {qcmd:'myprojects--add',
@@ -1274,7 +1274,8 @@ class CGOSignup_Bean
     {
         let r1 = document.getElementById('cgosignup-form-bean1').checked;
         let r2 = document.getElementById('cgosignup-form-bean2').checked;
-        $('#cgosignup-form-beanbutton').prop('disabled', !(r1 && r2));
+        let sel = document.getElementById('cgosignup-form-beanselect').value > 0;
+        $('#cgosignup-form-beanbutton').prop('disabled', !(r1 && r2 && sel));
     }
 }
 </script>

@@ -19,7 +19,7 @@ class CGOSignup
                    <div class='col-md-8'>
                        $s1
                        <div class='cgosignup-opener' style='padding:1em 0;text-align:center;font-size:150%;font-weight:bold;color:gray;width:60%'>
-                           <span style='color:green'>Click to Choose Your Bean Variety</span> <br/><span class='chevron chevron-down'></span>
+                           <span style='color:green'>Click to Join this Project</span> <br/><span class='chevron chevron-down'></span>
                        </div>
                    </div>
                    <div class='col-md-2' style='text-align:center'></div>
@@ -72,6 +72,10 @@ $s .= "<style>
         return( $s );
     }
 
+    protected $sReserve =
+            ['EN' => "<p style='color:red;margin-top:1em'><b>Reserve your seeds by March 7, 2026</b></p>", // <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
+             'FR' => "<p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 7 mars 2026</b></p>", // <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
+            ];
 }
 
 class CGOSignup_GC extends CGOSignup
@@ -86,7 +90,7 @@ class CGOSignup_GC extends CGOSignup
         /* Sign up for CGO Ground Cherry
          */
         if( $this->oP->oL->GetLang() == 'EN' ) {
-            $s1 = "<b>Help Breed a Better Ground Cherry (Year 6)</b>
+            $s1 = "<b>Help Breed a Better Ground Cherry (Year 7)</b>
                    <p>We're selecting upright-growing plants from an originally mixed population, aiming for a plant shape that is easier to harvest.</p>
                    <p>Ground cherries (<i>Physalis pruinosa</i>) are small, sweet, golden-yellow berries that are relatives of tomatillos and tomatoes.
                       Each fruit is enclosed in a wrapper, and it falls from the plant when ripe, so you harvest by picking them off the ground.
@@ -98,8 +102,7 @@ class CGOSignup_GC extends CGOSignup
                          <li><b>You will need about 30 to 40 square feet of garden space.</b></li>
                          <li><b>You will need space indoors to start seedlings at 20-25 degrees C, for 8 weeks before transplanting.</b></li>
                          </ul>
-<!--                  <p style='color:red;margin-top:1em'><b>Reserve your seeds by March 3, 2025</b></p> -->
-                      <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
+                      {$this->sReserve['EN']}
                    </div>";
             $s2 = "<p><b>To participate in this project:</b></p>
                       <ul>
@@ -111,7 +114,7 @@ class CGOSignup_GC extends CGOSignup
                       <li>Share some of the seeds in your community.</li>
                       </ul>";
             $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2025gc'>
+                    <div class='cgosignup-form' data-project='cgo2026gc'>
                         <p>Please confirm:<br/>
                         <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I have at least 30 square feet of garden space for this project.<br/>
                         <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I can germinate seeds at 20 - 25 degrees C, and grow seedlings indoors for 8 weeks.
@@ -132,8 +135,7 @@ class CGOSignup_GC extends CGOSignup
                          <li><b>Vous aurez besoin d'environ 30 &agrave; 40 pieds carr&eacute;s d'espace de jardin.</b></li>
                          <li><b>Vous aurez besoin d'espace &agrave; l'int&eacute;rieur pour faire pousser des plants &agrave; 20-25 degr&eacute;s C pendant 8 semaines avant de les planter dans le jardin.</b></li>
                          </ul>
-<!--                  <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 3 mars 2025</b></p>  -->
-                      <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
+                      {$this->sReserve['FR']}
                    </div>";
             $s2 = "<p><b>Pour participer &agrave ce projet:</b></p>
                       <ul>
@@ -145,7 +147,7 @@ class CGOSignup_GC extends CGOSignup
                       <li>Partagez des semences dans votre communaut&eacute;.</li>
                       </ul>";
             $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2025gc'>
+                    <div class='cgosignup-form' data-project='cgo2026gc'>
                         <p>Veuillez confirmer:<br/>
                         <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> J'ai au moins 30 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
                         <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> Je peux faire germer des semences &agrave; 20 - 25 degr&eacute;s C et faire pousser des plants &agrave; l'int&eacute;rieur pendant 8 semaines.
@@ -175,10 +177,17 @@ class CGOSignup_Tomato extends CGOSignup
         $sCvOpts = SEEDCore_ArrayExpandSeries($raCvOpts, "<option value='[[v]]'>[[k]]</option>");
 
         if( $this->oP->oL->GetLang() == 'EN' ) {
-            $s1 = "<b>Help Explore and Multiply Canadian Tomato Seeds</b>
+                /* <b>Help Explore and Multiply Canadian Tomato Seeds</b>
                    <p>Our members have shared an assortment of Canadian tomato seeds - varieties bred in Canada or with a long history of being well-adapted to our growing conditions.
-                      Your project will be to grow 6 or more tomato plants, take observations through the season, and save seeds to help share those varieties next year.
+                      Your project will be to grow 6 or more tomato plants...</p>
+                 */
+            $s1 = "<b>Help Explore and Multiply Dwarf Tomato Seeds</b>
+                   <p>We've chosen an assortment of dwarf tomato varieties, ranging from ultra-compact to ~3ft tall. Some are cherry varieties, and some are good-sized slicers,
+                      but they all grow on short, compact plants that are perfect for small gardens or containers.</p>
+                   <p>None of them should require staking. All of them are relatively rare.</p>
+                   <p>Your project will be to grow 6 or more tomato plants, take observations through the season, and save seeds to help share those varieties next year.
                       We also hope that you'll share seeds with others in your community.</p>
+                   <p>Learn more about dwarf tomato varieties at the <a href='https://www.dwarftomatoproject.net'>Dwarf Tomato Project</a></p>
                    <div style='border:1px solid #aaa;background-color:#eee;padding:1em'>
                       <p><b>To participate in this project:</b></p>
                          <ul>
@@ -186,8 +195,7 @@ class CGOSignup_Tomato extends CGOSignup
                          <li><b>You are able grow your tomatoes isolated at least 20 feet apart from any other tomato varieties.</b></li>
                          <li><b>You will need a warm, bright place indoors to start seedlings, for 6-8 weeks before transplanting.</b></li>
                          </ul>
-<!--                  <p style='color:red;margin-top:1em'><b>Reserve your seeds by March 3, 2025</b></p> -->
-                      <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
+                      {$this->sReserve['EN']}
                     </div>";
             $s2 = "<p><b>To participate in this project:</b></p>
                       <ul>
@@ -202,7 +210,7 @@ class CGOSignup_Tomato extends CGOSignup
                    <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
                   .$sCvAvailable;
             $sDisabled = $bRegistered ? 'disabled' : '';
-            $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
+            $s3 =  "<div class='cgosignup-form' data-project='cgo2026tomato'>
                         <p>Please choose a variety below and confirm:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I have at least 20 square feet of garden space for this project.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can isolate tomato plants at least 20 feet apart from any other tomato variety.<br/>
@@ -212,10 +220,18 @@ class CGOSignup_Tomato extends CGOSignup
                         {$this->drawButton('cgosignup-form-tomatobutton', $bRegistered)}
                     </div>";
         } else {
-            $s1 = "<b>Explorez et multipliez les semences de tomates canadiennes</b>
+                /* <b>Explorez et multipliez les semences de tomates canadiennes</b>
                    <p>Nos membres ont partag&eacute; un assortiment de semences de tomates canadiennes - des vari&eacute;t&eacute;s cultiv&eacute;es au Canada ou ayant une longue histoire d'&ecirc;tre bien adapt&eacute;es &agrave; nos conditions de culture.
-                      Votre projet consistera &agrave; cultiver 6 plants de tomates ou plus, &agrave; faire des observations tout au long de la saison et &agrave; conserver des graines pour aider &agrave; partager ces vari&eacute;t&eacute;s l'ann&eacute;e prochaine.
+                      Votre projet consistera &agrave; cultiver 6 plants de tomates ou plus, ...</p>
+                 */
+            $s1 = "<b>Explorez et multipliez les semences de tomates naines</b>
+                   <p>Nous avons s&eacute;lectionn&eacute; un assortiment de vari&eacute;t&eacute;s de tomates naines, allant des ultra-compactes &agrave;
+                      celles atteignant environ 90 cm de hauteur. Certaines sont des tomates cerises, d'autres sont de belles tomates &agrave; trancher,
+                      mais toutes poussent sur des plants courts et compacts, parfaits pour les petits jardins ou la culture en pot.</p>
+                   <p>Aucun tuteur n'est n&eacute;cessaire. Toutes sont relativement rares.</p>
+                   <p>Votre projet consistera &agrave; cultiver 6 plants de tomates ou plus, &agrave; faire des observations tout au long de la saison et &agrave; conserver des graines pour aider &agrave; partager ces vari&eacute;t&eacute;s l'ann&eacute;e prochaine.
                       Nous esp&eacute;rons &eacute;galement que vous partagerez des graines avec d'autres membres de votre communaut&eacute;.</p>
+                   <p>Pour en savoir plus sur les vari&eacute;t&eacute;s de tomates naines, consultez <a href='https://www.dwarftomatoproject.net'>Dwarf Tomato Project</a></p>
                    <div style='border:1px solid #aaa;background-color:#eee;padding:1em'>
                       <p><b>Pour participer &agrave ce projet:</b></p>
                          <ul>
@@ -223,8 +239,7 @@ class CGOSignup_Tomato extends CGOSignup
                          <li><b>Vous pouvez cultiver vos tomates isol&eacute;es &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de tomates.</b></li>
                          <li><b>Vous aurez besoin d'un endroit chaud et lumineux &agrave; l'int&eacute;rieur pour d&eacute;marrer les semis, pendant 6 &agrave; 8 semaines avant de les planter dans le jardin.</b></li>
                          </ul>
-<!--                  <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 3 mars 2025</b></p>  -->
-                      <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
+                      {$this->sReserve['FR']}
                     </div>";
             $s2 = "<p><b>Pour participer &agrave ce projet:</b></p>
                       <ul>
@@ -239,7 +254,7 @@ class CGOSignup_Tomato extends CGOSignup
                    <p style='font-weight:bold;font-size:150%'>Vari&eacute;t&eacute;s disponibles</p>"
                   .$sCvAvailable;
             $sDisabled = $bRegistered ? 'disabled' : '';
-            $s3 =  "<div class='cgosignup-form' data-project='cgo2025tomato'>
+            $s3 =  "<div class='cgosignup-form' data-project='cgo2026tomato'>
                         <p>Veuillez choisir une vari&eacute;t&eacute; ci-dessous et confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> J'ai au moins 20 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux isoler les plants de tomates &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de tomates.<br/>
@@ -257,28 +272,28 @@ class CGOSignup_Tomato extends CGOSignup
 
     private function tomatoVarieties()
     {                                                    // new seed
-        $raCv = [9576 => 130,       // Andy's Buckflats     13g  per
-                 8819 => 8,         // Adelin
-                 6957 => 3 + 100,   // Beaverlodge          10g             -- not accessioned
-                 7955 => 54 + 80,   // Betty's               8g  9417
-                 9120 => 1,         // Centennial Red
-                 7816 => 1,         // Charlie's Red Staker
-                 9507 => 80,        // Coastal Pride Red     8g  per
-                 8273 => 16,        // Cobourg
-                 7361 => 14 + 49,   // Doucet's QEM         bob  9467
-                 6981 => 5,         // Earlibright
-                 6983 => 52,        // Early Lethbridge
-                 7215 => 2 + 90,    // Mac Pink              9g  9564
-                 7658 => 3 + 40,    // Manitoba              4g             -- not accessioned
-                 6994 => 52,        // Mennonite Orange
-                 9501 => 20,        // Montreal Tasty        2g  per
-                 7085 => 7 + 48,    // Petitbec             bob  9465
-                 7211 => 3,         // Quebec 5
-                 9231 => 3,         // Quinte
-                 7612 => 7 + 30,    // Scotia                3g             -- not accessioned
-                 9221 => 2,         // Sub-arctic Cherry
-                 8468 => 2,         // Sub-arctic Maxi
-                 9239 => 1 + 20,    // Superbec              2g 9239        -- guessing 9239 from 2023
+        $raCv = [//9576 => 130,       // Andy's Buckflats     13g  per
+                 //8819 => 8,         // Adelin
+                 //6957 => 3 + 100,   // Beaverlodge          10g             -- not accessioned
+                 //7955 => 54 + 80,   // Betty's               8g  9417
+                 //9120 => 1,         // Centennial Red
+                 //7816 => 1,         // Charlie's Red Staker
+                 9602 => 20,          // Coastal Pride Red     8g  per
+                 //8273 => 16,        // Cobourg
+                 //7361 => 14 + 49,   // Doucet's QEM         bob  9467
+                 //6981 => 5,         // Earlibright
+                 //6983 => 52,        // Early Lethbridge
+                 //7215 => 2 + 90,    // Mac Pink              9g  9564
+                 //7658 => 3 + 40,    // Manitoba              4g             -- not accessioned
+                 //6994 => 52,        // Mennonite Orange
+                 //9501 => 20,        // Montreal Tasty        2g  per
+                 9465 => 20,          // Petitbec
+                 //7211 => 3,         // Quebec 5
+                 //9231 => 3,         // Quinte
+                 9586 => 20,          // Scotia                3g             -- not accessioned
+                 9221 => 20,          // Sub-arctic Cherry
+                 //8468 => 2,         // Sub-arctic Maxi
+                 //9239 => 1 + 20,    // Superbec              2g 9239        -- guessing 9239 from 2023
 
 // g = 500 seeds = 10 pkts but really 20
         ];
@@ -334,6 +349,9 @@ class CGOSignup_Bean extends CGOSignup
     {
         /* Sign up for CGO Beans
          */
+        list($sCvAvailable,$raCvOpts) = $this->beanVarieties();
+        $sCvOpts = SEEDCore_ArrayExpandSeries($raCvOpts, "<option value='[[v]]'>[[k]]</option>");
+
         if( $this->oP->oL->GetLang() == 'EN' ) {
             $s1 = "<b>Help Evaluate Beans for Canadian Climates</b>
                    <p>With Dr. Richard Hebda of the University of Victoria, we've chosen several heritage bean varieties that we think hold promise to thrive in Canadian growing conditions.
@@ -344,7 +362,7 @@ class CGOSignup_Bean extends CGOSignup
                          <li><b>You will need space to grow 15 to 20 feet of bean plants (you can choose bush or pole varieties).</b></li>
                          <li><b>You are able grow your beans isolated at least 20 feet apart from any other bean varieties.</b></li>
                          </ul>
-                      <p style='color:red;margin-top:1em'><b>Reserve your space now, and choose your seeds in March.</b></p>
+                      {$this->sReserve['EN']}
                    </div>";
             $s2 = "<p><b>To participate in this project:</b></p>
                       <ul>
@@ -353,13 +371,16 @@ class CGOSignup_Bean extends CGOSignup
                       <li>Harvest and enjoy the beans, and save seeds from at least a few pods from each plant.</li>
                       <li>Send some of your saved seeds back to Seeds of Diversity so we can repeat the process next year.</li>
                       <li>Share some of the seeds in your community.</li>
-                      </ul>";
-            $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2025bean'>
-                        <p>Please confirm:<br/>
+                      </ul>
+                   <hr style='border-color:#888'/>
+                   <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
+                  .$sCvAvailable;
+            $sDisabled = $bRegistered ? 'disabled' : '';
+            $s3 = "<div class='cgosignup-form' data-project='cgo2026bean'>
+                        <p>Please choose a variety below and confirm:<br/>
                             <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> I have at least 15 row-feet of garden space for this project.<br/>
                             <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> I can isolate bean plants at least 20 feet apart from any other bean variety.<br/>
-                            <br/>We'll follow up in March to let you choose your bean variety (bush / pole, hot / cool climate)
+                            <select id='cgosignup-form-beanselect' {$sDisabled}        onchange='CGOSignup_Bean.doValidate()'><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
                         </p>
                         {$this->drawButton('cgosignup-form-beanbutton', $bRegistered)}
                     </div>";
@@ -373,7 +394,7 @@ class CGOSignup_Bean extends CGOSignup
                          <li><b>Vous aurez besoin d'espace pour cultiver 15 &agrave; 20 pieds de haricots (vous pouvez choisir des vari&eacute;t&eacute;s nains ou grimpants).</b></li>
                          <li><b>Vous pouvez cultiver vos haricots isol&eacute;es &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de haricots.</b></li>
                          </ul>
-                      <p style='color:red;margin-top:1em'><b>R&eacute;servez votre projet maintenant, et choisissez vos semences en mars.</b></p>
+                      {$this->sReserve['FR']}
                    </div>";
             $s2 = "<p><b>Pour participer &agrave ce projet:</b></p>
                       <ul>
@@ -384,10 +405,11 @@ class CGOSignup_Bean extends CGOSignup
                       <li>Partagez des semences dans votre communaut&eacute;.</li>
                       </ul>";
             $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2025bean'>
+                    <div class='cgosignup-form' data-project='cgo2026bean'>
                         <p>Veuillez confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> J'ai au moins 15 pieds rang&eacute;es d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> Je peux isoler les plants de haricots &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de haricots.<br/>
+                            <select id='cgosignup-form-beanselect' {$sDisabled}        onchange='CGOSignup_Bean.doValidate()'><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
                             <br/>Nous vous contacterons courant mars pour vous laisser choisir votre vari&eacute;t&eacute; de haricot (buisson/poteau, climat chaud/frais)
                         </p>
                         {$this->drawButton('cgosignup-form-beanbutton', $bRegistered)}
@@ -404,11 +426,12 @@ class CGOSignup_Bean extends CGOSignup
         For choosing seeds after signing up
      */
     {
+/*
         list($sCvAvailable,$raCvOpts) = $this->beanVarieties();
         $sCvOpts = SEEDCore_ArrayExpandSeries($raCvOpts, "<option value='[[v]]'>[[k]]</option>");
 
-        /* Choose CGO Beans
-         */
+        [* Choose CGO Beans
+         *]
         if( $this->oP->oL->GetLang() == 'EN' ) {
             $s1 = "<h4>You've registered for our Beans for Canadian Climates project - It's time to choose your seeds!</h4>
 
@@ -477,6 +500,7 @@ class CGOSignup_Bean extends CGOSignup
         $sImg = "https://seeds.ca/d?n=ebulletin/2024/11-odawa-rotated.jpg";
 
         return( $this->DrawSignupBox($s1, $s2, $s3, $sImg));
+*/
     }
 
     private function beanVarieties()
@@ -498,7 +522,7 @@ class CGOSignup_Bean extends CGOSignup
             ['cat'  => "Pole varieties, Cool climate",
              'raCV' => [
                  9677 => intval(261.0 / 56.0 * 100 / 25),  // Pezel's Giant
-                 9679 => intval(169.0 / 47.0 * 100 / 25),  // Polish White
+//                 9679 => intval(169.0 / 47.0 * 100 / 25),  // Polish White
              ]],
             ['cat'  => "Pole varieties, Hot climate",
              'raCV' => [
