@@ -271,31 +271,48 @@ class CGOSignup_Tomato extends CGOSignup
     }
 
     private function tomatoVarieties()
-    {                                                    // new seed
-        $raCv = [//9576 => 130,       // Andy's Buckflats     13g  per
-                 //8819 => 8,         // Adelin
-                 //6957 => 3 + 100,   // Beaverlodge          10g             -- not accessioned
-                 //7955 => 54 + 80,   // Betty's               8g  9417
-                 //9120 => 1,         // Centennial Red
-                 //7816 => 1,         // Charlie's Red Staker
-                 9602 => 20,          // Coastal Pride Red     8g  per
-                 //8273 => 16,        // Cobourg
-                 //7361 => 14 + 49,   // Doucet's QEM         bob  9467
-                 //6981 => 5,         // Earlibright
-                 //6983 => 52,        // Early Lethbridge
-                 //7215 => 2 + 90,    // Mac Pink              9g  9564
-                 //7658 => 3 + 40,    // Manitoba              4g             -- not accessioned
-                 //6994 => 52,        // Mennonite Orange
-                 //9501 => 20,        // Montreal Tasty        2g  per
+    {
+        $raCv = [9270 => intval(1.1 /0.26 * 100 / 20),       // Dwarf Red Heart
+                 9229 => 120,                                // Dwarf Japanese
+                 9509 => intval(1.69 / 0.25 * 100 / 20),     // Sweet Tumbler
+                 9264 => intval(1.6 / 0.25 * 100 / 20),      // Dwarf Russian Swirl
+                 9244 => 160,                                // Extreme Bush Dwarf
+                 9235 => 145,                                // Kangaroo Paw Yellow
+                 10028 => 14,                                // Pixie
+                 9211 => intval(4.7 / 0.25 * 100 / 20),      // Early Dwarf Tall
+                 9379 => intval(8.0 / 0.25 * 100 / 20),      // Coastal Pride Red
                  9465 => 20,          // Petitbec
-                 //7211 => 3,         // Quebec 5
-                 //9231 => 3,         // Quinte
-                 9586 => 20,          // Scotia                3g             -- not accessioned
+                 9586 => 20,          // Scotia
                  9221 => 20,          // Sub-arctic Cherry
                  //8468 => 2,         // Sub-arctic Maxi
-                 //9239 => 1 + 20,    // Superbec              2g 9239        -- guessing 9239 from 2023
 
-// g = 500 seeds = 10 pkts but really 20
+
+/* 2025:
+                [9576 => 130,       // Andy's Buckflats     13g  per
+                 8819 => 8,         // Adelin
+                 6957 => 3 + 100,   // Beaverlodge          10g             -- not accessioned
+                 7955 => 54 + 80,   // Betty's               8g  9417
+                 9120 => 1,         // Centennial Red
+                 7816 => 1,         // Charlie's Red Staker
+                 9507 => 80,        // Coastal Pride Red     8g  per
+                 8273 => 16,        // Cobourg
+                 7361 => 14 + 49,   // Doucet's QEM         bob  9467
+                 6981 => 5,         // Earlibright
+                 6983 => 52,        // Early Lethbridge
+                 7215 => 2 + 90,    // Mac Pink              9g  9564
+                 7658 => 3 + 40,    // Manitoba              4g             -- not accessioned
+                 6994 => 52,        // Mennonite Orange
+                 9501 => 20,        // Montreal Tasty        2g  per
+                 7085 => 7 + 48,    // Petitbec             bob  9465
+                 7211 => 3,         // Quebec 5
+                 9231 => 3,         // Quinte
+                 7612 => 7 + 30,    // Scotia                3g             -- not accessioned
+                 9221 => 2,         // Sub-arctic Cherry
+                 8468 => 2,         // Sub-arctic Maxi
+                 9239 => 1 + 20,    // Superbec              2g 9239        -- guessing 9239 from 2023
+*/
+
+
         ];
 
         $s = "";
@@ -508,25 +525,41 @@ class CGOSignup_Bean extends CGOSignup
         $raBeans = [
             ['cat'  => "Bush varieties, Cool climate",
              'raCV' => [
-                 9676 => intval(287.0 / 30.0 * 100 / 25),  // Blue Jay
-                 9682 => 100,                              // Doukhobor  (amount is a guess)
-                 9678 => intval(206.0 / 42.0 * 100 / 25),  // Drew's Dandy
+                 10110 => intval(470.0 / 30.0 * 100 / 40),  // Blue Jay
+                 9536 => 105,                               // Doukhobor
+                 10114 => intval(420.0 / 42.0 * 100 / 40),  // Drew's Dandy
+                 9546 => 33,                                // Spanish Pinta
+
+                 // 2025:
+                 //9676 => intval(287.0 / 30.0 * 100 / 25),  // Blue Jay
+                 //9682 => 100,                              // Doukhobor  (amount is a guess)
+                 //9678 => intval(206.0 / 42.0 * 100 / 25),  // Drew's Dandy
              ]],
             ['cat'  => "Bush varieties, Hot climate",
              'raCV' => [
-                 9680 => intval(502.0 / 37.0 * 100 / 25),  // Mayocoba
-                 9394 => 75,                               // Rojo de Seda
-                 9173 => intval(614.0 / 23.0 * 100 / 25),  // Xico
+                 9493 => intval(118.0 / 37.0 * 100 / 40),  // Costa Rica Red
+//                 9394 => 75,                               // Rojo de Seda
+                 10041 => 58,                              // Kashmir
+                 9666 => intval(593.0 / 23.0 * 100 / 40),  // Xico
+
+                 // 2025:
+                 //9680 => intval(502.0 / 37.0 * 100 / 25),  // Mayocoba
+                 //9394 => 75,                               // Rojo de Seda
+                 //9173 => intval(614.0 / 23.0 * 100 / 25),  // Xico
              ]],
 
             ['cat'  => "Pole varieties, Cool climate",
              'raCV' => [
-                 9677 => intval(261.0 / 56.0 * 100 / 25),  // Pezel's Giant
-//                 9679 => intval(169.0 / 47.0 * 100 / 25),  // Polish White
+                 9679 => 30,                                 // Polish White  (amount is a guess)
+                 //2025:
+                 //9677 => intval(261.0 / 56.0 * 100 / 25),  // Pezel's Giant
+                 // 9679 => intval(169.0 / 47.0 * 100 / 25),  // Polish White
              ]],
             ['cat'  => "Pole varieties, Hot climate",
              'raCV' => [
-                 9681 => intval(773.0 / 51.0 * 100 / 25),  // Good Mother Stallard
+                 9547 => 58,                                 // Good Mother Stallard
+                 //2025:
+                 //9681 => intval(773.0 / 51.0 * 100 / 25),  // Good Mother Stallard
              ]]
         ];
 
