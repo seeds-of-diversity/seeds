@@ -24,7 +24,7 @@
 %% AccountSendPassword-1
 {% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_SendPassword-1]] {% endblock %}
 
-
+ 
 
 
 
@@ -41,9 +41,13 @@ td {padding:10px}
 </head>
 <body>
 <div style='margin:20px'>
+{% block ssa_aboveForm %}{% endblock %}
+{% block ssa_logo %}
 <img src='//www.seeds.ca/i/img/logo/logoA_h-[[lower:[[Var:lang]]]]-750x.png' width='400'/><br/><br/>
+{% endblock %}
 {% if sErrMsg %}<div style='width:40%' class='alert alert-danger'>[[Var:sErrMsg]]</div>{% endif %}
 {% block acctForm %}{% endblock %}
+{% block ssa_belowForm %}{% endblock %}
 </div>
 </body>
 </html>

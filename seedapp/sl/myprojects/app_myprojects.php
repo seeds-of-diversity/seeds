@@ -56,7 +56,9 @@ $consoleConfig = [
 
 SEED_define_lang();     // sets SEED_LANG which tells SEEDAppConsole to set language based on various cues including server name
 $oApp = SEEDConfig_NewAppConsole( ['sessPermsRequired' => $consoleConfig['TABSETS']['main']['perms'],
-                                   'consoleConfig' => $consoleConfig] );
+                                   'consoleConfig' => $consoleConfig,
+                                   'sessUIConfig_fTemplates'=>[__DIR__.'/myprojects_login.html']
+                                  ] );
 //$oApp->kfdb->SetDebug(1);
 
 if( ($qcmd = SEEDInput_Str('qcmd')) ) {
@@ -541,7 +543,7 @@ class ProjectsTabProjects
         $s = "";
 
         if(!$this->kCurrMbr)  goto done;
-        
+
         include_once("cgo_signup.php");
 
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB

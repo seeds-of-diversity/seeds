@@ -192,17 +192,21 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
         'urlW'              => @$raConfig['urlW'] ?: SEEDW_URL,
         'urlQ'              => @$raConfig['urlQ'] ?: SEEDQ_URL,
         'sessPermsRequired' => @$raConfig['sessPermsRequired'] ?: [],
-        'sessUIConfig'      => @$raConfig['sessUIConfig']
-                                // default sessUI requires login, uses the old method temporarily
-                                ?: ['bTmpActivate'=>true,
-                                    'bLoginNotRequired'=>false,
-                                    'fTemplates'=>[SEEDAPP.'templates/seeds_sessionaccount.html'],
+        'sessUIConfig'      => @$raConfig['sessUIConfig'] ?:
+                                [
+                                 // default sessUI requires login, uses the old method temporarily
+                                 'bTmpActivate'=>true,
+                                 'bLoginNotRequired'=>false,
+                                 // later templates substitute earlier, so alternate seedsession templates can be appended
+                                 'fTemplates'=>array_merge(
+                                     [SEEDAPP.'templates/seeds_sessionaccount.html'],
+                                     @$raConfig['sessUIConfig_fTemplates'] ?? []
+                                 ),
 // $SEEDSessionAuthUI_Config should be parameterized better - comes from site.php and site2.php
-                                    'urlSendPasswordSite' => @$SEEDSessionAuthUI_Config['urlSendPasswordSite'] ?? "",
+                                 'urlSendPasswordSite' => @$SEEDSessionAuthUI_Config['urlSendPasswordSite'] ?? "",
 // this should be parameterized externally
-                                    'fnSendMail' => 'klugeMailFromHere',
+                                 'fnSendMail' => 'klugeMailFromHere',
                                 ],
-
         'consoleConfig'     => @$raConfig['consoleConfig'] ?: [],
     ];
 
