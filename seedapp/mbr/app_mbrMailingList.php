@@ -266,6 +266,12 @@ if( ($yMbrExpires = $oForm->Value('yMbrExpires')) &&
     if( $p_lang )                $qParms['lang'] = $p_lang;
     if( $p_outFormat=='email' )  $qParms['bExistsEmail'] = true;
 
+// this is a helpful reminder when getting the sed mailing list
+if($p_mbrFilter1=='getPrintedMSD'){
+    $oApp->oC->AddUserMsg("Note: Printed seed directory list - email address output filters for exists(email) but xls output includes email=''");
+}
+
+
 // Duplicated above
     switch( $p_mbrFilter1 ) {
         case 'getEbulletin':    $qParms['bGetEbulletin'] = !$bOverrideNoEmail;       // filter out members who don't want email, unless the override box is checked
