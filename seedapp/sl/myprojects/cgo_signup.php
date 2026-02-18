@@ -426,7 +426,6 @@ class CGOSignup_Bean extends CGOSignup
                             <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> J'ai au moins 15 pieds rang&eacute;es d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> Je peux isoler les plants de haricots &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de haricots.<br/>
                             <select id='cgosignup-form-beanselect' {$sCVSelDisabled}   onchange='CGOSignup_Bean.doValidate()'><option value='0'>--- {$this->oP->oL->S('Choose a variety')} ---</option>{$sCvOpts}</select>
-                            <br/>Nous vous contacterons courant mars pour vous laisser choisir votre vari&eacute;t&eacute; de haricot (buisson/poteau, climat chaud/frais)
                         </p>
                         {$this->drawButton('cgosignup-form-beanbutton', $bRegistered)}
                     </div>";
