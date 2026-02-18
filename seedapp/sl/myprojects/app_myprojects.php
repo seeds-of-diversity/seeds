@@ -540,6 +540,8 @@ class ProjectsTabProjects
     {
         $s = "";
 
+        if(!$this->kCurrMbr)  goto done;
+        
         include_once("cgo_signup.php");
 
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
@@ -560,6 +562,7 @@ class ProjectsTabProjects
          */
         $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
 
+        done:
         return($s);
     }
 }
