@@ -598,6 +598,8 @@ $n = 0;
                 $s .= SEEDCore_ArrayExpand($ra, "<div style='margin-left:3em'><b>[[P_name]]         </b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
             }
         }
+
+if($this->oP->CanReadOtherUsers()) {
         $s .= "<h4 style='margin-top:2em'>{$this->oP->oL->S('Sorry no longer available')}</h4>";
         foreach($raN as $catLabel => $raN2) {
             $s .= "<p style='color:gray'><b>{$catLabel}</b></p>";
@@ -606,6 +608,7 @@ $n = 0;
                 $s .= SEEDCore_ArrayExpand($ra, "<div style='color:gray;margin-left:3em'><b>[[P_name]]</b> {$sAssigned}<br/>[[P_packetLabel]]</div>");
             }
         }
+}
 
 if($this->oP->CanReadOtherUsers())  $s .= "<p>$n packets available</p>";
         return([$s,$raOpts]);
