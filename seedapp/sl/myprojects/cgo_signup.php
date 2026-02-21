@@ -340,11 +340,14 @@ $n+=$nPackets;
             $s .= SEEDCore_ArrayExpand($ra, "<div><b>[[P_name]]         </b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
 //          $s .= SEEDCore_ArrayExpand($ra, "<div><b>[[P_name]] [[kLot]]</b> {$sRemaining}<br/>[[P_packetLabel]]</div>");
         }
+
+if($this->oP->CanReadOtherUsers()) {
         $s .= "<h4 style='margin-top:2em'>{$this->oP->oL->S('Sorry no longer available')}</h4>";
         foreach($raN as $ra) {
             $sAssigned = $this->oP->CanReadOtherUsers() ? " ({$ra['nPackets']} assigned)" : "";
             $s .= SEEDCore_ArrayExpand($ra, "<div style='color:gray'><b>[[P_name]]</b> {$sAssigned}<br/>[[P_packetLabel]]</div>");
         }
+}
 
 if($this->oP->CanReadOtherUsers())  $s .= "<p>$n packets available</p>";
         return([$s,$raOpts]);
