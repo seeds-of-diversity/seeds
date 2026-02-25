@@ -88,7 +88,7 @@ class Mbr_Contacts
     {
         $s = "";
 
-        $bShowOneNameOnly       = @$raParms['SHOW_ONE_NAME_ONLY'];
+//      $bShowOneNameOnly       = @$raParms['SHOW_ONE_NAME_ONLY'];          // used by FirstnameLastname
         $bShowCompanyWithName   = @$raParms['SHOW_COMPANY_WITH_NAME'];
         $bShowCity              = @$raParms['SHOW_CITY'];
         $bShowProvince          = @$raParms['SHOW_PROVINCE'];
@@ -97,7 +97,7 @@ class Mbr_Contacts
         $prefix = @$raParms['fldPrefix'];
 
         // firstname(s)/lastname(s)
-        $s = self::FirstnameLastname( $ra, $prefix );
+        $s = self::FirstnameLastname($ra, $prefix, $raParms);
 
         // company
         if( ($sCompany = $ra[$prefix.'company']) && (!$s || $bShowCompanyWithName) ) {
@@ -124,10 +124,16 @@ class Mbr_Contacts
         return( $s );
     }
 
-    static function FirstnameLastname( $raMbr, $prefix = '' )
+    static function FirstnameLastname( $raMbr, $prefix = '', array $raParms = [] )
     {
-        $f1 = $raMbr[$prefix.'firstname']; $f2 = $raMbr[$prefix.'firstname2'];
-        $l1 = $raMbr[$prefix.'lastname'];  $l2 = $raMbr[$prefix.'lastname2'];
+        $bShowOneNameOnly = @$raParms['SHOW_ONE_NAME_ONLY'];
+        
+        $f1 = $raMbr[$prefix.'firstname'];
+        $l1 = $raMbr[$prefix.'lastname'];  
+        if( !$bShowOneNameOnly ) {
+            $f2 = $raMbr[$prefix.'firstname2'];
+            $l2 = $raMbr[$prefix.'lastname2'];
+        }
 
         if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
             $name = trim("$f1 $l1");
