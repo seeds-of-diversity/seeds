@@ -184,7 +184,15 @@ class MbrDonations
                 $options->set('isRemoteEnabled', true);
                 $options->set('isHtml5ParserEnabled', true);
                 $dompdf = new Dompdf\Dompdf($options);
-                $dompdf->loadHtml($sBody);
+                /* Starting with dompdf 3 (maybe) the charset is not necessarily utf-8. 
+                 * Without this >meta> the utf-8 names/addresses appear correctly if you make 3 or fewer pages, in any order;
+                 * but the accents appear as ?? if you make 4 more more pages, in any order. Don't know why. 
+                 */ 
+                $dompdf->loadHtml(
+                    "<html>
+                     <head><meta charset='UTF-8'></head>
+                     <body>$sBody</body>
+                     </html>");
                 $dompdf->setPaper('letter', 'portrait');
                 $dompdf->render();
                 $dompdf->stream( "Seeds of Diversity donation receipt #$nReceipt $sReceiptName.pdf", ['Attachment' => 0] );
