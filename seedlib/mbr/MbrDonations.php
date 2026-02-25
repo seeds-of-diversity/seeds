@@ -142,8 +142,7 @@ class MbrDonations
 
 // use MbrContacts::DrawAddressBlock
             $vars = [
-                'donorName' => $kfrD->Expand("[[M_firstname]] [[M_lastname]]")
-                              .( ($name2 = trim($kfrD->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
+                'donorName' => Mbr_Contacts::FirstnameLastname($kfrD->ValuesRA(), 'M_')
                               .$kfrD->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
                 'donorAddr' => $kfrD->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
                 'donorReceiptNum' => $nReceipt,
