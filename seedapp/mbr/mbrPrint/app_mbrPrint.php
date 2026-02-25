@@ -227,24 +227,40 @@ class MyConsole02TabSet extends Console02TabSet
 
     function TabSet_main_donationReceipts2_ContentDraw()
     {
-        $kMbr = "";
-        $y = 0;
         $sMbrReceiptsLinks = "";
         $raReceiptNumbers = [];
 
-        if( SEEDInput_Str('cmd')=='showReceiptLinksForMember' && ($kMbr = SEEDInput_Int('kMbr') ) ) {
+        $cmd = SEEDInput_Str('cmd');
+        $year = SEEDInput_Int('year');
+        $kMbr = SEEDInput_Int('kMbr');
+        
+        if( $cmd=='showReceiptLinksForMember' && $kMbr ) {
             if( ($sMbrReceiptsLinks = $this->oDonations->DrawReceiptLinks($kMbr)) ) {
                 $sMbrReceiptsLinks = "<div style='margin:10px; padding:10px; background-color:#eee'>
                                         <h4>Click to download official donation receipts</h4>$sMbrReceiptsLinks
                                       </div>";
             }
         }
-        if( SEEDInput_Str('cmd')=='showReceiptsNotAccessed' && ($y = SEEDInput_Int('year') ) ) {
-            foreach( $this->oDonations->GetListDonationsNotAccessedByDonor($y) as $raD ) {
+        if( $cmd=='showReceiptsNotAccessed' && $year ) {
+            foreach( $this->oDonations->GetListDonationsNotAccessedByDonor($year) as $raD ) {
                 $raReceiptNumbers[] = $raD['receipt_num'];
             }
         }
-
+        if( $cmd=='doMarkAccessed' && $year ) {
+            $this->oApp->oC->AddUserMsg("Marked accessed: ");
+            foreach( $this->oDonations->GetListDonationsNotAccessedByDonor($year) as $raD ) {
+                (new Mbr_ContactsDB($this->oApp))->StoreDonationReceiptAccessed($raD['_key'], Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed);
+                $this->oApp->oC->AddUserMsg($raD['receipt_num']." ");
+            }
+        }
+         
+        $sBtnMarkAccessed = "";
+        if( SEEDInput_Int('bShowDoAccessedBtn') ) {
+            $sBtnMarkAccessed = 
+                "<p>Mark all unaccessed receipts from $year as accessed by uid ".Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed.".</p>
+                 <form><input type='submit' value='Mark all $year accessed'/><input type='hidden' name='cmd' value='doMarkAccessed'/><input type='hidden' name='year' value='$year'/></form>";     
+        }
+        
         $s = "<div class='container-fluid'><div class='row'>
                   <div class='col-md-3'>
                       <form target='_blank'>
@@ -262,6 +278,7 @@ class MyConsole02TabSet extends Console02TabSet
                       $sMbrReceiptsLinks
                   </div>
                   <div class='col-md-3'>
+                      <p>Use this to print and mail receipts in February</p>
                       <form>
                           <input type='hidden' name='cmd' value='showReceiptsNotAccessed'>
                           <select name='year'>
@@ -269,11 +286,14 @@ class MyConsole02TabSet extends Console02TabSet
                               <option value='{$this->yThis}'>{$this->yThis}</option>
                           </select>
                           <input type='submit' value='List Receipts Not Accessed by Donor'/>
+                          <br/><input type='checkbox' name='bShowDoAccessedBtn' value='1'/> Show button to mark them as accessed (but don't do it yet)
                       </form>
-                      <p>Use this to print and mail receipts in February</p>
                       <p style='border:1px solid #aaa;background-color:#eee'>".SEEDCore_MakeRangeStr($raReceiptNumbers)."</p>
                       <textarea>".implode("\n",$raReceiptNumbers)."</textarea>
                   </div>
+                  <div class='col-md-3'>"
+                      .(SEEDInput_Int('bShowDoAccessedBtn') ? $sBtnMarkAccessed : "")
+                ."</div>
               </div></div>";
 
         return( $s );

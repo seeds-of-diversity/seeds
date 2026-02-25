@@ -219,13 +219,13 @@ class MbrDonations
         /* Difficult to get D where R is null OR R.uid does not include donor.
          * These are either 1) uid==null : left join found no R so include this donation
          *                  2) uid==donor : the donor accessed this, so exclude
-         *                  3) uid==-2    : printed and mailed, so exclude
+         *                  3) uid==-2    : Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed - printed and mailed, so exclude
          *                  4) uid==other : an office access was accidentally recorded, so include UNLESS the donor also accessed
          * To solve the last case, make a list of 2&3, then process 1&4 while excluding any that overlap 2
          */
         $raExclude = [];
         foreach( $raDonations as $raDR ) {
-            if( $raDR['R_uid_accessor']==$raDR['fk_mbr_contacts'] || $raDR['R_uid_accessor']==-2 )  $raExclude[] = $raDR['_key'];
+            if( $raDR['R_uid_accessor']==$raDR['fk_mbr_contacts'] || $raDR['R_uid_accessor']==Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed )  $raExclude[] = $raDR['_key'];
         }
         foreach( $raDonations as $raDR ) {
             if( !in_array($raDR['_key'], $raExclude) ) {

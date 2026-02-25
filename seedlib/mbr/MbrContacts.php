@@ -351,6 +351,8 @@ class MbrContactsDraw
 
 class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
+    public const MbrDonationsReceiptAccessor_Mailed = -2;   // whether printed&mailed or emailed, when the office manually sends a receipt to the donor this is the uid_accessor
+    
     private $oApp;
 
     function __construct( SEEDAppSessionAccount $oApp )
