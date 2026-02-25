@@ -54,8 +54,8 @@ SEEDPRG();
 if( SEEDInput_Str('cmd') == 'printDonationReceipt' || SEEDInput_Str('cmd') == 'printDonationReceipt2' ) {
     if( ($rngReceipt = SEEDInput_Str('donorReceiptRange')) ) {
         list($sHead,$sBody) = (new MbrDonations($oApp))->DrawDonationReceipt( $rngReceipt, SEEDInput_Str('cmd') == 'printDonationReceipt' ? 'HTML' : 'PDF_STREAM', false ); // don't record
-        // HTML returns with these vars; PDF_STREAM does not return
-        echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
+        // HTML returns with utf-8 text; PDF_STREAM does not return
+        echo Console02Static::HTMLPage( ($sBody), $sHead, 'EN', ['bBootstrap'=>false] );   // sCharset defaults to utf8
         exit;
     } else {
         $oApp->oC->AddErrMsg( 'Enter a receipt number' );
