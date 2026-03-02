@@ -14,7 +14,7 @@ class basketMan
 define( "SITE_LOG_ROOT", $oApp->logdir );   // SEEDBasketCore should use oApp->logdir instead of the inflexible constant
 
         $this->oApp = $oApp;
-        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['logdir'=>SITE_LOG_ROOT, 'sbdb'=>'seeds1'] );
+        $this->oSB = new SEEDBasketCore( $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['logdir'=>SITE_LOG_ROOT, 'sbdb'=>'seeds1'] );
 
     }
 

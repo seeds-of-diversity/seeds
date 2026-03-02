@@ -100,7 +100,7 @@ class MSDLibReport
 // msdSeed-Draw with each key; do that inside msdSeedList-DrawList
         $oW = new SEEDApp_Worker( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp->lang );
 
-        $oSB = new SEEDBasketCore( $this->oMSDLib->oApp->kfdb, $this->oMSDLib->oApp->sess, $this->oMSDLib->oApp,
+        $oSB = new SEEDBasketCore( $this->oMSDLib->oApp,
                                    SEEDBasketProducts_SoD::$raProductTypes );
 
         if( SEEDInput_Int('doOld') ) {

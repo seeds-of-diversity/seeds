@@ -2,7 +2,7 @@
 
 /* SEEDBasket.php
  *
- * Copyright (c) 2016-2025 Seeds of Diversity Canada
+ * Copyright (c) 2016-2026 Seeds of Diversity Canada
  *
  * Manage a shopping basket of diverse products
  */
@@ -68,8 +68,7 @@ class SEEDBasketCore
 
     private $dbname;
 
-    function __construct( ?KeyframeDatabase $kfdb = null, ?SEEDSession $sess = null,      // deprecate these -- null means use oApp
-                          SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
+    function __construct( SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
     {
         /* raParms:
          *     sbdb_config              => raConfig for SEEDBasketDB
@@ -77,8 +76,8 @@ class SEEDBasketCore
          *     fn_sellerNameFromUid     => callback to get the seller's name from the uid_seller
          */
 // deprecate these, use oApp instead
-if( !$kfdb ) $kfdb = $oApp->kfdb;
-if( !$sess ) $sess = $oApp->sess;
+        $kfdb = $oApp->kfdb;
+        $sess = $oApp->sess;
 
         $this->oApp = $oApp;
         $this->sess = $sess;

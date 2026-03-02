@@ -900,7 +900,7 @@ class MSDBasketCore extends SEEDBasketCore
     {
         $this->bIsMbrLogin = $oApp->sess->CanRead("sed");   // only members get this perm; this implies IsLogin()
 
-        parent::__construct( null, null, $oApp,
+        parent::__construct( $oApp,
                              //SEEDBasketProducts_SoD::$raProductTypes );
                              array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ),
 

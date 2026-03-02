@@ -53,7 +53,7 @@ class MSEEditAppTabSeeds
     function ContentDraw_Seeds()
     {
 // oSB is in MSDLib, so maybe that should be passed to the SeedEdit control instead?
-        $oSB = new SEEDBasketCore( null, null, $this->oApp, SEEDBasketProducts_SoD::$raProductTypes, [] );
+        $oSB = new SEEDBasketCore( $this->oApp, SEEDBasketProducts_SoD::$raProductTypes, [] );
         $s = (new MSEEditAppSeedEdit($oSB))->Draw( $this->kGrower, $this->kSpecies );
         return( $s );
     }
