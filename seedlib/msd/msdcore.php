@@ -632,15 +632,18 @@ class MSDCore
             'LAVATERA' => array( 'FR' => 'Lavat&egrave;re' ),
             'LINUM (FLAX)' => array( 'FR' => "Lin" ),
             'MALVA (MALLOW)' => ['FR'=>"Mauve"],
-            'MARIGOLD' => array( 'FR' => "Oeillets d'Inde" ),
+            'MARIGOLD' => array( 'FR' => "Oeillet d'Inde" ),
             'MORNING GLORY' => array( 'FR' => 'Belle-de-jour' ),
             'NASTURTIUM' => array( 'FR' => 'Capucine' ),
             'OENOTHERA' => array( 'FR' => 'Onagre' ),
             'PANSY'                       => ['FR' => 'Fleur de pens&eacute;e'],
             'POPPY' => array( 'FR' => "Pavot" ),
+            'SALVIA'                        => ['FR' => 'Sauge'],
             'SEA HOLLY'                     => ['FR' => 'Panicaut'],
             'SNAPDRAGON'                    => ['FR' => 'Muflier'],
             'STRAWFLOWER'                   => ['FR' => 'Fleur de paille'],
+            'SWEET WILLIAM'                 => ['FR' => 'Oeillet du po&egrave;te'],
+
             'SUNFLOWER'                     => ['FR' => 'Tournesol'],
 
 
