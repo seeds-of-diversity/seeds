@@ -17,7 +17,7 @@ class QServerBasket extends SEEDQ
     function __construct( SEEDAppConsole $oApp, $raConfig )
     {
         parent::__construct( $oApp, $raConfig );
-        $this->oSB = new SEEDBasketCore( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
+        $this->oSB = new SEEDBasketCore( $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
     }
 
     function Cmd( $cmd, $parms )

@@ -48,7 +48,7 @@ class SEEDBasketCoreSoD extends SEEDBasketCore
 {
     function __construct( SEEDAppSessionAccount $oApp )
     {
-        parent::__construct( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
+        parent::__construct( $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
     }
 }
 
