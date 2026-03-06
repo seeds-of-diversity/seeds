@@ -116,7 +116,7 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
         $sFromName  = @$from[1] ?? "";
     }
 
-    if( !SEEDCore_StartsWith($bodyHTML, "<html") )  $bodyHTML = "<html><body>$bodyHTML</body></html>";
+    if( $bodyHTML && !SEEDCore_StartsWith($bodyHTML, "<html") )  $bodyHTML = "<html><body>$bodyHTML</body></html>";
 
 
     $oPM = new \Postmark\PostmarkClient(POSTMARK_API_TOKEN);
