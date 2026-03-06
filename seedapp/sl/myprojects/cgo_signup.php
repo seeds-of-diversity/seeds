@@ -73,8 +73,8 @@ $s .= "<style>
     }
 
     protected $sReserve =
-            ['EN' => "<p style='color:red;margin-top:1em'><b>Reserve your seeds by March 7, 2026</b></p>", // <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
-             'FR' => "<p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 7 mars 2026</b></p>", // <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
+            ['EN' => "<p style='color:red;margin-top:1em'><b>Reserve your seeds by March 14, 2026</b></p>", // <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
+             'FR' => "<p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 14 mars 2026</b></p>", // <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
             ];
 }
 
