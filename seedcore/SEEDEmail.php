@@ -2,7 +2,7 @@
 
 /* SEEDEmail
  *
- * Copyright (c) 2018-2023 Seeds of Diversity Canada
+ * Copyright (c) 2018-2026 Seeds of Diversity Canada
  *
  * Send email
  */
@@ -45,6 +45,11 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
 
         $ok = true;
     } else {
+        $sFrom = $sFromName ? "{$sFromName} <{$sFromEmail}>" : $sFromEmail;
+        if( empty($bodyText) ) $bodyText = strip_tags( $bodyHTML );
+
+        return( SEEDEmailSend_Postmark( $sFrom, $to, $subject, $bodyText, $bodyHTML, array_merge($raParms,['MessageStream'=>'outbound']) ) );
+
         /* On production machines use the local SMTP
          */
         include_once( SEEDCORE."os/cPHPezMail.php" );
@@ -111,13 +116,16 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
         $sFromName  = @$from[1] ?? "";
     }
 
+    if( !SEEDCore_StartsWith($bodyHTML, "<html") )  $bodyHTML = "<html><body>$bodyHTML</body></html>";
+
+
     $oPM = new \Postmark\PostmarkClient(POSTMARK_API_TOKEN);
     $message = [
         'From'          => $from,
         'To'            => $to,
         'Subject'       => $subject,
         'TextBody'      => $bodyText,
-        'HtmlBody'      => "<html><body>$bodyHTML</body></html>",
+        'HtmlBody'      => $bodyHTML,
         //'Tag'           => "New Year's Email Campaign",
         'MessageStream' => $sMessageStream
     ];
