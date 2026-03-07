@@ -2,7 +2,7 @@
 
 /* SEEDBasket.php
  *
- * Copyright (c) 2016-2021 Seeds of Diversity Canada
+ * Copyright (c) 2016-2026 Seeds of Diversity Canada
  *
  * Manage a shopping basket of diverse products
  */
@@ -68,8 +68,7 @@ class SEEDBasketCore
 
     private $dbname;
 
-    function __construct( ?KeyframeDatabase $kfdb = null, ?SEEDSession $sess = null,      // deprecate these -- null means use oApp
-                          SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
+    function __construct( SEEDAppConsole $oApp, array $raHandlerDefs, array $raParms = [] )
     {
         /* raParms:
          *     sbdb_config              => raConfig for SEEDBasketDB
@@ -77,8 +76,8 @@ class SEEDBasketCore
          *     fn_sellerNameFromUid     => callback to get the seller's name from the uid_seller
          */
 // deprecate these, use oApp instead
-if( !$kfdb ) $kfdb = $oApp->kfdb;
-if( !$sess ) $sess = $oApp->sess;
+        $kfdb = $oApp->kfdb;
+        $sess = $oApp->sess;
 
         $this->oApp = $oApp;
         $this->sess = $sess;
@@ -587,11 +586,20 @@ class SEEDBasket_Basket
     private $raProdTypes = null;    // [] of distinct product_types in this basked (loaded on demand)
     private $raComputed = null;     // computed contents (see ComputeBasketContents for format)
 
-    function __construct( SEEDBasketCore $oSB, $kB )
+    function __construct( SEEDBasketCore $oSB, $kB, $raConfig = [] )
     {
         $this->oSB = $oSB;
         $this->SetKey( $kB );
     }
+
+    static function newFromKFR( SEEDBasketCore $oSB, KeyframeRecord $kfrB, $raConfig = [] )
+    {
+        $o = new self($oSB, 0, $raConfig);
+        $o->_setKfr($kfrB);
+        return($o);
+    }
+    protected function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+
 
     function Key()     { return( $this->kfr ? $this->kfr->Key() : 0 ); }
     function GetKey()  { return( $this->kfr ? $this->kfr->Key() : 0 ); }
@@ -608,8 +616,6 @@ class SEEDBasket_Basket
     function SetValue( $k, $v ) { if( $this->kfr ) $this->kfr->SetValue( $k, $v ); }
     function PutDBRow()         { if( $this->kfr ) $this->kfr->PutDBRow(); }
 
-    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
-    function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
 
     function GetTotal( $uidSeller = -1 )
     {
@@ -904,6 +910,14 @@ class SEEDBasket_Product
         }
     }
 
+    static function newFromKFR( SEEDBasketCore $oSB, KeyframeRecord $kfrP, $raConfig = [] )
+    {
+        $o = new self($oSB, 0, $raConfig);
+        $o->_setKfr($kfrP);
+        return($o);
+    }
+    protected function _setKFR( KeyframeRecord $kfr ) { $this->clearCachedProperties(); $this->kfr = $kfr; }
+
     private function clearCachedProperties()
     {
         $this->cache_oHandler = null;
@@ -924,13 +938,35 @@ class SEEDBasket_Product
     function GetName()          { return( $this->kfr ? $this->kfr->Value('name') : "" ); }
     function GetProductType()   { return( $this->kfr ? $this->kfr->Value('product_type') : "" ); }
 
+    function GetProdExtraKFRC() : ?KeyframeRecordCursor { return( $this->oSB->oDB->GetProdExtraKFRC($this->Key()) ); }
+
+    function DeleteProduct()
+    /***********************
+        KF-delete this product and its prodextras
+
+        Normally, you use eStatus INACTIVE/DELETED to hide/delete a product, and don't change the prodextras.
+        This purges them out of SEEDBasket.
+        N.B. Products are retained in KF with _status=1 for integrity of previous Purchases.
+     */
+    {
+        if( $this->Key() ) {
+            if( ($kfrPE = $this->GetProdExtraKFRC()) ) {
+                while( $kfrPE->CursorFetch() ) {
+                    $kfrPE->StatusSet(KeyframeRecord::STATUS_DELETED);
+                    $kfrPE->PutDBRow();
+                }
+            }
+
+            $this->kfr->StatusSet(KeyframeRecord::STATUS_DELETED);
+            $this->kfr->PutDBRow();
+        }
+    }
+
+
     function FormIsAjax()
     {
         return( ($oHandler = $this->GetHandler()) && $oHandler->ProductFormIsAjax() );
     }
-
-    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext()
-    function _setKFR( KeyframeRecord $kfr ) { $this->clearCachedProperties(); $this->kfr = $kfr; }
 
     function GetHandler()
     {
@@ -1054,6 +1090,14 @@ class SEEDBasket_Purchase
         if( @$raParms['oBasket'] )  $this->oBasket = $raParms['oBasket'];
         if( @$raParms['oProduct'] ) $this->oProduct = $raParms['oProduct'];
     }
+    static function newFromKFR( SEEDBasketCore $oSB, KeyframeRecord $kfrPur, $raConfig = [] )
+    {
+        $o = new self($oSB, 0, $raConfig);
+        $o->_setKfr($kfrPur);
+        return($o);
+    }
+    protected function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
+    function _getKFR() { return( $this->kfr ); }
 
     function GetKey()  { return( $this->kfr->Key() ); }
 
@@ -1274,10 +1318,6 @@ class SEEDBasket_Purchase
     {
         return( self::FULFILUNDO_RESULT_FAILED );
     }
-
-    // intended to only be used by SEEDBasket internals e.g. SEEDBasketCursor::GetNext(), Product and Purchase objects exchanging data
-    function _setKFR( KeyframeRecord $kfr ) { $this->kfr = $kfr; }
-    function _getKFR() { return( $this->kfr ); }
 }
 
 class SEEDBasketCursor
@@ -1288,11 +1328,13 @@ class SEEDBasketCursor
     private $oSB;
     private $sType;
     private $kfrc = null;
+    private $raParms;
 
     function __construct( SEEDBasketCore $oSB, $sType, $sCond, $raKFRC = [], $raParms = [] )
     {
         $this->oSB = $oSB;
         $this->sType = $sType;
+        $this->raParms = $raParms;
 
         switch( $sType ) {
             case 'basket':   $r = 'B';   break;
@@ -1314,9 +1356,9 @@ class SEEDBasketCursor
 
         if( $this->kfrc->CursorFetch() ) {
             switch( $this->sType ) {
-                case 'basket':   $o = new SEEDBasket_Basket( $this->oSB, 0 );    $o->_setKFR( $this->kfrc );  break;
-                case 'product':  $o = new SEEDBasket_Product( $this->oSB, 0 );   $o->_setKFR( $this->kfrc );  break;
-                case 'purchase': $o = new SEEDBasket_Purchase( $this->oSB, 0 );  $o->_setKFR( $this->kfrc );  break;
+                case 'basket':   $o = SEEDBasket_Basket  ::newFromKFR($this->oSB, $this->kfrc, $this->raParms);  break;
+                case 'product':  $o = SEEDBasket_Product ::newFromKFR($this->oSB, $this->kfrc, $this->raParms);  break;
+                case 'purchase': $o = SEEDBasket_Purchase::newFromKFR($this->oSB, $this->kfrc, $this->raParms);  break;
             }
         }
 

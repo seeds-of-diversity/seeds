@@ -2,7 +2,7 @@
 
 /* MbrContacts
  *
- * Copyright 2021-2024 Seeds of Diversity Canada
+ * Copyright 2021-2025 Seeds of Diversity Canada
  *
  * Keep track of our contacts, members, donors.
  */
@@ -88,7 +88,7 @@ class Mbr_Contacts
     {
         $s = "";
 
-        $bShowOneNameOnly       = @$raParms['SHOW_ONE_NAME_ONLY'];
+//      $bShowOneNameOnly       = @$raParms['SHOW_ONE_NAME_ONLY'];          // used by FirstnameLastname
         $bShowCompanyWithName   = @$raParms['SHOW_COMPANY_WITH_NAME'];
         $bShowCity              = @$raParms['SHOW_CITY'];
         $bShowProvince          = @$raParms['SHOW_PROVINCE'];
@@ -97,7 +97,7 @@ class Mbr_Contacts
         $prefix = @$raParms['fldPrefix'];
 
         // firstname(s)/lastname(s)
-        $s = self::FirstnameLastname( $ra, $prefix );
+        $s = self::FirstnameLastname($ra, $prefix, $raParms);
 
         // company
         if( ($sCompany = $ra[$prefix.'company']) && (!$s || $bShowCompanyWithName) ) {
@@ -124,10 +124,16 @@ class Mbr_Contacts
         return( $s );
     }
 
-    static function FirstnameLastname( $raMbr, $prefix = '' )
+    static function FirstnameLastname( $raMbr, $prefix = '', array $raParms = [] )
     {
-        $f1 = $raMbr[$prefix.'firstname']; $f2 = $raMbr[$prefix.'firstname2'];
-        $l1 = $raMbr[$prefix.'lastname'];  $l2 = $raMbr[$prefix.'lastname2'];
+        $bShowOneNameOnly = @$raParms['SHOW_ONE_NAME_ONLY'];
+        
+        $f1 = $raMbr[$prefix.'firstname'];
+        $l1 = $raMbr[$prefix.'lastname'];  
+        if( !$bShowOneNameOnly ) {
+            $f2 = $raMbr[$prefix.'firstname2'];
+            $l2 = $raMbr[$prefix.'lastname2'];
+        }
 
         if( !$f2 && !$l2 ) {                // name1 only (which is blank if all are empty)
             $name = trim("$f1 $l1");
@@ -238,13 +244,13 @@ class Mbr_Contacts
                                    : $this->oDB->GetKFRCond( 'M', "email='".addslashes($mbrid)."'", [] ) );
     }
 
-    function PutContact( $raMbr, $eDetail = self::DETAIL_BASIC, $bInputUTF8 = false )
+    function PutContact( $raMbr, $eDetail = self::DETAIL_BASIC, $bInputUTF8 = false ) : KeyframeRecord
     /********************************************************************************
         Add or update a contact.
         eDetail restricts what the caller can do - helpful for limiting things like ajax commands
      */
     {
-        $ret = false;
+        $kfrRet = null;
 
         if( ($kMbr = intval(@$raMbr['kMbr'])) || ($kMbr = intval(@$raMbr['_key'])) ) {
             $kfr = $kfr = $this->oDB->GetKFR('M',$kMbr);
@@ -262,10 +268,10 @@ class Mbr_Contacts
                 }
             }
             if( $kfr->PutDBRow() ) {
-                $ret = $kfr->Key();
+                $kfrRet = $kfr;
             }
         }
-        return( $ret );
+        return( $kfrRet );
     }
 
     function EBullSubscribe( $mbrid, $bSubscribe )
@@ -351,6 +357,8 @@ class MbrContactsDraw
 
 class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
+    public const MbrDonationsReceiptAccessor_Mailed = -2;   // whether printed&mailed or emailed, when the office manually sends a receipt to the donor this is the uid_accessor
+    
     private $oApp;
 
     function __construct( SEEDAppSessionAccount $oApp )

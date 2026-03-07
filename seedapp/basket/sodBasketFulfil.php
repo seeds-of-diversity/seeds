@@ -505,7 +505,7 @@ class SoDOrderBasket
     {
         global $config_KFDB;
         $this->oApp = $oApp;
-        $this->oSB = new SEEDBasketCore( $oApp->kfdb, $oApp->sess, $oApp, SEEDBasketProducts_SoD::$raProductTypes,
+        $this->oSB = new SEEDBasketCore( $oApp, SEEDBasketProducts_SoD::$raProductTypes,
 
 // SBC should use oApp->logdir instead
             ['logdir'=>$oApp->logdir, 'sbdb'=>'seeds1'] );
@@ -540,7 +540,7 @@ class SoDOrder_MbrOrder
         $this->oApp = $oApp;
         $this->oOrder = new SodOrder( $oApp );
 
-        $this->oSB = new SEEDBasketCore( null, null, $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
+        $this->oSB = new SEEDBasketCore( $oApp, SEEDBasketProducts_SoD::$raProductTypes, ['sbdb'=>'seeds1'] );
     }
 
 

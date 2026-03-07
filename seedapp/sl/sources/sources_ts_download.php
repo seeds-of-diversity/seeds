@@ -5,6 +5,7 @@ include_once( SEEDCORE."SEEDTableSheets.php" );
 include_once( SEEDCORE."console/console02ui.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_db.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_cv_upload.php" );
+include_once( "sources_download_googlesync.php" );
 
 class SLSourcesAppDownload
 {
@@ -20,6 +21,7 @@ class SLSourcesAppDownload
         $this->oSrcLib = new SLSourcesLib( $this->oApp );
 
         $raPills = array( 'companies'      => array( "Seed Companies"),
+                          'google-sync'    => ["Google Sheet Sync"],
                           'companies-test' => array( "Seed Companies Test"),
                           'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
                           'npgs'           => array( "USA: National Plant Germplasm System (NPGS)" ),
@@ -35,12 +37,9 @@ class SLSourcesAppDownload
         $sMenu = $this->oUIPills->DrawPillsVertical();
         $sBody = "";
         switch( $this->oUIPills->GetCurrPill() ) {
-            case 'companies':
-                $sBody = $this->companies();
-                break;
-            case 'companies-test':
-                $sBody = $this->companiesTest();
-                break;
+            case 'companies':           $sBody = $this->companies();        break;
+            case 'google-sync':         $sBody = (new SLSourcesDownload_GoogleSheetSync($this->oApp, []))->DoSync();  break;
+            case 'companies-test':      $sBody = $this->companiesTest();    break;
         }
 
         $s = "<div class='container-fluid'><div class='row'>"

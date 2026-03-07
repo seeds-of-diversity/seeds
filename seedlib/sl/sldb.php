@@ -43,6 +43,7 @@ class _sldb_defs
                        array( "col"=>"x_member",            "type"=>"S" ),   // source of seeds - should just be a string?
                        array( "col"=>"x_d_harvest",         "type"=>"S" ),   // should be a date, except some are ranges and guesses
                        array( "col"=>"x_d_received",        "type"=>"S" ),   // should be a date, except some are ranges and guesses
+                       ['col'=>"iGrowerRating",        'type'=>'I'],   // our rating of how well this grower did with these seeds / this species
 
             // remove these
                        array( "col"=>"spec",                "type"=>"S" ),   // e.g. tomato colour, bush/pole bean

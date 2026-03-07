@@ -13,7 +13,7 @@
 
 /* QServerSLCollectionReports
  *
- * Copyright 2017-2025 Seeds of Diversity Canada
+ * Copyright 2017-2026 Seeds of Diversity Canada
  *
  * Serve reports about sl_collection, sl_accession, sl_adoption, etc
  */
@@ -138,6 +138,25 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 if( ($raPxS = $this->oSLDB->GetRecordVals('PxS', $parms['kPcv'])) ) {
                     $rQ['raOut'] = array_merge($rQ['raOut'],$this->getDetails_PCV( $raPxS, $parms['kCollection'], true /*adoption*/, true /*$bGetIxG*/, $bCanReadInternal ), );
                 }
+
+                /* format an html table showing the IxA status
+this is for sure not the best place to put this
+                 */
+                $rQ['raOut']['sTable_IxA'] = "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est viable pops</th></tr>";
+                foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
+                    $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
+                    $sCol2 = ($y = intval($kEncodesYear)) ?: "";
+                    $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
+                    $sCol4 = $raI['pops_estimate'];
+
+                    $rQ['raOut']['sTable_IxA'] .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
+                               <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
+                               <td style='padding:0 1em;border:1px solid #bbb'>$sCol3</td>
+                               <td style='padding:0 1em;border:1px solid #bbb'>$sCol4</td>
+                           </tr>";
+                }
+                $rQ['raOut']['sTable_IxA'] .= "</table>";
+
                 $rQ['bOk'] = true;
                 $rQ['raMeta']['title'] = "Cultivar Information";
                 $rQ['raMeta']['name'] = $cmd;
@@ -490,6 +509,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                         'species'                => $ra['S_psp'],
                         'cultivar'               => $this->QCharSetFromLatin($ra['P_name']),
                         'csci_count'             => $ra['nCSCI'],
+                        'csci_list'              => "",
                         'adoption'               => '',
                         //'newest_lot_year'        => '',
                         //'newest_lot_grams'       => '',
@@ -501,6 +521,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                         'total_grams'            => '',
                         'notes'                  => '',
                         'raIxA'                  => [],
+                        'sIxA'                   => "",
                     ];
                 }
             }
@@ -535,13 +556,17 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
         $sNotes = $bCanReadInternal ? $ra['sNotes'] : "";
         $fAdoption = $ra['fAdoption'];  // ok to show the amount publicly
 
-        // Get the number of csci companies that have the given pcv
-        $nCSCI = $this->oApp->kfdb->Query1( "SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources WHERE _status='0' AND fk_sl_pcv='{$raPCV['P__key']}' AND fk_sl_sources>='3'" );
+        // Get the number and names of csci companies that have the given pcv
+        $raCSCI = $this->oApp->kfdb->QueryRA(
+                    "SELECT count(*) as c, group_concat(SRC.name_en separator ', ') as list
+                     FROM {$this->oApp->DBName('seeds1')}.sl_cv_sources SRCCV JOIN {$this->oApp->DBName('seeds1')}.sl_sources SRC ON (SRCCV.fk_sl_sources=SRC._key)
+                     WHERE SRC._status=0 AND SRCCV._status=0 AND SRCCV.fk_sl_pcv='{$raPCV['P__key']}' AND SRCCV.fk_sl_sources>='3'" );
 
         $raOut = ['kPcv'                   => $raPCV['P__key'],
                   'species'                => $this->QCharSetFromLatin( $raPCV['S_psp'] ),
                   'cultivar'               => $this->QCharSetFromLatin( $raPCV['P_name'] ),
-                  'csci_count'             => $nCSCI,
+                  'csci_count'             => $raCSCI['c'],
+                  'csci_list'              => $this->QCharSetFromLatin($raCSCI['list']),
                   'adoption'               => $bComputeAdoption ? $fAdoption : $raPCV['amount'],    // could be pre-computed or not
 //                  'newest_lot_year'        => $yNewest,
 //                  'newest_lot_grams'       => $ra['newest_lot_grams'],
@@ -553,6 +578,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                   'est_total_viable_pops'  => round($ra['total_viable_pops'], 1),
                   'notes'                  => $sNotes,           // already QCharset in the method that aggregates it
                   'raIxA'                  => @$ra['raIxA'] ?? [],
+                  'sIxA'                   => $ra['sIxA'],
                  ];
 
         return( $raOut );
@@ -582,6 +608,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                    'fAdoption' => 0.0,
                    'sNotes' => "",
                    'raIxA' => [],
+                   'sIxA' => "", // readable version of raIxA
                    'PxS' => [],
                    'total_viable_grams' => 0.0,
                    'total_viable_seeds' => 0,
@@ -687,7 +714,7 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 }
 
                 $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
-// look up g_100 for lot, another lot of the same pcv, rosetta, etc                
+// look up g_100 for lot, another lot of the same pcv, rosetta, etc
                 $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>0, 'psp'=>$psp]);
                 $raOut['total_viable_pops'] = SLUtil::PopsFromSeeds($raOut['total_viable_seeds'], ['psp'=>$psp]);
             }
@@ -698,11 +725,13 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
                 $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>0, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
-                
+
+                $loc = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T';
+                $invnum = $kfrcI->Value('inv_number');
                 $raOut['raIxA']["0$y $i"] = $this->QCharsetFromLatin(
-                            ['inv_number' => $kfrcI->Value('inv_number'),
+                            ['inv_number' => $invnum,
                              'g_weight'   => $g,
-                             'location'   => SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T',
+                             'location'   => $loc,
                              'year_harvested' => $yHarvested,
                              'year_received'  => $yReceived,
                              'latest_germtest_date' => $dGermLatest,
@@ -721,6 +750,17 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
         }
         krsort($raNotes);
         krsort($raOut['raIxA']);
+
+        /* Make sIxA - formatted for xlsx
+         */
+        foreach( $raOut['raIxA'] as $kEncodesYear => $raI ) {
+            $y = intval($kEncodesYear);
+                // this is formatted for xlsx output
+            $raOut['sIxA'] .= "{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g from $y @ "
+                             .($raI['latest_germtest_date'] ? "{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']} -> " : "")
+                             ."{$raI['current_germ_estimate']}% = {$raI['g_weight_viable_estimate']} viable g = {$raI['pops_estimate']} viable pops\n";
+        }
+
         foreach( $raNotes as $y => $g ) {
             $y = intval($y);
             $raOut['sNotes'] .= ($raOut['sNotes'] ? " | " : "")."$g g from ".($y ? $y : "unknown year");

@@ -2,7 +2,7 @@
 
 /* GoogleSheets.php
  *
- * Copyright (c) 2020-2022 Seeds of Diversity
+ * Copyright (c) 2020-2026 Seeds of Diversity
  *
  * Author: Eric Wildfong, Bob Wildfong
  *
@@ -95,17 +95,23 @@ class SEEDGoogleSheets
     }
 
     /**
-     * @param $range - row number
+     * @param $nameSheet - optional sheet name
+     * @param $iRow - origin-1 row number
      * @return 1D array of row
      */
-    function GetRow( $range ) : array
+    function GetRow( string $nameSheet, int $iRow ) : array
     {
-        if( is_int($range) || ctype_digit($range) ) {
-            $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "$range:$range");
-            $values = $response->getValues()[0];
-            return $values;
-        }
-        return [];
+        $raValues = [];
+
+//if raValuesCache contains the row, get it from there
+//raValuesCache has to be aware of $nameSheet
+
+        if($nameSheet) $nameSheet .= "!";   // if sheet name is "", it is not encoded in the range
+
+        $response = $this->oService->spreadsheets_values->get($this->idSpreadsheet, "{$nameSheet}{$iRow}:{$iRow}");
+        $raValues = $response->getValues()[0];  // getValues() gives 2D array
+
+        return($raValues);
     }
 
     /**
@@ -193,7 +199,7 @@ class SEEDGoogleSheets
      * @param int $columnNumber
      * @return string column letter
      */
-// see SEEDXls::Index2ColumnName
+//  see SEEDXls::Index2ColumnName which uses origin-0 column numbers
     static function NumberToColumnLetter( int $columnNumber )
     {
         $columnName = "";
@@ -212,6 +218,9 @@ class SEEDGoogleSheets
  */
 class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
 {
+    private $raColnames = [];   // the header row
+    private $raRowsData = [];   // 2D array of the rest of the rows keyed by column name
+
     function __construct( $raConfig )
     {
         parent::__construct($raConfig);
@@ -220,12 +229,47 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
     /**
      * Get array of the first row, which should be names of the columns
      * @param String $nameSheet - name of the sheet to read
+     * @param array  $raParms - bFetchAllRows=true : set false if you never want to get the rows too
      * @return array of column names
      */
-    function GetColumnNames( String $nameSheet ) : array
-    {//var_dump($nameSheet);
-        $ra = $this->GetValues($nameSheet);   // returns a 2D array of all rows in the sheet
-        return( @$ra[0][0] ? $ra[0] : [] );
+    function GetColumnNames( String $nameSheet, ?array $raParms = null ) : array
+    {
+        $bFetchAllRows = SEEDCore_ArraySmartBool($raParms, 'bFetchAllRows', true );    // by default get all rows because that's probably going to happen too;
+
+        if( !$this->raColnames ) {
+            if( $bFetchAllRows ) {
+                $this->fetchAllRows($nameSheet);    // wanting to get all data rows anyway
+            } else {
+                $this->raColnames = $this->GetRow($nameSheet, 1);   // fetch just the header row
+            }
+        }
+        return($this->raColnames);
+    }
+
+    /**
+     * Read all rows of a sheet, returning an array whose keys match the column header names.
+     * @param String $nameSheet - name of the sheet to read
+     * @return array - 2D array of values where keys match column names
+     */
+    function GetRowsWithNamedColumns( string $nameSheet ) : array
+    {
+        if( !$this->raRowsData ) {
+            $this->fetchAllRows($nameSheet);
+        }
+        return($this->raRowsData);
+    }
+
+    private function fetchAllRows( string $nameSheet )
+    {
+        $raRows = $this->GetValues($nameSheet);     // the whole sheet
+        $this->raColnames = $raRows[0];             // the header row
+
+        array_shift($raRows);                       // remove header row and store the data rows keyed by colnames
+        foreach($raRows as $ra) {
+            $n = count($this->raColnames);
+            $vals = array_slice(array_pad($ra,$n,null), 0, $n);    // the row values padded if fewer than keys, and truncated if more than keys
+            $this->raRowsData[] = array_combine($this->raColnames,$vals);   // arg1 is keys, arg2 is values
+        }
     }
 
     /**
@@ -238,28 +282,6 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
         $ra = $this->GetValues($nameSheet);   // returns a 2D array of all rows in the sheet
         array_shift($ra);
         return( $ra );
-    }
-
-    /**
-     * Read all rows of a sheet, returning an array whose keys match the column header names.
-     * @param String $nameSheet - name of the sheet to read
-     * @return array - 2D array of values where keys match column names
-     */
-    function GetRowsWithNamedColumns( string $nameSheet ) : array
-    {
-        $raOut = [];
-
-        $raColumns = $this->GetColumnNames($nameSheet);
-
-        foreach( $this->GetRows($nameSheet) as $ra ) {
-            $row = [];
-            for( $i = 0; $i < count($raColumns); ++$i ) {
-                $row[$raColumns[$i]] = @$ra[$i];
-            }
-            $raOut[] = $row;
-        }
-
-        return( $raOut );
     }
 
     /**
@@ -343,7 +365,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
 
     function __construct( SEEDAppDB $oApp, array $raConfig )
     {
-        $this->oApp;
+        $this->oApp = $oApp;
         $this->raConfig = $raConfig;
     }
 
@@ -356,7 +378,10 @@ class SEEDGoogleSheets_SyncSheetAndDb
         kfrel       = the Keyframe_Relation for the db table
         mapCols     = [ ['sheetcol'=>'foo', 'dbcol'=>'foo'], ['sheetcol'=>'bar', 'dbcol'=>'bar'] ]  syncs columns foo and bar across the two data sets
         raParms:
+
+        raConfig:
             fnValidateSheetRow = function that returns true if a sheet row contains valid data
+            sLogfile = base name of log file where changes/errors are recorded
 
         The sheet must have two required columns, which can be hidden to manual users.
             sync_ts  = a timestamp written by this script. This is never in mapCols.
@@ -369,7 +394,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
             tsSync  = copy of the timestamp in the script
 
         1) Sheet row with no key.                       A new sheet row: add to db, write key and ts to sheet.
-        2) Sheet row with key but no ts.                An edited sheet row: copy to db, write ts to sheet.     (AppScript blanks the tsSync when a cell is edited)
+        2) Sheet row with key but no ts.                An edited sheet row: copy to db, write ts to sheet.     (AppScript blanks the sync_ts when a cell is edited)
         3) Sheet row with no corresponding db row.      Was deleted in db: delete in sheet.
         4) Db row with no sheet row, db.tsSync==0.      A new db row: add to sheet, with key and ts.
         4) Db row with no sheet row, db.tsSync!=0       Was deleted in sheet: delete in db.
@@ -382,12 +407,12 @@ class SEEDGoogleSheets_SyncSheetAndDb
         $this->nameSheet = $nameSheet;
 
         $raColumns = $this->oGoogleSheet->GetColumnNames($nameSheet);
-        $raEvents = $this->oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
-        //var_dump($raColumns,$raEvents);
+        $raRows = $this->oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
+        //var_dump($raColumns,$raRows);
         //var_dump($mapCols);
 
         $iRow = 2;
-        foreach( $raEvents as $raRow ) {
+        foreach( $raRows as $raRow ) {
             $kSync = intval(@$raRow['sync_key']);
 
             // 1) Sheet row with no sync_key
@@ -448,6 +473,7 @@ class SEEDGoogleSheets_SyncSheetAndDb
         done:
         if( $ok || $writeCells['sync_note'] ) {
             $this->oGoogleSheet->WriteCellsWithNamedColumns( $this->nameSheet, $iRow, $writeCells );
+            if(@$this->raConfig['sLogfile'])  $this->oApp->Log($this->raConfig['sLogfile'], intval($writeCells['sync_key'])." ".intval($writeCells['sync_ts'])." | ".$writeCells['sync_note']);
         }
     }
 

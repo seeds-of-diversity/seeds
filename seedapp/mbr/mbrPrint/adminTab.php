@@ -50,15 +50,6 @@ class MbrDonationsTab_Admin_CHUpload
     private $oSVA;
     private $oMbr;
 
-    private $raSheetCols =
-        ['trid'     => 'TRANSACTION NUMBER',
-         'monthly'  => 'MONTHLY GIFT ID',
-         'email'    => 'DONOR EMAIL ADDRESS',
-         'don_date' => 'DONATION DATE',
-         'amount'   => 'AMOUNT',
-         'lastname' => 'DONOR LAST NAME'
-        ];
-
     function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA )
     {
         $this->oApp = $oApp;
@@ -109,6 +100,28 @@ class MbrDonationsTab_Admin_CHUpload
                 $s .= "<h3>Committing uploaded spreadsheet</h3>"
                      .$this->uploadDrawDiff();
                 break;
+
+            case 'createContact':
+                // Look up the trid for an unknown contact and add that person to mbr_contacts
+                if( ($raCHData = $this->oSVA->VarGet('uploadedCHData')) && ($raTridRow = @$raCHData['raSingle'][$oForm->Value('trid')]) ) {
+                    $raMbr = [];
+                    foreach(['firstname', 'lastname', 'company', 'email', 'address', 'city', 'province', 'postcode'] as $k ) {
+                        if( ($v = $this->getFldFromSheet($k, $raTridRow['raOriginal'])) == 'ANON' || $v == 'ANON ANON' ) continue;      // address will be ANON ANON if a1+a2 are both ANON
+                        $raMbr[$k] = $v;
+                    }
+                    if( (new Mbr_Contacts($this->oApp))->PutContact($raMbr, Mbr_Contacts::DETAIL_BASIC, true) ) {   // input is UTF8
+                        $this->oApp->oC->AddUserMsg("Added new contact: {$this->getFldFromSheet('full name', $raTridRow['raOriginal'])}<br/>
+                                                     {$raMbr['email']}<br/>
+                                                     {$this->getFldFromSheet('full address', $raTridRow['raOriginal'])}");
+                    }
+                }
+                // re-process the spreadsheet data compared to the new db data
+                $raRawRows = $this->oSVA->VarGet('uploadedCHData')['raRaw'];
+                $this->uploadPreProcess($raRawRows);
+                // show what it looks like now
+                $s .= "<h3>Current uploaded spreadsheet</h3>"
+                     .$this->uploadDrawDiff();
+                break;
         }
 
         $s .= "<hr/>";
@@ -144,7 +157,7 @@ class MbrDonationsTab_Admin_CHUpload
         $s .= "<tr><td></td></tr>
                <tr><th>Ignored donations</th><th>&nbsp;</th><th>&nbsp;</th><th></th></tr>";
         foreach($raCHData['raIgnored'] as $k => $raD) {
-            $s .= "<tr><td>$k : {$raD['name']} {$raD['amount']} on {$raD['date_db']}</td></tr>";
+            $s .= "<tr><td>$k : {$raD['date_db']} {$raD['amount']} {$raD['name']}</td></tr>";
         }
 
         $s .= "</table>";
@@ -175,7 +188,16 @@ class MbrDonationsTab_Admin_CHUpload
                 break;
             case 'notfound_nocontact':
                 $s1 = "Can't find donation $k";
-                $s2 = "contact unknown : {$raD['raOriginal'][$this->raSheetCols['lastname']]} {$raD['raOriginal'][$this->raSheetCols['email']]}";
+                $s2 = "contact unknown : {$this->getFldFromSheet('full name', $raD['raOriginal'])}<br/>"
+                                       ."{$this->getFldFromSheet('email', $raD['raOriginal'])} <br/>"
+                                       ."{$this->getFldFromSheet('address', $raD['raOriginal'])}, {$this->getFldFromSheet('city', $raD['raOriginal'])} "
+                                       ."{$this->getFldFromSheet('province', $raD['raOriginal'])} {$this->getFldFromSheet('postcode', $raD['raOriginal'])}";
+                // kluge: this uses sfAp_ to be seen by SEEDCoreForm('A') above
+                $s4 = "<form>
+                       <button>Create contact as shown here</button>
+                       <input type='hidden' name='sfAp_cmd' value='createContact'/>
+                       <input type='hidden' name='sfAp_trid' value='{$this->getFldFromSheet('trid', $raD['raOriginal'])}'/>
+                       </form>";
                 $c1 = $c2 = 'danger';
                 break;
             case 'name_mismatch':
@@ -207,29 +229,36 @@ class MbrDonationsTab_Admin_CHUpload
          * Store single donations in raSingle
          */
         foreach($raRawRows as $ra) {
-            if( $ra[$this->raSheetCols['email']] == 'ANON' ) {
-                $raIgnored[$ra[$this->raSheetCols['trid']]] = ['name'=>'ANON',
-                                                               'amount'=>$ra[$this->raSheetCols['amount']],
-                                                               'date_db'=>$this->getDateFromExcelDate($ra[$this->raSheetCols['don_date']])];
+            $trid     = $this->getFldFromSheet('trid', $ra);
+            $sAmount  = $this->getFldFromSheet('amount', $ra);
+            $don_date = $this->getFldFromSheet('don_date', $ra);
+            $email    = $this->getFldFromSheet('email', $ra);
+
+            if( $email == 'ANON' ) {
+                $raIgnored[$trid] = ['name'=>'email is ANON',
+                                     'amount'=>$sAmount,
+                                     'date_db'=>$this->getDateFromExcelDate($don_date),
+                                     'trid'=>$trid];
                 continue;
             }
-            if( $ra[$this->raSheetCols['email']] == 'info@canadahelps.org' ) {  // CH deposits Cause Funds Disbursements from some anonymous source
-                $raIgnored[$ra[$this->raSheetCols['trid']]] = ['name'=>"CanHelps",
-                                                               'amount'=>$ra[$this->raSheetCols['amount']],
-                                                               'date_db'=>$this->getDateFromExcelDate($ra[$this->raSheetCols['don_date']])];
+            if( $email == 'info@canadahelps.org' ) {  // CH deposits Cause Funds Disbursements from some anonymous source
+                $raIgnored[$trid] = ['name'=>"email is info@canadahelps.org (CanHelps cause fund)",
+                                     'amount'=>$sAmount,
+                                     'date_db'=>$this->getDateFromExcelDate($don_date),
+                                     'trid'=>$trid];
                 continue;
             }
 
-            if( ($k = trim(@$ra[$this->raSheetCols['monthly']] ??"")) ) {
+            if( ($k = $this->getFldFromSheet('monthly', $ra)) ) {
                 // monthly donations
-                $k = "monthly_{$this->getYearFromExcelDate($ra[$this->raSheetCols['don_date']])}_$k";
-                $total_amount = floatval(@$ra[$this->raSheetCols['amount']]) + @$raMonthly[$k]['amount'];
-                $last_date = max(@$ra[$this->raSheetCols['don_date']], @$raMonthly[$k]['date']);
-                $raMonthly[$k] = ['amount'=>$total_amount, 'date'=>$last_date, 'raOriginal'=>$ra];
+                $k = "monthly_{$this->getYearFromExcelDate($don_date)}_$k";
+                $raMonthly[$k] = ['amount'    =>floatval($sAmount) + @$raMonthly[$k]['amount'],
+                                  'date'      =>max($don_date, @$raMonthly[$k]['date']),        // record the last monthly date found
+                                  'trid'      =>$trid,
+                                  'raOriginal'=>$ra];
             } else {
                 // single donations
-                $trid = @$ra[$this->raSheetCols['trid']];
-                $raSingle[$trid] = ['amount'=>$ra[$this->raSheetCols['amount']], 'date'=>$ra[$this->raSheetCols['don_date']], 'raOriginal'=>$ra];
+                $raSingle[$trid] = ['amount'=>$sAmount, 'date'=>$don_date, 'trid'=>$trid, 'raOriginal'=>$ra];
             }
         }
 
@@ -251,7 +280,7 @@ class MbrDonationsTab_Admin_CHUpload
         // look up the donation record by the CanHelps id and compare it with the CanHelps record
         $kfrD = $this->oMbr->oDB->GetKFRCond('DxM', "v1='".addslashes($k)."'");
         if( !$kfrD ) {
-            if( ($e = $raD['raOriginal'][$this->raSheetCols['email']]) &&
+            if( ($e = $this->getFldFromSheet('email', $raD['raOriginal'])) &&
                 ($e = addslashes($e)) &&
                 ($kfrM = $this->oMbr->oDB->GetKFRCond('M', "email='$e'")) )
             {
@@ -280,7 +309,7 @@ class MbrDonationsTab_Admin_CHUpload
             $raOut['status'] = "wrongdate:CanHelps date is {$raOut['date_db']} but db date is {$kfrD->Value('date_received')}";
         }
         else
-        if( ($n1 = trim(@$raD['raOriginal'][$this->raSheetCols['lastname']])??"") != ($n2 = trim($kfrD->Value('M_lastname'))) ) {
+        if( ($n1 = $this->getFldFromSheet('lastname', $raD['raOriginal'])) != ($n2 = trim($kfrD->Value('M_lastname')??"")) ) {
             $raOut['status'] = "name_mismatch:CanHelps last name is $n1 but db last name is $n2";
         } else {
             $raOut['status'] = 'ok';
@@ -325,6 +354,47 @@ class MbrDonationsTab_Admin_CHUpload
         }
 
         return($s);
+    }
+
+    private $raSheetCols =
+        ['trid'      => 'TRANSACTION NUMBER',
+         'monthly'   => 'MONTHLY GIFT ID',
+         'email'     => 'DONOR EMAIL ADDRESS',
+         'don_date'  => 'DONATION DATE',
+         'amount'    => 'AMOUNT',
+         'firstname' => 'DONOR FIRST NAME',
+         'lastname'  => 'DONOR LAST NAME',
+         'company'   => 'DONOR COMPANY NAME',
+         // address is special in getFldFromSheet, but define the dummy entries below to validate the spreadsheet
+         'a1'        => 'DONOR ADDRESS 1',
+         'a2'        => 'DONOR ADDRESS 2',
+         'city'      => 'DONOR CITY',
+         'province'  => 'DONOR PROVINCE/STATE',
+         'postcode'  => 'DONOR POSTAL/ZIP CODE',
+        ];
+
+    /**
+     * Translate between our internal field names and the column names of the spreadsheet
+     */
+    private function getFldFromSheet( string $k, array $ra ) : string
+    {
+        $s = "";
+
+        switch($k) {
+            case 'address':
+                $s = @$ra['DONOR ADDRESS 1']." ".@$ra['DONOR ADDRESS 2'];
+                break;
+            case 'full name':
+                $s = @$ra[$this->raSheetCols['firstname']]." ".@$ra[$this->raSheetCols['lastname']]." ".@$ra[$this->raSheetCols['company']];
+                break;
+            case 'full address':
+                $s = $this->getFldFromSheet('address', $ra)." ".@$ra[$this->raSheetCols['city']]." ".@$ra[$this->raSheetCols['province']]." ".@$ra[$this->raSheetCols['postcode']];
+                break;
+            default:
+                $s = @$ra[$this->raSheetCols[$k]];
+                break;
+        }
+        return(trim($s ?? ""));
     }
 
     private function getDateFromExcelDate( $date )

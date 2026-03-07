@@ -142,8 +142,7 @@ class MbrDonations
 
 // use MbrContacts::DrawAddressBlock
             $vars = [
-                'donorName' => $kfrD->Expand("[[M_firstname]] [[M_lastname]]")
-                              .( ($name2 = trim($kfrD->Expand("[[M_firstname2]] [[M_lastname2]]"))) ? " &amp; $name2" : "")
+                'donorName' => Mbr_Contacts::FirstnameLastname($kfrD->ValuesRA(), 'M_')
                               .$kfrD->ExpandIfNotEmpty('M_company', "<br/>[[]]"),
                 'donorAddr' => $kfrD->Expand("[[M_address]]<br/>[[M_city]] [[M_province]] [[M_postcode]]"),
                 'donorReceiptNum' => $nReceipt,
@@ -184,7 +183,15 @@ class MbrDonations
                 $options->set('isRemoteEnabled', true);
                 $options->set('isHtml5ParserEnabled', true);
                 $dompdf = new Dompdf\Dompdf($options);
-                $dompdf->loadHtml($sBody);
+                /* Starting with dompdf 3 (maybe) the charset is not necessarily utf-8. 
+                 * Without this >meta> the utf-8 names/addresses appear correctly if you make 3 or fewer pages, in any order;
+                 * but the accents appear as ?? if you make 4 more more pages, in any order. Don't know why. 
+                 */ 
+                $dompdf->loadHtml(
+                    "<html>
+                     <head><meta charset='UTF-8'></head>
+                     <body>$sBody</body>
+                     </html>");
                 $dompdf->setPaper('letter', 'portrait');
                 $dompdf->render();
                 $dompdf->stream( "Seeds of Diversity donation receipt #$nReceipt $sReceiptName.pdf", ['Attachment' => 0] );
@@ -211,13 +218,13 @@ class MbrDonations
         /* Difficult to get D where R is null OR R.uid does not include donor.
          * These are either 1) uid==null : left join found no R so include this donation
          *                  2) uid==donor : the donor accessed this, so exclude
-         *                  3) uid==-2    : printed and mailed, so exclude
+         *                  3) uid==-2    : Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed - printed and mailed, so exclude
          *                  4) uid==other : an office access was accidentally recorded, so include UNLESS the donor also accessed
          * To solve the last case, make a list of 2&3, then process 1&4 while excluding any that overlap 2
          */
         $raExclude = [];
         foreach( $raDonations as $raDR ) {
-            if( $raDR['R_uid_accessor']==$raDR['fk_mbr_contacts'] || $raDR['R_uid_accessor']==-2 )  $raExclude[] = $raDR['_key'];
+            if( $raDR['R_uid_accessor']==$raDR['fk_mbr_contacts'] || $raDR['R_uid_accessor']==Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed )  $raExclude[] = $raDR['_key'];
         }
         foreach( $raDonations as $raDR ) {
             if( !in_array($raDR['_key'], $raExclude) ) {

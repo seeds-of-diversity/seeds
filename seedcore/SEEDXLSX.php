@@ -250,7 +250,7 @@ class SEEDXlsWrite
         $oSheet->setTitle( $sSheetName );
 
         // Set the headers in row 1
-        $iCol = 1;
+        $iCol = 0;
         foreach( $raCols as $dbfield => $label ) {
             $oSheet->setCellValue(SEEDXls::Index2ColumnName($iCol).'1', $label );
             ++$iCol;
@@ -259,7 +259,7 @@ class SEEDXlsWrite
         // Put the data starting at row 2
         $row = 2;
         foreach( $raRows as $ra ) {
-            $iCol = 1;
+            $iCol = 0;
             foreach( $raCols as $dbfield => $label ) {
                 $oSheet->setCellValue(SEEDXls::Index2ColumnName($iCol).$row, $ra[$dbfield] );
                 ++$iCol;
@@ -283,7 +283,7 @@ class SEEDXlsWrite
     {
         $oSheet = $this->oXls->setActiveSheetIndex( $iSheet );
 
-        $iCol = 1;
+        $iCol = 0;
         foreach( $raCols as $v ) {
             if( is_array($v) ) $v = "";     // some data structures can contain nested arrays, which cannot be written
 

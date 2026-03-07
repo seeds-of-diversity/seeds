@@ -35,6 +35,20 @@ $consoleConfig = [
                                         '|'  // allows screen-login even if some tabs are ghosted
                                       ],
                            ],
+
+                  // sub-tabs for Cultivars
+                  'cultivartabs' => ['tabs' => ['overview'   => ['label'=>'Overview'],
+                                                'edit'       => ['label'=>'Edit'],
+                                                'synonyms'   => ['label'=>'Synonyms'],
+                                                'adoption'   => ['label'=>'Adoption'],
+                                               ],
+                                     'perms'=> ['overview'   => ["W SL"],
+                                                'edit'       => ["W SL"],
+                                                'synonyms'   => ["W SL"],
+                                                'adoption'   => ["W SLAdoption"],
+                                                '|'  // allows screen-login even if some tabs are ghosted
+                                    ],
+                      ],
                  ],
     'pathToSite' => '../../',
 

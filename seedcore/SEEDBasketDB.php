@@ -2,7 +2,7 @@
 
 /* SEEDBasketDB.php
  *
- * Copyright (c) 2016-2023 Seeds of Diversity Canada
+ * Copyright (c) 2016-2025 Seeds of Diversity Canada
  *
  * DB layer for shopping baskets
  */
@@ -50,6 +50,7 @@ class SEEDBasketDB extends Keyframe_NamedRelations
     function GetBasketKFRC( $sCond, $raKFParms = array() )  { return( $this->GetKFRC( 'B', $sCond, $raKFParms ) ); }
     function GetProductList( $sCond, $raKFParms = array() ) { return( $this->GetList( 'P', $sCond, $raKFParms ) ); }
     function GetProductKFRC( $sCond, $raKFParms = array() ) { return( $this->GetKFRC( 'P', $sCond, $raKFParms ) ); }
+    function GetProdExtraKFRC( int $kProduct )              : ?KeyframeRecordCursor { return( $this->GetKFRC( 'PE', "fk_SEEDBasket_Products='$kProduct'" ) ); }  // also SEEDBasket_Products::GetProdExtraKFRC()
 
 // deprecate, use SEEDBasket_Baskets::GetPurchasesInBasket
     function GetPurchasesList( $kB, $raKFParms = array() ) { return( $this->GetList('PURxP', "fk_SEEDBasket_Baskets='$kB'", $raKFParms) ); }
@@ -99,13 +100,6 @@ class SEEDBasketDB extends Keyframe_NamedRelations
             $this->SetProdExtra( $kProduct, $k, $v );
         }
     }
-
-    function DeleteProdExtra( $kProduct, $k )
-    {
-        // Normally, you don't delete or hide prodExtra for a deleted/hidden product. You just do that for the product row.
-        // Something should purge the prodExtra rows when you hard-delete a product though.
-    }
-
 
     function ProductLastUpdated( $cond, $raParms = [] )
     /**************************************************

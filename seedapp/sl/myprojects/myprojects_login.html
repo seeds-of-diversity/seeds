@@ -1,0 +1,48 @@
+# Override the Login template with a project-friendly screen
+# This file is appended fTemplates, before seeds_sessionaccount.html so :
+#   AccountLogin is replaced by the below
+#   SessionAccountTop is found in seeds_sessionaccount.html; this is the basic template for all UI screens
+#   SEEDSessionUser_Login is found in seeds_sessionaccount.html; the standard login controls that make SessionAccountTop a login page
+#   blocks in SEEDSessionUser_Login are substituted as below (a block will show the content of its topmost definition)
+
+%% AccountLogin
+{% extends 'SessionAccountTop' %} 
+
+# this makes SessionAccountTop a login page, by showing the standard login controls in the acctForm block
+{% block acctForm %}
+<div style='margin-left:5em'>
+[[Include:SEEDSessionUser_Login]] 
+</div>
+{% endblock %}
+
+# Decorate the top of the login page 
+{% block ssa_aboveForm %} 
+<div><img src='//www.seeds.ca/i/img/logo/logoA_h-[[lower:[[Var:lang]]]]-750x.png' width='200'/></div>
+<div style='display:inline-block;background-color:#4e7722 ;color:white; margin:20px 10% 20px 5em;padding:5px 5em 10px 5em;'>
+<h2>Welcome to Seeds of Diversity's Projects Portal</h2>
+</div>
+<div style='margin-left:5em'>
+<p style='font-size:large'>This is where you can join our seed-saving projects, and track your progress as your garden grows.</p>
+<div class='container-fluid' style='max-width:60em;background-color:#eee;border-radius:10px;margin-left:5em;margin-top:20px;padding:10px 20px;font-size:normal'>
+    <div class='row'>
+    <div class='col-md-6' style='text-alignment:left'>
+        <p>If you don't have a Seeds of Diversity account, it's free to join.</p>
+        <p><span style='font-size:large'><a href='https://seeds.ca/member' target='_blank'>Just sign up here</a></span> to get your password emailed to you.</p>
+    </div>
+    <div class='col-md-6'>
+    <p>We use your mailing address to send seeds and instructions. We keep all your contact information strictly confidential, and never share it with any other organizations or companies.</p> 
+    </div>
+    </div>
+</div>
+<p>&nbsp;</p>
+{% endblock %}
+
+# Don't show the standard logo; replace it with an empty string
+{% block ssa_logo %} {% endblock %}
+
+# Decorate the bottom of the login page
+{% block ssa_belowForm %}
+<div><img src='https://seeds.ca/d/?n=ebulletin/2023/01-cgo.png' style='margin:auto'/></div>
+
+
+{% endblock %}

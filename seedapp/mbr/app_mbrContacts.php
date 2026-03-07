@@ -79,7 +79,7 @@ $oCTS = new MyConsole02TabSet( $oApp );
 
 $sBody = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
-echo Console02Static::HTMLPage( utf8_encode($sBody), "", 'EN', ['consoleSkin'=>'green'] );
+echo Console02Static::HTMLPage( SEEDCore_utf8_encode($sBody), "", 'EN', ['consoleSkin'=>'green'] );
 
 
 class MbrContactsTabLogins

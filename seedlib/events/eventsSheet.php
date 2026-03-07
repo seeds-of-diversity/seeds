@@ -65,7 +65,7 @@ class EventsSheet
 
     function SyncSheetAndDb( string $nameSheet = 'Current' )
     {
-        $raConfig = ['fnValidateSheetRow'=>[$this,'fnValidateSheetRow']];
+        $raConfig = ['fnValidateSheetRow'=>[$this,'fnValidateSheetRow'], 'sLogfile'=>"ev-sync.log"];
 
         (new SEEDGoogleSheets_SyncSheetAndDb($this->oApp, $raConfig))->DoSync(
                 $this->oGoogleSheet,
@@ -93,18 +93,10 @@ class EventsSheet
         $ok = false;
         $note = "";
 
-        if( !@$raRow[$this->syncMapCols['city']['sheetCol']] ) {
-            $note = "No city";
-            goto done;
-        }
-        if( !@$raRow[$this->syncMapCols['province']['sheetCol']] ) {
-            $note = "No province";
-            goto done;
-        }
-        if( !@$raRow[$this->syncMapCols['date_start']['sheetCol']] ) {
-            $note = "No date_start";
-            goto done;
-        }
+        if( !@$raRow[$this->syncMapCols['city']['sheetCol']] )       { $note .= "No city. "; }
+        if( !@$raRow[$this->syncMapCols['province']['sheetCol']] )   { $note .= "No province. "; }
+        if( !@$raRow[$this->syncMapCols['date_start']['sheetCol']] ) { $note .= "No date_start. "; }
+        if( $note )  goto done;
 
         if( strpos( ($d = $raRow[$this->syncMapCols['date_start']['sheetCol']]), '/' ) !== false ) {
             // date is in dd/mm/yyyy format (apparently from the language settings of the Google form); convert to yyyy-mm-dd
@@ -114,7 +106,7 @@ class EventsSheet
 
         $ok = true;
 
-        // Convert times to h:mm am/pm
+        // Convert times to 12-hr:min am/pm
         // Append time-end to time if it's defined in the spreadsheet
 // Warning: if raRow is re-written to the sheet this will cause a loop of appending time-end
         $t1 = @$raRow[$this->syncMapCols['time']['sheetCol']];

@@ -2,7 +2,7 @@
 
 /* msdlib
  *
- * Copyright (c) 2009-2024 Seeds of Diversity
+ * Copyright (c) 2009-2025 Seeds of Diversity
  *
  * Support for MSD app-level code that shouldn't know about MSDCore but can't get what it needs from MSDQ.
  *
@@ -270,29 +270,39 @@ var_dump($sql);
         return( array( $ok, $s ) );
     }
 
-    function DeleteGrower( int $kG )
-    /*******************************
-        Delete grower record and all their seeds
+    function PurgeDeletedGrowersAndTheirSeeds()
+    /******************************************
+        KF-delete DELETED grower records and all their seeds.
+        Growers and seeds are kf-deleted to retain referential integrity with SEEDBasket purchase records.
      */
     {
-        $sql = "DELETE PE
-                FROM seeds_1.sed_curr_growers G, seeds_1.SEEDBasket_Products S, seeds_1.SEEDBasket_ProdExtra PE
-                WHERE G.mbr_id=S.uid_seller AND PE.fk_SEEDBasket_Products=S._key  AND S.product_type='seeds'
-
-                AND G.bDelete";     // or G.mbr_id=$kG
-
-        $sql = "DELETE S
-                FROM seeds_1.sed_curr_growers G, seeds_1.SEEDBasket_Products S
-                WHERE G.mbr_id=S.uid_seller AND  S.product_type='seeds'
-
-                AND G.bDelete";     // or G.mbr_id=$kG
-
-        $sql = "delete  FROM seeds_1.sed_curr_growers   WHERE
-
-                bDelete";     // or G.mbr_id=$kG
-
+        if( ($kfrcG = $this->oMSDCore->GetGrowerKFRC(['bGDelete'=>true])) ) {
+            while( $kfrcG->CursorFetch() ) {
+                if( ($kfrcS = $this->oMSDCore->GetSeedKFRC2('P', ['uid_seller'=>$kfrcG->Value('mbr_id')])) ) {
+                    while( $kfrcS->CursorFetch() ) {
+                        $oProduct = SEEDBasket_Product::newFromKFR($this->oMSDCore->oMSDSB, $kfrcS);
+                        $oProduct->DeleteProduct();     // kf-deletes the product and its prodextras
+                    }
+                }
+                $kfrcG->StatusSet(KeyframeRecord::STATUS_DELETED);
+                $kfrcG->PutDBRow();
+            }
+        }
     }
 
+    function PurgeDeletedSeeds()
+    /***************************
+        KF-delete DELETED seed products
+        Seeds are kf-deleted to retain referential integrity with SEEDBasket purchase records.
+     */
+    {
+        if( ($kfrcS = $this->oMSDCore->GetSeedKFRC2('P', ['bDelete'=>true])) ) {
+            while( $kfrcS->CursorFetch() ) {
+                $oProduct = SEEDBasket_Product::newFromKFR($this->oMSDCore->oMSDSB, $kfrcS);
+                $oProduct->DeleteProduct();     // kf-deletes the product and its prodextras
+            }
+        }
+    }
 
     function DrawAvailability( KeyframeRecord $kfrP, KeyframeRecord $kfrGxM )
     /************************************************************************

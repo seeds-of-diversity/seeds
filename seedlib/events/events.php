@@ -150,6 +150,7 @@ class Events_event
     }
 
     // only to be used by CreateFromKFR
+// protected
     function _setKfr( KeyframeRecord $kfrEv )  { $this->kfr = $kfrEv; }
 
     function isEmpty()  { return( $this->kfr == null ); }

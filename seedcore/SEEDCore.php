@@ -2,7 +2,7 @@
 
 /* SEEDCore
  *
- * Copyright (c) 2016-2024 Seeds of Diversity Canada
+ * Copyright (c) 2016-2025 Seeds of Diversity Canada
  *
  * Basic functions useful in most applications
  */
@@ -339,6 +339,23 @@ function SEEDCore_ArraySmartBool( $raParms, $k, $pDefault )
  */
 {
     return( SEEDCore_ArraySmartVal1( $raParms, $k, $pDefault, true ) );
+}
+
+function SEEDCore_ArrayFindRowFromColValue( array $raRows, string $colname, string $v )
+/**************************************************************************************
+    Return key of row whose col == $v, or false if not found
+
+    ( [['a'=>1, 'b'=>2], ['a'=>3, 'b'=>4], ['a'=>5, 'b'=>6]], 'a', 3 )  returns 1 (the key of the second row)
+ */
+{
+    // this is untested
+
+    $k = false;
+
+    if( ($raCol = array_column($raRows, $colname)) ) {
+        $k = array_search($v, $raCol);                  // returns false if not found
+    }
+    return($k);
 }
 
 

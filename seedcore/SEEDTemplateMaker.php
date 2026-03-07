@@ -35,6 +35,8 @@ function SEEDTemplateMaker2( $raConfig )
     $raGen = ['charset' => (@$raConfig['charset'] ?: 'utf-8')];
 
     /* Templates can be defined in strings containing %% tmpl names, files with the same format as strings, or arrays of named templates.
+     * Later templates override earlier, effectively substituting them without inheritance.
+     * Behaviour not well defined if same name is in multiple template sources (e.g. string and file)
      * All of these can be given as single items or arrays of items.
      * e.g. sTemplates can be a string, or an array of strings
      *      fTemplates can be a filename, or an array of filenames

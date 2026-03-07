@@ -12,7 +12,7 @@ class collectionBatch {
     {
         //alert( jLotInput.val() );
         // jLotInput.val() );
-
+// move this command to seedlib/sl/QServerCollection.php
         let jxData = { qcmd  : 'collection-getlot',
                        kColl : 1,
                        nInv  : jLotInput.val()

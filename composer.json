@@ -21,14 +21,14 @@
         "phpoffice/phpspreadsheet": "^1.5",
         "twig/twig": "^3.0",
         "components/jquery": "^3.3",
-        "dompdf/dompdf": "^2.0",
+        "dompdf/dompdf": "^3.0",
         "10bestdesign/jqvmap": "1.5.*",
           "jfcherng/php-diff": "^6.11",
           "wildbit/postmark-php": "^4.0"
     },
      "config": {
           "platform": {
-               "php": "8.0.28"
+               "php": "8.2"
           }
      }
 }
