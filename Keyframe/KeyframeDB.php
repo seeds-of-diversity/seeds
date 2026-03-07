@@ -474,10 +474,7 @@ class KeyframeDatabase {
      * @param string $table - Table to check for
      * @return boolean - True if the table exists, false otherwise
      */
-    function TableExists( $table )
-    /*****************************
-     */
-    {
+    function TableExists( $table ) {
         $bExists = false;
 
         //in more recent versions of PHP/mysqli this gives a fatal error if the table is not found

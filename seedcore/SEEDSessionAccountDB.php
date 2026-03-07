@@ -651,19 +651,25 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
     }
 }
 
-
-class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
-/*****************************
-    DB access layer for Users, UsersMetadata, Groups, GroupsMetadata, UsersXGroups, Perms
+/**
+ * DB access layer for reading Users, UsersMetadata, Groups, GroupsMetadata, UsersXGroups, Perms
  */
-{
+class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations {
+    
+    /**
+     * Optional db prefix
+     * @var string
+     */
     protected $sDB = "";
 
-    function __construct( KeyframeDatabase $kfdb, int $uidOwnerOrAdmin = 0, array $raConfig = array() )
-    /**************************************************************************************************
-        uidOwnerOrAdmin is the uid of the person altering UGP (either the owner of the account or an admin altering someone's account)
-            It is only used for Keyframe._created/updated_by so it can be 0 if only reading
+    /**
+     * @param KeyframeDatabase $kfdb db connection to use for managing Users, Metadata, Groups, and Perms
+     * @param int $uidOwnerOrAdmin - uid of the person altering the UGP (either the owner of the account or an admin altering someone's account).
+     * It is only used for Keyframe._created/update_by so it can be 0 of only reading
+     * @param string $raConfig['dbname'] - Name of the db containing the UGP tables
+     * @param string $raConfig['logdir'] - Location to log db changes. Only used for Keyframe writes so can be empty if only reading.
      */
+    function __construct( KeyframeDatabase $kfdb, int $uidOwnerOrAdmin = 0, array $raConfig = array() )
     {
         $logdir = @$raConfig['logdir'];          // only used for Keyframe writes so it can be empty if only reading
         if( ($sDB = @$raConfig['dbname']) ) {    // allows UGP management of other databases, can be empty for current db
@@ -673,109 +679,131 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         parent::__construct( $kfdb, $uidOwnerOrAdmin, $logdir );
     }
 
-    function GetEmail( $kUser )
-    /**************************
-        Often you know someone's kUser and you just want to show their email id
+    /**
+     * Get the email for a user give their id
+     * @param string|int $kUser - id of the user who's email to retrieve
+     * @return string|NULL
      */
-    {
-// todo: use named relation
-        $email = $this->GetKFDB()->Query1( "SELECT email FROM {$this->sDB}SEEDSession_Users WHERE _key='".addslashes($kUser)."'" );
-        return( $email );
+    function GetEmail(string|int $kUser) {
+        $email = $this->GetKFDB()->Query1_prepared("SELECT email FROM {$this->sDB}SEEDSession_Users WHERE _key = ?;", [$kUser]);
+        return $email;
     }
 
-    function GetEmailRA( $raKUser, $bDetail = true )
-    /***********************************************
-        Like GetEmail() but for an array.
-        Given an array of kUser, return one of the following:
-            $bDetail:  array of kUser=>email
-           !$bDetail:  array of email
+    /**
+     * Get emails for all user id's in the array
+     * @param array $raKUser - id's to get the emails for
+     * @param bool $bDetail - whether to return associative array or not. Default: true
+     * @return array - Associative array between id and email if $bDetail is true, otherwise only the emails are returned
      */
-    {
-// todo: use named relation
-        $cond = SEEDCore_MakeRangeStrDB( $raKUser, "_key" );
-        // the rest is not implemented?
-    }
-
-    function GetKUserFromEmail( $email )
-    /***********************************
-        Reverse of GetEmail(), because this is often used
-     */
-    {
-// todo: use named relation
-        $kUser = $this->GetKFDB()->Query1( "SELECT _key FROM {$this->sDB}SEEDSession_Users WHERE _status='0' AND email='".addslashes($email)."'" );
-        return( intval($kUser) );
-    }
-
-    function GetKUserFromEmailRA( $raEmail, $bDetail = true )
-    /********************************************************
-        Like GetKUserFromEmail() but for an array.
-        Given an array of emails, return one of the following:
-            $bDetail:  array of kUser=>email
-           !$bDetail:  array of email
-     */
-    {
-        $raRet = array();
-
-        foreach( $raEmail as $email ) {
-            if( ($k = $this->GetKUserFromEmail( $email )) ) {
-                if( $bDetail ) {
-                    $raRet[$k] = $email;
-                } else {
-                    $raRet[] = $k;
-                }
+    function GetEmailRA(array $raKUser, bool $bDetail = true): array {
+        $raEmails = $this->GetKFDB()->QueryRowsRA_prepared("SELECT email, _key FROM {$this->sDB}SEEDSession_Users WHERE _key IN (".implode(',', array_fill(0, count($raGroups), '?')).");", $raGroups);
+        $raOut = [];
+        foreach ($raEmails as $ra) {
+            if ($bDetail) {
+                $raOut[$ra['_key']] = $ra['email'];
+            } else {
+                $raOut[] = $ra['email'];
             }
         }
-        return( $raRet );
+        return $raOut;
     }
 
-
-    function GetUserInfo( $userid, $bGetMetadata = true, $bIncludeDeletedAndHidden = false )
-    /***************************************************************************************
-       Retrieve a SEEDSession_Users row and its metadata
-
-       userid can be kUser or email (email only works for _status='0' to prevent conflicts with old records)
+    /**
+     * Get a users id from their email
+     * @param string $email - email to get the id for
+     * @return int - id of the user, or 0 if one doesn't exist
      */
-    {
-        if( is_numeric($userid) ) {
-            $cond = "_key='$userid'".($bIncludeDeletedAndHidden ? "" : " AND _status='0'");
+    function GetKUserFromEmail(string $email): int {
+        $kUser = $this->GetKFDB()->Query1_prepared("SELECT _key FROM {$this->sDB}SEEDSession_Users WHERE _status = 0 AND email = ?", [$email]);
+        return intval($kUser);
+    }
+
+    /**
+     * Get id's for all user emails in the array
+     * @param array $raKUser - emails to get the id's for
+     * @param bool $bDetail - whether to return associative array or not. Default: true
+     * @return array - Associative array between email and id if $bDetail is true, otherwise only the id's are returned
+     */
+    function GetKUserFromEmailRA(array $raEmail, bool $bDetail = true): array {
+        $raIds = $this->GetKFDB()->QueryRowsRA_prepared("SELECT email, _key FROM {$this->sDB}SEEDSession_Users WHERE email IN (".implode(',', array_fill(0, count($raEmail), '?')).");", $raEmail);
+        $raOut = [];
+        foreach ($raIds as $ra) {
+            if ($bDetail) {
+                $raOut[$ra['email']] = $ra['_key'];
+            } else {
+                $raOut[] = $ra['_key'];
+            }
+        }
+        return $raOut;
+    }
+
+    /**
+     * Get a user's info and metadata
+     * @param string|int $userIdOrEmail - id or email of the user
+     * @param bool $bGetMetadata - whether or not to include the users metadata. Default: true
+     * @param bool $bIncludeDeletedAndHidden - whether to look in all users, or just "normal" ones.
+     * Only supported when using user id to prevent conflicts with old records. Default: false
+     * @return array[] - array of 3 elements containing user data. First element is the users id,
+     * second element is an array of user information, third element is an array of user metadata if requested
+     */
+    function GetUserInfo(string|int $userIdOrEmail, bool $bGetMetadata = true, bool $bIncludeDeletedAndHidden = false): array {
+        $cond = '';
+
+        if (is_numeric($userIdOrEmail)) {
+            $cond = "_key = ?".($bIncludeDeletedAndHidden ? "" : " AND _status = 0");
         } else {
             // don't look for deleted/hidden user rows by email because there can be duplicates
-            $cond = "email='".addslashes($userid)."' AND _status='0'";
+            $cond = "email = ? AND _status = 0";
         }
 
-// todo: use named relation
-        $raUser = $this->GetKFDB()->QueryRA( "SELECT * FROM {$this->sDB}SEEDSession_Users WHERE $cond" );
+        // Password excluded for security reasons
+        $sql = "SELECT _key, _created, _created_by, _updated, _updated_by, _status, realname, email, lang, gid1, eStatus, sExtra FROM {$this->sDB}SEEDSession_Users WHERE {$cond};";
+        $raUser = $this->GetKFDB()->QueryRA_prepared($sql, [$userIdOrEmail]);
         $raMetadata = array();
 
-        // $k is an unambiguous return value for testing success
-        $k = intval(@$raUser['_key']);
-        if( $k && $bGetMetadata ) {
-            $raMetadata = $this->GetUserMetadata( $k );
+        $k = 0;
+        if ($raUser) {
+            $k = intval($raUser['_key']);
         }
-        return( array($k, $raUser, $raMetadata) );
+
+        if ($k && $bGetMetadata) {
+            $raMetadata = $this->GetUserMetadata($k);
+        }
+        return array($k, $raUser, $raMetadata);
     }
 
-    function GetAllUsers( $cond, $raParms = [] )
-    /*******************************************
+    /**
+     * Get all users that match the given condition
+     * @param string $cond - condition to test against
+     * @param boolean $raParms['bDetail'] - whether to include user details in the result.
+     * Defaults to true if not specified
+     * @param int $raParms['_status'] - _status to filter by. Use -1 to disable.
+     * Defaults to 0 (normal) if not specified
+     * @param string $raParms['eStatus'] - comma separated string of user statuses to filter by.
+     * Statuses should be one of 'ACTIVE', 'PENDING', or 'INACTIVE' and be wrapped in quotes.
+     * Defaults to "'ACTIVE'" if not specified.
+     * @return unknown[]|unknown[][]
      */
-    {
+    function GetAllUsers( string $cond, array $raParms = [] ): array {
         return( $this->getUsers( "SELECT [[cols]] FROM {$this->sDB}SEEDSession_Users U WHERE [[statusCond]]".($cond ? " AND ($cond)" : ""), $raParms ) );
     }
 
-    function GetUsersFromGroup( $kGroup, $raParms = array() )
-    /********************************************************
-        Return the list of users that belong to kGroup: gid1 + UsersXGroups ; also users that belong to descendant groups of kGroup
-
-        raParms:
-            _status = kf status (-1 means all)
-            eStatus = {list of eStatus codes to include}  e.g. 'INACTIVE','PENDING'
-                      default: eStatus IN ('ACTIVE')
-            bDetail = return array of uid=>array( user data ) -- default for historical reasons
-           !bDetail = return array of uids
-
-            bDoNotIncludeDescendantGroups = (default false) skip the group inheritance and just use gid1 + UsersXGroups to find users
+    /**
+     * Get the list of users belonging to the given group.
+     * Also includes users who belong to groups that inherit from the given group by default.
+     * @param string|int $kGroup - id of the group to get users of
+     * @param boolean $raParms['bDetail'] - whether to include user details in the result.
+     * Defaults to true if not specified
+     * @param int $raParms['_status'] - _status to filter by. Use -1 to disable.
+     * Defaults to 0 (normal) if not specified
+     * @param string $raParms['eStatus'] - comma separated string of user statuses to filter by.
+     * Statuses should be one of 'ACTIVE', 'PENDING', or 'INACTIVE' and be wrapped in quotes.
+     * Defaults to "'ACTIVE'" if not specified.
+     * @param boolean $raParms['bDoNotIncludeDescendantGroups'] - whether to skip including users belonging to groups that inherit from the given group.
+     * Defauts to false if not provided.
+     * @return unknown[]|unknown[][]
      */
-    {
+    function GetUsersFromGroup( string|int $kGroup, array $raParms = array() ): array {
         // Get all descendants of the given group, unless we're told not to
         $raGroups = array( $kGroup );
         if( !@$raParms['bDoNotIncludeDescendantGroups'] ) {
@@ -792,45 +820,69 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( $this->getUsers( $sql, $raParms ) );
     }
 
-    function GetUsersFromMetadata( $sK, $sVCond, $raParms = array() )
-    /****************************************************************
-        Return an array of users whose metadata for key $sK is given by condition sVCond
-        Metadata fields in sVCond must be prefaced by "UM."
-            e.g. sK=foo, sVCond="UM.v='bar'"     returns users who have metadata foo=bar
-                 sK=foo, sVCond="UM.v<>'bar'"    returns users who don't have metadata foo=bar including where foo is undefined
-                 sk=foo, sVCond="UM.v is null"   means foo equals null or foo is undefined
-                 sk=foo, sVCond="UM.uid is null" unambiguously means foo is undefined
-
-        raParms: same as GetUsersFromGroup
+    /**
+     * Get users who's metadata for a given key matches  the given condition.
+     * @param string $sK - metadata key to use to retrieve users by
+     * @param string $sVCond - contdition the users metadata needs to match for the user to be returned.
+     * Metadata fields need to be prefixed with "UM." (eg. "UM.v" for the metadata value)
+     * @param boolean $raParms['bDetail'] - whether to include user details in the result.
+     * Defaults to true if not specified
+     * @param int $raParms['_status'] - _status to filter by. Use -1 to disable.
+     * Defaults to 0 (normal) if not specified
+     * @param string $raParms['eStatus'] - comma separated string of user statuses to filter by.
+     * Statuses should be one of 'ACTIVE', 'PENDING', or 'INACTIVE' and be wrapped in quotes.
+     * Defaults to "'ACTIVE'" if not specified.
+     * @return unknown[]|unknown[][]
+     * @example sK=foo, sVCond="UM.v='bar'": returns users who have metadata foo=bar
+     * @example sK=foo, sVCond="UM.v<>'bar'": returns users who don't have metadata foo=bar including where foo is undefined
+     * @example sK=foo, sVCond="UM.v is null": returns users where foo is undefined or foo=NULL
+     * @example sK=foo, sVCond="UM.uid is null": returns users where foo is undefined
      */
-    {
+    function GetUsersFromMetadata( $sK, $sVCond, array $raParms = array() ): array {
         $sql = "SELECT [[cols]] FROM {$this->sDB}SEEDSession_Users U LEFT JOIN {$this->sDB}SEEDSession_UsersMetadata UM "
                 ."ON (U._key=UM.uid AND UM.k='$sK') "
-                ."WHERE ($sVCond) AND [[statusCond]]";
+                ."WHERE [[statusCond]] AND ($sVCond)";
 
         return( $this->getUsers( $sql, $raParms ) );
     }
 
-    private function getUsers( $sql, $raParms = array() )
-    {
+    /**
+     * Get Users matching an SQL Query.
+     * SQL must contain [[cols]] which will be replaced by the column list.
+     * SQL must contain [[statusCond]] which will be replaced by the status condition
+     * @param string $sql - sql query to use
+     * @param boolean $raParms['bDetail'] - whether to include user details in the result.
+     * Defaults to true if not specified
+     * @param int $raParms['_status'] - _status to filter by. Use -1 to disable.
+     * Defaults to 0 (normal) if not specified
+     * @param string $raParms['eStatus'] - comma separated string of user statuses to filter by.
+     * Statuses should be one of 'ACTIVE', 'PENDING', or 'INACTIVE' and be wrapped in quotes.
+     * Defaults to "'ACTIVE'" if not specified.
+     * @return unknown[]|unknown[][]
+     */
+    private function getUsers( string $sql, array $raParms = array() ): array {
         $raRet = array();
+        
+        $bDetail = SEEDCore_ArraySmartVal($raParms, 'bDetail', array(true, false));
 
         // sql must contain [[cols]] which is replaced by the column list
-        $sql = str_replace( "[[cols]]", "U._key as _key,U.email as email,U.realname as realname,U.eStatus as eStatus", $sql );
+        $sql = str_replace(
+            "[[cols]]",
+            $bDetail ? "U._key AS _key, U.email AS email, U.realname AS realname, U.eStatus AS eStatus" : "U._key AS _key",
+            $sql
+        );
 
         // sql must contain [[statusCond]] which is replaced by the status conditions
-        $st  = SEEDCore_ArraySmartVal1( $raParms, '_status', 0 );           // empty is not a valid value
-        $est = SEEDCore_ArraySmartVal1( $raParms, 'eStatus', "'ACTIVE'" );
+        $st  = $raParms['_status'] ?: 0;
+        $est = $raParms['eStatus'] ?: "'ACTIVE'";
         $sCondStatus = "U.eStatus IN ($est)"
                       .($st == -1 ? "" : " AND U._status='$st'");
         $sql = str_replace( "[[statusCond]]", $sCondStatus, $sql );
 
-        $bDetail = SEEDCore_ArraySmartVal( $raParms, 'bDetail', array(true,false) );
-
         if( ($dbc = $this->GetKFDB()->CursorOpen( $sql )) ) {
             while( $ra = $this->GetKFDB()->CursorFetch( $dbc ) ) {
                 if( $bDetail ) {
-                    $raRet[$ra['_key']] = array('email'=>$ra['email'],'realname'=>$ra['realname'],'eStatus'=>$ra['eStatus']);
+                    $raRet[$ra['_key']] = array('email' => $ra['email'], 'realname' => $ra['realname'], 'eStatus' => $ra['eStatus']);
                 } else {
                     $raRet[] = $ra['_key'];
                 }
@@ -840,76 +892,123 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( $raRet );
     }
 
-    function GetAllGroups( $cond, $raParms = [] )
-    /********************************************
-        Return the list of all groups that meet the conditions
+    /**
+     * Get all groups matching the given condition
+     * @param string $cond - condition to get groups for
+     * @param int $raParams['_status'] - status of the groups to get, default 0, -1 for all.
+     * @param boolean $raParams['bNames'] - whether to retrieve group names, default false.
+     * @return array
      */
-    {
-        return( $this->getGroups( $cond, $raParms, "ALL" ) );
-    }
-
-    function GetGroupsFromUser( $kUser, $raParms = [] )
-    /**************************************************
-        Return the list of groups in which kUser is a member: gid1 + UsersXGroups + their inherited groups
-     */
-    {
-        return( $this->getGroups( "", $raParms, $kUser ) );
-    }
-
-    private function getGroups( $cond, $raParms, $userOrAll )
-    /********************************************************
-        raParms:
-            _status = default 0 (-1 means all)
-            bNames  = Return array of kGroup=>groupname
-           !bNames  = Return array of kGroup  (default)
-     */
-    {
-        $raRet = [];
-
-        $st = SEEDCore_ArraySmartVal1( $raParms, '_status', 0 );           // default 0, empty is not a valid value
-        $cond = "(".($cond ?: "1=1").")"
-               .($st != -1 ? " AND _status='$st'" : "");
-
-        $bNames = intval(@$raParms['bNames']);
-
-        if( $userOrAll == "ALL" ) {
-            if( $bNames ) {
-                $raGroups = $this->KFDB()->QueryRowsRA( "SELECT _key,groupname FROM {$this->sDB}SEEDSession_Groups WHERE $cond" );
-                foreach( $raGroups as $ra ) {
-                    $raRet[$ra['_key']] = $ra['groupname'];
-                }
-            } else {
-                $raRet = $this->KFDB()->QueryRowsRA1( "SELECT _key FROM {$this->sDB}SEEDSession_Groups WHERE $cond" );
+    function GetAllGroups( string $cond, array $raParams = [] ): array {
+        $status = @$raParams['_status'] ?: 0;
+        $queryParams = [];
+        $query = "SELECT _key AS gid, groupname FROM {$this->sDB}SEEDSession_Groups[[COND]];";
+        if($status === -1) {
+            if ($cond) {
+                $query = str_replace('[[COND]]', " WHERE $cond", $query);
             }
-        } else if( ($kUser = intval($userOrAll)) ) {
-            $raGroups = $this->KFDB()->QueryRowsRA1(
-            // Get the user's primary group
-                   "SELECT gid1 FROM {$this->sDB}SEEDSession_Users WHERE _key='$kUser' AND gid1<>0 AND $cond "
-                   ."UNION "
-            // And the groups mapped to the user
-                   ."SELECT gid FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' AND $cond" );
-            // And their inherited groups
-            $raGroups = $this->getGroupAncestors( $raGroups );
-
-            if( $bNames ) {
-                foreach( $raGroups as $gid ) {
-                    $raRet[$gid] = $this->KFDB()->Query1( "SELECT groupname FROM {$this->sDB}SEEDSession_Groups WHERE _key='$gid'" );
-                }
+            $query = str_replace('[[COND]]', "", $query);
+        } else {
+            if ($cond) {
+                $query = str_replace('[[COND]]', " WHERE _status = ? AND $cond", $query);
+            }
+            $query = str_replace('[[COND]]', ' WHERE _status = ?', $query);
+            array_push($raParams, $status);
+        }
+        $raGroups = $this->KFDB()->QueryRowsRA_prepared($query, $queryParams, KEYFRAMEDB_RESULT_ASSOC);
+        $raOut = [];
+        foreach($raGroups as $ra) {
+            if(isset($raParams['bNames']) && boolval($raParams['bNames'])) {
+                $ra[$ra['gid']] = $ra['groupname'];
             } else {
-                $raRet = $raGroups;
+                $raOut[] = $ra['gid'];
             }
         }
-
-        asort( $raRet );  // sort by array value, maintaining key association if bNames
-        return( $raRet );
+        asort($raOut);
+        return $raOut;
     }
 
-    function GetUserMetadata( $kUser, $bAndGroupMetadata = false )
-    /*************************************************************
-        bAndGroupMetadata == false: just get the metadata associated with the user (good for UI and R/W applications)
-                          == true:  combine with the metadata for the user's groups (good for R/O applications)
+    /**
+     * Get the groups the user is a member of.
+     * Includes direct group membership as well as all groups they inherit from
+     * @param string|int $kUser - id of the user whos groups to get
+     * @param int $raParams['_status'] - status of the groups to get, default 0, -1 for all.
+     * @param boolean $raParams['bNames'] - whether to retrieve group names, default false.
+     * @return array
      */
-    {
+    function GetGroupsFromUser( string|int $kUser, array $raParams = [] ): array {
+        $query = <<<SQL
+WITH RECURSIVE groups AS (
+    SELECT
+        _key AS gid,
+        _key AS id,
+        _status,
+        gid_inherited AS parent_id,
+        CAST(_key AS CHAR(200)) AS path -- track visited ids to detect cycles
+    FROM [[DB]]SEEDSession_Groups
+    UNION ALL
+    SELECT
+    	gid,
+    	parent._key as id,
+        parent._status,
+    	parent.gid_inherited AS parent_id,
+    	CONCAT(path, ',', parent._key) AS path
+    FROM groups
+    INNER JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
+    WHERE parent_id IS NOT NULL AND parent_id > 0
+    	AND FIND_IN_SET(parent._key, path) = 0
+),
+usersxgroups AS (
+    SELECT
+    	id as gid,
+        groups._status,
+    	users._key AS uid
+    FROM [[DB]]SEEDSession_Users AS users
+    INNER JOIN groups ON gid = users.gid1
+    WHERE users._status = 0
+    UNION ALL
+    SELECT
+    	id as gid,
+        groups._status,
+    	SEEDSession_UsersXGroups.uid AS uid
+    FROM [[DB]]SEEDSession_UsersXGroups
+    INNER JOIN groups ON SEEDSession_UsersXGroups.gid = groups.gid
+    WHERE SEEDSession_UsersXGroups._status = 0
+)
+SELECT DISTINCT gid, groupname
+FROM usersxgroups
+INNER JOIN [[DB]]SEEDSession_Groups ON gid = _key
+WHERE uid = ?[[STATUS_CLAUSE]];
+SQL;
+        $query = str_replace('[[DB]]', $this->sDB, $query);
+        $status = @$raParams['_status'] ?: 0;
+        $queryParams = [$kUser];
+        if($status === -1) {
+            $query = str_replace('[[STATUS_CLAUSE]]', '', $query);
+        } else {
+            $query = str_replace('[[STATUS_CLAUSE]]', 'AND usersxgroups._status = ?', $query);
+            array_push($queryParams, $status);
+        }
+        $raGroups = $this->KFDB()->QueryRowsRA_prepared($query, $queryParams, KEYFRAMEDB_RESULT_ASSOC);
+        $raOut = [];
+        foreach($raGroups as $ra) {
+            if(isset($raParams['bNames']) && boolval($raParams['bNames'])) {
+                $ra[$ra['gid']] = $ra['groupname'];
+            } else {
+                $raOut[] = $ra['gid'];
+            }
+        }
+        asort($raOut);
+        return $raOut;
+    }
+
+    /**
+     * Get the metadata for a given user.
+     * User metadata always overrides group metadata if included
+     * @param string|int $kUser - id of the user who's metadata to get
+     * @param boolean $bAndGroupMetadata - whether the metadata of the users groups should also be included. Default false
+     */
+    function GetUserMetadata( string|int $kUser, bool $bAndGroupMetadata = false ): array {
         $raMetadata = array();
 
         // Get group metadata first so user metadata keys overwrite it
@@ -918,20 +1017,22 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         }
 
 // todo: use named relation
-        $ra = $this->GetKFDB()->QueryRowsRA( "SELECT k,v FROM {$this->sDB}SEEDSession_UsersMetadata WHERE _status='0' AND uid='$kUser'" );
+        $ra = $this->GetKFDB()->QueryRowsRA_prepared( "SELECT k, v FROM {$this->sDB}SEEDSession_UsersMetadata WHERE _status = 0 AND uid = ?", [$kUser] );
         // ra is array( array( k=>keyname1, v=>value1 ), array( k=>keyname2, v=>value2 ) )
         foreach( $ra as $ra2 ) {
             $raMetadata[$ra2['k']] = $ra2['v'];
         }
         return( $raMetadata );
     }
-
-    function GetGroupMetadata( $kGroup, $raParms = array() )
-    /*******************************************************
-        raParms:
-            bDoNotIncludeAncestorGroups = (default false) skip the group inheritance
+    
+    /**
+     * Get metadata for the given group.
+     * Includes inherited metadata by default
+     * @param string|int $kGroup - id of the group who's metadata to retrieve.
+     * @param boolean $raParms['bDoNotIncludeAncestorGroups'] - whether to skip fetching inherited metadata
+     * @return array
      */
-    {
+    function GetGroupMetadata( string|int $kGroup, array $raParms = array() ): array {
         // Get all ancestors of the given group, unless we're told not to
         $raGroups = array( $kGroup );
         if( !@$raParms['bDoNotIncludeAncestorGroups'] ) {
@@ -952,156 +1053,228 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
         return( $raMetadata );
     }
 
-    function GetGroupMetadataByUser( $kUser )
-    /****************************************
+    /**
+     * Get a users group metadata.
+     * Includes metadata for all groups the user directly belongs to.
+     * @param string|int $kUser - id of the user who's group metadata to retrieve
+     * @return array
      */
-    {
-        $raGroups = $this->GetGroupsFromUser( $kUser );
-
+    function GetGroupMetadataByUser( string|int $kUser ): array {
         $raMetadata = array();
-        $ra = $this->GetKFDB()->QueryRowsRA(
-            "SELECT G.k as k,G.v as v FROM {$this->sDB}SEEDSession_GroupsMetadata G,{$this->sDB}SEEDSession_UsersXGroups X "
-                ."WHERE G._status='0' AND X._status='0' "
-                ."AND G.gid=X.gid AND X.uid='$kUser' "
+        $ra = $this->GetKFDB()->QueryRowsRA_prepared(
+            "SELECT G.k as k, G.v as v FROM {$this->sDB}SEEDSession_GroupsMetadata G,{$this->sDB}SEEDSession_UsersXGroups X "
+                ."WHERE G._status = '0' AND X._status = '0' "
+                ."AND G.gid = X.gid AND X.uid = ? "
            ."UNION "
-           ."SELECT G.k as k,G.v as v FROM {$this->sDB}SEEDSession_GroupsMetadata G,{$this->sDB}SEEDSession_Users U "
-                ."WHERE G._status='0' AND U._status='0' "
-                ."AND G.gid=U.gid1 AND U._key='$kUser'" );
+           ."SELECT G.k as k, G.v as v FROM {$this->sDB}SEEDSession_GroupsMetadata G,{$this->sDB}SEEDSession_Users U "
+                ."WHERE G._status = '0' AND U._status = '0' "
+                ."AND G.gid = U.gid1 AND U._key = ?;", [$kUser, $kUser] );
         // ra is array( array( k=>keyname1, v=>value1 ), array( k=>keyname2, v=>value2 ) )
         foreach( $ra as $ra2 ) {
             $raMetadata[$ra2['k']] = $ra2['v'];
         }
         return( $raMetadata );
     }
-
-
-    function GetPermsFromUser( $kUser )
-    /**********************************
-        Get the given user's permissions from perms and group-perms.
-
-            e.g. for perms  'app1','R'
-                            'app2','W'  & group 'app2','R'
-                            'app3','RW' & group 'app3'=>'RWA'
-
-                 'perm2modes' => array( 'app1'=>'R', 'app2'=>'RW', 'app3'=>'RWA' ),
-                 'mode2perms' => array( 'R'=>array('app1','app2','app3'), 'W'=>array('app2','app3'), 'A'=>array('app3') )
+    
+    /**
+     * Get all the permissions for the given user.
+     * Includes permissions directly assigned to the user, permissions directly assigned to the users groups,
+     * and permissions inherrited from other groups.
+     * @param string|int $kUser - id of the user who's permissions to get
+     * @return array[]|array[][]
      */
-    {
-        $raGroups = $this->GetGroupsFromUser( $kUser );
-
-        // Get perms explicitly for this uid
-        $sql = "SELECT perm,modes FROM SEEDSession_Perms WHERE _status='0' AND uid='$kUser'";
-        if( count($raGroups) ) {
-            // And perms for its groups and inherited groups
-            $sql .= " UNION "
-                   ."SELECT P.perm AS perm, P.modes as modes "
-                   ."FROM SEEDSession_Perms P WHERE P._status='0' AND ".SEEDCore_MakeRangeStrDB( $raGroups, "P.gid" );
-        }
-
-        return( $this->getPermsList( $sql ) );
-    }
-
-    function GetPermsFromGroup( $kGroup )
-    /************************************
-        Get the given group's permissions in the same format as GetPermsFromUserKey
-     */
-    {
-        // list all groups inherited by kGroup, including kGroup, and find the perm/modes of those groups.
-        $raGroups = $this->getGroupAncestors( array($kGroup) );
-        $sqlGroupRange = SEEDCore_MakeRangeStrDB( $raGroups, "P.gid" );
-        return( $this->getPermsList( "SELECT P.perm AS perm, P.modes as modes FROM SEEDSession_Perms P "
-                                    ."WHERE P._status='0' AND $sqlGroupRange" ) );
-    }
-
-    private function getPermsList( $sql )
-    {
-        $raRet = array( 'perm2modes' => array(),
-                        'mode2perms' => array( 'R'=>array(), 'W'=>array(), 'A'=>array() ) );
-
-        if( ($dbc = $this->GetKFDB()->CursorOpen( $sql )) ) {
-            while( $ra = $this->GetKFDB()->CursorFetch( $dbc ) ) {
-                if( strchr($ra['modes'],'R') && !in_array($ra['perm'], $raRet['mode2perms']['R']) ) { $raRet['mode2perms']['R'][] = $ra['perm']; }
-                if( strchr($ra['modes'],'W') && !in_array($ra['perm'], $raRet['mode2perms']['W']) ) { $raRet['mode2perms']['W'][] = $ra['perm']; }
-                if( strchr($ra['modes'],'A') && !in_array($ra['perm'], $raRet['mode2perms']['A']) ) { $raRet['mode2perms']['A'][] = $ra['perm']; }
+    function GetPermsFromUser( string|int $kUser ) {
+        $query = <<<SQL
+WITH RECURSIVE perms AS (
+    SELECT gid, uid, 'R' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%R%' AND _status = 0
+    UNION
+    SELECT gid, uid, 'W' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%W%' AND _status = 0
+    UNION
+    SELECT gid, uid, 'A' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%A%' AND _status = 0
+),
+groups AS (
+    SELECT
+        _key AS gid,
+        _key AS id,
+        gid_inherited AS parent_id,
+        CAST(_key AS CHAR(200)) AS path -- track visited ids to detect cycles
+    FROM [[DB]]SEEDSession_Groups
+	WHERE _status = 0
+    UNION ALL
+    SELECT
+    	gid,
+    	parent._key as id,
+    	parent.gid_inherited AS parent_id,
+    	CONCAT(path, ',', parent._key) AS path
+    FROM groups
+    INNER JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
+    WHERE parent_id IS NOT NULL AND parent_id > 0
+    	AND FIND_IN_SET(parent._key, path) = 0
+		AND parent._status = 0
+),
+usersxgroups AS (
+    SELECT
+    	id as gid,
+    	users._key AS uid
+    FROM [[DB]]SEEDSession_Users AS users
+    INNER JOIN groups ON gid = users.gid1
+    WHERE users._status = 0
+    UNION ALL
+    SELECT 
+    	id as gid,
+    	SEEDSession_UsersXGroups.uid AS uid
+    FROM [[DB]]SEEDSession_UsersXGroups
+    INNER JOIN groups ON SEEDSession_UsersXGroups.gid = groups.gid
+    WHERE SEEDSession_UsersXGroups._status = 0
+)
+SELECT DISTINCT mode, perm
+FROM [[DB]]SEEDSession_Users AS users
+INNER JOIN perms ON uid = users._key OR gid IN (SELECT gid FROM usersxgroups WHERE uid = users._key)
+WHERE users._key = ?;
+SQL;
+        $query = str_replace('[[DB]]', $this->sDB, $query);
+        $raPerms = $this->GetKFDB()->QueryRowsRA_prepared($query, [$kUser], KEYFRAMEDB_RESULT_ASSOC);
+        $raOut = array( 'perm2modes' => array(), 'mode2perms' => array( 'R'=>array(), 'W'=>array(), 'A'=>array() ) );
+        foreach($raPerms as $ra) {
+            if (!isset($raOut['perm2modes'][$ra['perm']])) {
+                $raOut['perm2modes'][$ra['perm']] = '';
             }
-            $this->GetKFDB()->CursorClose( $dbc );
+            $raOut['perm2modes'][$ra['perm']] .= $ra['mode'];
+            $raOut['mode2perms'][$ra['mode']][] = $ra['perm'];
         }
-        foreach( $raRet['mode2perms']['R'] as $p ) { $raRet['perm2modes'][$p]  = "R"; }
-        foreach( $raRet['mode2perms']['W'] as $p ) { @$raRet['perm2modes'][$p] .= "W"; } // the @ prevents concatenation warning if R is not set
-        foreach( $raRet['mode2perms']['A'] as $p ) { @$raRet['perm2modes'][$p] .= "A"; }
-
-        return( $raRet );
+        return $raOut;
     }
 
-    private function getGroupAncestors( $raGroups )
-    /**********************************************
-        Return the set of groups inherited by the given groups. Include the given groups in the result.
-
-        Array( gid1, gid2, ... ) is input and output.
+    /**
+     * Get the permissions for the given group.
+     * Includes permissions directly assigned to the group and permissions inherrited from other groups.
+     * @param string|int $kGroup - id of the group who's permissions to get
+     * @return array[]|array[][]
      */
-    {
-        $raOut = array();
-
-        // Check each group for a gid_inherited. If set, add it to the list and check it for an ancestor too.
-        // Use array_shift instead of foreach so we can add to the raGroups list (foreach acts on its own copy of the array).
-        // Prevent circular lookups by testing whether raOut already contains the group being processed.
-        // Use isset with keys to make this test efficient.
-        while( ($gid = array_shift($raGroups)) ) {
-            if( isset($raOut[$gid]) )  continue;
-            $raOut[$gid] = 1;
-
-            if( ($kfr = $this->GetKFR( "G", $gid )) ) {
-                if( $kfr->Value('gid_inherited') ) {
-                    $raGroups[] = $kfr->Value('gid_inherited');
-                }
+    function GetPermsFromGroup( string|int $kGroup ) {
+        $query = <<<SQL
+WITH RECURSIVE perms AS (
+    SELECT gid, uid, 'R' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%R%' AND _status = 0
+    UNION
+    SELECT gid, uid, 'W' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%W%' AND _status = 0
+    UNION
+    SELECT gid, uid, 'A' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%A%' AND _status = 0
+),
+groups AS (
+    SELECT
+        _key AS gid,
+        _key AS id,
+        gid_inherited AS parent_id,
+        CAST(_key AS CHAR(200)) AS path -- track visited ids to detect cycles
+    FROM [[DB]]SEEDSession_Groups
+	WHERE _status = 0
+    UNION ALL
+    SELECT
+    	gid,
+    	parent._key as id,
+    	parent.gid_inherited AS parent_id,
+    	CONCAT(path, ',', parent._key) AS path
+    FROM groups
+    INNER JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
+    WHERE parent_id IS NOT NULL AND parent_id > 0
+    	AND FIND_IN_SET(parent._key, path) = 0
+		AND parent._status = 0
+)
+SELECT DISTINCT mode, perm
+FROM [[DB]]SEEDSession_Groups
+INNER JOIN perms ON gid IN (SELECT id FROM groups WHERE gid = SEEDSession_Groups._key)
+WHERE SEEDSession_Groups._key = ?;
+SQL;
+        $query = str_replace('[[DB]]', $this->sDB, $query);
+        $raPerms = $this->GetKFDB()->QueryRowsRA_prepared($query, [$kGroup], KEYFRAMEDB_RESULT_ASSOC);
+        $raOut = array( 'perm2modes' => array(), 'mode2perms' => array( 'R'=>array(), 'W'=>array(), 'A'=>array() ) );
+        foreach($raPerms as $ra) {
+            if (!isset($raOut['perm2modes'][$ra['perm']])) {
+                $raOut['perm2modes'][$ra['perm']] = '';
             }
+            $raOut['perm2modes'][$ra['perm']] .= $ra['mode'];
+            $raOut['mode2perms'][$ra['mode']][] = $ra['perm'];
         }
-
-        return( array_keys( $raOut ) );
+        return $raOut;
     }
 
-    private function getGroupDescendants( $raGroups )
-    /************************************************
-        Return the set of groups that inherit the given groups. Include the given groups in the result.
-
-        Array( gid1, gid2, ... ) is input and output.
+    /**
+     * Return the groups that the given groups inherit from.
+     * Includes the groups themselves and all groups from which they inherit from.
+     * @param array $raGroups - ids of groups to get the ancestors of
+     * @return array - ids of the groups which the given groups inherit from
      */
-    {
-        $raOut = array();
+    private function getGroupAncestors( array $raGroups ): array {
+        $query = <<<SQL
+WITH RECURSIVE groups AS (
+    SELECT
+        _key AS gid,
+        _key AS id,
+        gid_inherited AS parent_id,
+        CAST(_key AS CHAR(200)) AS path -- track visited ids to detect cycles
+    FROM [[DB]]SEEDSession_Groups
+    WHERE _status = 0
+    UNION ALL
+    SELECT
+    	gid,
+    	parent._key as id,
+    	parent.gid_inherited AS parent_id,
+    	CONCAT(path, ',', parent._key) AS path
+    FROM groups
+    JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
+    WHERE parent_id IS NOT NULL AND parent_id > 0
+    	AND FIND_IN_SET(parent._key, path) = 0
+        AND parent._status = 0
+)
+SELECT DISTINCT
+    id
+FROM groups
+WHERE gid IN ([[GROUPS]]);
+SQL;
+        $query = str_replace(['[[GROUPS]]', '[[DB]]'], [implode(',', array_fill(0, count($raGroups), '?')), $this->sDB], $query);
+        $raOut = $this->GetKFDB()->QueryRowsRA1_prepared($query, $raGroups);
 
-        // For each group, fetch any groups that have that group as their gid_inherited. Repeat for those groups.
-        // See getGroupAncestors() for comments on this implementation
-        while( ($gid = array_shift($raGroups)) ) {
-            if( isset($raOut[$gid]) )  continue;
-            $raOut[$gid] = 1;
-
-            $raDesc = $this->GetList( "G", "gid_inherited='$gid'" );
-            foreach( $raDesc as $desc ) {
-                $raGroups[] = $desc['_key'];
-            }
-        }
-
-        return( array_keys( $raOut ) );
+        return $raOut;
     }
 
-    function GetSessionHashSeed()
-    /****************************
-        For security operations that involve a publicly transmitted hash based on some public data + some non-public data, this is the non-public data.
-        It is generated per-server and stored in the StringBucket so even though you're reading this code right now, you still can't hack it.
+    /**
+     * Return the groups that inherit from the given groups.
+     * Includes the groups themselves and all groups that inherit from them.
+     * @param array $raGroups - ids of groups to get the descendents of
+     * @return array - ids of the groups which inherit from the given groups
      */
-    {
-/*
-        $oSB = new SEEDMetaTable_StringBucket( $this->kfdb );
-        if( !($hashSeed = $oSB->GetStr( "SEEDSession", "hashSeed" )) ) {    // first time this is called on this server; create the hashSeed and return it forever
-            $hashSeed = rand();
-            $oSB->PutStr( "SEEDSession", "hashSeed", $hashSeed );
-        }
-        return( $hashSeed );
-*/
+    private function getGroupDescendants( array $raGroups ): array {
+        $query = <<<SQL
+WITH RECURSIVE groups AS (
+    SELECT
+        _key AS gid,
+        _key AS id,
+        gid_inherited AS parent_id,
+        CAST(_key AS CHAR(200)) AS path -- track visited ids to detect cycles
+    FROM [[DB]]SEEDSession_Groups
+    WHERE _status = 0
+    UNION ALL
+    SELECT
+    	gid,
+    	parent._key as id,
+    	parent.gid_inherited AS parent_id,
+    	CONCAT(path, ',', parent._key) AS path
+    FROM groups
+    JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
+    WHERE parent_id IS NOT NULL AND parent_id > 0
+    	AND FIND_IN_SET(parent._key, path) = 0
+        AND parent._status = 0
+)
+SELECT DISTINCT
+    gid
+FROM groups
+WHERE id IN ([[GROUPS]]);
+SQL;
+        $query = str_replace(['[[GROUPS]]', '[[DB]]'], [implode(',', array_fill(0, count($raGroups), '?')), $this->sDB], $query);
+        $raOut = $this->GetKFDB()->QueryRowsRA1_prepared($query, $raGroups);
     }
 
-
-    function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     /**********************************************************
         Override Keyframe_NamedRelation's method for generating the kfrels for this class
      */
@@ -1206,51 +1379,75 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations
     }
 }
 
-class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
-/*************************
-    DB write layer for UGP
+/**
+ * DB access layer for managing Users, UsersMetadata, Groups, GroupsMetadata, UsersXGroups, Perms
  */
-{
-    private $uidOwnerOrAdmin;   // the user who is making changes to the UGP
+class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2 {
 
+    /**
+     * Id of the user making changes
+     * @var int
+     */
+    private $uidOwnerOrAdmin;
+
+    /**
+     * @param KeyframeDatabase $kfdb db connection to use for managing Users, Metadata, Groups, and Perms
+     * @param int $uidOwnerOrAdmin - uid of the person altering the UGP (either the owner of the account or an admin altering someone's account).
+     * It is only used for Keyframe._created/update_by so it can be 0 of only reading
+     * @param string $raConfig['dbname'] - Name of the db containing the UGP tables
+     * @param string $raConfig['logdir'] - Location to log db changes. Only used for Keyframe writes so can be empty if only reading.
+     */
     function __construct( KeyframeDatabase $kfdb, int $uidOwnerOrAdmin, array $raConfig = [] )
     {
         parent::__construct( $kfdb, $uidOwnerOrAdmin, $raConfig );
         $this->uidOwnerOrAdmin = $uidOwnerOrAdmin;
     }
 
-    function CreateUser( $sEmail, $sPwd, $raParms = array() )
-    /********************************************************
-        raParms: k, eStatus, realname, sExtra, lang, gid1
+    /**
+     * Create a new user.
+     * If a user with the given username/email already exists, return that id instead of creating a user.
+     * @param string $sEmail - username or email to use for the user. Must be unique
+     * @param string $sPwd - password for the user
+     * @param int $raParms['k'] - optional id to use for the user. Ommiting or specifying 0 will cause the next auto-increment value to be used.
+     * @param string $raParms['realname'] - Users real name
+     * @param string $raParms['sExtra'] - Extra information to store with the user
+     * @param string $raParms['eStatus'] - Initial status of the user. Must be one of "ACTIVE", "PENDING", or "INACTIVE".
+     * Defaults to "PENDING" if not specified
+     * @param string $raParms['lang'] - Language of the user. Must be one of "E" for English, "F" for French, or "B" for both.
+     * Defautls to "E" if not specified
+     * @param int $raParms['gid1'] - group the user is in
+     * @return int - id of the newly created user, or the id of the existing user for the given username/email if one already exists.
      */
-    {
+    function CreateUser( string $sEmail, string $sPwd, array $raParms = array() ): string|int {
         $kUser       = intval(@$raParms['k']);      // 0 means use the next auto-increment
-        $sdbEmail    = addslashes($sEmail);
-        $sdbPwd      = addslashes($sPwd);
-        $sdbRealname = addslashes(@$raParms['realname']??"");
-        $sdbExtra    = addslashes(@$raParms['sExtra']??"");
+        // TODO: Hash & Salt the password (password_hash)
+        $sdbPwd      = $sPwd;
+        $sdbRealname = @$raParms['realname'] ?? "";
+        $sdbExtra    = @$raParms['sExtra'] ?? "";
         $eStatus     = SEEDCore_ArraySmartVal( $raParms, 'eStatus', array('PENDING','ACTIVE','INACTIVE') );
         $eLang       = SEEDCore_ArraySmartVal( $raParms, 'lang', array('E','F','B') );
         $gid1        = intval(@$raParms['gid1']);
 
 // todo: use named relation
-        $k = $this->GetKFDB()->Query1("SELECT _key FROM {$this->sDB}SEEDSession_Users WHERE email='$sdbEmail' and _status='0'");
+        $k = $this->GetKFDB()->Query1_prepared("SELECT _key FROM {$this->sDB}SEEDSession_Users WHERE email = ? AND _status = 0;", [$sEmail]);
         if( !$k ) {
             // return value is what you expect, whether k is 0 or non-zero
             $k = $this->GetKFDB()->InsertAutoInc(
                     "INSERT INTO {$this->sDB}SEEDSession_Users "
                     ."(_key,_created,_created_by,_updated,_updated_by,_status,email,password,realname,eStatus,sExtra,lang,gid1) "
-                   ."VALUES ($kUser,NOW(),{$this->uidOwnerOrAdmin},NOW(),{$this->uidOwnerOrAdmin},0,"
-                   ."'$sdbEmail','$sdbPwd','$sdbRealname','$eStatus','$sdbExtra','$eLang','$gid1')" );
+                   ."VALUES (?,NOW(),?,NOW(),?,0,?,?,?,?,?,?,?);",
+            [$kUser, $this->uidOwnerOrAdmin, $this->uidOwnerOrAdmin, $sEmail, $sdbPwd, $sdbRealname, $eStatus, $sdbExtra, $eLang, $gid1] );
         }
         return( $k );
     }
 
-    function ActivateUser( $kUser )
-    /******************************
-        Activate an existing login that is INACTIVE or PENDING, or deleted or hidden
+    /**
+     * Activate an existing user allowing them to log in.
+     * Handles users that have a "deleted" or "hidden" status, as well as users who are "PENDING" or "INACTIVE"
+     * @param string|int $kUser - id of the user to activate
+     * @return boolean - true if the user was activated, false otherwise
      */
-    {
+    function ActivateUser( string|int $kUser ): bool {
         $bOk = false;
 
         if( ($kfr = $this->GetKfrel('U')->GetRecordFromDBKey( $kUser )) ) {
@@ -1263,19 +1460,28 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
         return( $bOk );
     }
 
-
-    function ChangeUserPassword( $kUser, $sPwd )
-    {
+    /**
+     * Change a users password
+     * @param string|int $kUser - id of the user who's password to change
+     * @param string $sPwd - the new password for the user
+     * @return boolean- true if the password was changed, false otherwise
+     */
+    function ChangeUserPassword( string|int $kUser, string $sPwd ): bool {
         $kUser = intval($kUser);
-        $sdbPwd = addslashes($sPwd);
+        // TODO: Hash & Salt the password (password_hash)
+        $sdbPwd = $sPwd;
 
-        return( $kUser ? $this->GetKFDB()->Execute( "UPDATE {$this->sDB}.SEEDSession_Users SET password='$sdbPwd' WHERE _key='$kUser'" ) : false );
+        return( $kUser ? $this->GetKFDB()->Execute_prepared( "UPDATE {$this->sDB}.SEEDSession_Users SET password = ? WHERE _key = ?;", [$sdbPwd, $kUser] ) : false );
     }
 
-    function SetUserMetadata( $kUser, $k, $v )
-    /*****************************************
+    /**
+     * Set a users metadata
+     * @param string|int $kUser - id of the user who's metadata to set
+     * @param string $k - metadata key to set
+     * @param string $v - value for the metadata to set
+     * @return boolean - true if the metadata was set, false otherwise
      */
-    {
+    function SetUserMetadata( string|int $kUser, string $k, string $v ): bool {
         $ok = false;
 
         $kfrelUM = $this->GetKfrel('UM');
@@ -1294,10 +1500,14 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
         return( $ok );
     }
 
-    function SetGroupMetadata( $kGroup, $k, $v )
-    /*******************************************
+    /**
+     * Set a groups metadata
+     * @param string|int $kGroup - id of the group who's metadata to set
+     * @param string $k - metadata key to set
+     * @param string $v - value for the metadata to set
+     * @return boolean - true if the metadata was set, false otherwise
      */
-    {
+    function SetGroupMetadata( string|int $kGroup, string $k, string $v ): bool {
         $ok = false;
 
         $kfrelGM = $this->GetKfrel('GM');
@@ -1316,16 +1526,18 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2
         return( $ok );
     }
 
-    function DeleteUser( $kUser )
-    /****************************
-        Delete the given user and all of its metadata records.
-Todo: Does not remove from groups.uid
+    /**
+     * Delete a user & their metadata.
+     * Marks the user as "deleted" in the db alongside all their metadata but does not actually delete the user.
+     * Does not remove the user from their groups, though they will no longer be included in the list of group members by default
+     * @param string|int $kUser - id of the user to delete
+     * @return boolean - true if the user was deleted, false otherwise
      */
-    {
+    function DeleteUser( string|int $kUser ): bool {
         $bOk = false;
 
         if( ($kfr = $this->GetKfrel('U')->GetRecordFromDBKey($kUser)) ) {
-            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );    // if the account has been deleted or hidden, undelete it
+            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );    // mark the account as deleted
             $bOk = $kfr->PutDBRow();
         }
 
@@ -1340,10 +1552,14 @@ Todo: Does not remove from groups.uid
         return( $bOk );
     }
 
-    function DeleteUserMetadata( $kUser, $k )
-    /****************************************
+    /**
+     * Delete a users metadata.
+     * Marks the metadata as "deleted" in the db but does not actually delete it.
+     * @param string|int $kUser - id of user who's metadata to delete
+     * @param string $k - metadata key to delete
+     * @return boolean - true if the metadata was deleted, false otherwise
      */
-    {
+    function DeleteUserMetadata( string|int $kUser, string $k ): bool {
         $ok = false;
 
         $kfrelUM = $this->GetKfrel('UM');
@@ -1356,10 +1572,14 @@ Todo: Does not remove from groups.uid
         return( $ok );
     }
 
-    function DeleteGroupMetadata( $kGroup, $k )
-    /******************************************
+    /**
+     * Delete a groups metadata.
+     * Marks the metadata as "deleted" in the db but does not actually delete it.
+     * @param string|int $kGroup - id of the group who's metadata to delete
+     * @param string $k - metadata key to delete
+     * @return boolean - true if metadata was deleted, false otherwise
      */
-    {
+    function DeleteGroupMetadata( string|int $kGroup, string $k ): bool {
         $ok = false;
 
         $kfrelGM = $this->GetKfrel('GM');
@@ -1372,13 +1592,16 @@ Todo: Does not remove from groups.uid
         return( $ok );
     }
 
-    function AddUserToGroup( $kUser, $kGroup )
-    /*****************************************
-        If the user is in the group, return true
-        If gid1 is 0, set it to kGroup
-        else add a row to UsersXGroups
+    /**
+     * Add a user to the given group.
+     * If the user is already in the given group, return true (no-op).
+     * If the user's gid1 (first group) is 0, set it to the given group.
+     * Else, add a row to UserXGroups
+     * @param string|int $kUser - id of the user to add to the group
+     * @param string|int $kGroup - id of group to add the user to
+     * @return boolean - true if the user was added to the group, false otherwise
      */
-    {
+    function AddUserToGroup( string|int $kUser, string|int $kGroup ): bool {
         $ok = false;
 
         $kfrU = $this->GetKfrel('U')->GetRecordFromDBKey( $kUser );
@@ -1404,16 +1627,17 @@ Todo: Does not remove from groups.uid
         return( $ok );
     }
 
-    function RemoveUserFromGroup( $kUser, $kGroup )
-    /**********************************************
-        If the user is not in the group, return true
-        If gid1 is kGroup, set it to zero
-        If kGroup is in one of the user's UsersXGroups rows, delete that row
-
-        UsersXGroups rows are deleted permanently, not via _status, because otherwise
-        they're weird to reinstate and there's not much reason to keep them
+    /**
+     * Remove a user from the given group.
+     * If the user is not in the given group, return true (no-op).
+     * If the user's gid1 (first group) is the given group, set it to 0.
+     * If the given group exists in UsersXGroups for the user, delete that row.
+     * UserXGroups rows are completely removed from the db, instead of being soft deleted like Users.
+     * @param string|int $kUser - id of the user to remove from the group
+     * @param string|int $kGroup - id of the group to remove the user from
+     * @return boolean - true if the user was removed from the group, false otherwise
      */
-    {
+    function RemoveUserFromGroup( string|int $kUser, string|int $kGroup ): bool {
         $ok = false;
 
         $kfrU = $this->GetKfrel('U')->GetRecordFromDBKey( $kUser );
@@ -1431,7 +1655,7 @@ Todo: Does not remove from groups.uid
         }
 
         // do this even if gid1 matched because the group might be duplicated
-        $this->KFDB()->Execute( "DELETE FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid='$kUser' AND gid='$kGroup'" );
+        $this->KFDB()->Execute_prepared( "DELETE FROM {$this->sDB}SEEDSession_UsersXGroups WHERE uid=? AND gid=?", [$kUser, $kGroup] );
 
         done:
         return( $ok );
