@@ -846,9 +846,11 @@ class ProjectsTabOffice
                                                  'bean'         =>['control'=>'checkbox'],
                                      ]]);
         $oForm->Update();
+        // years from current..2024
+        $raYears = []; for($y=date('Y'); $y >= 2024; --$y) $raYears["{$y}"] = $y;
         $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:5px;padding:1em'><form>
                <p>".$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Core growers"=>'core_growers', "Profile Observations"=>'desc_obs'])."</p>
-               <p>".$oForm->Select('year', ['2025'=>2025, '2024'=>2024])."</p>
+               <p>".$oForm->Select('year', $raYears)."</p>
                <p>".$oForm->Text('workflow','',['size'=>4])." min workflow</p>"
 
 /*
