@@ -756,8 +756,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations {
             $cond = "email = ? AND _status = 0";
         }
 
-        // Password excluded for security reasons
-        $sql = "SELECT _key, _created, _created_by, _updated, _updated_by, _status, realname, email, lang, gid1, eStatus, sExtra FROM {$this->sDB}SEEDSession_Users WHERE {$cond};";
+        $sql = "SELECT _key, _created, _created_by, _updated, _updated_by, _status, realname, email, password, lang, gid1, eStatus, sExtra FROM {$this->sDB}SEEDSession_Users WHERE {$cond};";
         $raUser = $this->GetKFDB()->QueryRA_prepared($sql, [$userIdOrEmail]);
         $raMetadata = array();
 
@@ -1405,6 +1404,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2 {
 
     /**
      * Create a new user.
+     * Handles hashing the password before writing it to the db.
      * If a user with the given username/email already exists, return that id instead of creating a user.
      * @param string $sEmail - username or email to use for the user. Must be unique
      * @param string $sPwd - password for the user
@@ -1420,8 +1420,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2 {
      */
     function CreateUser( string $sEmail, string $sPwd, array $raParms = array() ): string|int {
         $kUser       = intval(@$raParms['k']);      // 0 means use the next auto-increment
-        // TODO: Hash & Salt the password (password_hash)
-        $sdbPwd      = $sPwd;
+        $sdbPwd      = password_hash($sPwd, PASSWORD_BCRYPT);
         $sdbRealname = @$raParms['realname'] ?? "";
         $sdbExtra    = @$raParms['sExtra'] ?? "";
         $eStatus     = SEEDCore_ArraySmartVal( $raParms, 'eStatus', array('PENDING','ACTIVE','INACTIVE') );
@@ -1461,15 +1460,15 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2 {
     }
 
     /**
-     * Change a users password
+     * Change a users password.
+     * Handles hashing the password before writing it to the db.
      * @param string|int $kUser - id of the user who's password to change
      * @param string $sPwd - the new password for the user
      * @return boolean- true if the password was changed, false otherwise
      */
     function ChangeUserPassword( string|int $kUser, string $sPwd ): bool {
         $kUser = intval($kUser);
-        // TODO: Hash & Salt the password (password_hash)
-        $sdbPwd = $sPwd;
+        $sdbPwd = password_hash($sPwd, PASSWORD_BCRYPT);
 
         return( $kUser ? $this->GetKFDB()->Execute_prepared( "UPDATE {$this->sDB}.SEEDSession_Users SET password = ? WHERE _key = ?;", [$sdbPwd, $kUser] ) : false );
     }

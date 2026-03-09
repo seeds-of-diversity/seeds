@@ -78,9 +78,11 @@ class SEEDSessionAccount extends SEEDSession
 
     const TS_LOGOUT = 1;                // this timestamp is very far in the past, so the session is seen as expired
 
-    public $oDB = null;     // deprecate in favour of oDB2
-    public $oAuthDB = null; // old code refers to this, deprecate
-    public $oDB2 = null;
+    /**
+     * Database object for accessing user info
+     * @var SEEDSessionAccountDBRead2
+     */
+    public $oDB = null;
 
     private $bLogin = false;
     private $eLoginState = self::SESSION_NONE;
@@ -116,12 +118,8 @@ class SEEDSessionAccount extends SEEDSession
 
         $this->kfdb = $kfdb;
         $this->initKfrel(0);    // uid 0 because we don't know who we are yet and this is readonly anyway
-// deprecate oDB and use oDB2 instead
-        $this->oDB = new SEEDSessionAccountDBRead( $kfdb );
-        $this->oAuth = $this->oDB;
 
-        $this->oDB2 = new SEEDSessionAccountDBRead2($kfdb,0);   // uid 0 because we don't know who we are yet and this is readonly anyway
-
+        $this->oDB = new SEEDSessionAccountDBRead2( $kfdb, 0 ); // uid 0 because we don't know who we are yet and this is readonly anyway
 
         if( ($logfile = @$raParms['logfile']) ) {
             $this->logfile = $logfile;
@@ -135,7 +133,7 @@ class SEEDSessionAccount extends SEEDSession
         $sUid = @$raParms['uid'] ?: SEEDInput_Str( $this->httpNameUID );
         $sPwd = @$raParms['pwd'] ?: SEEDInput_Str( $this->httpNamePWD );
         $sMagicLink = @$raParms['ml'] ?: SEEDInput_Str( $this->httpNameML );
-
+        
         /* It is imperative that these be removed from the _REQUEST array, because several applications copy
          * and reissue GPC parms to subsequent pages.  This would reveal the password in client application links.
          */
@@ -148,7 +146,7 @@ class SEEDSessionAccount extends SEEDSession
         unset($_REQUEST[$this->httpNameUID]);
         unset($_REQUEST[$this->httpNamePWD]);
         unset($_REQUEST[$this->httpNameML]);
-
+        
         /* First see if the user is trying to login, because they can login to override a current session (especially on a page
          * where their current user session doesn't have the required perms).
          * If no login is being attempted, look for an existing user session.
@@ -527,16 +525,30 @@ class SEEDSessionAccount extends SEEDSession
 
         // sUid can be a user key or email
         list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo( $sUid );
-        if( $kUser &&
-            (@$raUser['password'] == $sPwd || $bNoPassword) &&
-            @$raUser['eStatus'] == 'ACTIVE' )
-        {
-            // Create a session record
-            $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
-        }
-        if( $ok ) {
-            // save the session id string in $_SESSION so findSession() can find this user session again
-            $this->VarSet( $this->kSessionIdStr, $this->kfrSession->Value('sess_idstr') );
+        if ($kUser && @$raUser['eStatus'] == 'ACTIVE') {
+            if ($bNoPassword) {
+                // Not using a password
+                // Create a session record
+                $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
+            } else if (@$raUser['password'] && password_verify($sPwd, $raUser['password'])) {
+                // Hashed passwords match
+                // Create a session record
+                $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
+            } else if(@$raUser['password'] && !password_get_info($raUser['password'])['algo'] && $raUser['password'] == $sPwd) {
+                // Password doesn't appear to be hashed, fallback to old check and upgrade
+                // Create a session record
+                $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
+            }
+            if( $ok ) {
+                // save the session id string in $_SESSION so findSession() can find this user session again
+                $this->VarSet( $this->kSessionIdStr, $this->kfrSession->Value('sess_idstr') );
+                if (!$bNoPassword && password_needs_rehash($raUser['password'], PASSWORD_BCRYPT)) {
+                    // We successfully logged in using a password, and it needs to be rehashed/upgraded
+                    $oDB = new SEEDSessionAccountDB2($this->kfdb, $raUser['_key']);
+                    // Change the user's password to upgrade it
+                    $oDB->ChangeUserPassword($raUser['_key'], $sPwd);
+                }
+            }
         }
 
         return( $ok );
