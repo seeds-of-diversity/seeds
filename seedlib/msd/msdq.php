@@ -50,7 +50,8 @@ class MSDQ extends SEEDQ
 
             $kfrS = $kSeed ? $this->oMSDCore->GetSeedKfr( $kSeed ) : $this->oMSDCore->CreateSeedKfr();
             if( !$kfrS || ($kSeed && !$this->canWriteSeed($kfrS) )) {
-                $rQ['sErr'] = "<p>Cannot update information for seed #$kSeed.</p>";
+                // most likely cause is login timeout in seed edit
+                $rQ['sErr'] = "<p>Cannot update information for seed #$kSeed. Please refresh your screen and login again</p>";
                 goto done;
             }
 
