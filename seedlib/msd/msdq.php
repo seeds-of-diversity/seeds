@@ -501,7 +501,14 @@ class MSDQ extends SEEDQ
          */
         if( !($price = $kfrS->Value('item_price')) ) {
             // blank so set default
-            $price = in_array( $kfrS->Value('species'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "18.00" : "3.50";
+            $price = "4.00";
+            $sp = strtoupper($kfrS->Value('species'));
+            if( in_array($sp, ['POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC']) ) {
+                $price = "20.00";
+            } else
+            if( SEEDCore_StartsWith($sp, 'BEAN') || SEEDCore_StartsWith($sp, 'PEA') || SEEDCore_StartsWith($sp, 'SQUASH') ) {
+                $price = "5.00";
+            }
             $kfrS->SetValue( 'item_price', $price );
         } else if( is_numeric($price) ) {
             $price = sprintf( "%.2f", floatval($price) );
