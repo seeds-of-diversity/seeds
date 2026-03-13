@@ -259,6 +259,9 @@ class SEEDBasket_EditList extends ConsoleEditList
         }
     }
 
+    /**
+     * Called after the form is shown, so e.g. elements are focusable.
+     */
     FormOpen_InitForm( jFormDiv, kItem )
     {
         super.FormOpen_InitForm( jFormDiv, kItem );     // disable new and edit buttons
@@ -266,6 +269,9 @@ class SEEDBasket_EditList extends ConsoleEditList
         // disable all control buttons for all items, while the form is open
         $(".msdSeedEditButtonContainer button").attr("disabled","disabled");
         $(".msdSeedEditGlobalControls  button").attr("disabled","disabled");
+
+        // nice to put focus on the first editable item, especially since category defaults to most common value
+        jFormDiv.find('#msdSeedEdit_species').focus();
     }
 
     FormClose_PostClose( jItem )

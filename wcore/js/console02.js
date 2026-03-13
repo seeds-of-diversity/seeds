@@ -231,10 +231,8 @@ class ConsoleEditList
         jFormDiv.find("form").submit( function(e) { e.preventDefault(); saveThis.FormSave( kItem ); } );
         jFormDiv.find(".seededit-form-button-cancel").click( function(e) { e.preventDefault(); saveThis.FormCancel(); } );
 
-        // connect event listeners in the new form, etc.
-        this.FormOpen_InitForm( jFormDiv, kItem );
-
-        jFormDiv.fadeIn(500);
+        // connect event listeners in the new form, etc. but only after it is visible (e.g. focus can only be set after visible)
+        jFormDiv.fadeIn(500, function () {saveThis.FormOpen_InitForm(jFormDiv,kItem);});
     }
 
     FormSave( kItem )
@@ -376,7 +374,8 @@ class ConsoleEditList
 
     FormOpen_InitForm( jFormDiv, kItem )
     /***********************************
-        Override to initialize the given form
+        Called after the form is visible so e.g. elements are focusable.
+        Override to initialize the given form.
      */
     {
         // disable all control buttons for all items, while the form is open
