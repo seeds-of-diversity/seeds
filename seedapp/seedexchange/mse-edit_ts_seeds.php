@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for seeds tab
  *
- * Copyright (c) 2018-2024 Seeds of Diversity
+ * Copyright (c) 2018-2026 Seeds of Diversity
  *
  */
 
@@ -77,7 +77,7 @@ class MSEEditAppSeedEdit
         "<div class='well seededit-item seededit-item-msd' data-kitem='[[kP]]' style='margin:5px'>"
            ."<div class='msdSeedEditButtonContainer' style='float:right'>"
                ."<button class='seededit-ctrledit' style='display:none'>Edit</button><br/>"
-               ."<button class='seededit-ctrlskip' style='display:none'>Skip</button><br/>"
+               ."<button class='seededit-ctrlskip' style='display:none'>Inactivate</button><br/>"
                ."<button class='seededit-ctrldelete' style='display:none'>Delete</button></div>"
            ."<div class='seededit-form-msg'></div>"
            ."<div class='seededit-text' style='padding:0px'>[[sSeedText]]</div>"
@@ -186,20 +186,19 @@ $msdSeedEditForm = <<<msdSeedEditForm
         <td><div class='msdSeedEdit_instruction'><b>Days to maturity</b>: In the first box, estimate how many days after sowing/transplanting it takes for the produce to ripen for best eating. In the second box estimate the number of days until the seed is ripe to harvest. Leave blank if not applicable.</div></td>
     </tr><tr>
         <td><input type='text' id='msdSeedEdit_origin' name='origin' class='msdSeedEdit_inputText'/></td>
-        <td><div class='msdSeedEdit_instruction'><b>Origin</b>: Record where you got the original seeds. e.g. another member, a seed company, a local Seedy Saturday.</div></td>
+        <td><div class='msdSeedEdit_instruction'><b>Origin</b>: Record where you got the original seeds. e.g. another seed saver, a seed company, a local Seedy Saturday.</div></td>
     </tr><tr>
         <td><select id='msdSeedEdit_quantity' name='quantity'><option value=''></option><option value='LQ'>Low Quantity</option><option value='PR'>Please Re-offer</option></select></td>
         <td><div class='msdSeedEdit_instruction'><b>Quantity</b>: If you have a low quantity of seeds, or if you want to ask requesters to re-offer seeds, indicate that here.</div></td>
     </tr><tr>
         <td><select id='msdSeedEdit_eOffer' name='eOffer'>
-                <option value='member'>All Members</option>
-                <option value='grower-member'>Only members who also list seeds</option>
-                <!-- <option value='public'>General public</option> -->
+                <option value='member'>Anyone can request</option>
+                <option value='grower-member'>Only listers can request</option>
             </select></td>
-        <td><p class='msdSeedEdit_instruction'><b>Who may request these seeds from you</b>: <span id='msdSeedEdit_eOffer_instructions'></span></p></td>
+        <td><p class='msdSeedEdit_instruction'><span id='msdSeedEdit_eOffer_instructions'></span></p></td>
     </tr><tr>
         <td><nobr>$<input type='text' id='msdSeedEdit_item_price' name='item_price' class='msdSeedEdit_inputText'/></nobr></td>
-        <td><div class='msdSeedEdit_instruction'><b>Price</b>: We recommend $3.50 for seeds and $18.00 for roots and tubers. That is the default if you leave this field blank. Members who offer seeds (like you!) get an automatic discount of $1 per item.</div></td>
+        <td><div class='msdSeedEdit_instruction'><b>Price</b>: We recommend $4.00 for small seeds, $5.00 for large seeds, and $20.00 for roots and tubers. People who offer seeds (like you!) get an automatic discount of $1 per item.</div></td>
     </tr></table>
 msdSeedEditForm;
 $msdSeedEditForm = str_replace("\n","",$msdSeedEditForm);   // jquery doesn't like linefeeds in its selectors
@@ -290,12 +289,12 @@ class SEEDBasket_EditList extends ConsoleEditList
             default:
             case 'ACTIVE':
                 jItem.find(".seededit-ctrledit").show().html( "Edit" );
-                jItem.find(".seededit-ctrlskip").show().html( "Skip" );
+                jItem.find(".seededit-ctrlskip").show().html( "Inactivate" );
                 jItem.find(".seededit-ctrldelete").show().html( "Delete" );
                 break;
             case 'INACTIVE':
                 jItem.find(".seededit-ctrledit").show().html( "Edit" );
-                jItem.find(".seededit-ctrlskip").show().html( "Un-skip" );
+                jItem.find(".seededit-ctrlskip").show().html( "Re-activate" );
                 jItem.find(".seededit-ctrldelete").show().html( "Delete" );
                 break;
             case 'DELETED':
@@ -376,14 +375,16 @@ class MSDSeedEditList extends SEEDBasket_EditList
         switch( jFormDiv.find("#msdSeedEdit_eOffer").val() ) {
             default:
             case 'member':
-                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "Only members of Seeds of Diversity will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to members." );
+                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "<b>Anyone registered in the Seed Exchange</b> will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to participants." );
                 break;
             case 'grower-member':
-                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "Only members of Seeds of Diversity <b>who also list seeds in this directory</b> will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to members." );
+                jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "<b>Only seed savers who also list seeds in the Seed Exchange</b> will be able to request these seeds. Although the listing will be visible to the public, your contact information will only be available to participants." );
                 break;
+            /*
             case 'public':
                 jFormDiv.find('#msdSeedEdit_eOffer_instructions').html( "Anyone who visits the online Seed Directory will be able to request these seeds, whether or not they are a member of Seeds of Diversity. <b>Your name and contact information will be visible to the public.</b> The printed Seed Directory is still only available to members." );
                 break;
+             */
          }
     }
 

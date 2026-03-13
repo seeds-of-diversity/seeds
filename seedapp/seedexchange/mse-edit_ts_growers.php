@@ -2,7 +2,7 @@
 
 /* mse-edit tabset for growers tab
  *
- * Copyright (c) 2018-2024 Seeds of Diversity
+ * Copyright (c) 2018-2026 Seeds of Diversity
  *
  */
 
@@ -133,7 +133,7 @@ class MSEEditAppTabGrower
                </div>
                <div class='col-md-2'>
                    <form method='post'>
-                   <table><tr><td><b>Done<br/>Skipped&nbsp;</br>Deleted&nbsp;</b></td>
+                   <table><tr><td><b>Done<br/>Inactive&nbsp;</br>Deleted&nbsp;</b></td>
                      </td><td>"
                     .$oForm->Select('bDone', ['--'=>-1, 'Done'=>1,    'Not Done'=>0],    "", ['attrs'=>"onchange='submit()'"])."<br/>"
                     .$oForm->Select('bSkip', ['--'=>-1, 'Skipped'=>1, 'Not Skipped'=>0], "", ['attrs'=>"onchange='submit()'"])."<br/>"
@@ -224,9 +224,9 @@ class MSEEditAppTabGrower
         $raD['dLastLogin'] = $this->oApp->kfdb->Query1( "SELECT left(MAX(_created),10) FROM {$this->oApp->DBName('seeds1')}.SEEDSession WHERE uid='$kGrower'" );
 
         $sSkip = $kfrG->Value('bSkip')
-                    ? ("<div style='background-color:#ee9'><span style='font-size:12pt'>Skipped</span>"
-                      ." <a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Unskip this grower</a></div>")
-                    : ("<div><a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Skip this grower</a></div>");
+                    ? ("<div style='background-color:#ee9'><span style='font-size:12pt'>Inactive</span>"
+                      ." <a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Re-activate this grower</a></div>")
+                    : ("<div><a href='{$_SERVER['PHP_SELF']}?gskip=$kGrower'>Inactivate this grower</a></div>");
         $sDel = $kfrG->Value('bDelete')
                     ? ("<div style='background-color:#fdf'><span style='font-size:12pt'>Deleted</span>"
                       ." <a href='{$_SERVER['PHP_SELF']}?gdelete=$kGrower'>UnDelete this grower</a></div>")
