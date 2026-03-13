@@ -202,7 +202,8 @@ class ConsoleEditList
         } else {
             $(".seededit-list").prepend( jItem );
         }
-
+        jItem.get(0).scrollIntoView();      // same as document.getElementFromId(id).scrollIntoView() except there's no id
+        
         this.Item_Init( jItem );
 
         // make it the current item, open the form in the container, mark it as a New form so Cancel will remove() it
