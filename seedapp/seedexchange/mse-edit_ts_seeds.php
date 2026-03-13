@@ -361,6 +361,7 @@ class MSDSeedEditList extends SEEDBasket_EditList
             }
         } else {
             // this is a new form - set defaults
+            jFormDiv.find('#msdSeedEdit_category').val('vegetables');
         }
 
         // Show the correct side-text for the selected eOffer, and set a function to do that when eOffer changes.
@@ -462,8 +463,8 @@ basketScript;
                var msdSELConfig = {
                         // base
                         itemtype:          'msd',
-                        itemhtml:          \"$msdSeedEditItemTemplate\",
-                        formhtml:          \"$msdSeedEditForm\",
+                        itemhtml:          \"{$msdSeedEditItemTemplate}\",
+                        formhtml:          \"{$msdSeedEditForm}\",
 
                         // derived
                         qUrl:              '".Site_UrlQ('basketJX.php')."',
