@@ -101,10 +101,10 @@ class MSDQ extends SEEDQ
                  *
                  * output: bOk, sErr, raOut=validated and stored seed record, sOut=revised html seedDraw
                  */
-// if login times out this is what people see
                 if( ($this->kUidSeller == 0 || $this->kUidSeller == -1) && !$kSeed ) {
                     // -1 is only possible with MSDOffice. It means don't override uid_seller, not allowed for Add
-                    $rQ['sErr'] = "Cannot add a seed item in species-edit mode";
+// most likely cause is login timeout - would be nice to redirect to login but the ajax client has to do that
+                    $rQ['sErr'] = "Cannot save - please refresh your screen and login again"; //"Cannot add a seed item in species-edit mode";
                     goto done;
                 }
 
