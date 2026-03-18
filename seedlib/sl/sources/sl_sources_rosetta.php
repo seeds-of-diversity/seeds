@@ -29,17 +29,13 @@ class SLSourceCV_Build
     {
         self::checkTable( $oApp, $dbtable );
 
-        $s = "<h4>Rebuilding the indexes for $dbtable</h4>"
-            ."<p style='margin-left:10px'>";
-
-        $cAll = $oApp->kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status=0" );
+        $s = "<h4>Rebuilding the indexes for $dbtable</h4>";
 
         /* Company name is only stored in sl_tmp_cv_sources to save space in the larger tables.
          * That means you can't clear fk_sl_sources in the permanent tables and expect it to be rebuilt.
          */
-        if( $dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources" ) {
+        if( self::IsTmpTable($oApp, $dbtable) ) {
             self::BuildSourcesIndex( $oApp, $dbtable, @$raParms['bIncludeOldSources'] ? ['iStatusSrc'=>-1] : [] );
-            $s .= "<p>Rebuilt source keys in upload table.</p>";
         }
 
         /* Delete the sp and cv index
@@ -51,20 +47,47 @@ class SLSourceCV_Build
         /* Species: fill in all the fk_sl_species keys that we can find in RosettaSEED
          */
         self::BuildSpeciesIndex( $oApp, $dbtable, "" );
-        $c = $oApp->kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status=0 AND fk_sl_species" );
-        $s .= "<p>Species index rebuilt ($c / $cAll)</p>";
 
         /* Cultivars: fill in all the cv keys that we can find in RosettaSEED (for SrcCV records that have species keys now)
          */
         self::BuildCultivarIndex( $oApp, $dbtable, "" );
-        $c = $oApp->kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status=0 AND fk_sl_pcv" );
-        $s .= "<p>Cultivar index rebuilt ($c / $cAll)</p>";
 
         /* Compute soundex and metaphone for unmatched names
          */
         self::BuildSoundIndex( $oApp, $dbtable );
 
         return( $s );
+    }
+
+    static function GetTableStatus( SEEDAppDB $oApp, string $dbtable )
+    {
+        $raOut = ['nRows'             => $oApp->kfdb->Query1("SELECT count(*) as c FROM $dbtable WHERE _status=0"),
+                  'raSrcMatched'      => $oApp->kfdb->QueryRowsRA(
+                                            "SELECT fk_sl_sources as k,S.name_en as company
+                                             FROM {$dbtable}, {$oApp->DBName('seeds1')}.sl_sources S
+                                             WHERE fk_sl_sources=S._key AND fk_sl_sources<>0
+                                             GROUP BY fk_sl_sources,S.name_en"),
+                  'raSrcNotMatched'   => $oApp->kfdb->QueryRowsRA(
+                                            "SELECT company FROM {$dbtable}
+                                             WHERE fk_sl_sources=0 GROUP BY company"),
+                  'nSpMatched'        => $oApp->kfdb->Query1("SELECT count(*) FROM $dbtable WHERE _status=0 AND fk_sl_species GROUP BY fk_sl_species"),
+                  'raSpNotMatched'    => $oApp->kfdb->QueryRowsRA1("SELECT osp FROM $dbtable WHERE _status=0 AND fk_sl_species=0 GROUP BY osp"),
+                  'nRowsCvMatched'    => $oApp->kfdb->Query1("SELECT count(*) FROM $dbtable WHERE _status=0 AND fk_sl_pcv"),
+                  'nRowsCvNotMatched' => $oApp->kfdb->Query1("SELECT count(*) FROM $dbtable WHERE _status=0 AND fk_sl_pcv=0"),
+                  'sReport'           => ""
+        ];
+
+        $raOut['sReport'] .=
+            "<p>Companies: ".count($raOut['raSrcMatched'])." matched; "
+                            .count($raOut['raSrcNotMatched'])." not matched<br/>"
+           .SEEDCore_ArrayExpandRows($raOut['raSrcNotMatched'], "<span style='color:red'>[[company]]</span><br/>")
+           ."</p>"
+           ."<p>Species: {$raOut['nSpMatched']} matched; "
+                        .count($raOut['raSpNotMatched'])." not matched<br/>"
+           .SEEDCore_ArrayExpandSeries($raOut['raSpNotMatched'], "<span style='color:red'>[[]]</span><br/>")
+           ."<p>Cultivars: {$raOut['nRowsCvMatched']} rows matched; {$raOut['nRowsCvNotMatched']} rows not matched</p>";
+
+        return($raOut);
     }
 
     static function ClearIndex( SEEDAppDB $oApp, $dbtable )
@@ -105,8 +128,7 @@ class SLSourceCV_Build
         $sCond = @$raParms['sCond'];
         $iStatusSrc = intval(@$raParms['iStatusSrc']);
 
-        //self::checkTable( $dbtable );
-        ($dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources") or die( "Can't build sources for table $dbtable - only allowed for {$oApp->DBName('seeds1')}.sl_tmp_cv_sources" );
+        self::IsTmpTable($oApp, $dbtable) or die( "Can't build sources for table $dbtable - only allowed for {$oApp->DBName('seeds1')}.sl_tmp_cv_sources[2]" );
 
         $ok =
         $oApp->kfdb->Execute(
@@ -211,8 +233,17 @@ $sCond="SrcCV.fk_sl_sources>=3";
         }
     }
 
+    static function IsTmpTable( SEEDAppDB $oApp, string $dbtable )
+    {
+        return(($dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources") ||
+               ($dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources2"));
+    }
+
     static private function checkTable( SEEDAppDB $oApp, $dbtable )
     {
-        in_array( $dbtable, ["{$oApp->DBName('seeds1')}.sl_cv_sources", "{$oApp->DBName('seeds1')}.sl_cv_sources_archive", "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources"] )  or  die( "$dbtable not allowed" );
+        in_array( $dbtable, ["{$oApp->DBName('seeds1')}.sl_cv_sources",
+                             "{$oApp->DBName('seeds1')}.sl_cv_sources_archive",
+                             "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources",
+                             "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources2"] )  or  die( "$dbtable not allowed" );
     }
 }
