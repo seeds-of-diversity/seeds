@@ -72,22 +72,22 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
      */
     if( $qcmd == 'myprojects--add' ) {
         $kLot = 0;
-        $psp = $oname = "";
+        $psp = $oname = $projcode = "";
 
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
-        switch( ($sProjname = SEEDInput_Str('projectName')) ) {
-            case 'cgo2026gc':
+        switch( ($projcode = SEEDInput_Str('projcode')) ) {
+            case 'cgo_gc':
                 /* record project, psp, oname
                  */
                 $psp = 'ground-cherry';
                 $oname = "Tall-bearing selection from ".(date('Y')-1)."";
                 break;
-            case 'cgo2026tomato':
-            case 'cgo2026bean':
+            case 'cgo_tomato':
+            case 'cgo_bean':
                 /* record project, kLot, and psp just for good measure
                  */
-                $psp = substr($sProjname,7); // 'tomato' or 'bean'
+                $psp = substr($projcode,4); // 'tomato' or 'bean'
                 if( ($iLot = SEEDInput_Int('iLot')) ) {
                     $kLot = (new SLDBCollection($oApp))->GetRecordVal1Cond('I', "fk_sl_collection='1' AND inv_number='$iLot'", '_key');
                 }
@@ -104,8 +104,9 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
             $kfr->SetValue('psp', $psp);
             $kfr->SetValue('oname', $oname);
             $kfr->SetValue('fk_sl_inventory', $kLot);
-            $kfr->UrlParmSet('metadata', 'project', $sProjname);
-            $kfr->SetValue('year', 2026);
+// obsolete            $kfr->UrlParmSet('metadata', 'project', $sProjname);
+            $kfr->SetValue('projcode', $projcode);
+            $kfr->SetValue('year', $oP->CurrentYear());
 
             if( $kfr->PutDBRow() ) {
                 $rQ['bOk'] = true;
@@ -119,9 +120,9 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
     if( $qcmd == 'myprojects--remove' ) {
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
-        if( ($sProjname = SEEDInput_Str('projectName')) &&
+        if( ($projcode = SEEDInput_Str('projcode')) &&
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
-            ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} && metadata LIKE '%project=".addslashes($sProjname)."%'")) )
+            ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} AND year={$oP->CurrentYear()} AND projcode='{$projcode}'")) )
         {
             $kfr->StatusSet(KeyFrameRecord::STATUS_DELETED);
             if( $kfr->PutDBRow() ) {
@@ -130,6 +131,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
         }
     }
 
+// obsolete since 2025
     if( $qcmd == 'myprojects--choosebean' ) {
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
@@ -229,14 +231,23 @@ class ProjectsCommon
                  "-3 - Did not return seeds"        => -3,
                 ];
 
-    function __construct( SEEDAppConsole $oApp, array $raParms = [] )
+    private $currYear;
+
+    function __construct( SEEDAppConsole $oApp, array $raConfig = [] )
     {
         $this->oApp = $oApp;
         $this->oProfilesDB = new SLProfilesDB($oApp);
         $this->oL = new SEED_Local( $this->sLocalStrs(),
-                                    @$raParms['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
+                                    @$raConfig['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
                                     'myprojects' );
+
+        $this->currYear = @$this->raConfig['currYear'] ?: date("Y", time()+3600*24*30 );  // year of 30 days from now (so Dec,Jan-Nov is same year as Jan)
     }
+
+    /**
+     * The current project year
+     */
+    function CurrentYear()  { return($this->currYear); }
 
     function CanReadOtherUsers()
     {
@@ -483,7 +494,7 @@ class ProjectsTabProjects
          */
         if( ($u = intval($this->kCurrMbr)) ) {
             $raY = [];
-            foreach([2026,2025,2024] as $year) {
+            for( $year = $this->oP->CurrentYear(); $year >= 2024; --$year ) {
                 foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
                     if(!isset($raY[$year])) {
                         $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
@@ -547,9 +558,9 @@ class ProjectsTabProjects
         include_once("cgo_signup.php");
 
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
-        $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026gc%'");
-        $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026tomato%'");
-        $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026bean%'");
+        $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND year={$this->oP->CurrentYear()} AND projcode='cgo_gc'");
+        $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND year={$this->oP->CurrentYear()} AND projcode='cgo_tomato'");
+        $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND year={$this->oP->CurrentYear()} AND projcode='cgo_bean'");
 
         //$s .= "<h4 class='alert alert-success' style='color:green'>We have lots of seeds left so we've extended the deadline!</h4>";
 
@@ -904,10 +915,10 @@ class ProjectsTabOffice
                  WHERE V1._status=0 AND V2._status=0 AND
                        V1.year={$oForm->ValueDB('year')} AND V2.year={$oForm->ValueDB('year')} AND
                        V1.fk_mbr_contacts=V2.fk_mbr_contacts AND
-                       V1._key < V2._key AND
+                       V1.projcode='core' AND
                        V1.projcode <> V2.projcode")) )
         {
-            $this->oP->oApp->oC->AddErrMsg(count($raTest)." growers are in multiple projects: ".SEEDCore_ArrayExpandRows($raTest, "[[kMbr]] ")."<br/>");
+            $this->oP->oApp->oC->AddErrMsg(count($raTest)." core growers are in cgo projects: ".SEEDCore_ArrayExpandRows($raTest, "[[kMbr]] ")."<br/>");
         }
 
         $sCond = "year='{$oForm->ValueDB('year')}' AND projcode LIKE 'cgo_%'"
@@ -1184,18 +1195,18 @@ class CGOSignup
     static doRegister(jThis)
     {
         let jForm = jThis.closest('.cgosignup-form');
-        let projName = jForm.data('project');
+        let projcode = jForm.data('projcode');
         let iLot = 0;
 
-        if(projName=='cgo2026tomato') {
+        if(projcode=='cgo_tomato') {
             iLot = document.getElementById('cgosignup-form-tomatoselect').value;
         }
-        if(projName=='cgo2026bean') {
+        if(projcode=='cgo_bean') {
             iLot = document.getElementById('cgosignup-form-beanselect').value;
         }
 
         let o = {qcmd:'myprojects--add',
-                projectName: projName,
+                projcode: projcode,
                 uid: CGOSignup_Uid,
                 iLot: iLot};
         let rQ = SEEDJXAsync2("myprojects.php", o,
@@ -1206,16 +1217,16 @@ class CGOSignup
                          }
                      });
 
-        console.log(rQ);
+        //console.log(rQ);
     }
 
 	static doUnregister(jThis)
     {
         let jForm = jThis.closest('.cgosignup-form');
-        let projName = jForm.data('project');
+        let projcode = jForm.data('projcode');
 
         let o = {qcmd:'myprojects--remove',
-                projectName: projName,
+                projcode: projcode,
                 uid: CGOSignup_Uid};
         let rQ = SEEDJXAsync2("myprojects.php", o,
                      function (rQ) {
@@ -1227,7 +1238,7 @@ class CGOSignup
 
     }
 
-    static doChooseBean(jThis)
+    static doChooseBean_ObsoleteSince2025(jThis)
     {
         let jForm = jThis.closest('.cgosignup-form');
         let iLot = document.getElementById('cgosignup-form-beanselect').value;

@@ -73,8 +73,8 @@ $s .= "<style>
     }
 
     protected $sReserve =
-            ['EN' => "<p style='color:red;margin-top:1em'><b>Reserve your seeds by March 14, 2026</b></p>", // <p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>
-             'FR' => "<p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences avant le 14 mars 2026</b></p>", // <p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>
+            ['EN' => "<p style='color:red;margin-top:1em'><b>Reserve your seeds now</b></p>", // <b>Reserve your seeds by March 14, 2026</b>
+             'FR' => "<p style='color:red;margin-top:1em'><b>R&eacute;servez vos semences maintenant</b></p>", // <b>R&eacute;servez vos semences avant le 14 mars 2026</b>
             ];
 }
 
@@ -113,14 +113,6 @@ class CGOSignup_GC extends CGOSignup
                       <li>Send some of your saved seeds back to Seeds of Diversity so we can repeat the process next year.</li>
                       <li>Share some of the seeds in your community.</li>
                       </ul>";
-            $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2026gc'>
-                        <p>Please confirm:<br/>
-                        <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I have at least 30 square feet of garden space for this project.<br/>
-                        <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> I can germinate seeds at 20 - 25 degrees C, and grow seedlings indoors for 8 weeks.
-                        </p>
-                        {$this->drawButton('cgosignup-form-gcbutton', $bRegistered)}
-                    </div>";
         } else {
             $s1 = "<b>Aidez &agrave; produire une meilleure cerise de terre (ann&eacute;e 6)</b>
                    <p>Nous s&eacute;lectionnons des plantes &agrave; croissance verticale parmi une population initialement mixte, en visant une forme de plante plus facile &agrave; r&eacute;colter.</p>
@@ -146,15 +138,20 @@ class CGOSignup_GC extends CGOSignup
                       <li>Renvoyez une partie de vos semences &agrave; Semences du patrimoine afin que nous puissions r&eacute;p&eacute;ter le processus l'ann&eacute;e prochaine.</li>
                       <li>Partagez des semences dans votre communaut&eacute;.</li>
                       </ul>";
-            $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2026gc'>
-                        <p>Veuillez confirmer:<br/>
-                        <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> J'ai au moins 30 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
-                        <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> Je peux faire germer des semences &agrave; 20 - 25 degr&eacute;s C et faire pousser des plants &agrave; l'int&eacute;rieur pendant 8 semaines.
-                        </p>
-                        {$this->drawButton('cgosignup-form-gcbutton', $bRegistered)}
-                    </div>";
         }
+        $s3_checkboxes = [1 => ['EN'=>"I have at least 30 square feet of garden space for this project.",
+                                'FR'=>"J'ai au moins 30 pieds carr&eacute;s d'espace de jardin pour ce projet."],
+                          2 => ['EN'=>"I can germinate seeds at 20 - 25 degrees C, and grow seedlings indoors for 8 weeks.",
+                                'FR'=>"Je peux faire germer des semences &agrave; 20 - 25 degr&eacute;s C et faire pousser des plants &agrave; l'int&eacute;rieur pendant 8 semaines."]
+                         ];
+        $s3 = "<br/><br/><br/>
+                <div class='cgosignup-form' data-projcode='cgo_gc'>
+                    <p>".($this->oP->oL->GetLang()=='EN' ? "Please confirm:" : "Veuillez confirmer").":<br/>
+                    <input type='checkbox' id='cgosignup-form-gc1' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> {$s3_checkboxes[1][$this->oP->oL->GetLang()]}<br/>
+                    <input type='checkbox' id='cgosignup-form-gc2' value='1' onchange='CGOSignup_GroundCherry.doValidate()'/> {$s3_checkboxes[2][$this->oP->oL->GetLang()]}
+                    </p>
+                    {$this->drawButton('cgosignup-form-gcbutton', $bRegistered)}
+                </div>";
 
         $sImg = "https://seeds.ca/d?n=ebulletin/2023/10-groundcherry-1.jpg";
 
@@ -210,7 +207,7 @@ class CGOSignup_Tomato extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
                   .$sCvAvailable;
-            $s3 =  "<div class='cgosignup-form' data-project='cgo2026tomato'>
+            $s3 =  "<div class='cgosignup-form' data-projcode='cgo_tomato'>
                         <p>Please choose a variety below and confirm:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I have at least 20 square feet of garden space for this project.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> I can isolate tomato plants at least 20 feet apart from any other tomato variety.<br/>
@@ -253,7 +250,7 @@ class CGOSignup_Tomato extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Vari&eacute;t&eacute;s disponibles</p>"
                   .$sCvAvailable;
-            $s3 =  "<div class='cgosignup-form' data-project='cgo2026tomato'>
+            $s3 =  "<div class='cgosignup-form' data-projcode='cgo_tomato'>
                         <p>Veuillez choisir une vari&eacute;t&eacute; ci-dessous et confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-tomato1' value='1' onchange='CGOSignup_Tomato.doValidate()'/> J'ai au moins 20 pieds carr&eacute;s d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-tomato2' value='1' onchange='CGOSignup_Tomato.doValidate()'/> Je peux isoler les plants de tomates &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de tomates.<br/>
@@ -395,7 +392,7 @@ class CGOSignup_Bean extends CGOSignup
                    <hr style='border-color:#888'/>
                    <p style='font-weight:bold;font-size:150%'>Varieties Available</p>"
                   .$sCvAvailable;
-            $s3 = "<div class='cgosignup-form' data-project='cgo2026bean'>
+            $s3 = "<div class='cgosignup-form' data-projcode='cgo_bean'>
                         <p>Please choose a variety below and confirm:<br/>
                             <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> I have at least 15 row-feet of garden space for this project.<br/>
                             <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> I can isolate bean plants at least 20 feet apart from any other bean variety.<br/>
@@ -424,7 +421,7 @@ class CGOSignup_Bean extends CGOSignup
                       <li>Partagez des semences dans votre communaut&eacute;.</li>
                       </ul>";
             $s3 = "<br/><br/><br/>
-                    <div class='cgosignup-form' data-project='cgo2026bean'>
+                    <div class='cgosignup-form' data-projcode='cgo_bean'>
                         <p>Veuillez confirmer:<br/>
                             <input type='checkbox' id='cgosignup-form-bean1' value='1' onchange='CGOSignup_Bean.doValidate()'/> J'ai au moins 15 pieds rang&eacute;es d'espace de jardin pour ce projet.<br/>
                             <input type='checkbox' id='cgosignup-form-bean2' value='1' onchange='CGOSignup_Bean.doValidate()'/> Je peux isoler les plants de haricots &agrave; au moins 20 pieds de toute autre vari&eacute;t&eacute; de haricots.<br/>

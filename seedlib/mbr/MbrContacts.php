@@ -127,9 +127,9 @@ class Mbr_Contacts
     static function FirstnameLastname( $raMbr, $prefix = '', array $raParms = [] )
     {
         $bShowOneNameOnly = @$raParms['SHOW_ONE_NAME_ONLY'];
-        
+
         $f1 = $raMbr[$prefix.'firstname'];
-        $l1 = $raMbr[$prefix.'lastname'];  
+        $l1 = $raMbr[$prefix.'lastname'];
         if( !$bShowOneNameOnly ) {
             $f2 = $raMbr[$prefix.'firstname2'];
             $l2 = $raMbr[$prefix.'lastname2'];
@@ -326,7 +326,7 @@ class MbrContactsDraw
         $sExtra_Current = @$raParms['sExtra_Current'] ?? "";
         $sExtra_Expired = @$raParms['sExtra_Expired'] ?? "";
 
-        $sExpires = $this->oMbr->GetAllValues($kMbr)['expires'];
+        $sExpires = @$this->oMbr->GetAllValues($kMbr)['expires'] ?? ""; // failsafe in exceptional cases
         if( $this->oMbr->IsCurrentFromExpires($sExpires) ) {
             $sAlert = 'success';
             $s .= $bEN ? "<p>Your membership is up to date until $sExpires.</p>
@@ -358,7 +358,7 @@ class MbrContactsDraw
 class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
     public const MbrDonationsReceiptAccessor_Mailed = -2;   // whether printed&mailed or emailed, when the office manually sends a receipt to the donor this is the uid_accessor
-    
+
     private $oApp;
 
     function __construct( SEEDAppSessionAccount $oApp )
