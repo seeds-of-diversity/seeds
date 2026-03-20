@@ -36,6 +36,8 @@ class SLSourcesCVUpload
         $this->tmpTable = $dbtable ?: "{$this->oApp->DBName('seeds1')}.sl_tmp_cv_sources";
     }
 
+    function TmpTableName()  { return($this->tmpTable); }
+
     private function uploadCond( $tableAlias = 'T.' )
     {
         return( $this->kUpload ? "{$tableAlias}kUpload='{$this->kUpload}'" : "1=1" );

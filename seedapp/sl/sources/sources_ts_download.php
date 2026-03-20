@@ -5,7 +5,7 @@ include_once( SEEDCORE."SEEDTableSheets.php" );
 include_once( SEEDCORE."console/console02ui.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_db.php" );
 include_once( SEEDLIB."sl/sources/sl_sources_cv_upload.php" );
-include_once( "sources_download_googlesync.php" );
+include_once( "sources_ts_download_csciUpload.php" );
 
 class SLSourcesAppDownload
 {
@@ -20,14 +20,14 @@ class SLSourcesAppDownload
         $this->oSVA = $oSVA;
         $this->oSrcLib = new SLSourcesLib( $this->oApp );
 
-        $raPills = array( 'xlsx-sync'      => ["Spreadsheet Upload Sync"],
-                          'google-sync'    => ["Google Sheet Sync"],
-                          'companies-test' => array( "Seed Companies Test"),
-                          'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
-                          'npgs'           => array( "USA: National Plant Germplasm System (NPGS)" ),
-                          'sound'          => array( "Sound Tests" ),
-                          'one-off-csci'   => array( "One-off CSCI loading" ),
-        );
+        $raPills = ['csci-sync'      => ["Seed Finder Upload Sync"],
+                    'xlsx-sync'      => ["Spreadsheet Upload Sync"],
+                    'companies-test' => array( "Seed Companies Test"),
+                    'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
+                    'npgs'           => array( "USA: National Plant Germplasm System (NPGS)" ),
+                    'sound'          => array( "Sound Tests" ),
+                    'one-off-csci'   => array( "One-off CSCI loading" ),
+        ];
 
         $this->oUIPills = new SEEDUIWidgets_Pills( $raPills, 'pMode', array( 'oSVA' => $this->oSVA, 'ns' => '' ) );
     }
@@ -37,8 +37,8 @@ class SLSourcesAppDownload
         $sMenu = $this->oUIPills->DrawPillsVertical();
         $sBody = "";
         switch( $this->oUIPills->GetCurrPill() ) {
+            case 'csci-sync':           $sBody = (new SLSourcesAppDownload_CSCIUpload($this->oApp))->DoUI();  break;
             case 'xlsx-sync':           $sBody = $this->XLSXUploadSync();        break;
-            case 'google-sync':         $sBody = (new SLSourcesDownload_GoogleSheetSync($this->oApp, []))->DoSync();  break;
             case 'companies-test':      $sBody = $this->companiesTest();    break;
         }
 
