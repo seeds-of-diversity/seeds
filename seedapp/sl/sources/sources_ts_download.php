@@ -20,7 +20,7 @@ class SLSourcesAppDownload
         $this->oSVA = $oSVA;
         $this->oSrcLib = new SLSourcesLib( $this->oApp );
 
-        $raPills = array( 'companies'      => array( "Seed Companies"),
+        $raPills = array( 'xlsx-sync'      => ["Spreadsheet Upload Sync"],
                           'google-sync'    => ["Google Sheet Sync"],
                           'companies-test' => array( "Seed Companies Test"),
                           'pgrc'           => array( "Canada: Plant Gene Resources (PGRC)" ),
@@ -37,7 +37,7 @@ class SLSourcesAppDownload
         $sMenu = $this->oUIPills->DrawPillsVertical();
         $sBody = "";
         switch( $this->oUIPills->GetCurrPill() ) {
-            case 'companies':           $sBody = $this->companies();        break;
+            case 'xlsx-sync':           $sBody = $this->XLSXUploadSync();        break;
             case 'google-sync':         $sBody = (new SLSourcesDownload_GoogleSheetSync($this->oApp, []))->DoSync();  break;
             case 'companies-test':      $sBody = $this->companiesTest();    break;
         }
@@ -53,7 +53,7 @@ class SLSourcesAppDownload
     private $companyTableDef = ['headers-required' => ['k','company','species','cultivar','organic','bulk','notes'],
                                 'headers-optional' => [] ];
 
-    private function companies()
+    private function XLSXUploadSync()
     {
         $s = "<h3>CSCI Upload and Validation</h3>"
             ."<p>You can use this screen to upload a trial CSCI spreadsheet to see if it works. All that happens is the spreadsheet is "

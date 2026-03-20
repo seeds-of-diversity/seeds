@@ -8,6 +8,7 @@
 
 include_once(SEEDLIB."google/GoogleSheets.php");
 include_once(SEEDLIB."sl/sources/sl_sources_rosetta.php");
+include_once(SEEDLIB."sl/sources/sl_sources_cv_upload.php");
 
 class SLSourcesDownload_GoogleSheetSync
 {
@@ -15,6 +16,7 @@ class SLSourcesDownload_GoogleSheetSync
     private $oGoogleSheet;
     private $nameSheet;
     private $tmpTable;
+    private $oUpload;
 
     private const raSheetColnames = [
         'k'         => ['sheetColName'=>'k',        'type'=>'I', 'bReadFromSheet'=>true],
@@ -26,7 +28,7 @@ class SLSourcesDownload_GoogleSheetSync
         'hybrid'    => ['sheetColName'=>'hybrid',   'type'=>'S', 'bReadFromSheet'=>true],
         'notes'     => ['sheetColName'=>'notes',    'type'=>'S', 'bReadFromSheet'=>true],
 
-        'synonym'   => ['sheetColName'=>'synonym',  'type'=>'S', 'bReadFromSheet'=>false],    // written but not read
+        'pcv'       => ['sheetColName'=>'primary',  'type'=>'S', 'bReadFromSheet'=>false],    // written but not read
     ];
 
     function __construct( SEEDAppConsole $oApp,  array $raConfig )
@@ -34,8 +36,8 @@ class SLSourcesDownload_GoogleSheetSync
 //        $idSpreadsheet = $raConfig['idSpreadsheet'];
         $this->oApp = $oApp;
         $this->nameSheet = SEEDCore_ArraySmartVal1($raConfig, 'nameSheet', "Worksheet");
-        $this->tmpTable = "{$this->oApp->DBName('seeds1')}.sl_tmp_cv_sources2";
-
+        $this->tmpTable = "{$this->oApp->DBName('seeds1')}.sl_tmp_cv_sources";
+        $this->oUpload = new SLSourcesCVUpload($this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0, $this->tmpTable);
     }
 
     function DoSync()
@@ -49,26 +51,32 @@ class SLSourcesDownload_GoogleSheetSync
         $this->nameSheet = $oForm->Value('nameSheet');
         $iStep = SEEDInput_Int('iStep');  // don't make this sticky $oForm->ValueInt('iStep');
 
-        switch( SEEDInput_Str('actionStep') ) {
-            case '':                $iStep = 0;  break;      // no form submission - iStep should be zero anyway
-            case 'Start over':      $iStep = 0;  break;      // override iStep to force restart
-            case 'Redo this step':               break;      // use iStep again
-            default:                ++$iStep;    break;      // button label described the next step
-        }
-
-
-
 // only needed for steps 1 and 3
             $this->oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
                             ['appName' => 'My PHP App',
                              'authConfigFname' => SEEDCONFIG_DIR."sod-public-outreach-info-e36071bac3b1.json",
                              'idSpreadsheet' => $idSpreadsheet] );
 
+
+
+        switch( SEEDInput_Str('actionStep') ) {
+            case '':                                $iStep = 0;                           break;      // no form submission - iStep should be zero anyway
+            case 'Start over':                      $iStep = 0;                           break;      // override iStep to force restart
+            case 'Redo this step':                                                        break;      // use iStep again
+            case 'Commit to Seed Finder Database':  if($iStep==3) $this->CommitToDb();    break;
+            case 'Write to Google Sheet':           if($iStep==3) $this->WriteToSheet();  break;
+            default:                                ++$iStep;                             break;      // button label described step 1, 2, 3
+        }
+        $iStep = min($iStep, 3);
+
         $raStep = [0 => ['name'=>"Start Sync"],
-                   1 => ['name'=>"Fetch from sheet"],
+                   1 => ['name'=>"Load from sheet"],
                    2 => ['name'=>"Validate"],
-                   3 => ['name'=>"Commit to Db"],
-                   4 => ['name'=>"Write to sheet"],
+                   3 => ['name'=>"Prepare update"],
+
+
+            4 => ['name'=>"Commit to Seed Finder Database"],
+                   5 => ['name'=>"Write to sheet"],
             ];
 
 
@@ -79,7 +87,6 @@ class SLSourcesDownload_GoogleSheetSync
                 /* Starting form: get config for spreadsheet to load
                  */
                 $ok = true;
-                $btnLabelNext = "Start Sync";
                 $sCtrls = "{$oForm->Text('idSpreadsheet', "", ['size'=>50, 'placeholder'=>"spreadsheet id"])}<br/>
                            {$oForm->Text('nameSheet',     "", ['size'=>30, 'placeholder'=>"sheet name"])}<br/>";
                 break;
@@ -87,26 +94,30 @@ class SLSourcesDownload_GoogleSheetSync
                 /* Fetch from google sheet, insert to tmp table
                  */
                 list($ok, $sResults) = $this->step1_Fetch();
-                $btnLabelNext = "Validate";
                 break;
             case 2:
                 /* Validate tmp table
                  */
                 list($ok, $sResults) = $this->step2_Validate();
-                $btnLabelNext = "Commit to Db";
                 break;
             case 3:
                 /* Commit tmp table to sl_cv_sources
                  */
-                list($ok, $sResults) = $this->step3_WriteDB();
-                $btnLabelNext = "Write to Sheet";
+                list($ok, $sResults) = $this->step3_PrepareUpdate();
                 break;
-            case 4:
-                /* Copy computed columns to google sheet
-                 */
-                list($ok, $sResults) = $this->step4_WriteSheet();
-                $btnLabelNext = "";
-                break;
+        }
+
+        $btnNext = "";
+        if($iStep < 3) {
+            // the first three steps have a Next button
+            $btnNext = "<input type='submit' name='actionStep' value='Next: ".$raStep[$iStep+1]['name']."'/>";
+        } else {
+            // the final step has various operations that lead to the same state
+            $raReport = $this->oUpload->CalculateUploadReport();
+            $sDisableCommit = !($ok && $this->oUpload->IsCommitAllowed($raReport)) ? " disabled" : "";
+            $sDisableSheetWrite = !($ok && true /* google sheet mode */) ? " disabled" : "";
+            $btnNext .= "<input type='submit' name='actionStep' value='Commit to Seed Finder Database' $sDisableCommit/>&nbsp;&nbsp;&nbsp;";
+            $btnNext .= "<input type='submit' name='actionStep' value='Write to Google Sheet'          $sDisableSheetWrite/>";
         }
 
         $s .= "<h3>Step $iStep : {$raStep[$iStep]['name']}</h3>";
@@ -115,10 +126,10 @@ class SLSourcesDownload_GoogleSheetSync
                    $sCtrls
                    <input type='hidden' name='iStep' value='{$iStep}'/>"
                  // last step has no Next button
-                 .($iStep < 4 ? "<input type='submit' name='actionStep' value='Next: ".$raStep[$iStep+1]['name']."'/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" : "")
+                 .$btnNext
                  // first step has no Redo or Start over
-                 .($iStep ? "<input type='submit' name='actionStep' value='Redo this step'/>
-                             <input type='submit' name='actionStep' value='Start over'/>" : "")
+                 .($iStep ? "<input style='float:right' type='submit' name='actionStep' value='Redo this step'/>
+                             <input style='float:right' type='submit' name='actionStep' value='Start over'/>" : "")
              ."</form>
                <div style='margin:2em'>$sResults</div>";
 
@@ -130,7 +141,7 @@ class SLSourcesDownload_GoogleSheetSync
         $s = "";
         $ok = false;
 
-        $this->initDb();
+        $this->oUpload->InitTmpTable();
 
         $raProperties = $this->oGoogleSheet->GetProperties($this->nameSheet);
         $s .= "<p>Spreadsheet has {$raProperties['rowsUsed']} rows, {$raProperties['colsUsed']} columns";
@@ -191,13 +202,12 @@ $sql = SEEDCore_utf8_decode($sql);
          */
         $s .= SLSourceCV_Build::BuildAll($this->oApp, $this->tmpTable);
         $raStatus = SLSourceCV_Build::GetTableStatus($this->oApp, $this->tmpTable);
-        $s .= $raStatus['sReport']
-             ."<h4>Next Step</h4><p>If you commit this data, records for {$raStatus['nSpMatched']} from ".count($raStatus['raSrcMatched'])." companies will be copied</p>";
+        $s .= $raStatus['sReport'];
 
-        /* Update synonym column if cv <> pcv (pcv was found via sl_pcv_syn)
+        /* Update pcv column if ocv <> pcv (pcv was found via sl_pcv_syn)
          */
         $this->oApp->kfdb->Execute("UPDATE {$this->tmpTable} G, sl_pcv P
-                                    SET G.synonym=P.name
+                                    SET G.pcv=P.name
                                     WHERE G.fk_sl_pcv<>0 AND G.fk_sl_pcv=P._key AND G.ocv<>P.name");
 
         $ok = true;
@@ -206,28 +216,49 @@ $sql = SEEDCore_utf8_decode($sql);
         return([$ok,$s]);
     }
 
-    private function step3_WriteDB()
+    private function step3_PrepareUpdate()
     {
-        // copy from tmp table to sl_cv_sources
+        // prepare and explain update operations in tmp table to be applied to sl_cv_sources
         $s = "";
         $ok = false;
 
-        $s .= "This will commit to sl_cv_sources";
+        /* Compute the differences between tmptable and sl_cv_sources
+         */
+        $o = new SLSourcesCVUpload($this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0, $this->tmpTable);
+        $o->ComputeDiff();
+        $raReport = $o->CalculateUploadReport();
+        if( $raReport['nRowsSameDiffKeys'] ) {
+            $s .= $o->FixMatchingRowKeys();
+        }
+        $s .= $o->DrawUploadReport( $raReport );
+
         $ok = true;
 
         return([$ok,$s]);
     }
 
-    private function step4_WriteSheet()
+    private function CommitToDb()
     {
         // copy from tmp table to sl_cv_sources
         $s = "";
         $ok = false;
 
+        list($ok,$s,$sErr) = $this->oUpload->Commit();
+        if($sErr) $s .= "<div class='alert alert-warning'>$sErr</div>";
+
+        return([$ok,$s]);
+    }
+
+    private function WriteToSheet()
+    {
+        // copy from tmp table to sl_cv_sources
+        $s = "";
+        $ok = false;
+var_dump("WRITING TO COLUMN I, MUST FIND COLUMN FROM NAME");
         // the size of the re-written sheet area is the max 0-origin row number +1; this goes from sheet row 2 to $nSheetRows+1; i.e. 2 to max(i)+2
         $nSheetRows = $this->oApp->kfdb->Query1("SELECT MAX(i) FROM {$this->tmpTable}") + 1;
         $raPcv = array_fill(0,$nSheetRows,[""]);
-        if( ($dbc = $this->oApp->kfdb->CursorOpen("SELECT synonym,i FROM {$this->tmpTable} WHERE synonym<>''")) ) {
+        if( ($dbc = $this->oApp->kfdb->CursorOpen("SELECT pcv,i FROM {$this->tmpTable} WHERE pcv<>''")) ) {
         //    $nRows = $this->oApp->kfdb->CursorGetNumRows($dbc);
             var_dump($this->oApp->kfdb->CursorGetNumRows($dbc));
             while( ($ra = $this->oApp->kfdb->CursorFetch($dbc)) ) {
@@ -240,32 +271,5 @@ $this->oGoogleSheet->WriteValues($this->nameSheet."!I2:I{$nBottom}", $raPcv);
         }
 
         return([$ok,$s]);
-    }
-
-    private function initDb()
-    {
-        // cols have to match SLSourceCV_Build tmp table
-        $this->oApp->kfdb->Execute(
-            "CREATE TABLE IF NOT EXISTS {$this->tmpTable} (
-                 k        integer,
-                 company  text,
-                 osp      text,
-                 ocv      text,
-                 organic  int default 0,
-                 bulk     int default 0,
-                 hybrid   text,
-                 notes    text,
-
-                 synonym  text,
-                 i        int,                      # 0-origin row number - add 2 to this to get the A1 sheet row number
-                 op       char,
-                 fk_sl_sources int default 0,
-                 fk_sl_species int default 0,
-                 fk_sl_pcv     int default 0,
-
-                 _status       int default 0
-               )
-            ");
-        $this->oApp->kfdb->Execute("DELETE FROM {$this->tmpTable}");
     }
 }

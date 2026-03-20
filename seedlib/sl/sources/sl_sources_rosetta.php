@@ -40,9 +40,7 @@ class SLSourceCV_Build
 
         /* Delete the sp and cv index
          */
-        $c = $oApp->kfdb->Query1( "SELECT count(*) as c FROM $dbtable WHERE _status=0 AND (fk_sl_species OR fk_sl_pcv)" );
         self::ClearIndex( $oApp, $dbtable );
-        $s .= "<p>Species/cultivar index deleted ($c entries)</p>";
 
         /* Species: fill in all the fk_sl_species keys that we can find in RosettaSEED
          */
@@ -128,7 +126,7 @@ class SLSourceCV_Build
         $sCond = @$raParms['sCond'];
         $iStatusSrc = intval(@$raParms['iStatusSrc']);
 
-        self::IsTmpTable($oApp, $dbtable) or die( "Can't build sources for table $dbtable - only allowed for {$oApp->DBName('seeds1')}.sl_tmp_cv_sources[2]" );
+        self::IsTmpTable($oApp, $dbtable) or die( "Can't build sources for table $dbtable - only allowed for {$oApp->DBName('seeds1')}.sl_tmp_cv_sources" );
 
         $ok =
         $oApp->kfdb->Execute(
@@ -235,15 +233,13 @@ $sCond="SrcCV.fk_sl_sources>=3";
 
     static function IsTmpTable( SEEDAppDB $oApp, string $dbtable )
     {
-        return(($dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources") ||
-               ($dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources2"));
+        return($dbtable == "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources");
     }
 
     static private function checkTable( SEEDAppDB $oApp, $dbtable )
     {
         in_array( $dbtable, ["{$oApp->DBName('seeds1')}.sl_cv_sources",
                              "{$oApp->DBName('seeds1')}.sl_cv_sources_archive",
-                             "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources",
-                             "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources2"] )  or  die( "$dbtable not allowed" );
+                             "{$oApp->DBName('seeds1')}.sl_tmp_cv_sources"] )  or  die( "$dbtable not allowed" );
     }
 }
