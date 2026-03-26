@@ -35,3 +35,14 @@ select * from test1people left join (
 ) as oldest_pets
 on test1people.name = oldest_pets.owner;
 
+
+
+# without a partition, much simpler
+# The first left join just makes sure that Mary has a row in the output
+# The second left join on the same table yields a row for each pair of pets from the same owner + null pet for owners of 0 or 1 pet.
+# Importantly, owners of paired pets will have 1 row where the oldest pet is in b1 and b2 is null because b1.age !< b2.age
+# So all rows where b2 is null have each owner's oldest pet in b1
+select a.name,b1.* from test1people a 
+              left join test1pets b1 on (a.name=b1.owner) 
+              left join test1pets b2 on (b1.owner=b2.owner and b1.age<b2.age) 
+         where b2.owner is null;
