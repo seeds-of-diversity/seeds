@@ -41,7 +41,9 @@ $consoleConfig = [
     'HEADER' => "My Projects",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'projects' => ['label'=>'My Projects'],
+    'TABSETS' => ['main'=> ['tabs' => [
+                                        'signup'   => ['label'=>'Join a Project'],
+                                        'projects' => ['label'=>'My Projects'],
                                         'sites'    => ['label'=>'My Sites'],
                                         'office'   => ['label'=>'Office'],
                                       //'settings'     => ['label'=>'Settings']
@@ -168,7 +170,7 @@ class MyConsole02TabSet extends Console02TabSet
     private $oApp;
 
     private $oProjects;
-    private $oW;
+    private $oW = null;
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -182,6 +184,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSetPermission( $tsid, $tabname )
     {
         switch($tabname) {
+            case 'signup':
             case 'projects':
             case 'sites':
                 return( Console02TabSet::PERM_SHOW );
@@ -192,6 +195,16 @@ class MyConsole02TabSet extends Console02TabSet
         return( Console02TabSet::PERM_HIDE );
     }
 
+    function TabSetGetDefaultTab( string $tsid ) : string
+    {
+        /* Specify the default tab when not stored in the session vars (on a cold start).
+         * Use signups if the logged-in user has no projects this year.
+         * Use projects if they have projects this year.
+         *
+         * N.B. $this->oW==null at this point because this is called before any tab is drawn.
+         */
+        return( count($this->oProjects->oProfilesDB->GetVarInstNames($this->oApp->sess->GetUID(), $this->oProjects->CurrentYear())) ? "projects" : "signup" );
+    }
 
     function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this); $this->oW->Init(); }
     function TabSet_main_projects_StyleDraw()    { return( $this->oW->StyleDraw() ); }
