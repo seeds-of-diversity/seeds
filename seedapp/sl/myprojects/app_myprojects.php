@@ -1057,10 +1057,21 @@ class ProjectsTabOffice
                <p>".$oForm->Checkbox('bean', "Bean")."</p>
 */
              ."<p><input type='submit' value='Show'/></p>
-               </form></div>
-               <div style='display:inline-block;vertical-align:top;padding-left:1em'>
+               </form></div>"
+
+             /* Spreadsheet button
+              */
+             ."<div style='display:inline-block;vertical-align:top;padding-left:1em'>
                    <a href='?xlsx=1' target='_blank'><img src='https://seeds.ca/w/std/img/dr/xls.png' style='height:30px'/></a>
-               </div>";
+               </div>"
+
+             /* google sheet controls
+              */
+             ."<div style='display:inline-block;vertical-align:top;padding-left:1em'border:1px solid #aaa;border-radius:5px'><form>
+               {$oForm->Text('idSpreadsheet', "", ['size'=>50, 'placeholder'=>"spreadsheet id"])}<br/>
+               {$oForm->Text('nameSheet',     "", ['size'=>30, 'placeholder'=>"sheet name"])}<br/>
+               <input type='submit' name='cmd_g' value='Write to sheet'/> &nbsp;&nbsp;&nbsp; <input type='submit' name='cmd_g' value='Read workflow from sheet'/>
+               </form></div>";
 
         switch($oForm->Value('mode')) {
             case 'cgo_growers':     $s .= $this->drawCGOGrowers($oForm);    break;
@@ -1111,7 +1122,8 @@ class ProjectsTabOffice
                 .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "")
                 .($raProj ? (" AND psp in ('".implode("','", $raProj)."')") : "");
 
-        $raMbr = [];
+        $raMbr = [];        // one row per member with projects collapsed
+        $raMbrProj = [];    // one row per project with member metadata
         foreach( $this->oSLDB->GetList('VI', $sCond) as $raVI ) {
             $kMbr = $raVI['fk_mbr_contacts'];
 
@@ -1140,6 +1152,11 @@ class ProjectsTabOffice
                     }
                     break;
             }
+
+            /* Store this VI with the metadata computed for raMbr array
+             */
+            $raMbrProj[] = ['kVI'=>$raVI['_key'], 'kMbr'=>$kMbr, 'member_name'=>$raMbr[$kMbr]['member_name'],'member_email'=>$raMbr[$kMbr]['member_email'],
+                            'psp'=>$psp,'cultivar'=>(@$raMbr[$kMbr][$psp] ?:""),'workflow'=>$raVI['workflow'] ];
         }
 
         if( SEEDInput_Int('xlsx') ) {
@@ -1164,6 +1181,42 @@ class ProjectsTabOffice
 
             $oXLSX->OutputSpreadsheet();
             exit;
+        }
+
+        if( ($cmd_g = SEEDInput_Str('cmd_g')) ) {
+            include_once(SEEDLIB."google/GoogleSheets.php");
+
+            $idSpreadsheet = $oForm->Value('idSpreadsheet');
+            $nameSheet = $oForm->Value('nameSheet');
+            $oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
+                        ['appName' => 'My PHP App',
+                         'authConfigFname' => SEEDCONFIG_DIR."sod-public-outreach-info-e36071bac3b1.json",
+                         'idSpreadsheet' => $idSpreadsheet] );
+            switch($cmd_g) {
+                case 'Write to sheet':
+                    $raG[] = ['kVI','member','member_name','member_email','psp','cultivar','workflow'];
+                    $nBottom = count($raMbrProj)+1;
+                    foreach($raMbrProj as $ra) {
+                        $raG[] = [$ra['kVI'],$ra['kMbr'],$ra['member_name']??"",$ra['member_email']??"",$ra['psp'],$ra['cultivar'],$ra['workflow']];
+                    }
+                    $oGoogleSheet->WriteValues($nameSheet."!A1:G{$nBottom}", $raG);
+                    $this->oP->oApp->oC->AddUserMsg("Wrote table to google sheet");
+                    break;
+
+                case 'Read workflow from sheet':
+                    $raG = $oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
+                    foreach($raG as $ra) {
+                        if( ($kfrVI = $this->oSLDB->GetKFR('VI',$ra['kVI'])) &&
+                            $kfrVI->Value('workflow') != $ra['workflow'] )
+                        {
+                            $w = $kfrVI->Value('workflow');
+                            $kfrVI->SetValue('workflow',$ra['workflow']);
+                            $kfrVI->PutDBRow();
+                            $this->oP->oApp->oC->AddUserMsg("Changed workflow from {$w} to {$ra['workflow']} for {$ra['member_name']} {$ra['psp']}<br/>");
+                        }
+                    }
+                    break;
+            }
         }
 
         $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
