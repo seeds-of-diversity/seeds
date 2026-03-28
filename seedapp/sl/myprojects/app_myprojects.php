@@ -1199,6 +1199,7 @@ class ProjectsTabOffice
                     foreach($raMbrProj as $ra) {
                         $raG[] = [$ra['kVI'],$ra['kMbr'],$ra['member_name']??"",$ra['member_email']??"",$ra['psp'],$ra['cultivar'],$ra['workflow']];
                     }
+                    $raG = SEEDCore_utf8_encode($raG);
                     $oGoogleSheet->WriteValues($nameSheet."!A1:G{$nBottom}", $raG);
                     $this->oP->oApp->oC->AddUserMsg("Wrote table to google sheet");
                     break;
