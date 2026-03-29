@@ -692,9 +692,9 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
                  _status        int default 0,
 
                  index(k),
-                 index(company),
-                 index(osp),
-                 index(ocv),
+                 index(company(20)),
+                 index(osp(20)),
+                 index(ocv(20)),
                  index(fk_sl_sources),
                  index(fk_sl_species),
                  index(fk_sl_pcv),
