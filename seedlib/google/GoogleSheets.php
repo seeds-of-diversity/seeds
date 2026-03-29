@@ -39,7 +39,19 @@ class SEEDGoogleSheets
         $oClient->setAuthConfig($raConfig['authConfigFname']);
         //$oClient->setSubject( getenv( 'GOOGLE_SERVICE_ACCOUNT_NAME' ) );
         $this->oService = new Google_Service_Sheets( $oClient );
+
+        /* idSpreadsheet can be the google sheet id (letters, numbers, symbols - usually 44 chars but can be other lengths)
+         *               or a url like https://google.com/foo/spreadsheets/d/[id]/bar
+         */
         $this->idSpreadsheet = $raConfig['idSpreadsheet'];
+        if( strpos($this->idSpreadsheet, '/') !== false ) {
+            $matches = [];
+            if( preg_match("#\/spreadsheets\/d\/(.*?)(\/|$)#", $this->idSpreadsheet, $matches) ) {
+                $this->idSpreadsheet = @$matches[1] ?? "";
+            } else {
+                $this->idSpreadsheet = "";
+            }
+        }
     }
 
     /**
