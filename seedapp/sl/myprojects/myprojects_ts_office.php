@@ -42,9 +42,10 @@ class ProjectsTabOffice
         // years from current..2024
         $raYears = []; for($y=date('Y'); $y >= 2024; --$y) $raYears["{$y}"] = $y;
         $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:5px;padding:1em'><form>
-               <p>".$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Core growers"=>'core_growers', "Profile Observations"=>'desc_obs'])."</p>
-               <p>".$oForm->Select('year', $raYears)."</p>
-               <p>".$oForm->Text('workflow','',['size'=>4])." min workflow</p>"
+               <p>{$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Core growers"=>'core_growers', "Profile Observations"=>'desc_obs'])}</p>
+               <p>{$oForm->Select('year', $raYears)}</p>
+               <p>{$oForm->Text('workflowMin','',['size'=>4])} min workflow</p>
+               <p>{$oForm->Text('workflowMax','',['size'=>4])} max workflow</p>"
 
 /*
                <p>".$oForm->Checkbox('all', "All")."</p>
@@ -115,7 +116,7 @@ class ProjectsTabOffice
         }
 
         $sCond = "year='{$oForm->ValueDB('year')}' AND projcode LIKE 'cgo_%'"
-                .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "")
+                .$this->getWorkflowCond($oForm)
                 .($raProj ? (" AND psp in ('".implode("','", $raProj)."')") : "");
 
         $raMbr = [];        // one row per member with projects collapsed
@@ -237,12 +238,16 @@ class ProjectsTabOffice
          * then get all their projects regardless of projcode.
          */
         $sCond = "year='{$oForm->ValueDB('year')}'"
-                .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "");
+                .$this->getWorkflowCond($oForm);
 
         // growers doing projects with the basic constraints where at least one is a Core project - this returns [kMbr1, kMbr2, kMbr2, ...]
         $raMbr = $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', $sCond." AND projcode='core'", ['sGroupAliases'=>"fk_mbr_contacts"]);
         // all projects with the basic constraints, for those growers, regardless of projcode
-        $raVIRows = $this->oSLDB->GetList('VI', $sCond." AND fk_mbr_contacts IN (".implode(',',$raMbr).")", ['sSortCol'=>"fk_mbr_contacts"]);
+        if( $raMbr ) {
+            $raVIRows = $this->oSLDB->GetList('VI', $sCond." AND fk_mbr_contacts IN (".implode(',',$raMbr).")", ['sSortCol'=>"fk_mbr_contacts"]);
+        } else {
+            $raVIRows = [];
+        }
 
 // make VIxM_IxAxP_P2
         $raOut = [];
@@ -297,6 +302,28 @@ class ProjectsTabOffice
 
         done:
         return($s);
+    }
+
+    private function getWorkflowCond( SEEDCoreForm $oForm )
+    {
+        $bMin = $oForm->ValueStr('workflowMin')!=="";
+        $bMax = $oForm->ValueStr('workflowMax')!=="";
+        $iWorkflowMin = $oForm->ValueInt('workflowMin');
+        $iWorkflowMax = $oForm->ValueInt('workflowMax');
+        if($iWorkflowMax < $iWorkflowMin)  $iWorkflowMax = $iWorkflowMin;
+
+        if( $bMin && $bMax ) {           // both defined
+            $sCondWorkflow = " AND (workflow BETWEEN $iWorkflowMin AND $iWorkflowMax)";
+        } else
+        if( !$bMin && $bMax ) {          // min is blank but max defined
+            $sCondWorkflow = " AND (workflow <= $iWorkflowMax)";
+        } else
+        if( $bMin && !$bMax ) {          // min defined but max is blank
+            $sCondWorkflow = " AND (workflow >= $iWorkflowMin)";
+        } else {                         // neither defined so no constraint
+            $sCondWorkflow = "";
+        }
+        return( $sCondWorkflow );
     }
 
     private function drawDescObs( SEEDCoreForm $oForm )
