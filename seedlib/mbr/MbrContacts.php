@@ -148,7 +148,7 @@ class Mbr_Contacts
         return( $name );
     }
 
-// move to MbrContactsDraw
+// use MbrContactsDraw::DrawAddressBlock instead
     function DrawAddressBlock( $mbrid, $format = 'HTML', $prefix = '' )
     /******************************************************************
         mbrid can be k or email
@@ -163,49 +163,10 @@ class Mbr_Contacts
         return( $s );
     }
 
-// move to MbrContactsDraw
+// use MbrContactsDraw::DrawAddressBlockFromRA instead
     static function DrawAddressBlockFromRA( $raMbr, $fmt = 'HTML', $prefix = '' )
-    /****************************************************************************
-        Draw a contact's address block in the given format (HTML or PDF).
-        $prefix is an optional prefix on the $raMbr keys e.g. "M_"
-     */
     {
-        if( $fmt == 'HTML' ) {
-            // The container should use style='white-space: nowrap' to prevent breaking in weird places e.g the middle of a postal code
-            //                      and style='margin:...' to pad around the address block (no margin is set here)
-            $topMargin = "";
-            $leftMargin = "";
-            $lnbreak = "<br/>";
-        } else if( $fmt == 'PDF' ) {
-            // PDF_Label gives no margin: leading \n is for top margin, spaces for left margin
-            //
-            // Maybe some complex formatting is possible using FPDF::GetStringWidth() e.g. breaking after a very long city+prov to put postcode on next line
-            $topMargin = "\n";
-            $leftMargin = "  ";
-            $lnbreak = "\n";
-        } else {
-            return( "" );
-        }
-
-        // firstname(s)/lastname(s)
-        $name = self::FirstnameLastname( $raMbr, $prefix );
-
-        if( ($company = $raMbr[$prefix.'company']) ) {
-            if( $name ) $name .= $lnbreak.$leftMargin;
-            $name .= $company;
-        }
-        if( ($dept = $raMbr[$prefix.'dept']) ) {
-            if( $name ) $name .= $lnbreak.$leftMargin;
-            $name .= $dept;
-        }
-
-        $text = $topMargin.$leftMargin.$name.$lnbreak
-                          .$leftMargin.$raMbr[$prefix.'address'].$lnbreak
-                          .$leftMargin.$raMbr[$prefix.'city']." ".$raMbr[$prefix.'province']." ".$raMbr[$prefix.'postcode'];
-        if( !in_array( ($country = $raMbr[$prefix.'country']), ['','Canada','CANADA'] ) ) {
-            $text .= $lnbreak.$leftMargin.$country;
-        }
-        return( $text );
+        return(MbrContactsDraw::DrawAddressBlockFromRA($raMbr, ['fmt'=>$fmt, 'prefix'=>$prefix]));
     }
 
     function IsCurrentFromExpires( $sExpires )
@@ -316,6 +277,70 @@ class MbrContactsDraw
     {
         $this->oApp = $oApp;
         $this->oMbr = new Mbr_Contacts($oApp);
+    }
+
+    function DrawAddressBlock( int $mbrid, array $raParms = [] )
+    /***********************************************************
+        mbrid can be k or email
+     */
+    {
+        return( ($raM = $this->oMbr->GetAllValues($mbrid)) ? self::DrawAddressBlockFromRA( $raM, $raParms ) : "" );
+    }
+
+    static function DrawAddressBlockFromRA( array $raMbr, array $raParms = [] )
+    /**************************************************************************
+        Draw a contact's address block
+
+        fmt = HTML or PDF
+        prefix = optional prefix on the $raMbr keys e.g. "M_"
+        bShowEmail = (false) show the email address beneath the city/prov/postcode
+     */
+    {
+        $fmt = SEEDCore_ArraySmartVal($raParms, 'fmt', ['HTML','PDF']);
+        $prefix = @$raParms['prefix'] ?? "";
+        $bShowEmail = SEEDCore_ArraySmartBool($raParms, 'bShowEmail', false);
+
+        if( $fmt == 'HTML' ) {
+            // The container should use style='white-space: nowrap' to prevent breaking in weird places e.g the middle of a postal code
+            //                      and style='margin:...' to pad around the address block (no margin is set here)
+            $topMargin = "";
+            $leftMargin = "";
+            $lnbreak = "<br/>";
+        } else if( $fmt == 'PDF' ) {
+            // PDF_Label gives no margin: leading \n is for top margin, spaces for left margin
+            //
+            // Maybe some complex formatting is possible using FPDF::GetStringWidth() e.g. breaking after a very long city+prov to put postcode on next line
+            $topMargin = "\n";
+            $leftMargin = "  ";
+            $lnbreak = "\n";
+        } else {
+            return( "" );
+        }
+
+        // firstname(s)/lastname(s)
+        $name = Mbr_Contacts::FirstnameLastname( $raMbr, $prefix );
+
+        if( ($company = $raMbr[$prefix.'company']) ) {
+            if( $name ) $name .= $lnbreak.$leftMargin;
+            $name .= $company;
+        }
+        if( ($dept = $raMbr[$prefix.'dept']) ) {
+            if( $name ) $name .= $lnbreak.$leftMargin;
+            $name .= $dept;
+        }
+
+        $s = $topMargin.$leftMargin.$name.$lnbreak
+                       .$leftMargin.$raMbr[$prefix.'address'].$lnbreak
+                       .$leftMargin.$raMbr[$prefix.'city']." ".$raMbr[$prefix.'province']." ".$raMbr[$prefix.'postcode'];
+        if( !in_array( ($country = $raMbr[$prefix.'country']), ['','Canada','CANADA'] ) ) {
+            $s .= $lnbreak.$leftMargin.$country;
+        }
+
+        if( $bShowEmail && @$raMbr['email'] ) {
+            $s .= $lnbreak.$lnbreak.$raMbr['email'];
+        }
+
+        return( $s );
     }
 
     function DrawExpiryNotice( int $kMbr, array $raParms = [] )

@@ -327,7 +327,6 @@ class ProjectsCommonUI
         $this->oCTS = $oCTS;
     }
 
-
     /**
      * Same ControlDraw for Signup, Projects, and Sites
      */
@@ -412,6 +411,36 @@ class ProjectsCommonUI
 
         return( $s );
     }
+
+    /**
+     * Show participant's status and suggest verify/update contact info
+     */
+    function Participant_StatusAndRenewal()
+    {
+        $s = "";
+
+        if($this->oP->KCurrMbr()) {
+            $parms = $this->oP->oL->GetLang()=='EN'
+                        ? ['sExtra_Current' => "<br/>We're glad to help at <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.",
+                           'sExtra_Expired' => "Then refresh this page and join our projects.<br/><br/>"]
+                        : ['sExtra_Current' => "<br/>Nous sommes heureux de vous aider &agrave; <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.",
+                           'sExtra_Expired' => "Rafra&icirc;chissez ensuite cette page et rejoignez nos projets.<br/><br/>"];
+            $parms['lang'] = $this->oP->oL->GetLang();
+
+            $oMbrDraw = new MbrContactsDraw($this->oP->oApp);
+            $sL = $oMbrDraw->DrawExpiryNotice($this->oP->KCurrMbr(), $parms );
+
+            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$oMbrDraw->DrawAddressBlock($this->oP->KCurrMbr(), ['bShowEmail'=>true])}</div>";
+            $s .= "<div class='container-fluid'><div class='row'>
+                       <div class='col-md-6'>$sL</div>
+                       <div class='col-md-3'>&nbsp;</div>
+                       <div class='col-md-3'>$sR</div>
+                   </div>";
+        }
+
+        return($s);
+    }
+
 }
 
 class ProjectsTabSites
