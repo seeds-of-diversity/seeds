@@ -7,30 +7,23 @@
 
 class ProjectsTabProjects
 {
-    private $oCTS;
-    private $oP;
-    private $oMbr;
+    private $oP, $oPUI;
     private $oSLDB;
 
     private $oUIProfile, $oUIRecord;
 
-    private $kCurrMbr = 0;
     private $kfrCurrVI = null;
     private $bNew = false;      // a new record is requested
 
-    function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
+    function __construct( ProjectsCommon $oP, ProjectsCommonUI $oPUI )
     {
-        $this->oCTS = $oCTS;
         $this->oP = $oP;
-        $this->oMbr = new Mbr_Contacts($this->oP->oApp);
-        $this->oSLDB = new SLDBProfile($this->oP->oApp);
+        $this->oPUI = $oPUI;
+        $this->oSLDB = new SLDBProfile($this->oP->oApp);  // use oP->oProfilesDB when it extends from SLDBProfile
 
         // ui components of this tab view
         $this->oUIProfile = new ProjectsTabProjects_UI_Profile($this, $oP);
         $this->oUIRecord = new ProjectsTabProjects_UI_Record($this, $oP);
-
-        // default to current login - change to the SVA selected kMbr if allowed to do that below
-        $this->kCurrMbr = $this->oP->oApp->sess->GetUID();
     }
 
     /* Profile and Record UI components need to reference the current kfr, but each can potentially update it.
@@ -50,12 +43,9 @@ class ProjectsTabProjects
             $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $kVI);
         }
 
-        /* kCurrMbr is GetUID unless office mode allows member selection
-         */
-
         /* kfrCurrVI and kCurrMbr must be correct before initializing ui components
          */
-        $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrMbr);     // returns kfrCurrVI because Update could have created a new record (if bNew)
+        $this->kfrCurrVI = $this->oUIRecord->Init($this->oP->KCurrMbr());     // returns kfrCurrVI because Update could have created a new record (if bNew)
 
         $this->oUIProfile->Init();
     }
@@ -81,82 +71,7 @@ class ProjectsTabProjects
 
     function ControlDraw()
     {
-        $s = "";
-
-// put all this in a class and get kCurrMbr in Init()
-        if( $this->oP->CanReadOtherUsers() ) {
-// make a checkbox Show What Members See to turn off CanReadOtherUsers() -- except for that checkbox
-            $y = 2024;
-
-            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
-
-            // the SVA is active so you can get old values to compare
-            $iWorkflowOld = $oForm->Value('workflow');
-
-            $oForm->Update();
-
-            $iWorkflow = $oForm->ValueInt('workflow');
-            $bWorkflowChanged = $iWorkflow != $iWorkflowOld;
-
-            $kMbrSearch = SEEDInput_Int('kMbrSearch');
-
-            if( $kMbrSearch ) {
-                // reset workflow filter when a member is selected via search
-                $bWorkflowChanged = $iWorkflow != 0;
-                $iWorkflow = 0;
-                $oForm->SetValue('workflow', 0);
-            }
-
-
-            /* Get list of project members, filtered by workflow state
-             */
-            $raOpts = [];
-            $condWorkflow = $iWorkflow ? " AND workflow=$iWorkflow" : "";
-            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y {$condWorkflow}") as $kMbr ) {
-                $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
-            }
-            ksort($raOpts);
-
-            /* If member selected via search
-             */
-            if( $kMbrSearch ) {
-                $name = $this->oMbr->GetContactName($kMbrSearch);
-                $raOpts["$name ($kMbrSearch)"] = $kMbrSearch;  // add to the dropdown (idempotent if it is already there)
-                $this->kCurrMbr = $kMbrSearch;                 // current in ui
-            } else
-            /* If member chosen from dropdown or recalled from oSVA.
-             * If workflow changed, it's best to forget the kMbr state so the default reset() behaviour should happen instead.
-             * Adding to dropdown for rare cases where kMbr already selected but no projects yet. e.g. search for member without project, click Add Project : won't be loaded into dropdown
-             */
-            if( !$bWorkflowChanged && ($kMbr = $oForm->ValueInt('kMbr')) ) {
-                $name = $this->oMbr->GetContactName($kMbr);
-                $raOpts["$name ($kMbr)"] = $kMbr;           // add to the dropdown (idempotent if it is already there)
-                $this->kCurrMbr = $kMbr;                    // current in ui
-            } else {
-                $this->kCurrMbr = reset($raOpts);
-            }
-            $oForm->SetValue('kMbr', $this->kCurrMbr);      // make this member persistent in oFormSVA
-
-            $s .= "<div style='display:inline-block'>
-                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])
-                     ."<br/><br/>"
-                     .$oForm->Select('workflow', array_merge(['-- Filter by workflow --'=>'0'],$this->oP::workflowcodes), "", ['selected'=>$iWorkflow, 'attrs'=>"onChange='submit();'"])
-                     ."</form>
-                   </div>
-                   &nbsp;&nbsp;
-                   <div style='display:inline-block;vertical-align:top'>
-                       <form method='post'><select id='kMbrSearch' name='kMbrSearch' style='width:40em' onChange='submit();'><option value='0'>Search for a member</option></select></form>
-                   </div>
-                   <script>
-                       new MbrContactsSelect2( { jSelect: $('#kMbrSearch'),
-                                                 qUrl: '{$this->oP->oApp->UrlQ()}' } );
-                   </script>";
-        }
-
-        // show the kCurrMbr's name on the right
-        $s .= "<div style='text-align:right'><h3 style='padding:0;margin:0;color:white'>{$this->oMbr->GetContactName($this->kCurrMbr)}</h3></div>";
-
-        return( $s );
+        return($this->oPUI->Participant_ControlDraw());
     }
 
     function ContentDraw()
@@ -165,7 +80,7 @@ class ProjectsTabProjects
 
         /* Membership status and renewal
          */
-        if( $this->kCurrMbr ) {
+        if($this->oP->KCurrMbr()) {
             $parms = $this->oP->oL->GetLang()=='EN'
                         ? ['sExtra_Current' => "<br/>We're glad to help at <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.",
                            'sExtra_Expired' => "Then refresh this page and join our projects.<br/><br/>"]
@@ -173,9 +88,9 @@ class ProjectsTabProjects
                            'sExtra_Expired' => "Rafra&icirc;chissez ensuite cette page et rejoignez nos projets.<br/><br/>"];
             $parms['lang'] = $this->oP->oL->GetLang();
 
-            $sL = (new MbrContactsDraw($this->oP->oApp))->DrawExpiryNotice($this->kCurrMbr, $parms );
+            $sL = (new MbrContactsDraw($this->oP->oApp))->DrawExpiryNotice($this->oP->KCurrMbr(), $parms );
 // also show email
-            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$this->oMbr->DrawAddressBlock($this->kCurrMbr)}</div>";
+            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$this->oP->oMbr->DrawAddressBlock($this->oP->KCurrMbr())}</div>";
             $s .= "<div class='container-fluid'><div class='row'>
                        <div class='col-md-6'>$sL</div>
                        <div class='col-md-3'>&nbsp;</div>
@@ -194,12 +109,12 @@ class ProjectsTabProjects
             $sLeft .= "<form method='post'><input type='submit' name='action' value='Add New Project'/></form>";
         }
 
-        if( ($u = intval($this->kCurrMbr)) ) {
+        if( ($u = $this->oP->KCurrMbr()) ) {
             $raY = [];
             for( $year = $this->oP->CurrentYear(); $year >= 2024; --$year ) {
                 foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
                     if(!isset($raY[$year])) {
-                        $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
+                        $sLeft .= "<h4>$year projects for {$this->oP->oMbr->GetContactName($u)}</h4>";
                         $raY[$year] = 1;
                     }
 
@@ -230,7 +145,7 @@ class ProjectsTabProjects
          */
         if( ($this->bNew || $this->kfrCurrVI) && $this->oP->CanWriteOtherUsers() ) {
             $sOfficePanel .= ("<h3>".($this->bNew ? "New " : "")."Project Record</h3>")
-                            .$this->oUIRecord->DrawRecord( $this->kCurrMbr /*kluge: remove when kCurrMbr is known in Init()*/);
+                            .$this->oUIRecord->DrawRecord( $this->oP->KCurrMbr() /*kluge: remove when kCurrMbr is known in Init()*/);
         }
 
         if( $this->oP->CanWriteOtherUsers() ) {

@@ -7,17 +7,14 @@
 
 class ProjectsTabOffice
 {
-    private $oCTS;
-    private $oP;
-    private $oMbr;
+    private $oP, $oPUI;
     private $oSLDB;
 
-    function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
+    function __construct( ProjectsCommon $oP, ProjectsCommonUI $oPUI )
     {
-        $this->oCTS = $oCTS;
         $this->oP = $oP;
-        $this->oMbr = new Mbr_Contacts($this->oP->oApp);
-        $this->oSLDB = new SLDBProfile($this->oP->oApp);
+        $this->oPUI = $oPUI;
+        $this->oSLDB = new SLDBProfile($this->oP->oApp);  // use oP->oProfilesDB when it extends from SLDBProfile
     }
 
     function Init()
@@ -35,7 +32,7 @@ class ProjectsTabOffice
     {
         $s = "";
 
-        $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'A',
+        $oForm = new SEEDCoreFormSVA($this->oPUI->oCTS->TabSetGetSVACurrentTab('main'), 'A',
                                      ['fields'=>['all'          =>['control'=>'checkbox'],
                                                  'ground-cherry'=>['control'=>'checkbox'],
                                                  'tomato'       =>['control'=>'checkbox'],
@@ -127,8 +124,8 @@ class ProjectsTabOffice
             $kMbr = $raVI['fk_mbr_contacts'];
 
             if( !isset($raMbr[$kMbr]) ) {
-                $ra = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
-                $raMbr[$kMbr] = ['member_name' => $ra ? $this->oMbr->GetContactNameFromMbrRA($ra) : "",
+                $ra = $this->oP->oMbr->oDB->GetRecordVals('M', $kMbr);
+                $raMbr[$kMbr] = ['member_name' => $ra ? $this->oP->oMbr->GetContactNameFromMbrRA($ra) : "",
                                  'member_email'=> @$ra['email'],
                                  'ground-cherry' => '',
                                  'tomato' => '',
@@ -251,13 +248,13 @@ class ProjectsTabOffice
         $raOut = [];
         foreach( $raVIRows as $raVI ) {
             $kMbr = $raVI['fk_mbr_contacts'];
-            $raM = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
+            $raM = $this->oP->oMbr->oDB->GetRecordVals('M', $kMbr);
 
 // use ComputeVarInstName - needs kfrVI instead of raVI
             $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
 
             $raOut[] = ['member' => $kMbr,
-                        'member_name'  => ($raM ? $this->oMbr->GetContactNameFromMbrRA($raM) : ""),
+                        'member_name'  => ($raM ? $this->oP->oMbr->GetContactNameFromMbrRA($raM) : ""),
                         'member_email' => $raM['email'],
                         'projcode'     => $raVI['projcode'],
                         'psp'          => $kfrLot ? $kfrLot->Value('P_psp')  : ($raVI['psp'] ?: $raVI['osp']),
@@ -334,7 +331,7 @@ class ProjectsTabOffice
                 $raVI[$kVI]['year'] = $year;
                 $raVI[$kVI]['kMbr'] = $vo['VI_fk_mbr_contacts'];
 
-                if( ($raMbr = $this->oMbr->GetBasicValues($vo['VI_fk_mbr_contacts'])) ) {
+                if( ($raMbr = $this->oP->oMbr->GetBasicValues($vo['VI_fk_mbr_contacts'])) ) {
                     $raVI[$kVI]['member_province'] = $raMbr['province'];
                     $raVI[$kVI]['member_email'] = $raMbr['email'];
                 } else {

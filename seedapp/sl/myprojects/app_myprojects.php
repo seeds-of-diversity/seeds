@@ -172,6 +172,7 @@ class MyConsole02TabSet extends Console02TabSet
     private $oApp;
 
     private $oProjects;
+    private $oProjectsUI;
     private $oW = null;
 
     function __construct( SEEDAppConsole $oApp )
@@ -181,6 +182,7 @@ class MyConsole02TabSet extends Console02TabSet
 
         $this->oApp = $oApp;
         $this->oProjects = new ProjectsCommon($this->oApp);
+        $this->oProjectsUI = new ProjectsCommonUI($this->oProjects, $this);
     }
 
     function TabSetPermission( $tsid, $tabname )
@@ -208,19 +210,19 @@ class MyConsole02TabSet extends Console02TabSet
         return( count($this->oProjects->oProfilesDB->GetVarInstNames($this->oApp->sess->GetUID(), $this->oProjects->CurrentYear())) ? "projects" : "signup" );
     }
 
-    function TabSet_main_signup_Init()           { $this->oW = new ProjectsTabSignup($this->oProjects, $this); $this->oW->Init(); }
+    function TabSet_main_signup_Init()           { $this->oW = new ProjectsTabSignup($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
     function TabSet_main_signup_StyleDraw()      { return( $this->oW->StyleDraw() ); }
 
-    function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this); $this->oW->Init(); }
+    function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
     function TabSet_main_projects_StyleDraw()    { return( $this->oW->StyleDraw() ); }
 //    function TabSet_main_projects_ControlDraw()  { return( $this->oW->ControlDraw() ); }
 //    function TabSet_main_projects_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_sites_Init()         { $this->oW = new ProjectsTabSites($this->oProjects); $this->oW->Init(); }
+    function TabSet_main_sites_Init()         { $this->oW = new ProjectsTabSites($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
 //    function TabSet_main_sites_ControlDraw()  { return( $this->oW->ControlDraw() ); }
 //    function TabSet_main_sites_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_office_Init()          { $this->oW = new ProjectsTabOffice($this->oProjects, $this); $this->oW->Init(); }
+    function TabSet_main_office_Init()          { $this->oW = new ProjectsTabOffice($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
 //    function TabSet_main_office_ControlDraw()   { return( $this->oW->ControlDraw() ); }
 //    function TabSet_main_office_ContentDraw()   { return( $this->oW->ContentDraw() ); }
 
@@ -237,6 +239,7 @@ class ProjectsCommon
     const  BUCKET_NS = 'AppMyProjects';
     public $oApp;
     public $oProfilesDB;
+    public $oMbr;
     public $oL;
 
     public const workflowcodes =
@@ -253,22 +256,34 @@ class ProjectsCommon
                 ];
 
     private $currYear;
+    private $kCurrMbr = 0;
 
     function __construct( SEEDAppConsole $oApp, array $raConfig = [] )
     {
         $this->oApp = $oApp;
         $this->oProfilesDB = new SLProfilesDB($oApp);
+        $this->oMbr = new Mbr_Contacts($oApp);
         $this->oL = new SEED_Local( $this->sLocalStrs(),
                                     @$raConfig['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
                                     'myprojects' );
 
         $this->currYear = @$this->raConfig['currYear'] ?: date("Y", time()+3600*24*30 );  // year of 30 days from now (so Dec,Jan-Nov is same year as Jan)
+
+        // default to current login - office staff can choose the current participant via FormSVA
+        $this->kCurrMbr = $this->oApp->sess->GetUID();
     }
 
     /**
      * The current project year
      */
-    function CurrentYear()  { return($this->currYear); }
+    function CurrentYear() : int  { return($this->currYear); }
+
+    /**
+     * The current participant
+     */
+    function KCurrMbr() : int     { return($this->kCurrMbr); }
+    function SetKCurrMbr(int $k)  { $this->kCurrMbr = $k; }
+
 
     function CanReadOtherUsers()
     {
@@ -300,6 +315,104 @@ class ProjectsCommon
     }
 }
 
+
+class ProjectsCommonUI
+{
+    private $oP;
+    public  $oCTS;
+
+    function __construct(ProjectsCommon $oP, MyConsole02TabSet $oCTS )
+    {
+        $this->oP = $oP;
+        $this->oCTS = $oCTS;
+    }
+
+
+    /**
+     * Same ControlDraw for Signup, Projects, and Sites
+     */
+    function Participant_ControlDraw()
+    {
+        $s = "";
+
+// put all this in a class and get kCurrMbr in Init()
+        if( $this->oP->CanReadOtherUsers() ) {
+// make a checkbox Show What Members See to turn off CanReadOtherUsers() -- except for that checkbox
+            $y = 2024;
+
+//            $oFormCurrentTab = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
+            // use the same SVA for all tabs so values are the same across them (projects is an arbitrary choice)
+            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVA('main','projects'), 'Plain');
+
+            // the SVA is active so you can get old values to compare
+            $iWorkflowOld = $oForm->Value('workflow');
+
+            $oForm->Update();
+
+            $iWorkflow = $oForm->ValueInt('workflow');
+            $bWorkflowChanged = $iWorkflow != $iWorkflowOld;
+
+            $kMbrSearch = SEEDInput_Int('kMbrSearch');
+
+            if( $kMbrSearch ) {
+                // reset workflow filter when a member is selected via search
+                $bWorkflowChanged = $iWorkflow != 0;
+                $iWorkflow = 0;
+                $oForm->SetValue('workflow', 0);
+            }
+
+
+            /* Get list of project members, filtered by workflow state
+             */
+            $raOpts = [];
+            $condWorkflow = $iWorkflow ? " AND workflow=$iWorkflow" : "";
+            foreach( $this->oP->oProfilesDB->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y {$condWorkflow}") as $kMbr ) {
+                $raOpts[$this->oP->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
+            }
+            ksort($raOpts);
+
+            /* If member selected via search
+             */
+            if( $kMbrSearch ) {
+                $name = $this->oP->oMbr->GetContactName($kMbrSearch);
+                $raOpts["$name ($kMbrSearch)"] = $kMbrSearch;  // add to the dropdown (idempotent if it is already there)
+                $this->oP->SetKCurrMbr($kMbrSearch);           // current in ui
+            } else
+            /* If member chosen from dropdown or recalled from oSVA.
+             * If workflow changed, it's best to forget the kMbr state so the default reset() behaviour should happen instead.
+             * Adding to dropdown for rare cases where kMbr already selected but no projects yet. e.g. search for member without project, click Add Project : won't be loaded into dropdown
+             */
+            if( !$bWorkflowChanged && ($kMbr = $oForm->ValueInt('kMbr')) ) {
+                $name = $this->oP->oMbr->GetContactName($kMbr);
+                $raOpts["$name ($kMbr)"] = $kMbr;           // add to the dropdown (idempotent if it is already there)
+                $this->oP->SetKCurrMbr($kMbr);              // current in ui
+            } else {
+                $this->oP->SetKCurrMbr(reset($raOpts));     // default to first kMbr in the list
+            }
+            $oForm->SetValue('kMbr', $this->oP->KCurrMbr()); // make this participant persistent in oFormSVA
+
+            $s .= "<div style='display:inline-block'>
+                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->oP->KCurrMbr(), 'attrs'=>"onChange='submit();'"])
+                     ."<br/><br/>"
+                     .$oForm->Select('workflow', array_merge(['-- Filter by workflow --'=>'0'],$this->oP::workflowcodes), "", ['selected'=>$iWorkflow, 'attrs'=>"onChange='submit();'"])
+                     ."</form>
+                   </div>
+                   &nbsp;&nbsp;
+                   <div style='display:inline-block;vertical-align:top'>
+                       <form method='post'><select id='kMbrSearch' name='kMbrSearch' style='width:40em' onChange='submit();'><option value='0'>Search for a member</option></select></form>
+                   </div>
+                   <script>
+                       new MbrContactsSelect2( { jSelect: $('#kMbrSearch'),
+                                                 qUrl: '{$this->oP->oApp->UrlQ()}' } );
+                   </script>";
+        }
+
+        // show the kCurrMbr's name on the right
+        $s .= "<div style='text-align:right'><h3 style='padding:0;margin:0;color:white'>{$this->oP->oMbr->GetContactName($this->oP->KCurrMbr())}</h3></div>";
+
+        return( $s );
+    }
+}
 
 class ProjectsTabSites
 {
