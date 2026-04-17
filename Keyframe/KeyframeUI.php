@@ -302,6 +302,7 @@ class KeyFrameUI_ListFormUI
 
                 // derived class may optionally override these methods
                 'KFCompParms' => ['raSEEDFormParms'=>['DSParms'=>['fn_DSPreStore'=> [$this,'PreStore'],
+                                                                  'fn_DSPostStore'=> [$this,'PostStore'],
                                                                   'fn_DSPreOp'   => [$this,'PreOp']]]],
         ];
         if( @$raParms['charsets'] == "HttpUtf8&DbLatin" ) {
@@ -318,6 +319,7 @@ class KeyFrameUI_ListFormUI
      */
     function ListRowTranslate( $raRow )                    { return( $raRow ); }    // override to alter list values (only affects display)
     function PreStore( Keyframe_DataStore $oDS )           { return( true ); }      // override to validate/alter values before save; return false to cancel save
+    function PostStore( mixed $oRet, SEEDCoreForm $oForm )       {}                       // override to perform additional operations after save; $oRet is the return from DS->Store()
     function PreOp( Keyframe_DataStore $oDS, string $op )  { return( false ); }     // override to validate/alter values before op; return false to cancel op
     function FormTemplate( SEEDCoreForm $oForm )           { return( "" ); }        // override to draw the Form
 }
