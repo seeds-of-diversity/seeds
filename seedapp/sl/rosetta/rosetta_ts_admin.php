@@ -168,7 +168,7 @@ class Rosetta_TS_Admin_CVSynUploadDownload
                 /* New row
                  */
                 // check species, primary name make sense
-                if( !($kPcv = $this->oSLDB->GetRecordVal1Cond("PxS", "name='".addslashes($ra['primary name'])."' AND S_psp='".addslashes($ra['species'])."'")) ) {
+                if( !($kPcv = $this->oSLDB->GetRecordVal1Cond("PxS", "name='".addslashes($ra['primary name'])."' AND S.psp='".addslashes($ra['species'])."'", "_key")) ) {
                     $s = "<div class='alert alert-danger'>Unknown species or primary name at row $nRow of Google sheet</div>";
                     goto done;
                 }
