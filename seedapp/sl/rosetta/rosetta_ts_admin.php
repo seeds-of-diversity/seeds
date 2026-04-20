@@ -82,7 +82,7 @@ class Rosetta_TS_Admin_CVSynUploadDownload
                <div style='margin:2em 1em;padding:1em;border:1px solid #aaa'>
                    $sNotificationDownload
                    <h4>Download cultivar synonyms from Rosetta to google sheet</h4>
-                   <p>This will overwrite everything on the named sheet tab.</p>
+                   <p>This will only work if the named sheet is blank.</p>
                    <form method='post'><input name='p_cmd' type='submit' value='Download to google sheet'/></form>
                </div>
 
@@ -105,7 +105,13 @@ class Rosetta_TS_Admin_CVSynUploadDownload
         if( !$oGoogleSheet ) goto done;
         $nameSheet = $oForm->Value('nameSheet');
 
-// ensure sheet is blank
+        /* Ensure sheet is blank
+         */
+        $raSheetProps = $oGoogleSheet->GetProperties($nameSheet);
+        if( !$raSheetProps || $raSheetProps['rowsUsed'] ) {
+            $s = "<div class='alert alert-danger'>Google sheet must be blank before downloading synonym list there.</div>";
+            goto done;
+        }
 
         $raG[] = $this->raSheetHeaders;
 
@@ -138,10 +144,13 @@ class Rosetta_TS_Admin_CVSynUploadDownload
 
         /* Validate the spreadsheet has the expected headers
          */
+        $sErrHeader = "<div class='alert alert-danger'>Google sheet must have column headers: ".implode(", ",$this->raSheetHeaders)."</div>";
+        if( !$raG ) {
+            $s = $sErrHeader;  goto done;
+        }
         foreach($this->raSheetHeaders as $h) {
             if( !array_key_exists($h, $raG[0]) ) {
-                $s = "<div class='alert alert-danger'>Google sheet must have column headers: ".implode(", ",$this->raSheetHeaders)."</div>";
-                goto done;
+                $s = $sErrHeader;  goto done;
             }
         }
 
