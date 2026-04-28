@@ -55,7 +55,7 @@ class CollectionBatchOps_PacketLabels
         /* Draw the form
          */
         $sInputs =
-            "<div><h4>Lot numbers</h4>
+            "<div><h4>Lot numbers <span style='font-size:75%'>(separated by spaces or commas)</span></h4>
                {$this->oForm->TextArea('rLots', ['width'=>'100%'])}
              </div>
              <div style='margin:5px; text-align:left'>
@@ -125,7 +125,7 @@ class CollectionBatchOps_PacketLabels
      */
     {
         $raOut = [];
-        foreach( preg_split('/\s+/', $this->oForm->Value('rLots')) as $v ) {
+        foreach( preg_split('/[\s,]+/', $this->oForm->Value('rLots')) as $v ) {
             $v = intval($v);
             if( ($kfrLot = $this->oSLDB->GetKFRCond('IxAxPxS', "fk_sl_collection=1 AND inv_number=$v")) ) {
                 $ra = [];
