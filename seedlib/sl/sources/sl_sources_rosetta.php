@@ -185,7 +185,7 @@ $sCond="SrcCV.fk_sl_sources>=3";
      */
     {
         self::checkTable( $oApp, $dbtable );
-$sCond="SrcCV.fk_sl_sources>=3";
+$sCond .= ($sCond ? " AND " : "")."SrcCV.fk_sl_sources>=3";
         // Skip rows where fk_sl_species is 0:  these are either rows to be deleted (species is blank) or where species was not found in sl_species*
         // Also skip rows where cultivar is empty, because we don't support unnamed cultivars in Rosetta. Sorry, you can't search for those in the seed finder.
         $ok =
@@ -214,6 +214,21 @@ $sCond="SrcCV.fk_sl_sources>=3";
                        .($sCond ? " AND ($sCond)" : "" ) );
 
         return( $ok );
+    }
+
+    /**
+     * Index one fk_sl_pcv in sl_cv_sources. Removes broken references, adds new names, handles renames.
+     */
+    static function CultivarIndex_Single( SEEDAppDB $oApp, int $kPcv )
+    {
+        $dbtable = "{$oApp->DBName('seeds1')}.sl_cv_sources";
+
+        /* New pname/sname     : second command indexes
+         * Renamed pname/sname : first command dereferences old name, second command indexes new name
+         * Deleted pname/sname : first command dereferences
+         */
+        $oApp->kfdb->Execute("UPDATE $dbtable SET fk_sl_pcv=0 WHERE fk_sl_pcv={$kPcv}");
+        self::BuildCultivarIndex($oApp, $dbtable, "P._key={$kPcv}");  // constrain to this kPcv
     }
 
     static function BuildSoundIndex( SEEDAppDB $oApp, $dbtable )

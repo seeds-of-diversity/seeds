@@ -274,6 +274,11 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
     private function fetchAllRows( string $nameSheet )
     {
         $raRows = $this->GetValues($nameSheet);     // the whole sheet
+        if(!$raRows) {
+            // This happens if the spreadsheet is blank, or if the fetch fails.
+            // raColnames and raRowsData remain []
+            goto done;
+        }
         $this->raColnames = $raRows[0];             // the header row
 
         array_shift($raRows);                       // remove header row and store the data rows keyed by colnames
@@ -282,6 +287,7 @@ class SEEDGoogleSheets_NamedColumns extends SEEDGoogleSheets
             $vals = array_slice(array_pad($ra,$n,null), 0, $n);    // the row values padded if fewer than keys, and truncated if more than keys
             $this->raRowsData[] = array_combine($this->raColnames,$vals);   // arg1 is keys, arg2 is values
         }
+        done:;
     }
 
     /**
