@@ -19,7 +19,7 @@ class CollectionTab_Accession
 //use these to draw the form
         $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []);
         $oFormA->Update();
-        $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', []);
+        $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreI']]]);
         $oFormI->Update();
 
 /*
@@ -31,6 +31,13 @@ class CollectionTab_Accession
             $kfr->PutDBRow();
         }
 */
+    }
+
+    function dsPreStoreI(Keyframe_DataStore $oDS)
+    {
+        if(!$oDS->Value('g_weight')) $oDS->SetValue('g_weight',0.0);    // db needs this to be 0.0 if the user enters blank
+
+        return(true);
     }
 
     function ControlDraw()
@@ -131,6 +138,8 @@ class CollectionTab_Accession
 
     private function accForm()
     {
+        $parentLot = "";    // inv_number from GetKFR('I',$this->oFormA->Value('kLotParent'))
+
         $s =  "<div class='container-fluid'>
                <div class='myc_accform_static'>"
 
@@ -140,7 +149,7 @@ class CollectionTab_Accession
                ||| *Grower/Source*           || [[Value:x_member]]
                ||| *Date Harvested*          || [[Value:x_d_harvest]]
                ||| *Notes* || &nbsp;
-               ||| {replaceWith class='col-md-12'} <div style='border:1px solid #aaa;padding:5px'>[[Value:notes]]</div>
+               ||| {replaceWith class='col-md-12'} <div style='border:1px solid #aaa;padding:5px'>[[nl2br: [[Value:notes]] ]]</div>
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[Value:g_original]]
                ||| *Grams 100 seeds*   || [[Value:g_100]]
