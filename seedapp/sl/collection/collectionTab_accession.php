@@ -5,7 +5,8 @@ class CollectionTab_Accession
     private $oApp;
     private $kInventory;
     private $sldbCollection;
-    private $oForm;
+    private $oFormA = null;    // kfr AxPxS for the displayed Accession
+    private $kfrI = null;      // kfr I for current Lot ($kInventory)
 
     function __construct( SEEDAppConsole $oApp, $kInventory )
     {
@@ -16,24 +17,45 @@ class CollectionTab_Accession
 
     function Init()
     {
-//use these to draw the form
-        $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []);
-        $oFormA->Update();
-        $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreI']]]);
-        $oFormI->Update();
+        /* Accession and Lot updates are submitted in the same <form>.
+         * There can be multiple Lot records, including but not limited to kInventory.
+         * oFormI is not persisted because it is only used for drawing forms later and needs to be reloaded per Lot
+         */
+        ($this->oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreA']]]))
+            ->Update();
 
-/*
-        $this->oForm = new KeyframeForm($this->sldbCollection->GetKfrel("G"), 'G', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]);
-        $this->oForm->Update();
+        (new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreI']]]))
+            ->Update();
 
-        if( ($kDel = SEEDInput_Int('germdel')) && ($kfr = $this->sldbCollection->GetKFR('G', $kDel)) ) {
-            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
-            $kfr->PutDBRow();
+        /* Fetch Accession and Lot for current kInventory. Set up oFormA. It might already be loaded correctly from Update() above, but not necessarily.
+         */
+        if( $this->kInventory &&
+            ($this->kfrI = $this->sldbCollection->GetKFR('I', $this->kInventory)) &&
+            ($kfrA = $this->sldbCollection->GetKFR('AxPxS', $this->kfrI->Value('fk_sl_accession'))) )
+        {
+            $this->oFormA->SetKFR($kfrA);
+        } else {
+            $this->oFormA->Clear();
         }
-*/
     }
 
-    function dsPreStoreI(Keyframe_DataStore $oDS)
+    function dsPreStoreA( Keyframe_DataStore $oDS )
+    {
+        // the form replaces kLotParent with iLotParent. Reverse that replacement.
+        if( ($iLotParent = $oDS->Value('iLotParent')) &&
+// parameterize kColl
+            ($kfr = $this->sldbCollection->GetKFR_LotFromNumber(1, $iLotParent)) )
+        {
+            $oDS->SetValue('kLotParent', $kfr->Key());
+        }
+
+        return(true);
+    }
+
+    /**
+     * Multiple lots can be saved from <form>, including but not limited to $this->kInventory.
+     */
+    function dsPreStoreI( Keyframe_DataStore $oDS )
     {
         if(!$oDS->Value('g_weight')) $oDS->SetValue('g_weight',0.0);    // db needs this to be 0.0 if the user enters blank
 
@@ -49,28 +71,19 @@ class CollectionTab_Accession
     {
         $s = $sLeft = $sRight = "";
 
-// do this in construct and SetKFR(A) there so $this->oFormA is available in accForm()
-        if( !$this->kInventory ||
-            !($kfrI = $this->sldbCollection->GetKFR('I', $this->kInventory)) ||
-            !($kfrA = $this->sldbCollection->GetKFR('AxPxS', $kfrI->Value('fk_sl_accession'))) )
-        {
-            goto done;
-        }
-
-        $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
-        $oFormA->SetKFR($kfrA);
+        if( !$this->kInventory || !$this->oFormA->GetKey() )  goto done;
 
         /* Left side is the Accession information
          */
-        $sLeft = $oFormA->HiddenKey()
-                .(new SEEDFormExpand($oFormA))->ExpandForm($this->accForm());
+        $sLeft = $this->oFormA->HiddenKey()
+                .(new SEEDFormExpand($this->oFormA))->ExpandForm($this->accForm());
 
         /* Right side is the Lot information
          */
         $kfrC = $this->sldbCollection->GetKFR('C', 1); // $this->oSCA->kCurrCollection   this app doesn't have multiple collections
         $nNextInv = $kfrC ? $kfrC->Value('inv_counter') : 0;
 
-        if( ($kfrcI = $this->sldbCollection->GetKFRC('I', "fk_sl_accession='{$kfrA->Key()}'")) ) {
+        if( ($kfrcI = $this->sldbCollection->GetKFRC('I', "fk_sl_accession='{$this->oFormA->GetKey()}'")) ) {
             $iRow = 0;
             $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', []); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
 
@@ -95,7 +108,9 @@ class CollectionTab_Accession
 
     private function accForm()
     {
-        $parentLot = "";    // inv_number from GetKFR('I',$this->oFormA->Value('kLotParent'))
+        // add a dummy field iLotParent (sl_inventory.inv_number) to the form instead of kLotParent (sl_inventory._key)
+        list($iLotParent,$kCollDummy) = $this->sldbCollection->Get_LotNumberFromKey($this->oFormA->Value('kLotParent'));
+        $this->oFormA->SetValue('iLotParent',$iLotParent);
 
         $s =  "<div class='container-fluid'>
                <div class='myc_accform_static'>"
@@ -110,7 +125,7 @@ class CollectionTab_Accession
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[Value:g_original]]
                ||| *Grams 100 seeds*   || [[Value:g_100]]
-               ||| *Parent Lot #*   || [[Value:kLotParent]]
+               ||| *Parent Lot #*   || [[Value:iLotParent]]
                ||| *Grower rating* || [[Value:iGrowerRating]]
                ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n"
 
@@ -148,7 +163,7 @@ class CollectionTab_Accession
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[g_original]]
                ||| *Grams 100 seeds*   || [[g_100]]
-               ||| *Parent Lot #*   || [[kLotParent]]
+               ||| *Parent Lot #*   || [[iLotParent]]
                ||| *Grower rating* || [[iGrowerRating]]"
 
              .($this->oApp->sess->GetUID() == 1499 ?

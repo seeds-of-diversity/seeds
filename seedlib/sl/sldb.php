@@ -382,11 +382,32 @@ class SLDBCollection extends SLDBRosetta
         parent::__construct( $oApp, $raConfig );
     }
 
-    function GetKFR_LotFromNumber( int $kColl, int $iLot )
+    /**
+     * Get the Lot record from the Lot number (not the key).
+     * @param int $kColl
+     * @param int $iLot
+     * @return KeyframeRecord
+     */
+    function GetKFR_LotFromNumber( int $kColl, int $iLot ) : ?KeyframeRecord
     {
         return( $this->GetKFRCond('IxAxPxS', "fk_sl_collection='$kColl' AND inv_number='$iLot'") );
     }
 
+    /**
+     * Get the Lot number from the sl_inventory._key
+     * @param int $kLot
+     */
+    function Get_LotNumberFromKey( int $kLot )
+    {
+        $iLot = $kColl = 0;
+
+        if( $kLot && ($kfr = $this->GetKFR('I', $kLot)) ) {
+            $iLot = $kfr->Value('inv_number');
+            $kColl = $kfr->Value('fk_sl_collection');
+        }
+
+        return([$iLot,$kColl]);
+    }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {
