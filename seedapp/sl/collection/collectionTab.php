@@ -134,6 +134,9 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
             goto draw;
         }
 
+        // Draw the subtabs first because they contain form Update() code that will affect the list and Accession data
+        $sSubTabs = $this->drawCollectionSubtabs();
+
         $sDrawList = $this->DrawList();
 
         $raLots = $this->oSLDB->GetList("I", "fk_sl_accession = {$this->oComp->oForm->Value("A__key")}");
@@ -163,8 +166,6 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
                                   .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)
                                   ."</div>" );
                         });
-
-        $sSubTabs = $this->drawCollectionSubtabs();
 
         draw:
 
