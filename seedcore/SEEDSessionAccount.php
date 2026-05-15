@@ -76,40 +76,42 @@ class SEEDSessionAccount extends SEEDSession
     const SESSION_LOGIN_FAILED = 3;     // bLogin false : no user session, found credentials but they were wrong
     const SESSION_PERMS_FAILED = 4;     // bLogin false : no user session, credentials were good, but perms were wrong
 
-    const TS_LOGOUT = 1;                // this timestamp is very far in the past, so the session is seen as expired
-
     /**
      * Database object for accessing user info
      * @var SEEDSessionAccountDBRead2
      */
-    public $oDB = null;
+    private $oDB = null;
 
     private $bLogin = false;
     private $eLoginState = self::SESSION_NONE;
-
-    private $raUser = array();
-    private $raMetadata = array();
+    
+    /**
+     * The real user id of the currently logged in user.
+     * @var int
+     */
+    private $rUID = 0;
+    /**
+     * The effective user id of the "logged in" user.
+     * Used to determine what permissions the user has.
+     * In most cases this will be the same as {@link SEEDSessionAccount::$rUID}, unless the user has logged in as a different user.
+     * @see SEEDSessionAccount::LoginAsUser($uid)
+     * @var int
+     */
+    private $eUID = 0;
 
     protected $kfdb;
     protected $httpNameUID = "seedsession_uid";     // the http parm that identifies the user login userid  (change if an override wants to use a different parm name)
     protected $httpNamePWD = "seedsession_pwd";     // the http parm that identifies the user login password
     protected $httpNameML  = "seedsession_ml";      // the http parm that identifies a magic login id
-    protected $kSessionIdStr = "seedsession_key"; // $_SESSION[$this->kSessionIdStr] is the current session's id string used by findSession
-    protected $nExpiryDefault = 7200;
+    protected $kRealUID = "seedsession_ruid";       // $_SESSION[$this->kRealUID] is the current session's real user id used by findSession
+    protected $kEffectiveUID = "seedsession_euid";  // $_SESSION[$this->kEffectiveUID] is the current session's effective user id used by findSession
 
-    private $kfrelSess = null;
-    private $kfrSession = null;
-    private $oAuth;
+    public $bDebug = false;
+    public $sDebug = "";
 
-    private $logfile = "";
-
-    public $bDebug = false; public $sDebug = "";
-
-    function __construct( KeyframeDatabase $kfdb, $raPerms, $raParms = array() )
+    function __construct( KeyframeDatabase $kfdb, array $raPerms, array $raParms = array() )
     /***************************************************************************
-        raParms: logfile    = record UGP changes here
-                 logdir     = record UGP changes in logdir/seedsessionaccount.log
-                 uid        = different name for uid http parm
+        raParms: uid        = different name for uid http parm
                  pwd        = different name for pwd http parm
                  ml         = different name for magic http parm
      */
@@ -117,15 +119,8 @@ class SEEDSessionAccount extends SEEDSession
         parent::__construct();
 
         $this->kfdb = $kfdb;
-        $this->initKfrel(0);    // uid 0 because we don't know who we are yet and this is readonly anyway
 
         $this->oDB = new SEEDSessionAccountDBRead2( $kfdb, 0 ); // uid 0 because we don't know who we are yet and this is readonly anyway
-
-        if( ($logfile = @$raParms['logfile']) ) {
-            $this->logfile = $logfile;
-        } else if( ($logdir = @$raParms['logdir']) ) {
-            $this->logfile = $logdir."seedsessionaccount.log";
-        }
 
         /* Get seedsession parms from http arrays. Then remove them so other code that copies and reissues $_REQUEST won't tell the password.
          * Using POST because it is stored in a cookie, which overrides the POST parm in _REQUEST.
@@ -190,63 +185,153 @@ class SEEDSessionAccount extends SEEDSession
         }
 
     done:
-        if( $this->bLogin ) {
-            // This could have been done in makeSession (which does this lookup!) or findSession, but we prefer to do it after the perms are checked above
-            list($kUser,$this->raUser,$this->raMetadata) = $this->oDB->GetUserInfo( $this->kfrSession->Value('uid') );
-        }
     }
 
-    function IsLogin()       { return( $this->bLogin ); }           // true if there is an active user session
-    function GetLoginState() { return( $this->eLoginState ); }      // use this to get the reason for bLogin
+    /**
+     * Return whether there's a current session or not
+     * @return bool
+     */
+    function IsLogin(): bool       { return( $this->bLogin ); }
+    
+    /**
+     * Get the current login state
+     * @return int
+     */
+    function GetLoginState(): int { return( $this->eLoginState ); }      // use this to get the reason for bLogin
 
-    function GetSessIDStr()  { return( $this->bLogin && $this->kfrSession ? $this->kfrSession->Value('sess_idstr') : "" ); }
-    function GetUID()        { return( $this->bLogin && $this->kfrSession ? $this->kfrSession->Value('uid') : 0 ); }
-    function GetRealname()   { return( $this->bLogin && $this->kfrSession ? $this->kfrSession->Value('realname') : "" ); }
-    function GetEmail()      { return( $this->bLogin && $this->kfrSession ? $this->kfrSession->Value('email') : "" ); }
-    function GetName()
-    {
-        $name = "";
-
-        if( !$this->IsLogin() ) goto done;
-
-        if( !($name = $this->GetRealname()) ) {
-            if( !($name = $this->GetEmail()) ) {
-                $name = "#".$this->GetUID();
+    /**
+     * Return the user id for the logged in user.
+     * Returns the users effective user id by default.
+     * @param bool $useRUID - whether to return the real user id instead.
+     * @return int
+     */
+    function GetUID(bool $useRUID = false): int {
+        if ($this->bLogin) {
+            if ($useRUID) {
+                return $this->rUID;
             }
+            return $this->eUID;
         }
-        done:
-        return( $name );
+        return 0;
     }
 
-    function GetHTTPNameUID() { return( $this->httpNameUID ); }
-    function GetHTTPNamePWD() { return( $this->httpNamePWD ); }
-
-    function TestPermRA( $raPerms )
-    /******************************
-        Return true if the current user has permissions that match the given array.
-
-        'PUBLIC' always succeeds regardless of IsLogin(), and must appear first in a '|' list to allow anonymous login (because of short-circuit logic)
-        [] is equivalent to IsLogin()
+    /**
+     * Return the real name of the logged in user.
+     * Returns the name of effective user by default.
+     * @param bool $useRUID - whether to return the name of the real user instead.
+     * @return string
      */
-    {
-        return( $this->_testPerms($raPerms) );
+    function GetRealname(bool $useRUID = false): string {
+        if ($this->bLogin) {
+            if ($useRUID) {
+                $user = $this->oDB->GetUserInfo($this->rUID, false, true)[1];
+                return $user['realname'];
+            }
+            $user = $this->oDB->GetUserInfo($this->eUID, false, true)[1];
+            return $user['realname'];
+        }
+        return '';
+    }
+    
+    /**
+     * Return the email of the logged in user.
+     * Returns the email of the effective user by default.
+     * @param bool $useRUID - whether to return the email of the real user instead.
+     * @return string
+     */
+    function GetEmail(bool $useRUID = false): string {
+        if ($this->bLogin) {
+            if ($useRUID) {
+                $user = $this->oDB->GetEmail($this->rUID);
+                return $user['email'];
+            }
+            $user = $this->oDB->GetEmail($this->eUID);
+            return $user['email'];
+        }
+        return '';
+    }
+    
+    /**
+     * Compute and return the name of the logged in user.
+     * Falls back to email if the user does not have a real name set.
+     * Falls back to uid if the user does not have a real name or email set.
+     * Returns the name of the effective user by default.
+     * @param bool $useRUID - whether to return the name of the real user instead.
+     * @return string
+     */
+    function GetName(bool $useRUID = false): string {
+        if($this->IsLogin()) {
+            $name = $this->GetRealname($useRUID);
+            if(!$name) {
+                if(!($name = $this->GetEmail($useRUID))) {
+                    $name = "#".$this->GetUID($useRUID);
+                }
+            }
+            return $name;
+        }
+        return '';
     }
 
-    private function _testPerms( $raPerms )
-    /**************************************
-        $raPerms is an array of permission operands.
-        ['PUBLIC'] always succeeds and allows !IsLogin
-        [] always succeeds if IsLogin
-        ['R a'] is a simple test that 'a' has read permission
-        ['&', 'R a', 'W b', ...] tests that all of the operands in the array pass permission test -- & can occur anywhere in the array
-        ['|', 'R a', 'W b', ...] tests that any one of the operands in the array pass permission test -- | can occur anywhere in the array
-        ['R a', 'W b', ...] same as if '&' were in the array
-        ['&', 'R a', array(...) ] uses recursion with this method to assess the result of the array
+    /**
+     * Get the name of the username HTTP parameter
+     * @return string
      */
-    {
+    function GetHTTPNameUID(): string { return( $this->httpNameUID ); }
+    
+    /**
+     * Get the name of the password HTTP parameter
+     * @return string
+     */
+    function GetHTTPNamePWD(): string { return( $this->httpNamePWD ); }
+
+    /**
+     * Return true if the current user has permissions that match the given array.
+     * Checks against effective permissions by default.
+     * Recursively processes nested arrays.
+     * 'PUBLIC' always succeeds regardless of IsLogin(), and must appear first in a '|' list to allow anonymous login (because of short-circuit logic)
+     * @param string[] | string[][] $raPerms - array of permission strings to test
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return true if the user has matching permissions, false otherwise
+     * @example TestPermRA([]) is equivalent to IsLogin()
+     * @example TestPermRA(['PUBLIC']) - always succeeds
+     * @example TestPermRA(['R a']) - tests that the effective user has the "a" read permission
+     * @example TestPermRA(['&', 'R a', 'W b']) - tests that the effective user has both "a" read permission, AND "b" write permission.
+     * Equivalent to TestPermRA(['R a', '&', 'W b'])
+     * @example TestPermRA(['|', 'R a', 'W b']) - tests that the effective user has either "a" read permission, OR "b" write permission.
+     * Equivalent to TestPermRA(['R a', '|', 'W b'])
+     * @example TestPermRA(['R a', 'W b']) - tests that the effective user has both "a" read permission, AND "b" write permission.
+     * Equivalent to TestPermRA(['R a', '&', 'W b'])
+     * @example TestPermRA(['R a', '&', ['W b', '|', 'A c']]) - tests that effective the user has both "a" read permission, AND either "b" write permission OR "c" admin permission
+     * @example TestPermRA('R a'], true) - tests that the real user has "a" read permission
+     */
+    function TestPermRA( array $raPerms, bool $useRUID = false ): bool {
+        return( $this->_testPerms($raPerms, $useRUID) );
+    }
+
+    /**
+     * Return true if the current user has permissions that match the given array.
+     * Checks against effective permissions by default.
+     * Recursively processes nested arrays.
+     * Called internally by {@link SEEDSessionAccount::TestPermRA()}
+     * 'PUBLIC' always succeeds regardless of IsLogin(), and must appear first in a '|' list to allow anonymous login (because of short-circuit logic)
+     * @param string[] | string[][] $raPerms - array of permission strings to test
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return true if the user has matching permissions, false otherwise
+     * @see SEEDSessionAccount::TestPermRA($raPerms)
+     * @example _testPerms([]) is equivalent to IsLogin()
+     * @example _testPerms(['PUBLIC']) - always succeeds
+     * @example _testPerms(['R a']) - tests that the effective user has the "a" read permission
+     * @example _testPerms(['&', 'R a', 'W b']) - tests that the effective user has both "a" read permission, AND "b" write permission.
+     * Equivalent to _testPerms(['R a', '&', 'W b'])
+     * @example _testPerms(['|', 'R a', 'W b']) - tests that the effective user has either "a" read permission, OR "b" write permission.
+     * Equivalent to _testPerms(['R a', '|', 'W b'])
+     * @example _testPerms(['R a', 'W b']) - tests that the effective user has both "a" read permission, AND "b" write permission.
+     * Equivalent to _testPerms(['R a', '&', 'W b'])
+     * @example _testPerms(['R a', '&', ['W b', '|', 'A c']]) - tests that effective the user has both "a" read permission, AND either "b" write permission OR "c" admin permission
+     * @example _testPerms('R a'], true) - tests that the real user has "a" read permission
+     */
+    private function _testPerms( array $raPerms, bool $useRUID = false ): bool {
         $ok = false;
-
-        if( !is_array($raPerms) ) { var_dump($raPerms); die( "Perms must be array" ); }
 
         // An empty array always succeeds if logged in. Since this is called in the constructor before IsLogin is set, check eLoginState.
         if( (!$raPerms || count($raPerms)==0) ) {
@@ -264,7 +349,7 @@ class SEEDSessionAccount extends SEEDSession
 
             if( is_array($v) ) {
                 // This is a nested array. Evaluate with this method recursively.
-                $x = $this->_testPerms( $v );
+                $x = $this->_testPerms( $v, $useRUID );
             } else if( $v == 'PUBLIC' ) {
                 // This is a special perm that always succeeds regardless of IsLogin()
                 $x = true;
@@ -272,7 +357,7 @@ class SEEDSessionAccount extends SEEDSession
                 // Regular perm string. Only returns true if IsLogin()
                 // "mode perm" e.g. "RW foobar", "A foobar", "WA foobar"
                 list($mode,$perm) = explode( ' ', $v, 2 );
-                $x = $this->TestPerm( $perm, $mode );
+                $x = $this->TestPerm( $perm, $mode, $useRUID );
             }
             if( $bAnd ) {
                 if( !($ok = $ok && $x) )  goto done;
@@ -286,42 +371,86 @@ class SEEDSessionAccount extends SEEDSession
         return( $ok );
     }
 
-    function TestPerm( $perm, $mode )
+    /**
+     * Get if the current user has the expected permission.
+     * Checks against the effective users permissions by default.
+     * Called internally by {@link SEEDSessionAccount::_testPerms()}, {@link SEEDSessionAccount::CanRead()},
+     * {@link SEEDSessionAccount::CanWrite()}, and {@link SEEDSessionAccount::CanAdmin()}
+     * @param string $perm - the permission to test for
+     * @param string $mode - the level of permission required. "R" for read permission, "W" for write permission, and "A" for admin permission
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return bool - true if the user has the permission, false otherwise
+     * @see SEEDSessionAccount::_testPerms($raPerms)
+     * @see SEEDSessionAccount::CanRead($perm)
+     * @see SEEDSessionAccount::CanWrite($perm)
+     * @see SEEDSessionAccount::CanAdmin($perm)
+     * @example TestPerm('test', 'R') - tests if the effective user has the test read permission
+     * @example TestPerm('test', 'W') - tests if the effective user has the test write permission
+     * @example TestPerm('test', 'A') - tests if the effective user has the test admin permission
+     * @example TestPerm('test', 'R', true) - tests if the real user has the test read permission
+     * @example TestPerm('test', 'W', true) - tests if the real user has the test write permission
+     * @example TestPerm('test', 'A', true) - tests if the real user has the test admin permission
+     */
+    function TestPerm( string $perm, string $mode, bool $useRUID = false ): bool
     /********************************
         Return true if the given perm is available in the column 'perms$mode'. i.e. $mode = R, W, A
      */
     {
         $ok = false;
 
-        if( $this->IsLogin() && $this->kfrSession )
+        if( $this->IsLogin() && $this->GetUID($useRUID))
         {
-            $ok = (strpos($this->kfrSession->value("perms$mode") ?? "", " $perm ") !== false);  // NB !== because 0 means first position
+            $raPerms = $this->oDB->GetPermsFromUser($this->GetUID($useRUID))['mode2perms'][$mode] ?? [];
+            
+            $ok = in_array($perm, $raPerms);
         }
         return( $ok );
     }
 
-    function CanRead( $perm )   { return( $this->TestPerm( $perm, "R" ) ); }
-    function CanWrite( $perm )  { return( $this->TestPerm( $perm, "W" ) ); }
-    function CanAdmin( $perm )  { return( $this->TestPerm( $perm, "A" ) ); }
-
-    function IsAllowed( $p )
-    /***********************
-        $p is a screen name, command name, operation name, or other permission-formatted string as below
-
-        Permission is defined by the format of the name
-
-        foo-bar      : if Read  permission on "foo" perm, allow bar
-        foo--bar     : if Write permission on "foo" perm, allow bar
-        foo---bar    : if Admin permission on "foo" perm, allow bar
-
-        Commands with no hyphens are available to everyone.
-
-        return:
-        bOk  = true if the current user is allowed to use the screen/command
-        suff = the suffix of screen/command name after the hyphens (if any)
-        sErr = the reason why bOk is false
+    /**
+     * Get if the user has the given read permission.
+     * Checks against the effective users permissions by default.
+     * @param string $perm - permission to check
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return bool true if the user has the read permission, false otherwise
      */
-    {
+    function CanRead( string $perm, bool $useRUID = false ): bool   { return( $this->TestPerm( $perm, "R", $useRUID ) ); }
+
+    /**
+     * Get if the user has the given write permission
+     * Checks against the effective users permissions by default.
+     * @param string $perm - permission to check
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return bool true if the user has the write permission, false otherwise
+     */
+    function CanWrite( string $perm, bool $useRUID = false ): bool  { return( $this->TestPerm( $perm, "W", $useRUID ) ); }
+
+    /**
+     * Get if the user has the given admin permission.
+     * Checks against the effective users permissions by default.
+     * @param string $perm - permission to check
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return bool true if the user has the admin permission, false otherwise
+     */
+    function CanAdmin( string $perm, bool $useRUID = false ): bool  { return( $this->TestPerm( $perm, "A", $useRUID ) ); }
+
+    /**
+     * Get whether the users permissions would allow for the given permission-formatted string to be used.
+     * Checks against the effective users permissions by default.
+     * @param string $p - the permission-formatted string to check
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return array{bool,string,string} Whether the user is allowed to perform the action,
+     * followed by the part of the string following the hyphens (if any), followed by the reason the action is not allowed (if any)
+     * @example IsAllowed('foo-bar') - bar allowed if the effective user has "foo" read permission
+     * @example IsAllowed('foo--bar') - bar allowed if the effective user has "foo" write permission
+     * @example IsAllowed('foo---bar') - bar allowed if the effective user has "foo" admin permission
+     * @example IsAllowed('bar') - bar always allowed
+     * @example IsAllowed('foo-bar', true) - bar allowed if the real user has "foo" read permission
+     * @example IsAllowed('foo--bar', true) - bar allowed if the real user has "foo" write permission
+     * @example IsAllowed('foo---bar', true) - bar allowed if the real user has "foo" admin permission
+     * @see SEEDSessionAccount::CheckPerms($cmd, $ePerm, $sPermLabel)
+     */
+    function IsAllowed( string $p, bool $useRUID = false ): array {
         $bOk = false;
         $suff = "";
         $sErr = "";
@@ -330,21 +459,21 @@ class SEEDSessionAccount extends SEEDSession
 
         if( strpos( $p, "---" ) !== false ) {
             list($perm,$suff) = explode( "---", $p, 2 );
-            if( !$perm || !$suff || !$this->CanAdmin( $perm ) ) {
+            if( !$perm || !$suff || !$this->CanAdmin( $perm, $useRUID ) ) {
                 $sErr = "Requires admin permission";
                 goto done;
             }
         } else
         if( strpos( $p, "--" ) !== false ) {
             list($perm,$suff) = explode( "--", $p, 2 );
-            if( !$perm || !$suff || !$this->CanWrite( $perm ) ) {
+            if( !$perm || !$suff || !$this->CanWrite( $perm, $useRUID ) ) {
                 $sErr = "Requires write permission";
                 goto done;
             }
         } else
         if( strpos( $p, "-" ) !== false ) {
             list($perm,$suff) = explode( "-", $p, 2 );
-            if( !$perm || !$suff || !$this->CanRead( $perm ) ) {
+            if( !$perm || !$suff || !$this->CanRead( $perm, $useRUID ) ) {
                 $sErr = "Requires read permission";
                 goto done;
             }
@@ -359,34 +488,43 @@ class SEEDSessionAccount extends SEEDSession
         return( array($bOk, $suff, $sErr) );
     }
 
-    function CheckPerms( $cmd, $ePerm, $sPermLabel )
-    /***********************************************
-        Similar to IsAllowed() but more flexible because the ePerm doesn't have to be encoded in the cmd
-
-        cmds containing --- require admin access
-        cmds containing --  require write access
-        cmds containing -   require read access
-
-        Note that any command might check further permissions to allow or deny access
+    /**
+     * Get whether the user has the required permissions to perform the given command.
+     * Similar to {@link SEEDSessionAccount::IsAllowed} but more flexible since the permission doesn't need to be encoded in the command.
+     * Checks against the effective users permissions by default.
+     * NOTE: Any command might check further permissions to allow or deny access.
+     * @param string $cmd - the command to check permissions for
+     * @param string $ePerm - the permission that should be tested for. The level of the permission required is determined by the command
+     * @param string $sPermLabel - label for the permission to use in the error message
+     * @param bool $useRUID - whether to check against the real users permissions instead
+     * @return array{bool,string} Whether the user is allowed to perform the command,
+     * followed by the reason the action is not allowed (if any)
+     * @see SEEDSessionAccount::IsAllowed($p)
+     * @example CheckPerms('foo-bar', 'test', 'test') - allowed if the effective user has the "test" read permission
+     * @example CheckPerms('foo--bar', 'test', 'test') - allowed if the effective user has the "test" write permission
+     * @example CheckPerms('foo---bar', 'test', 'test') - allowed if the effective user has the "test" admin permission
+     * @example CheckPerms('foo-bar', 'test', 'test', true) - allowed if the real user has the "test" read permission
+     * @example CheckPerms('foo--bar', 'test', 'test', true) - allowed if the real user has the "test" write permission
+     * @example CheckPerms('foo---bar', 'test', 'test', true) - allowed if the real user has the "test" admin permission
      */
-    {
+    function CheckPerms( string $cmd, string $ePerm, string $sPermLabel, bool $useRUID = false ): array {
         $bAccess = false;
         $sErr = "";
 
         $cmd = $cmd ?? "";
 
         if( strpos( $cmd, "---" ) !== false ) {
-            if( !($bAccess = $this->TestPerm( $ePerm, 'A' )) ) {
+            if( !($bAccess = $this->TestPerm( $ePerm, 'A', $useRUID )) ) {
                 $sErr = "Command requires $sPermLabel admin permission";
             }
         } else
         if( strpos( $cmd, "--" ) !== false ) {
-            if( !($bAccess = $this->TestPerm( $ePerm, 'W' )) ) {
+            if( !($bAccess = $this->TestPerm( $ePerm, 'W', $useRUID )) ) {
                 $sErr = "Command requires $sPermLabel write permission";
             }
         } else
         if( strpos( $cmd, "-" ) !== false ) {
-            if( !($bAccess = $this->TestPerm( $ePerm, 'R' )) ) {
+            if( !($bAccess = $this->TestPerm( $ePerm, 'R', $useRUID )) ) {
                 $sErr = "Command requires $sPermLabel read permission";
             }
         }
@@ -395,28 +533,27 @@ class SEEDSessionAccount extends SEEDSession
     }
 
 
-    function LogoutSession( $bDestroyPHPSession = true )
-    /***************************************************
-        This class can create sessions; it can also destroy them.
+    /**
+     * Log a user out of a session.
+     * By default, if a user has logged in as another user using {@link SEEDSessionAccount::LoginAsUser} this will return them to their actual user
+     * instead of logging them out.
+     * @param bool $fullLogout - Whether to log the user out completely instead
+     * @see SEEDSessionAccount::LoginAsUser($uid)
      */
-    {
-        $ok = false;
+    function LogoutSession( bool $fullLogout = false ) {
 
-        if( $this->IsLogin() && $this->kfrSession ) {
-            $this->kfrSession->SetValue( 'ts_expiry', self::TS_LOGOUT );      // this is very far in the past so the session is seen as expired
-            $ok = $this->kfrSession->PutDBRow();
-            $this->kfrSession = null;
-
-            /* In rare cases you want to substitute one user for another in the same PHP session.
-             * e.g. LoginAsUser() only works if you don't destroy the session
-             */
-            if( $bDestroyPHPSession ) {
+        if( $this->IsLogin()) {
+            if( !$fullLogout && $this->rUID !== $this->eUID ) {
+                // The user has switched to another user. Return them to their user instead of logging them out.
+                $this->eUID = $this->rUID;
+                $this->VarSet($this->kEffectiveUID, $this->rUID);
+            } else {
                 /* Prevent session hijacking (by fixation) by not leaving the same session open for another user at the logout screen on a public computer.
                  * Although the measures below might not leave that session useful anyway.
                  */
                 setcookie(session_name(),'',0,'/');
                 session_regenerate_id(true);
-
+                
                 /* Destroy session variables here. Otherwise someone else logging in on the same session will get the first user's variables.
                  * This logout happens when a login is done in the middle of a session, e.g. for a page inaccessible by the first login.
                  */
@@ -427,34 +564,37 @@ class SEEDSessionAccount extends SEEDSession
         }
         $this->bLogin = false;
         $this->eLoginState = self::SESSION_NONE;
-
-        return( $ok );
     }
 
-    function LoginAsUser( $uid )
-    /***************************
-        In rare instances, you want to login as a particular user. e.g. after creating a new account.
-        Only use this if you've already ensured authentication.
+    /**
+     * Temporarily log in as another user.
+     * This sets the effective user id to the given id as long as there's a logged in session.
+     * The existing session is NOT destroyed.
+     * @param int $uid - id of the user to temporarily log in as
+     * @return bool - true if the login was successful, false otherwise
      */
-    {
-        $this->LogoutSession( false );  // logout the current user but don't destroy the PHP session
-
-        if( $this->makeSession( $uid, "", true ) ) {
-            $this->eLoginState = self::SESSION_CREATED;
-            $this->bLogin = true;
-            list($kUser,$this->raUser,$this->raMetadata) = $this->oDB->GetUserInfo( $this->kfrSession->Value('uid') );
-        } else {
-            $this->eLoginState = self::SESSION_LOGIN_FAILED;
+    function LoginAsUser(int $uid): bool {
+        if ($this->IsLogin() && $this->rUID) {
+            // Could add a perms check to prevent unauthorized users from changing their permissions
+            if ($this->oDB->GetEmail($uid)) {
+                // Set the effective user id to the provided id.
+                // N.B. This could be used to log into inactive or pending user
+                $this->eUID = $uid;
+                $this->VarSet($this->kEffectiveUID, $uid);
+                return true;
+            }
         }
-        return( $this->bLogin );
+        // Optionally could support logging into freshly created accounts (eg. accounts that were created within the last 5 mins)
+        // This could allow for seemless account creation & login for new users if desired, while limiting annonymous access to any account
+        return false;
     }
 
-    function GetNonSessionHttpParms()
-    /********************************
-        Get all http parms that are not part of the session control.
-        i.e. these can be propagated safely without revealing or messing up the session.
+    /**
+     * Get all http params that are not part of the session control.
+     * i.e. these can be propagated safely without revealing or messing up the session.
+     * @return unknown[]
      */
-    {
+    function GetNonSessionHttpParms(): array {
         $ra = array();
         foreach( $_GET as $k => $v ) {
             if( !in_array($k, [$this->httpNameUID,$this->httpNamePWD,$this->httpNameML]) ) {
@@ -469,80 +609,43 @@ class SEEDSessionAccount extends SEEDSession
         return( $ra );
     }
 
-    private function findSession()
-    {
-        $sid = 0;    // this could be an arg so someone could make us find a specific session
-        $uid = 0;    // this could be an arg so someone could make us find a session for a specific user
-                     //   (bad idea because you can login multiple times as the same user, at least from different machines)
-
-        $sess_idstr = $this->VarGet($this->kSessionIdStr);      // makeSession put this in $_SESSION on the last successful login
-
-        $ok = false;
-
-        if( $sid ) {
-            $this->kfrSession = $this->kfrelSess->GetRecordFromDBKey( $sid );
-
-        } else if( $uid ) {
-            $this->kfrSession = $this->kfrelSess->GetRecordFromDB( "uid='".intval($uid)."'" );
-
-        } else if( $sess_idstr ) {
-            $this->kfrSession = $this->kfrelSess->GetRecordFromDB( "sess_idstr='".addslashes($sess_idstr)."'" );
-        }
-
-        if( !$this->kfrSession ) {
-            if( $this->bDebug ) { $this->sDebug = "NOSESSION $sess_idstr<br/>"; }
-
-        /* Has the session expired?
-         */
-        } else if( ($ts = intval($this->kfrSession->Value('ts_expiry'))) == self::TS_LOGOUT ) {
-            // The last session was logged out.
-            if( $this->bDebug ) { $this->sDebug = "LOGGED OUT"; }
-            $this->kfrSession = NULL;
-
-        } else if( $ts < time() ) {
-            if( $this->bDebug ) { $this->sDebug = "EXPIRED<br/>$ts<br/>".time()."<br/>"; }
-            $this->kfrSession = NULL;
-
-/*
-            if( time() - $ts < 3600 ) {
-                // if the session expired less than an hour ago, note that it expired
-                $this->error = SEEDSESSION_ERR_EXPIRED;
-            } else {
-                // otherwise, don't bother the user with an expiry message because it could be a long time ago (days or weeks) and that would seem weird
-                $this->error = SEEDSESSION_ERR_NOSESSION;
-            }
-*/
-        }
-
-        $ok = $this->kfrSession != NULL;
-
-        return( $ok );
+    /**
+     * Attempt to load the real and effective user id's from the PHP session.
+     * The effective user id will default to the real user id if it's not separately set
+     * @return boolean true if at least the real user id was loaded from the session, false otherwise
+     */
+    private function findSession(): bool {
+        $this->rUID = $this->VarGetInt($this->kRealUID);
+        $this->eUID = $this->VarIsSet($this->kEffectiveUID) ? $this->VarGetInt($this->kEffectiveUID) : $this->VarGetInt($this->kRealUID);
+        return boolval($this->rUID);
     }
 
-    private function makeSession( $sUid, $sPwd, $bNoPassword = false )
-    {
-        $ok = false;
+    /**
+     * Attempt to login using a user's id or email, as well as their password.
+     * This will handle upgrading the password if necessary on successful login.
+     * @param string|int $userIdOrEmail - id or email of the user to login as
+     * @param boolean $sPwd - the password to compare against the stored password for the user
+     * @return boolean - true if the login was successful, false otherwise
+     */
+    private function makeSession( string|int $userIdOrEmail, string $sPwd ): bool {
+        $bOk = false;
+        
+        list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo( $userIdOrEmail );
 
-        // sUid can be a user key or email
-        list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo( $sUid );
         if ($kUser && @$raUser['eStatus'] == 'ACTIVE') {
-            if ($bNoPassword) {
-                // Not using a password
-                // Create a session record
-                $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
-            } else if (@$raUser['password'] && password_verify($sPwd, $raUser['password'])) {
+            if (@$raUser['password'] && password_verify($sPwd, $raUser['password'])) {
+                $ok = true;
                 // Hashed passwords match
-                // Create a session record
-                $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
+                // Initialize the session
+                $this->makeSessionRecord($raUser['_key']);
             } else if(@$raUser['password'] && !password_get_info($raUser['password'])['algo'] && $raUser['password'] == $sPwd) {
+                $ok = true;
                 // Password doesn't appear to be hashed, fallback to old check and upgrade
-                // Create a session record
-                $ok = $this->makeSessionRecord( $raUser['_key'], $raUser['realname'], $raUser['email'] );
+                // Initialize the session
+                $this->makeSessionRecord($raUser['_key']);
             }
             if( $ok ) {
-                // save the session id string in $_SESSION so findSession() can find this user session again
-                $this->VarSet( $this->kSessionIdStr, $this->kfrSession->Value('sess_idstr') );
-                if (!$bNoPassword && password_needs_rehash($raUser['password'], PASSWORD_BCRYPT)) {
+                if (password_needs_rehash($raUser['password'], PASSWORD_BCRYPT)) {
                     // We successfully logged in using a password, and it needs to be rehashed/upgraded
                     $oDB = new SEEDSessionAccountDB2($this->kfdb, $raUser['_key']);
                     // Change the user's password to upgrade it
@@ -554,69 +657,17 @@ class SEEDSessionAccount extends SEEDSession
         return( $ok );
     }
 
-    private function makeSessionRecord( $kUser, $realname, $email, $perms = "" )
-    /***************************************************************************
-        if perms is urlencoded permsR=...&permsW=...&permsA=... login the given user with those perms in SEEDSession
-        if perms is blank, look up the user's perms as usual
+    /**
+     * Initialize the session for a given user.
+     * Sets both the real user id and the effective user id
+     * @param int $kUser - id to initialize the session for
      */
-    {
-        $sess_idstr = SEEDCore_UniqueId();
-
-        $this->kfrSession = $this->kfrelSess->CreateRecord();
-        $this->kfrSession->SetValue( "sess_idstr", $sess_idstr );
-        $this->kfrSession->SetValue( "uid",        $kUser );
-        $this->kfrSession->SetValue( "realname",   $realname );
-        $this->kfrSession->SetValue( "email",      $email );
-
-        if( !$perms ) {
-            $permsR = $permsW = $permsA = " ";
-
-/* this doesn't use gid_inherited
-            $dbcPerms = $this->kfdb->CursorOpen(
-                                // Get perms explicitly set for this uid
-                                "SELECT perm,modes FROM SEEDSession_Perms WHERE _status='0' AND uid='$kUser' "
-                               ."UNION "
-                                // Get perms associated with the user's primary group
-                               ."SELECT P.perm AS perm, P.modes as modes "
-                                   ."FROM SEEDSession_Perms P, SEEDSession_Users U "
-                                   ."WHERE P._status='0' AND U._status='0' AND "
-                                   ."U._key='$kUser' AND U.gid1 >=1 AND P.gid=U.gid1 "
-                               ."UNION "
-                                // Get perms from groups
-                               ."SELECT P.perm AS perm, P.modes as modes "
-                                   ."FROM SEEDSession_Perms P, SEEDSession_UsersXGroups GU "
-                                   ."WHERE P._status=0 AND GU._status=0 AND "
-                                   ."GU.uid='$kUser' AND GU.gid >=1 AND GU.gid=P.gid" );
-            while( $ra = $this->kfdb->CursorFetch( $dbcPerms ) ) {
-                if( strchr($ra['modes'],'R') && !strstr($permsR, " ".$ra['perm']." ") )  $permsR .= $ra['perm']." ";
-                if( strchr($ra['modes'],'W') && !strstr($permsW, " ".$ra['perm']." ") )  $permsW .= $ra['perm']." ";
-                if( strchr($ra['modes'],'A') && !strstr($permsA, " ".$ra['perm']." ") )  $permsA .= $ra['perm']." ";
-            }
-            $this->kfdb->CursorClose( $dbcPerms );
-
-            var_dump($permsR,$permsW,$permsA);exit;
-*/
-            $raP = (new SEEDSessionAccountDBRead2($this->kfdb))->GetPermsFromUser($kUser);
-            $permsR = ' '.implode(' ',$raP['mode2perms']['R']).' ';
-            $permsW = ' '.implode(' ',$raP['mode2perms']['W']).' ';
-            $permsA = ' '.implode(' ',$raP['mode2perms']['A']).' ';
-//            var_dump($permsR,$permsW,$permsA);exit;
-
-            $this->kfrSession->SetValue( "permsR", $permsR );
-            $this->kfrSession->SetValue( "permsW", $permsW );
-            $this->kfrSession->SetValue( "permsA", $permsA );
-
-        } else {
-            $raPerms = SEEDCore_ParmsURL2RA($perms);
-            $this->kfrSession->SetValue( "permsR", @$raParms["permsR"] );
-            $this->kfrSession->SetValue( "permsW", @$raParms["permsW"] );
-            $this->kfrSession->SetValue( "permsA", @$raParms["permsA"] );
-        }
-
-        $this->kfrSession->SetValue( "ts_expiry", time() + (!empty($raSessParms["ts_expiry"]) ? $raSessParms["ts_expiry"]
-                                                                                              : $this->nExpiryDefault) );
-
-        return( $this->kfrSession->PutDBRow() );
+    private function makeSessionRecord( int $kUser ) {
+        $this->rUID = $kUser;
+        $this->eUID = $kUser;
+        
+        $this->VarSet($this->kRealUID, $kUser);
+        $this->VarSet($this->kEffectiveUID, $kUser);
     }
 
     private function makeMagicSession( $sMagicLink )
@@ -653,33 +704,10 @@ class SEEDSessionAccount extends SEEDSession
 
         /* Magic Login has passed all tests. Login kUser with given perms (if blank, makeSessionRecord looks up the user's default perms)
          */
-        if( ($ok = $this->makeSessionRecord( $kUser, $raUser['realname'], $raUser['email'], $sPerms)) ) {
-            // save the session id string in $_SESSION so findSession() can find this user session again
-            $this->VarSet( $this->kSessionIdStr, $this->kfrSession->Value('sess_idstr') );
-        }
+        $ok = $this->makeSessionRecord( $kUser, $raUser['realname'], $raUser['email'], $sPerms);
 
         done:
         return( $ok );
-    }
-
-
-    private function initKfrel( $uid )
-    {
-        $def = array( "Tables" => array(
-                "S" => array( "Table" => 'SEEDSession',
-                              "Fields" => array( array("col"=>"sess_idstr", "type"=>"S"),
-                                                 array("col"=>"uid",        "type"=>"I"),
-                                                 array("col"=>"realname",   "type"=>"S"),
-                                                 array("col"=>"email",      "type"=>"S"),
-                                                 array("col"=>"permsR",     "type"=>"S"),
-                                                 array("col"=>"permsW",     "type"=>"S"),
-                                                 array("col"=>"permsA",     "type"=>"S"),
-                                                 array("col"=>"ts_expiry",  "type"=>"I")
-                ) ) ) );
-
-        // this logfile is not very interesting because it just records the SEEDSession entries
-        $this->kfrelSess = new KeyFrame_Relation( $this->kfdb, $def, $uid,
-                                                  $this->logfile ? array( 'logfile' => $this->logfile ) : array() );
     }
 }
 
