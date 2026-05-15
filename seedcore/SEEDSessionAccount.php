@@ -271,6 +271,15 @@ class SEEDSessionAccount extends SEEDSession
         }
         return '';
     }
+    
+    /**
+     * Check if the user has logged in as another user.
+     * A user is considered to be logged in as another user if their current real and effective id's don't match
+     * @return bool - true if the user's effective id doesn't match their real id
+     */
+    function IsLoggedInAsAnotherUser(): bool {
+        return $this->rUID !== $this->eUID;
+    }
 
     /**
      * Get the name of the username HTTP parameter
