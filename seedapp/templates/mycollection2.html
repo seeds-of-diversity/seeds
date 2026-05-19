@@ -290,7 +290,8 @@ class MyCollection_NewAcc_AllocSeeds
         let o = SEEDJXSync( urlQ, jxData );console.log(urlQ,o);
         if( o && o['bOk'] ) {
             if( o['raOut']['raILots'][0] ) {
-                $('#allocseeds-result0').html("Lot "+o['raOut']['raILots'][0]);
+                $('#allocseeds-result0').html(`<nobr>Lot ${o['raOut']['raILots'][0]}`
+                        +`&nbsp;&nbsp;&nbsp;<a href='?sfCui_k=${o['raOut']['raLots'][0]['kLot']}&sfCx_srchfld1=&sfCx_srchop1=like&sfCx_srchval1=&sfCx_srchfld2=&sfCx_srchop2=&sfCx_srchval2=&sfCx_srchfld3=&sfCx_srchop3=&sfCx_srchval3=&sfCui_sortup=0&sfCui_sortdown=0'>See in list</a></nobr>`);
             }
             if( o['raOut']['raILots'][1] ) {
                 $('#allocseeds-result1').html("Lot "+o['raOut']['raILots'][1]);
