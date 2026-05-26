@@ -28,7 +28,8 @@
     <script>
     $(document).ready(function () {
         let o = new SLPcvSelect2( { jSelect: $('#fk_sl_pcv'),
-                                    qUrl: '[[var:qUrl]]' } );
+                                    qUrl: '[[var:qUrl]]',
+                                    eDatasets: " PCV "} );  // only search sl_pcv/sl_pcv_syn, not SRCCV or MSE
     });
     </script>
 </div>

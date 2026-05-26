@@ -97,6 +97,14 @@ class QServerRosetta extends SEEDQ
         Then add all matching sl_cv_sources.ocv that are not in sl_pcv or sl_pcv_syn (short cut: where sl_cv_sources.fk_sl_pcv==0)
         Then add all matching cultivar names in seed exchange, with about_cultivar = a description for this cv taken at random
             - if already in the list but about_cultivar is blank, put a description there
+
+        parms:
+            sSrch = string to match
+            eDatasets = string containing space-delimited codes
+                        PCV    names in sl_pcv+sl_pcv_syn
+                        SRCCV  names in sl_cv_sources
+                        MSE    names in seed exchange
+                        ALL    (default) all of the above
      */
     {
         $bOk = false;
@@ -108,9 +116,14 @@ class QServerRosetta extends SEEDQ
             goto done;
         }
 
+        $eDatasets = SEEDCore_ArraySmartVal1($parms, 'eDatasets', " ALL ");
+        $bCheckPCV   = SEEDCore_Contains($eDatasets, " ALL ") || SEEDCore_Contains($eDatasets, " PCV ");
+        $bCheckSRCCV = SEEDCore_Contains($eDatasets, " ALL ") || SEEDCore_Contains($eDatasets, " SRCCV ");
+        $bCheckMSE   = SEEDCore_Contains($eDatasets, " ALL ") || SEEDCore_Contains($eDatasets, " MSE ");
+
         /* Find sl_pcv whose names match dbSrch
          */
-        if( ($kfr = $this->oSLDB->GetKFRC('PxS', "P.name LIKE '%$dbSrch%'")) ) {
+        if( $bCheckPCV && ($kfr = $this->oSLDB->GetKFRC('PxS', "P.name LIKE '%$dbSrch%'")) ) {
             while( $kfr->CursorFetch() ) {
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key'),
@@ -124,7 +137,7 @@ class QServerRosetta extends SEEDQ
 
         /* Add sl_pcv_syn whose names match dbSrch. Return (name=syn.name, kPcv=fk_sl_pcv)
          */
-        if( ($kfr = $this->oSLDB->GetKFRC('PYxPxS', "PY.name LIKE '%$dbSrch%'")) ) {
+        if( $bCheckPCV && ($kfr = $this->oSLDB->GetKFRC('PYxPxS', "PY.name LIKE '%$dbSrch%'")) ) {
             while( $kfr->CursorFetch() ) {
                 $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('P__key'),
@@ -138,7 +151,7 @@ class QServerRosetta extends SEEDQ
 
         /* Add sl_cv_sources whose ocv match dbSrch and fk_sl_pcv=0. Return (name=ocv, kPcv=sl_cv_sources._key + 10000000)
          */
-        if( ($kfr = $this->oSLDBSrc->GetKFRC('SRCCVxS', "SRCCV.ocv LIKE '%$dbSrch%' AND SRCCV.fk_sl_pcv='0' AND SRCCV.fk_sl_sources>='3'")) ) {
+        if( $bCheckSRCCV && ($kfr = $this->oSLDBSrc->GetKFRC('SRCCVxS', "SRCCV.ocv LIKE '%$dbSrch%' AND SRCCV.fk_sl_pcv='0' AND SRCCV.fk_sl_sources>='3'")) ) {
             while( $kfr->CursorFetch() ) {
                 $raOut[$kfr->Expand("[[S_psp]]|[[ocv]]")] = $this->QCharsetFromLatin(
                     ['kPcv'            => $kfr->Value('_key') + 10000000,
@@ -152,21 +165,23 @@ class QServerRosetta extends SEEDQ
 
         /* Add MSE cultivars whose names match dbSrch (and fk_sl_pcv=0). Return (name=cultivar, kPcv=SEEDBasket_Product._key * -1)
          */
-        $raMSE = $this->oApp->kfdb->QueryRowsRA( "SELECT PEspecies.v as sp, PEvariety.v as cv, P._key as k
-                                                  FROM SEEDBasket_Products P, SEEDBasket_ProdExtra PEspecies, SEEDBasket_ProdExtra PEvariety
-                                                  WHERE P._key=PEspecies.fk_SEEDBasket_Products AND P._key=PEvariety.fk_SEEDBasket_Products AND
-                                                        PEspecies.k='species' AND PEvariety.k='variety' and P._status=0 AND
-                                                        PEvariety.v like '%$dbSrch%'" );
-        foreach($raMSE as $ra) {
-            $dbSp = addslashes($ra['sp']);
-            if( ($kfr = $this->oSLDB->GetKFRCond('S',"psp='$dbSp' OR name_en='$dbSp'")) ) {  // or other synonyms or language variants
-                $raOut["{$kfr->Value('psp')}|{$ra['cv']}"] = $this->QCharset(
-                    ['kPcv'            => $ra['k'] * -1,
-                     'psp'             => $kfr->Value('psp'),
-                     'sSpecies'        => $kfr->Value('name_en'),
-                     'sCultivar'       => $ra['cv'],
-                     'about_cultivar' => "",//$kfr->Value('P_packetLabel')
-                    ] );
+        if( $bCheckMSE ) {
+            $raMSE = $this->oApp->kfdb->QueryRowsRA( "SELECT PEspecies.v as sp, PEvariety.v as cv, P._key as k
+                                                      FROM SEEDBasket_Products P, SEEDBasket_ProdExtra PEspecies, SEEDBasket_ProdExtra PEvariety
+                                                      WHERE P._key=PEspecies.fk_SEEDBasket_Products AND P._key=PEvariety.fk_SEEDBasket_Products AND
+                                                            PEspecies.k='species' AND PEvariety.k='variety' and P._status=0 AND
+                                                            PEvariety.v like '%$dbSrch%'" );
+            foreach($raMSE as $ra) {
+                $dbSp = addslashes($ra['sp']);
+                if( ($kfr = $this->oSLDB->GetKFRCond('S',"psp='$dbSp' OR name_en='$dbSp'")) ) {  // or other synonyms or language variants
+                    $raOut["{$kfr->Value('psp')}|{$ra['cv']}"] = $this->QCharset(
+                        ['kPcv'            => $ra['k'] * -1,
+                         'psp'             => $kfr->Value('psp'),
+                         'sSpecies'        => $kfr->Value('name_en'),
+                         'sCultivar'       => $ra['cv'],
+                         'about_cultivar' => "",//$kfr->Value('P_packetLabel')
+                        ] );
+                }
             }
         }
 
