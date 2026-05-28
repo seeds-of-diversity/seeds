@@ -112,6 +112,24 @@ class CollectionTab_Accession
         list($iLotParent,$kCollDummy) = $this->sldbCollection->Get_LotNumberFromKey($this->oFormA->Value('kLotParent'));
         $this->oFormA->SetValue('iLotParent',$iLotParent);
 
+        $sCultivarInfo = [];
+        if( ($kPcv = $this->oFormA->Value('fk_sl_pcv')) &&
+            ($rQ = (new QServerRosetta($this->oApp, ['config_bUTF8'=>false]))->Cmd('rosetta-cultivarinfo', ['kPcv'=>$kPcv, 'mode'=>'all'])) &&
+            $rQ['bOk'] )
+        {
+            $sCultivarInfo =
+                 // display:inline-block fits the div's width to its content so it centers the content (because content doesn't know to center itself)
+                 "<div style='background-color:#eee;padding:1em;text-align:center'>
+                      <h3>About {$rQ['raOut']['PxS']['P_name']} {$rQ['raOut']['PxS']['S_name_en']}</h3>
+                      <p>{$rQ['raOut']['PxS']['P_packetLabel']}</p>
+                      <p>".nl2br($rQ['raOut']['PxS']['P_notes'])."</p>
+                      <h3>Collection Status of {$rQ['raOut']['PxS']['P_name']} {$rQ['raOut']['PxS']['S_name_en']}</h3>
+                      <div style='margin:0 auto;display:inline-block'>{$rQ['raOut']['sTable_IxA']}</div>
+                  </div>";
+
+
+        }
+
         $s =  "<div class='container-fluid'>
                <div class='myc_accform_static'>"
 
@@ -145,6 +163,7 @@ class CollectionTab_Accession
               : "")
              ."|||ENDTABLE "
 
+             .$sCultivarInfo
              ."</div>" // myc_accform_static
 
              ."<div class='myc_accform_edit' style='display:none'>"
@@ -182,6 +201,7 @@ class CollectionTab_Accession
               : "")
              ."|||ENDTABLE "
 
+            .$sCultivarInfo
             ."</div>
               </div>";
 
