@@ -71,17 +71,20 @@ function SEEDJXAsync2( jxUrl, jxData, fnSuccess, fnError = null )
             o = SEEDJX_ParseJSON(data);
             fnSuccess(o);
         },
-        error: fnError
+        error: function(jqXHR, textStatus, errorThrown) {
+            if( SEEDJX_bDebug ) console.log(errorThrown);
+            if( fnError ) fnError(jqXHR, textStatus, errorThrown);
+        }
     });
 }
 
-function SEEDJXSync( jxUrl, jxData )
-/*********************************
+function SEEDJXSync( jxUrl, jxData, fnSuccess = null, fnError = null )
+/*********************************************************************
     Post an ajax request to the given url, wait for the server, and return the response
  */
 {
-    var bSuccess = false;
-    var oRet = null;
+    let bSuccess = false;
+    let oRet = null;
 
     if( SEEDJX_bDebug ) {console.log("cmd="+jxUrl+":"); console.log(jxData); }
 
@@ -97,13 +100,11 @@ function SEEDJXSync( jxUrl, jxData )
 
             bSuccess = true;
             oRet = SEEDJX_ParseJSON(data);
+            if( fnSuccess ) fnSuccess(oRet);
         },
         error: function(jqXHR, textStatus, errorThrown) {
-            if( SEEDJX_bDebug ) {
-                console.log(errorThrown);
-                //alert(jqXHR);
-                //alert(textStatus);
-            }
+            if( SEEDJX_bDebug ) console.log(errorThrown);
+            if( fnError ) fnError(jqXHR, textStatus, errorThrown);
         }
     });
     return( bSuccess ? oRet : null );
