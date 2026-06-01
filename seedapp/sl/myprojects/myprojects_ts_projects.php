@@ -296,6 +296,12 @@ class ProjectsTabProjects_UI_Record
         }
         $oDS->SetValue('fk_sl_inventory', $kI);     // even if 0 because iLot could have changed to 0 or blank
 
+        // this app uses utf-8 but the db is still iso8859
+        $oDS->UTF8Decode('pname');
+        $oDS->UTF8Decode('oname');
+        $oDS->UTF8Decode('notes_office');
+        $oDS->UTF8Decode('metadata');
+
         return(true);
     }
 
