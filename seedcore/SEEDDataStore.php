@@ -219,7 +219,9 @@ class SEEDDataStore
     function ValueDB( $k )      { return( addslashes($this->Value($k)) ); }
     function IsEmpty( $k )      { $v = $this->Value($k); return( empty($v) ); } // because empty doesn't work on methods
 
-    function CastInt( $k )      { $this->SetValue( $k, $this->ValueInt($k) ); return( $this->Value($k) ); }
+    function CastInt( $k ) : int { $this->SetValue( $k, $this->ValueInt($k) ); return($this->Value($k)); }
+    function UTF8Encode( $k )    { $this->SetValue( $k, SEEDCore_utf8_encode($this->Value($k)) ); return($this->Value($k)); }
+    function UTF8Decode( $k )    { $this->SetValue( $k, SEEDCore_utf8_decode($this->Value($k)) ); return($this->Value($k)); }
 
     function SetValuePrepend( $k, $v ) { $this->SetValue( $k, ($v . $this->Value($k)) ); }
     function SetValueAppend( $k, $v )  { $this->SetValue( $k, ($this->Value($k) . $v) ); }
