@@ -114,6 +114,9 @@ JSEditButton;
         $kfr = $oDS->GetKFR();  // because there is no oDS->SetNull, though there could be if you can generalize it for the base SEEDDataStore
         if( !$kfr->value('date_issued') ) $kfr->SetNull('date_issued');
 
+        // this app uses utf-8 but the db is still iso8859
+        $oDS->UTF8Decode('notes');
+
         return( true );
     }
 
