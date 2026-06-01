@@ -140,6 +140,9 @@ class CollectionTab_GerminationTests
 
 // could set fk_sl_inventory here instead of sending it via http
 
+        // this app uses utf-8 but the db is still iso8859
+        $oDS->UTF8Decode('notes');
+
         return( true );
     }
 }

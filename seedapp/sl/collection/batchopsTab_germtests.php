@@ -190,6 +190,9 @@ class CollectionBatchOps_GermTest
                   ."germ {$oDS->ValueInt('nGerm_count')}/{$oDS->ValueInt('nSown')} ({$oDS->ValueInt('nGerm')}%) {$oDS->Value('notes')}<br/>";
         }
 
+        // this app uses utf-8 but the db is still iso8859
+        $oDS->UTF8Decode('notes');
+
         return( true );
     }
 

@@ -91,6 +91,8 @@ class CollectionBatchOps_UpdateLots
 
                 if( $this->isUpdatable('location') ) {
                     $p = $this->bCtrlSame ? $pGlobalLocation : $ra['values']['location'];
+                    // this app uses utf-8 but the db is still iso8859
+                    $p = SEEDCore_utf8_decode($p);
                     if( $p != $kfr->Value('location') ) {
                         $sRes .= ", location {$kfr->Value('location')} to {$p}";
                         $kfr->SetValue( 'location', $p );

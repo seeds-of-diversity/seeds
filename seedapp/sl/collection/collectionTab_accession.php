@@ -50,10 +50,10 @@ class CollectionTab_Accession
         }
 
         // this app uses utf-8 but the db is still iso8859
-        $oDS->SetValue('notes', SEEDCore_utf8_decode($oDS->Value('notes')));
-        $oDS->SetValue('oname', SEEDCore_utf8_decode($oDS->Value('oname')));
-        $oDS->SetValue('x_member', SEEDCore_utf8_decode($oDS->Value('x_member')));
-        $oDS->SetValue('x_d_harvest', SEEDCore_utf8_decode($oDS->Value('x_d_harvest')));
+        $oDS->UTF8Decode('notes');
+        $oDS->UTF8Decode('oname');
+        $oDS->UTF8Decode('x_member');
+        $oDS->UTF8Decode('x_d_harvest');
 
         return(true);
     }
@@ -66,7 +66,7 @@ class CollectionTab_Accession
         if(!$oDS->Value('g_weight')) $oDS->SetValue('g_weight',0.0);    // db needs this to be 0.0 if the user enters blank
 
         // this app uses utf-8 but the db is still iso8859
-        $oDS->SetValue('location', SEEDCore_utf8_decode($oDS->Value('location')));
+        $oDS->UTF8Decode('location');
 
         return(true);
     }
