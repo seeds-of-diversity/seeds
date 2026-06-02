@@ -20,7 +20,7 @@ class CollectionTab_GerminationTests
     function Init()
     {
         $this->oForm = new KeyframeForm($this->sldbCollection->GetKfrel("G"), 'G', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]);
-        $this->oForm->Update();
+        $this->oForm->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
         if( ($kDel = SEEDInput_Int('germdel')) && ($kfr = $this->sldbCollection->GetKFR('G', $kDel)) ) {
             $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
@@ -139,9 +139,6 @@ class CollectionTab_GerminationTests
         $oDS->SetValue( 'nGerm', $this->germPercent($oDS->Value('nSown'), $oDS->Value('nGerm_count')) );
 
 // could set fk_sl_inventory here instead of sending it via http
-
-        // this app uses utf-8 but the db is still iso8859
-        $oDS->UTF8Decode('notes');
 
         return( true );
     }

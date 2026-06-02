@@ -262,7 +262,7 @@ class ProjectsTabProjects_UI_Record
         $this->kMbr = $kMbr;
 
         $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'R', ['DSParms'=>['fn_DSPreStore'=>[$this,'DSPreStore_UIRecord']]]);
-        $this->oForm->Update();
+        $this->oForm->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
         /* If a record was submitted, return the form's new kfr to the caller to become the shared kfr for all ui components.
          * Otherwise use the parent's kfr to draw the form (return that kfr redundantly to keep the code simple)
@@ -295,12 +295,6 @@ class ProjectsTabProjects_UI_Record
             $kI = $this->oP->oProfilesDB->oSLDB->GetRecordVal1Cond('I', "inv_number=$iLot", '_key');
         }
         $oDS->SetValue('fk_sl_inventory', $kI);     // even if 0 because iLot could have changed to 0 or blank
-
-        // this app uses utf-8 but the db is still iso8859
-        $oDS->UTF8Decode('pname');
-        $oDS->UTF8Decode('oname');
-        $oDS->UTF8Decode('notes_office');
-        $oDS->UTF8Decode('metadata');
 
         return(true);
     }

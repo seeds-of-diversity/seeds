@@ -62,7 +62,7 @@ class CollectionBatchOps_GermTest
 
 
         $oForm = new KeyFrameForm( $this->oSLDB->KFRel('G'), 'A', ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreGerm']] ] );
-        $oForm->Update();
+        $oForm->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
         // initialize form to draw blank entries
         $oForm->SetKFR( $this->oSLDB->KFRel('G')->CreateRecord() );
@@ -189,9 +189,6 @@ class CollectionBatchOps_GermTest
             $this->sGermFeedback .= "Saving Lot # $iLot, {$oDS->Value('dStart')} to {$oDS->Value('dEnd')}, "
                   ."germ {$oDS->ValueInt('nGerm_count')}/{$oDS->ValueInt('nSown')} ({$oDS->ValueInt('nGerm')}%) {$oDS->Value('notes')}<br/>";
         }
-
-        // this app uses utf-8 but the db is still iso8859
-        $oDS->UTF8Decode('notes');
 
         return( true );
     }

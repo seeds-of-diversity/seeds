@@ -22,10 +22,10 @@ class CollectionTab_Accession
          * oFormI is not persisted because it is only used for drawing forms later and needs to be reloaded per Lot
          */
         ($this->oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreA']]]))
-            ->Update();
+            ->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
         (new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreI']]]))
-            ->Update();
+            ->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
         /* Fetch Accession and Lot for current kInventory. Set up oFormA. It might already be loaded correctly from Update() above, but not necessarily.
          */
@@ -49,12 +49,6 @@ class CollectionTab_Accession
             $oDS->SetValue('kLotParent', $kfr->Key());
         }
 
-        // this app uses utf-8 but the db is still iso8859
-        $oDS->UTF8Decode('notes');
-        $oDS->UTF8Decode('oname');
-        $oDS->UTF8Decode('x_member');
-        $oDS->UTF8Decode('x_d_harvest');
-
         return(true);
     }
 
@@ -64,9 +58,6 @@ class CollectionTab_Accession
     function dsPreStoreI( Keyframe_DataStore $oDS )
     {
         if(!$oDS->Value('g_weight')) $oDS->SetValue('g_weight',0.0);    // db needs this to be 0.0 if the user enters blank
-
-        // this app uses utf-8 but the db is still iso8859
-        $oDS->UTF8Decode('location');
 
         return(true);
     }

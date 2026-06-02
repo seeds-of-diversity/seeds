@@ -225,7 +225,7 @@ class Rosetta_CultivarTabs_Synonyms
          */
         $oForm = new KeyframeForm($this->oSLDB->KFRel('PYxPxS'), 'A', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore'],
                                                                                    'fn_DSPostStore'=> [$this,'dsPostStore'] ]]);
-        $oForm->Update();
+        $oForm->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
         if( ($kfrc = $this->oSLDB->GetKFRC('PY',"fk_sl_pcv={$this->kPcv}",['sSortCol'=>"name"])) ) {
             while($kfrc->CursorFetch()) {
                 $oForm->SetKFR($kfrc);

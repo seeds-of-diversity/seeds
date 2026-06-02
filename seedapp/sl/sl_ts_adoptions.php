@@ -48,6 +48,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
              'kfrel'                => $kfrel,
              'raListConfig_cols'    => $cols,
              'raSrchConfig_filters' => $raSrch,
+             'charsets'             => "HttpUtf8&DbLatin"
             ]);
         // note that raConfig references methods like FormTemplate() which use $this->oComp which is not defined now but will be after Init()
         parent::__construct($oApp, $raConfig);
@@ -113,9 +114,6 @@ JSEditButton;
         // The reason is that KF stores a NULL value's snapshot as '' so it thinks the value is changing from '' to NULL.
         $kfr = $oDS->GetKFR();  // because there is no oDS->SetNull, though there could be if you can generalize it for the base SEEDDataStore
         if( !$kfr->value('date_issued') ) $kfr->SetNull('date_issued');
-
-        // this app uses utf-8 but the db is still iso8859
-        $oDS->UTF8Decode('notes');
 
         return( true );
     }
