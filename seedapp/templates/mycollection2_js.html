@@ -6,6 +6,8 @@
 var urlQ    = "[[Var:qUrl]]";
 var urlQOld = "[[Var:qUrlOld]]"; //"http://localhost/~bob/seedsx/seeds.ca2/app/q/index.php";
 
+var SLUtil_PopulationCommercial = [[Var:oPopsCommercial]];      // all known pops listed here to be used by Alloc screen
+
 var config = {
         pages: {
             Start: {
@@ -49,6 +51,7 @@ var config = {
                                       };
                          let o = SEEDJXSync( urlQ, jxData );
                          if( o && o['bOk'] ) {
+                             oCP.SetVar( 'psp', o['raOut']['PxS']['S_psp'] );
                              oCP.SetVar( 't_sname', o['raOut']['PxS']['S_name_en'] );
                              oCP.SetVar( 't_pname', o['raOut']['PxS']['P_name'] );
 //                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['PxS']['P__key'] );
@@ -102,11 +105,13 @@ var config = {
             AllocSeeds: {
                  model: 'LoadStore',
                  fnPre: function() {
-                     oCP.FormValSet('t_sname', oCP.GetVar('S_name'));
-                     oCP.FormValSet('t_pname', oCP.GetVar('P_name'));
-                     $('#myc_collreport').html(oCP.GetVar('sTable_IxA'));
                      let heading = oCP.GetVar('heading');
                      oCP.FormValSet('heading', heading + `<br/>by ${oCP.GetVar('supplier')} in ${oCP.GetVar('year')} with rating ${oCP.GetVar('iGrowerRating')}`);
+                     $('#myc_collreport').html(oCP.GetVar('sTable_IxA'));
+                     let pop = SLUtil_PopulationCommercial[oCP.GetVar('psp')];
+                     if(typeof(pop) != 'undefined' && pop != 0) {
+                         oCP.FormValSet('pop', pop);
+                     }
                  },
                  fnPost: function() {
                      let g100 = oCP.FormValFloat('g100');

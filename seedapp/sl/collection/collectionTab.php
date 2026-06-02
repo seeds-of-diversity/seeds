@@ -37,8 +37,9 @@ class CollectionMain_NewMode
 
         $s = "<h3>Add New Accession</h3>"
             .$oTmpl->ExpandTmpl('mycollStyle')
-            .$oTmpl->ExpandTmpl('mycollJS', ['qUrl'=>$this->oApp->UrlQ(),
-                                                                'qUrlOld'=>SITEROOT_URL."app/q/index.php"])
+            .$oTmpl->ExpandTmpl('mycollJS',                    ['qUrl'=>$this->oApp->UrlQ(),
+                                                                'qUrlOld'=>SITEROOT_URL."app/q/index.php",
+                                                                'oPopsCommercial'=> json_encode(SLUtil::GetPopulationCommercialRA())])
             .$oTmpl->ExpandTmpl('mycollConsolePage_AddNewLot', ['qUrl'=>$this->oApp->UrlQ(),
                                                                 'qUrlOld'=>SITEROOT_URL."app/q/index.php"]);   // rosettaPCVSearch is still in the original Q code
 
