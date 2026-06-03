@@ -188,7 +188,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSetPermission( $tsid, $tabname )
     {
         switch($tabname) {
-            case 'signup':
+            case 'signup': break; // don't show this one for now
             case 'projects':
             case 'sites':
                 return( Console02TabSet::PERM_SHOW );
