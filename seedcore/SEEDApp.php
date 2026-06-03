@@ -60,6 +60,17 @@ class SEEDAppDB extends SEEDAppBase
         if( !$this->kfdb->Connect( $raConfig['kfdbDatabase'] ) ) {
             die( $this->kfdb->GetErrMsg() );
         }
+
+        if( defined("is_SOD_SITE") ) {
+            /* SoD apps were developed on the following mysql config. The SoD host changed that, so we have to set these explicitly.
+             */
+            $this->kfdb->Execute("set character_set_client=latin1");
+            $this->kfdb->Execute("set character_set_connection=latin1");
+            $this->kfdb->Execute("set character_set_database=latin1");
+            $this->kfdb->Execute("set character_set_results=latin1");
+            $this->kfdb->Execute("set character_set_server=latin1");
+            //read only value $this->kfdb->Execute("set character_set_system=utf8mb3");
+        }
     }
 
     function GetDBName( $logicalName ) { return( $this->DBName($logicalName) ); }   // deprecate
