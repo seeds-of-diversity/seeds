@@ -108,7 +108,7 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
 
         if( !$raRow['A_x_d_harvest'] ) $raRow['A_x_d_harvest'] = $raRow['A_x_d_received'];
 
-        if( $raRow['bDeAcc'] )  $raRow['P_name'] = "<span class='color:red'>{$raRow['P_name']} (Deaccessioned)</span>";
+        if( $raRow['bDeAcc'] )  $raRow['P_name'] = "<span style='color:red'>{$raRow['P_name']} (Deaccessioned)</span>";
 
         return( $raRow );
     }
