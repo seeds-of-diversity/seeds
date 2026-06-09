@@ -33,10 +33,10 @@ class CollectionBatchOps_GermTest
                          <td style='width:15%'>[[XCvName     | width:100% | class='@XCvClass@' disabled]]</td>
                          <td style='width:10%'>[[nSown       | width:100% | @OthersDisabled@ ]]</td>
                          <td style='width:10%'>[[nGerm_count | width:100% | @OthersDisabled@ ]]</td>
-                         <td style='width:15%'>[[Date:dStart | width:100% | @OthersDisabled@ ]]</td>
-                         <td style='width:15%'>[[Date:dEnd   | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:10%'>[[Date:dStart | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:10%'>[[Date:dEnd   | width:100% | @OthersDisabled@ ]]</td>
                          <td style='width:40%'>[[notes       | width:100% | @OthersDisabled@ ]]</td>
-                         <td style='width:40%'> @DelButton@</td>
+                         <td style='width:10%'> @DelButton@</td>
                      </tr>";
 
         // the blank rows use a special lotnum field (onblur looks up the XCvName) and never have a delete button
@@ -61,25 +61,71 @@ class CollectionBatchOps_GermTest
         }
 
 
+        // This updates the individual rows, but not the Multi row
         $oForm = new KeyFrameForm( $this->oSLDB->KFRel('G'), 'A', ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreGerm']] ] );
         $oForm->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
+
+        // This updates the Multi row
+        $oFormMulti = new SEEDCoreForm('M');
+        $oFormMulti->Update();
+        $sMultiLotNum = $oFormMulti->Value('MultiLotNum');
+        $nMultiNSown = $oFormMulti->ValueInt('MultiNSown');
+        $dMultiStart = $oFormMulti->Value('MultiDStart');
+        $sMultiNotes = $oFormMulti->Value('MultiNotes');
+        if($sMultiLotNum) {
+            // lot numbers can be SeedCoreRanges, where whitespace is treated as a comma
+            if( ($raMultiLots = SEEDCore_ParseRangeStrToRA(preg_replace('#\s+#', ',', trim($sMultiLotNum)))) &&
+                $nMultiNSown )
+            {
+// this should do the same as PreStoreGerm()
+                if( !$dMultiStart ) {
+                    $this->sGermFeedback .= "Defaulting multiple tests to today's date<br/>";
+                    $dMultiStart = date('Y-m-d');
+                }
+                foreach($raMultiLots as $iLot) {
+// is this parameterized somewhere
+                    $kColl = 1;
+                    if( ($kfrI = $this->oSLDB->GetKFR_LotFromNumber($kColl, $iLot)) ) {
+                        $kfrG = $this->oSLDB->KFRel('G')->CreateRecord();
+                        $kfrG->SetValue('fk_sl_inventory', $kfrI->Key());
+                        $kfrG->SetValue('nSown', $nMultiNSown);
+                        $kfrG->SetValue('dStart', $dMultiStart);
+                        $kfrG->SetNull('dEnd');
+                        $kfrG->SetValue('notes', SEEDCore_utf8_decode($sMultiNotes));
+                        $kfrG->PutDBRow();
+                    }
+                }
+            }
+        }
+        $oFormMulti->Clear();   // the multi form should be drawn blank every time (instead of having previous screen's inputs)
+        $sMultiRow = (new SEEDFormExpand($oFormMulti))->ExpandForm(
+                "<tr><td colspan='8'>&nbsp;</td></tr>
+                 <tr><td colspan='8'><h4>Multiple lots</h4></td></tr>
+                 <tr><td colspan='2'>[[MultiLotNum | width:95%]] </td>
+                     <td>            [[MultiNSown | width:100%]]</td>
+                     <td>            [[Dummy_Germ_count | width:100% | disabled ]]</td>
+                     <td>            [[Date:MultiDStart | width:100%]]</td>
+                     <td>            [[Date:Dummy_dEnd  | width:100% | disabled]]</td>
+                     <td>            [[MultiNotes | width:100%]]</td>
+                     </tr>");
+
+
+        $sBlank = $sMine = $sOthers = "";
+
+        /* Draw individual blank test rows
+         */
+        $oFE = new SEEDFormExpand($oForm);
         // initialize form to draw blank entries
         $oForm->SetKFR( $this->oSLDB->KFRel('G')->CreateRecord() );
         // blank looks nicer than zero
         $oForm->SetValue('nSown', '');
         $oForm->SetValue('nGerm_count', '');
-
-        $oFE = new SEEDFormExpand( $oForm );
-        $s .= "<form method='post'><input type='submit'/>"
-             ."<table>"
-             ."<tr><th>Lot</th><th>Cultivar</th><th>Number Sown</th><th>Number Germ</th><th>Start Date</th><th>End Date</th><th>Notes</th></tr>";
         for( $i = 0; $i < 5; ++$i ) {
-            $s .= $oFE->ExpandForm( $sRowBlank );
+            $sBlank .= $oFE->ExpandForm( $sRowBlank );
             $oForm->IncRowNum();
         }
 
-        $sMine = $sOthers = "";
 
         /* Get current tests underway
          * sMine   = tests created by current user
@@ -107,13 +153,17 @@ class CollectionBatchOps_GermTest
         }
 
         //$s .= "<div id='collection-batch-germ-container'></div>";
-
-        $s .= "<tr><td colspan='7'>&nbsp;</td></tr>
-               <tr><td colspan='7'>&nbsp;</td></tr>
-               <tr><td colspan='7'><h4>Your Tests In Progress</h4></td></tr>
+        $s .= "<form method='post'><input type='submit'/>"
+             ."<table>"
+             ."<tr><th>Lot</th><th>Cultivar</th><th>Number Sown</th><th>Number Germ</th><th>Start Date</th><th>End Date</th><th>Notes</th></tr>"
+             .$sBlank
+             .$sMultiRow
+             ."<tr><td colspan='8'>&nbsp;</td></tr>
+               <tr><td colspan='8'>&nbsp;</td></tr>
+               <tr><td colspan='8'><h4>Your Tests In Progress</h4></td></tr>
                {$sMine}"
-             .($sOthers ? "<tr><td colspan='7'>&nbsp;</td></tr>
-                           <tr><td colspan='7'><h4>Other Peoples' Tests In Progress</h4></td></tr>
+             .($sOthers ? "<tr><td colspan='8'>&nbsp;</td></tr>
+                           <tr><td colspan='8'><h4>Other Peoples' Tests In Progress</h4></td></tr>
                            {$sOthers}"
                         : "")
              ."</table></form>
