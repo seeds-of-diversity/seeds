@@ -2,7 +2,7 @@
 
 /* Seed collection manager - batch operations - record germination tests in batches
  *
- * Copyright 2020-2021 Seeds of Diversity Canada
+ * Copyright 2020-2026 Seeds of Diversity Canada
  */
 
 
@@ -79,13 +79,13 @@ class CollectionBatchOps_GermTest
             $oForm->IncRowNum();
         }
 
-        //$s .= "<div id='collection-batch-germ-container'></div>";
+        $sMine = $sOthers = "";
 
-        $s .= "<tr><td colspan='7'>&nbsp;</td></tr>"
-             ."<tr><td colspan='7'>&nbsp;</td></tr>";
-
+        /* Get current tests underway
+         * sMine   = tests created by current user
+         * sOthers = tests created by other people
+         */
         if( ($raKfrG = $this->oSLDB->KFRel('GxIxAxPxS')->GetRecordSet( 'dEnd is null', ['sSortCol'=>'dStart','bSortDown'=>true] )) ) {
-            $sMine = $sOthers = "";
             foreach( $raKfrG as $kfr ) {
                 $oForm->SetKFR($kfr);
 
@@ -96,24 +96,29 @@ class CollectionBatchOps_GermTest
                 if( !$oForm->Value('nGerm_count') ) $oForm->SetValue('nGerm_count', '');
 
                 if( $oForm->Value('_created_by')==$this->oApp->sess->GetUID() ) {
-                    $sMine .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($oForm->GetKFR()), $sRowMine ) );
+                    $sMine .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($kfr), $sRowMine ) );
                 } else {
-                    $sOthers .= $oFE->ExpandForm( $sRowOthers );
+                    $sOthers .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($kfr, true), $sRowMine ) );
+// this used to show other peoples' tests but not allow editing - maybe a control could switch editing on - for now allow editing
+//                    $sOthers .= $oFE->ExpandForm( $sRowOthers );
                 }
                 $oForm->IncRowNum();
             }
-            $s .= "<tr><td colspan='7'><h4>Your Tests In Progress</h4></td></tr>".$sMine;
-            if( $sOthers ) {
-                $s .= "<tr><td colspan='7'>&nbsp;</td></tr>"
-                     ."<tr><td colspan='7'><h4>Other Peoples' Tests In Progress</h4></td></tr>".$sOthers;
-            }
         }
 
-        $s .= "</table></form>";
+        //$s .= "<div id='collection-batch-germ-container'></div>";
 
-        $s .= "<p style='margin-top:30px'>{$this->sGermFeedback}</p>";
-
-        $s .= "<p style='margin-top:30px;padding:10px;background-color:#ddd'>
+        $s .= "<tr><td colspan='7'>&nbsp;</td></tr>
+               <tr><td colspan='7'>&nbsp;</td></tr>
+               <tr><td colspan='7'><h4>Your Tests In Progress</h4></td></tr>
+               {$sMine}"
+             .($sOthers ? "<tr><td colspan='7'>&nbsp;</td></tr>
+                           <tr><td colspan='7'><h4>Other Peoples' Tests In Progress</h4></td></tr>
+                           {$sOthers}"
+                        : "")
+             ."</table></form>
+               <p style='margin-top:30px'>{$this->sGermFeedback}</p>
+               <p style='margin-top:30px;padding:10px;background-color:#ddd'>
                  1. Enter Lot #, number of seeds sown.<br/>
                  2. On first count enter number germinated.<br/>
                  3. If further counts, update number germinated<br/>
@@ -124,14 +129,14 @@ class CollectionBatchOps_GermTest
     }
 
     // this is also in CollectionTab_GerminationTests
-    private function deleteButton( KeyframeRecord $kfr )
+    private function deleteButton( KeyframeRecord $kfr, bool $bOverrideSelftest = false )
     /***************************************************
         Make a button that will delete the given germ test (only if it's your test)
 
         sf{cid}d{R} doesn't work the way we want it to here, so do it with a custom parameter instead
      */
     {
-        $sDeleteButton = ($kfr->Key() && $kfr->Value('_created_by')==$this->oApp->sess->GetUID())
+        $sDeleteButton = ($kfr->Key() && ($bOverrideSelftest || $kfr->Value('_created_by')==$this->oApp->sess->GetUID()))
                                 ? ("<a href='{$this->oApp->PathToSelf()}?germdel={$kfr->Key()}'>"
                                   ."<img src='".SEEDW_URL."img/ctrl/delete01.png' height='20'/>"
                                   ."</a>")
