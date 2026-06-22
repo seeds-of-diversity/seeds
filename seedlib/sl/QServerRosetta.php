@@ -116,7 +116,7 @@ class QServerRosetta extends SEEDQ
             goto done;
         }
 
-        $eDatasets = SEEDCore_ArraySmartVal1($parms, 'eDatasets', " ALL ");
+        $eDatasets = SEEDCore_ArraySmartVal1($parms, 'eDatasets', "", false);  // empty input is not allowed - default of "" fails to do anything below
         $bCheckPCV   = SEEDCore_Contains($eDatasets, " ALL ") || SEEDCore_Contains($eDatasets, " PCV ");
         $bCheckSRCCV = SEEDCore_Contains($eDatasets, " ALL ") || SEEDCore_Contains($eDatasets, " SRCCV ");
         $bCheckMSE   = SEEDCore_Contains($eDatasets, " ALL ") || SEEDCore_Contains($eDatasets, " MSE ");
