@@ -1559,7 +1559,7 @@ class KeyframeRecordCursor extends KeyframeRecord
     }
 }
 
-
+// should have FetchViewSlice, FindOffsetByOrderedValue (used by FindOffsetByKey)
 class KeyframeRelationView
 /*************************
     A View is the set of rows from a Relation, after a filter, group, and sort.
@@ -1672,6 +1672,34 @@ class KeyframeRelationView
             }
         }
         return( $n );
+    }
+
+    /**
+     * Return the origin-1 row number that contains data matching a condition
+     * @param string $sRowMatchCond
+     * @return int row number origin-1, 0 if not found
+     */
+    function FindRowNumber( string $sRowMatchCond ) : int
+    {
+        $iRowNum = 0;
+
+        /* select rownum from (select *, row_number() over (order by {SORT} as rownum
+         *                       from [kfrel view as defined in constructor - must have ORDER BY])
+         *               where $sRowMatchCond
+         *
+         * The subquery is the defined view with ORDER BY defined as [$raViewParms['sSortCol'],$raViewParms['bSortDown'].
+         * row_number() is added and {SORT} must be the same as the ORDER BY clause.
+         * This yields all row data with row numbers, which the outer query searches using $sRowMatchCond
+         */
+$this->kfrel->KFDB()->SetDebug(2);
+        $sOrderBy = $this->raViewParms['sSortCol'].($this->raViewParms['bSortDown'] ? " DESC" : " ASC");
+        $sViewQuery= $this->kfrel->GetSQL($this->p_sCond,
+                                array_merge($this->raViewParms,
+                                            ['raFieldsAdd'=>['rownum'=>"ROW_NUMBER() OVER (ORDER BY {$sOrderBy})"]]));
+        $iRowNum= $this->kfrel->Query1("SELECT rownum FROM $sViewQuery WHERE $sRowMatchCond");
+$this->kfrel->KFDB()->SetDebug(0);
+
+        return($iRowNum);
     }
 
     function GetNumRows()

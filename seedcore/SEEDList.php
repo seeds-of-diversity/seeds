@@ -193,6 +193,7 @@ class SEEDList_ArraySlices
      * @param array $raSlice - array to insert into raData
      * @param int $iPos - 0-based offset of this slice within the actual data set
      */
+//RowNumber method
     function SearchForItemIn2DArray( string $key, mixed $value )
     {
         $iFound = -1;

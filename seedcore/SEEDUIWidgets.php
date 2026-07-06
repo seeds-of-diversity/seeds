@@ -445,6 +445,7 @@ class SEEDUIWidget_List extends SEEDUIWidget_Base
         See InitViewWindow() for details.
      */
     {
+// pass view/window parms here and get back amended values of those
         $this->oViewWindow->InitViewWindow();
     }
 

@@ -723,6 +723,7 @@ groupcol
         return( "<h4>".($this->Get_kCurr()==0 || $this->IsNewRowState() ? "New" : "Edit")." $sLabel</h4>" );
     }
 
+//should be in SEEDViewWindow, created by this class using a factory method
     function FetchViewSlice( $iViewSliceOffset, $nViewSliceSize )
     /************************************************************
         If a widget needs a slice of a view it can call here to get it.
@@ -736,6 +737,8 @@ groupcol
         return( [$raViewData,$iReturnedViewSliceOffset,$nViewSize] );
     }
 
+//should be in SEEDViewWindow
+//RowNumber method
     function SearchForRowIfLoaded( string $k, mixed $v )
     /***************************************************
         Get the row that contains the value k=>v, if it is already loaded in the View.
@@ -763,6 +766,7 @@ groupcol
 
 include_once(SEEDCORE."SEEDList.php");
 
+//rename to SEEDViewWindow and remove dependency on oComp
 class SEEDUIComponent_ViewWindow
 /*******************************
     Encapsulates the view and window computation.
@@ -1106,6 +1110,7 @@ if($this->debug) var_dump("StartInit: k={$this->oComp->Get_kCurr()} i={$this->oC
 if($this->debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oComp->Get_iCurr()}");
     }
 
+//RowNumber method
     private function findRowFromKey( $k )
     {
         $iFound = -1;
@@ -1115,7 +1120,7 @@ if($this->debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oCom
          */
         $i = 0;
         do {
-            $rows = $this->GetViewData( $i, 100 );
+            $rows = $this->GetViewData( $i, 1000 );
             if( !$rows ) goto done;     // the nViewSize check below should do the same thing but this seems more reliable to prevent infinite loops if $i doesn't increment
             foreach( $rows as $ra ) {
                 if( @$ra['_key'] == $k ) {
@@ -1125,6 +1130,15 @@ if($this->debug) var_dump("EndInit: k={$this->oComp->Get_kCurr()} i={$this->oCom
                 ++$i;
             }
         } while( $i < $this->nViewSize );   // Now nViewSize is known; note that it could still be 0 but if so it's really 0 now
+
+        var_dump($iFound);
+
+        //$o = new KeyframeRelationView()
+        $raViewParms = ['sSortCol'  => $this->oComp->GetUIParm('sSortCol'),
+                        'bSortDown' => $this->oComp->GetUIParm('bSortDown'),
+                        'sGroupCol' => $this->oComp->GetUIParm('sGroupCol'),
+                        'iStatus'   => $this->oComp->GetUIParm('iStatus')];
+        //$iFound = $this->oComp->kfrel->FindRowNumber($raViewParms, "I._key");
 
         done:
         return( $iFound );

@@ -12,7 +12,7 @@ include_once( "KeyframeForm.php" );
 
 class KeyframeUIComponent extends SEEDUIComponent
 {
-    private $kfrel;
+    public $kfrel;
     private $raViewParms = array();
 
     function __construct( SEEDUI $o, Keyframe_Relation $kfrel, $cid = "A", $raCompConfig = array() )
@@ -51,6 +51,7 @@ class KeyframeUIComponent extends SEEDUIComponent
 
         // This redundantly returns the iViewSliceOffset because the method is designed to allow a larger slice to be returned if convenient.
         // The caller must assume that the returned offset could be lower than requested.
+//want to keep oView to reuse and cache stuff e.g. it should have FetchViewSlice
         return( [$raWindowRows, $iViewSliceOffset, $oView->GetNumRows()] );
     }
 
