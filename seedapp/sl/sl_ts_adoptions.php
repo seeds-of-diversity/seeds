@@ -142,7 +142,7 @@ JSEditButton;
                ||| *Amount*     || [[text:amount|readonly]]
                ||| *Received*   || [[text:D_date_received|readonly]]
 
-               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
                ||| &nbsp;               || <div style='position:relative'>
                                            <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
                                            </div>

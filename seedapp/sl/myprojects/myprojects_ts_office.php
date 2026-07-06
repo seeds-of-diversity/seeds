@@ -135,8 +135,8 @@ class ProjectsTabOffice
             }
 
 // use ComputeVarInstName - needs kfrVI instead of raVI
-            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
-            $psp = $kfrLot ? $kfrLot->Value('P_psp') : $raVI['psp'];
+            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxPxS', $raVI['fk_sl_inventory']) : null;
+            $psp = $kfrLot ? $kfrLot->Value('S_psp') : $raVI['psp'];
 
             switch( $psp ) {
                 case 'ground-cherry':
@@ -256,13 +256,13 @@ class ProjectsTabOffice
             $raM = $this->oP->oMbr->oDB->GetRecordVals('M', $kMbr);
 
 // use ComputeVarInstName - needs kfrVI instead of raVI
-            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
+            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxPxS', $raVI['fk_sl_inventory']) : null;
 
             $raOut[] = ['member' => $kMbr,
                         'member_name'  => ($raM ? $this->oP->oMbr->GetContactNameFromMbrRA($raM) : ""),
                         'member_email' => $raM['email'],
                         'projcode'     => $raVI['projcode'],
-                        'psp'          => $kfrLot ? $kfrLot->Value('P_psp')  : ($raVI['psp'] ?: $raVI['osp']),
+                        'psp'          => $kfrLot ? $kfrLot->Value('S_psp')  : ($raVI['psp'] ?: $raVI['osp']),
                         'pname'        => $kfrLot ? $kfrLot->Value('P_name') : ($raVI['pname'] ?: $raVI['oname']),
                         'lot'          => $kfrLot ? $kfrLot->Value('inv_number') : ""
                        ];

@@ -132,7 +132,7 @@ class CollectionBatchOps_UpdateLots
         $raLots = [];
         foreach( SEEDCore_ParseRangeStrToRA($rLots) as $kLot ) {
             $raLots[$kLot] = ['kLot'=>$kLot, 'kfr'=>$this->kfrLot($kLot)];
-            $raLots[$kLot]['psp-cv'] = $raLots[$kLot]['kfr'] ? $raLots[$kLot]['kfr']->Expand("[[P_psp]] - [[P_name]]") : 'Unknown Cultivar';
+            $raLots[$kLot]['psp-cv'] = $raLots[$kLot]['kfr'] ? $raLots[$kLot]['kfr']->Expand("[[S_psp]] - [[P_name]]") : 'Unknown Cultivar';
         }
 
         return( $raLots );

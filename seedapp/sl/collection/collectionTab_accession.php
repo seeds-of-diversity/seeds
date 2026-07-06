@@ -134,7 +134,7 @@ class CollectionTab_Accession
                <div class='myc_accform_static'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Cultivar*                || [[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])
+               ||| *Cultivar*                || [[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])
                ||| *Original Name*           || [[Value:oname]]
                ||| *Grower/Source*           || [[Value:x_member]]
                ||| *Date Harvested*          || [[Value:x_d_harvest]]
@@ -170,7 +170,7 @@ class CollectionTab_Accession
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| <input type='submit' value='Save'> || \n
-               ||| *Cultivar*                || <span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
+               ||| *Cultivar*                || <span id='cultivarText' style='font-size:9pt'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
                                                 [[dummy_pcv | size:10 class:SFU_AutoComplete | placeholder='Search']]
                                                 [[hidden:fk_sl_pcv]]
                                                 <select class='SFUAC_Select'></select>
