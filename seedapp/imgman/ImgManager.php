@@ -371,12 +371,12 @@ class SEEDAppImgManager
                     $percent = intval($raFVar['analysis']['sizePercent']);
                     if( $sizeR < $sizeO ) {
                         $sSize = "<span>$fhO</span> &gt; <span style='color:green'>$fhR</span> ($percent)%";
+                        $whatYouSaved += $sizeO - $sizeR;
                     } else if( $sizeR > $sizeO ) {
                         $sSize = "<span>$fhO</span> &lt; <span style='color:red'>$fhR</span> ($percent)%";
                     } else {
                         $sSize = $fhR;
                     }
-                    $whatYouSaved += $sizeO - $sizeR;
                 } else if( $sizeR ) {
                     $sSize = $fhR;
                 } else if( $scaleO ) {
