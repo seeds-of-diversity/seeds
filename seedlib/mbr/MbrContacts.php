@@ -127,9 +127,9 @@ class Mbr_Contacts
     static function FirstnameLastname( $raMbr, $prefix = '', array $raParms = [] )
     {
         $bShowOneNameOnly = @$raParms['SHOW_ONE_NAME_ONLY'];
-        
+
         $f1 = $raMbr[$prefix.'firstname'];
-        $l1 = $raMbr[$prefix.'lastname'];  
+        $l1 = $raMbr[$prefix.'lastname'];
         if( !$bShowOneNameOnly ) {
             $f2 = $raMbr[$prefix.'firstname2'];
             $l2 = $raMbr[$prefix.'lastname2'];
@@ -148,7 +148,7 @@ class Mbr_Contacts
         return( $name );
     }
 
-// move to MbrContactsDraw
+// use MbrContactsDraw::DrawAddressBlock instead
     function DrawAddressBlock( $mbrid, $format = 'HTML', $prefix = '' )
     /******************************************************************
         mbrid can be k or email
@@ -163,49 +163,10 @@ class Mbr_Contacts
         return( $s );
     }
 
-// move to MbrContactsDraw
+// use MbrContactsDraw::DrawAddressBlockFromRA instead
     static function DrawAddressBlockFromRA( $raMbr, $fmt = 'HTML', $prefix = '' )
-    /****************************************************************************
-        Draw a contact's address block in the given format (HTML or PDF).
-        $prefix is an optional prefix on the $raMbr keys e.g. "M_"
-     */
     {
-        if( $fmt == 'HTML' ) {
-            // The container should use style='white-space: nowrap' to prevent breaking in weird places e.g the middle of a postal code
-            //                      and style='margin:...' to pad around the address block (no margin is set here)
-            $topMargin = "";
-            $leftMargin = "";
-            $lnbreak = "<br/>";
-        } else if( $fmt == 'PDF' ) {
-            // PDF_Label gives no margin: leading \n is for top margin, spaces for left margin
-            //
-            // Maybe some complex formatting is possible using FPDF::GetStringWidth() e.g. breaking after a very long city+prov to put postcode on next line
-            $topMargin = "\n";
-            $leftMargin = "  ";
-            $lnbreak = "\n";
-        } else {
-            return( "" );
-        }
-
-        // firstname(s)/lastname(s)
-        $name = self::FirstnameLastname( $raMbr, $prefix );
-
-        if( ($company = $raMbr[$prefix.'company']) ) {
-            if( $name ) $name .= $lnbreak.$leftMargin;
-            $name .= $company;
-        }
-        if( ($dept = $raMbr[$prefix.'dept']) ) {
-            if( $name ) $name .= $lnbreak.$leftMargin;
-            $name .= $dept;
-        }
-
-        $text = $topMargin.$leftMargin.$name.$lnbreak
-                          .$leftMargin.$raMbr[$prefix.'address'].$lnbreak
-                          .$leftMargin.$raMbr[$prefix.'city']." ".$raMbr[$prefix.'province']." ".$raMbr[$prefix.'postcode'];
-        if( !in_array( ($country = $raMbr[$prefix.'country']), ['','Canada','CANADA'] ) ) {
-            $text .= $lnbreak.$leftMargin.$country;
-        }
-        return( $text );
+        return(MbrContactsDraw::DrawAddressBlockFromRA($raMbr, ['fmt'=>$fmt, 'prefix'=>$prefix]));
     }
 
     function IsCurrentFromExpires( $sExpires )
@@ -318,6 +279,70 @@ class MbrContactsDraw
         $this->oMbr = new Mbr_Contacts($oApp);
     }
 
+    function DrawAddressBlock( int $mbrid, array $raParms = [] )
+    /***********************************************************
+        mbrid can be k or email
+     */
+    {
+        return( ($raM = $this->oMbr->GetAllValues($mbrid)) ? self::DrawAddressBlockFromRA( $raM, $raParms ) : "" );
+    }
+
+    static function DrawAddressBlockFromRA( array $raMbr, array $raParms = [] )
+    /**************************************************************************
+        Draw a contact's address block
+
+        fmt = HTML or PDF
+        prefix = optional prefix on the $raMbr keys e.g. "M_"
+        bShowEmail = (false) show the email address beneath the city/prov/postcode
+     */
+    {
+        $fmt = SEEDCore_ArraySmartVal($raParms, 'fmt', ['HTML','PDF']);
+        $prefix = @$raParms['prefix'] ?? "";
+        $bShowEmail = SEEDCore_ArraySmartBool($raParms, 'bShowEmail', false);
+
+        if( $fmt == 'HTML' ) {
+            // The container should use style='white-space: nowrap' to prevent breaking in weird places e.g the middle of a postal code
+            //                      and style='margin:...' to pad around the address block (no margin is set here)
+            $topMargin = "";
+            $leftMargin = "";
+            $lnbreak = "<br/>";
+        } else if( $fmt == 'PDF' ) {
+            // PDF_Label gives no margin: leading \n is for top margin, spaces for left margin
+            //
+            // Maybe some complex formatting is possible using FPDF::GetStringWidth() e.g. breaking after a very long city+prov to put postcode on next line
+            $topMargin = "\n";
+            $leftMargin = "  ";
+            $lnbreak = "\n";
+        } else {
+            return( "" );
+        }
+
+        // firstname(s)/lastname(s)
+        $name = Mbr_Contacts::FirstnameLastname( $raMbr, $prefix );
+
+        if( ($company = $raMbr[$prefix.'company']) ) {
+            if( $name ) $name .= $lnbreak.$leftMargin;
+            $name .= $company;
+        }
+        if( ($dept = $raMbr[$prefix.'dept']) ) {
+            if( $name ) $name .= $lnbreak.$leftMargin;
+            $name .= $dept;
+        }
+
+        $s = $topMargin.$leftMargin.$name.$lnbreak
+                       .$leftMargin.$raMbr[$prefix.'address'].$lnbreak
+                       .$leftMargin.$raMbr[$prefix.'city']." ".$raMbr[$prefix.'province']." ".$raMbr[$prefix.'postcode'];
+        if( !in_array( ($country = $raMbr[$prefix.'country']), ['','Canada','CANADA'] ) ) {
+            $s .= $lnbreak.$leftMargin.$country;
+        }
+
+        if( $bShowEmail && @$raMbr['email'] ) {
+            $s .= $lnbreak.$lnbreak.$raMbr['email'];
+        }
+
+        return( $s );
+    }
+
     function DrawExpiryNotice( int $kMbr, array $raParms = [] )
     {
         $s = "";
@@ -326,25 +351,25 @@ class MbrContactsDraw
         $sExtra_Current = @$raParms['sExtra_Current'] ?? "";
         $sExtra_Expired = @$raParms['sExtra_Expired'] ?? "";
 
-        $sExpires = $this->oMbr->GetAllValues($kMbr)['expires'];
+        $sExpires = @$this->oMbr->GetAllValues($kMbr)['expires'] ?? ""; // failsafe in exceptional cases
         if( $this->oMbr->IsCurrentFromExpires($sExpires) ) {
             $sAlert = 'success';
-            $s .= $bEN ? "<p>Your membership is up to date until $sExpires.</p>
+            $s .= $bEN ? "<p>Your contact information is up to date until $sExpires.</p>
                           <p>Please check your mailing address and let us know if it has changed. {$sExtra_Current}</p>"
-                       : "<p>Votre adh&eacute;sion est &agrave; jour jusqu'au $sExpires.</p>
+                       : "<p>Vos coordonn&eacute;es sont &agrave; jour jusqu'au $sExpires.</p>
                           <p>Veuillez v&eacute;rifier votre adresse postale et dites-nous si elle a chang&eacute;. {$sExtra_Current}</p>";
         } else {
             $sAlert = 'warning';
             if($sExpires) {
-                $s .= $bEN ? "<p>Membership expiry: $sExpires</p>"
-                           : "<p>Membership expiry: $sExpires</p>";
+                $s .= $bEN ? "<p>Your contact information has been confirmed up to <strong>$sExpires</strong></p>"
+                           : "<p>Vos coordonn&eacute;es ont &eacute;t&eacute; confirm&eacute;es jusqu'au $sExpires</p>";
             }
-            $s .= $bEN ? "<p>Please renew your membership to make sure we have your correct contact and mailing information.
+            $s .= $bEN ? "<p>Please verify/update your contact information so we can mail your seeds.
                           {$sExtra_Expired}
-                          <a href='https://seeds.ca/store' target='_blank'><button>Renew Your Membership / Update Your Address</button></a></p>"
-                       : "<p>Veuillez renouveler votre adh&eacute;sion pour vous assurer que nous avons vos coordonn&eacute;es et vos informations postales correctes.
+                          <a href='https://seeds.ca/store' target='_blank'><button>Verify / Update Your Address</button></a></p>"
+                       : "<p>Veuillez confirmer vos coordonn&eacute;es et vos informations postales.
                           {$sExtra_Expired}
-                          <a href='https://semences.ca/boutique' target='_blank'><button>Renouvelez votre adh&eacute;sion / Confirmez votre adresse</button></a></p>";
+                          <a href='https://semences.ca/boutique' target='_blank'><button>Confirmez vos coordonn&eacute;es</button></a></p>";
         }
 
         $s = "<div class='alert alert-{$sAlert}'>{$s}</div>";
@@ -358,7 +383,7 @@ class MbrContactsDraw
 class Mbr_ContactsDB extends Keyframe_NamedRelations
 {
     public const MbrDonationsReceiptAccessor_Mailed = -2;   // whether printed&mailed or emailed, when the office manually sends a receipt to the donor this is the uid_accessor
-    
+
     private $oApp;
 
     function __construct( SEEDAppSessionAccount $oApp )

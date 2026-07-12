@@ -14,7 +14,7 @@ include_once( SEEDLIB."sl/QServerRosetta.php" );
 include_once( "rosetta_ts_cultivars.php" );
 include_once( "rosetta_ts_cultivarsyn.php" );
 include_once( "rosetta_ts_species.php" );
-
+include_once("rosetta/rosetta_ts_admin.php");
 
 $consoleConfig = [
     'CONSOLE_NAME' => "rosetta",
@@ -30,8 +30,8 @@ $consoleConfig = [
                             'perms' =>[ 'cultivar'     => ["W SL"],
                                         'species'      => ["W SL"],
                                         'speciessyn'   => ["W SLbob"],
-                                        'cultivarsyn'  => ["W SL"],
-                                        'admin'        => ['A notyou'],
+                                        'cultivarsyn'  => ["W SLbob"],
+                                        'admin'        => ['W SL'],
                                         '|'  // allows screen-login even if some tabs are ghosted
                                       ],
                            ],
@@ -42,7 +42,7 @@ $consoleConfig = [
                                                 'synonyms'   => ['label'=>'Synonyms'],
                                                 'adoption'   => ['label'=>'Adoption'],
                                                ],
-                                     'perms'=> ['overview'   => ["W SL"],
+                                     'perms'=> ['overview'   => ["W notyet"],
                                                 'edit'       => ["W SL"],
                                                 'synonyms'   => ["W SL"],
                                                 'adoption'   => ["W SLAdoption"],
@@ -89,6 +89,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_cultivar_Init( Console02TabSet_TabInfo $oT )    { $this->oW = new RosettaCultivarListForm($this->oApp);             $this->oW->Init(); }
     function TabSet_main_speciessyn_Init( Console02TabSet_TabInfo $oT )  { $this->oW = new RosettaSpeciesSynonyms($this->oApp, $oT->oSVA);   $this->oW->Init(); }
     function TabSet_main_cultivarsyn_Init( Console02TabSet_TabInfo $oT ) { $this->oW = new RosettaCultivarSynonyms($this->oApp, $oT->oSVA);  $this->oW->Init(); }
+    function TabSet_main_admin_Init( Console02TabSet_TabInfo $oT )       { $this->oW = new Rosetta_TS_Admin($this->oApp, $oT->oSVA);  $this->oW->Init(); }
 
     function TabSetControlDraw( $tsid, $tabname )  { return( $this->oW->ControlDraw() ); }
     function TabSetContentDraw( $tsid, $tabname )  { return( $this->oW->ContentDraw() ); }

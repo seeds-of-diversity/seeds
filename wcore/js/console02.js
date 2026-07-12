@@ -202,7 +202,8 @@ class ConsoleEditList
         } else {
             $(".seededit-list").prepend( jItem );
         }
-
+        jItem.get(0).scrollIntoView();      // same as document.getElementFromId(id).scrollIntoView() except there's no id
+        
         this.Item_Init( jItem );
 
         // make it the current item, open the form in the container, mark it as a New form so Cancel will remove() it
@@ -230,10 +231,8 @@ class ConsoleEditList
         jFormDiv.find("form").submit( function(e) { e.preventDefault(); saveThis.FormSave( kItem ); } );
         jFormDiv.find(".seededit-form-button-cancel").click( function(e) { e.preventDefault(); saveThis.FormCancel(); } );
 
-        // connect event listeners in the new form, etc.
-        this.FormOpen_InitForm( jFormDiv, kItem );
-
-        jFormDiv.fadeIn(500);
+        // connect event listeners in the new form, etc. but only after it is visible (e.g. focus can only be set after visible)
+        jFormDiv.fadeIn(500, function () {saveThis.FormOpen_InitForm(jFormDiv,kItem);});
     }
 
     FormSave( kItem )
@@ -375,7 +374,8 @@ class ConsoleEditList
 
     FormOpen_InitForm( jFormDiv, kItem )
     /***********************************
-        Override to initialize the given form
+        Called after the form is visible so e.g. elements are focusable.
+        Override to initialize the given form.
      */
     {
         // disable all control buttons for all items, while the form is open

@@ -5,7 +5,8 @@ class CollectionTab_Accession
     private $oApp;
     private $kInventory;
     private $sldbCollection;
-    private $oForm;
+    private $oFormA = null;    // kfr AxPxS for the displayed Accession
+    private $kfrI = null;      // kfr I for current Lot ($kInventory)
 
     function __construct( SEEDAppConsole $oApp, $kInventory )
     {
@@ -16,21 +17,49 @@ class CollectionTab_Accession
 
     function Init()
     {
-//use these to draw the form
-        $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []);
-        $oFormA->Update();
-        $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', []);
-        $oFormI->Update();
+        /* Accession and Lot updates are submitted in the same <form>.
+         * There can be multiple Lot records, including but not limited to kInventory.
+         * oFormI is not persisted because it is only used for drawing forms later and needs to be reloaded per Lot
+         */
+        ($this->oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreA']]]))
+            ->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
-/*
-        $this->oForm = new KeyframeForm($this->sldbCollection->GetKfrel("G"), 'G', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStore']]]);
-        $this->oForm->Update();
+        (new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', ['DSParms'=>['fn_DSPreStore'=> [$this,'dsPreStoreI']]]))
+            ->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
-        if( ($kDel = SEEDInput_Int('germdel')) && ($kfr = $this->sldbCollection->GetKFR('G', $kDel)) ) {
-            $kfr->StatusSet( KeyframeRecord::STATUS_DELETED );
-            $kfr->PutDBRow();
+        /* Fetch Accession and Lot for current kInventory. Set up oFormA. It might already be loaded correctly from Update() above, but not necessarily.
+         */
+        if( $this->kInventory &&
+            ($this->kfrI = $this->sldbCollection->GetKFR('I', $this->kInventory)) &&
+            ($kfrA = $this->sldbCollection->GetKFR('AxPxS', $this->kfrI->Value('fk_sl_accession'))) )
+        {
+            $this->oFormA->SetKFR($kfrA);
+        } else {
+            $this->oFormA->Clear();
         }
-*/
+    }
+
+    function dsPreStoreA( Keyframe_DataStore $oDS )
+    {
+        // the form replaces kLotParent with iLotParent. Reverse that replacement.
+        if( ($iLotParent = $oDS->Value('iLotParent')) &&
+// parameterize kColl
+            ($kfr = $this->sldbCollection->GetKFR_LotFromNumber(1, $iLotParent)) )
+        {
+            $oDS->SetValue('kLotParent', $kfr->Key());
+        }
+
+        return(true);
+    }
+
+    /**
+     * Multiple lots can be saved from <form>, including but not limited to $this->kInventory.
+     */
+    function dsPreStoreI( Keyframe_DataStore $oDS )
+    {
+        if(!$oDS->Value('g_weight')) $oDS->SetValue('g_weight',0.0);    // db needs this to be 0.0 if the user enters blank
+
+        return(true);
     }
 
     function ControlDraw()
@@ -42,27 +71,19 @@ class CollectionTab_Accession
     {
         $s = $sLeft = $sRight = "";
 
-        if( !$this->kInventory ||
-            !($kfrI = $this->sldbCollection->GetKFR('I', $this->kInventory)) ||
-            !($kfrA = $this->sldbCollection->GetKFR('AxPxS', $kfrI->Value('fk_sl_accession'))) )
-        {
-            goto done;
-        }
-
-        $oFormA = new KeyframeForm($this->sldbCollection->KFRel('AxPxS'), 'A', []); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
-        $oFormA->SetKFR($kfrA);
+        if( !$this->kInventory || !$this->oFormA->GetKey() )  goto done;
 
         /* Left side is the Accession information
          */
-        $sLeft = $oFormA->HiddenKey()
-                .(new SEEDFormExpand($oFormA))->ExpandForm($this->accForm());
+        $sLeft = $this->oFormA->HiddenKey()
+                .(new SEEDFormExpand($this->oFormA))->ExpandForm($this->accForm());
 
         /* Right side is the Lot information
          */
         $kfrC = $this->sldbCollection->GetKFR('C', 1); // $this->oSCA->kCurrCollection   this app doesn't have multiple collections
         $nNextInv = $kfrC ? $kfrC->Value('inv_counter') : 0;
 
-        if( ($kfrcI = $this->sldbCollection->GetKFRC('I', "fk_sl_accession='{$kfrA->Key()}'")) ) {
+        if( ($kfrcI = $this->sldbCollection->GetKFRC('I', "fk_sl_accession='{$this->oFormA->GetKey()}'")) ) {
             $iRow = 0;
             $oFormI = new KeyframeForm($this->sldbCollection->KFRel('I'), 'I', []); // array('DSParms'=>array('fn_DSPreStore'=>array($this,'DSPreStore_Acc'))) );
 
@@ -83,68 +104,46 @@ class CollectionTab_Accession
              ."</form>";
 
         return( $s );
-
-
-        $s = "<style>
-              th { text-align:center }
-              .germRowInput input {margin-top:5px;}
-              </style>";
-
-
-
-        $this->oForm->SetKFR( $this->sldbCollection->GetKfrel("G")->CreateRecord() );
-        $s .= "<form method='post'>"
-             .$this->oForm->Hidden( "fk_sl_inventory", ['value'=>$this->kInventory] )
-             ."<table><tr><th>Start Date</th><th>End Date</th><th># Seeds Sown</th><th># Seeds Germinated</th><th>Notes</th></tr>"
-             .$this->germRowInput( $this->oForm );
-
-        $raKfrG = $this->sldbCollection->GetKfrel('G')->GetRecordSet( "fk_sl_inventory='{$this->kInventory}'",
-                                                                      ['sSortCol'=>'dStart','bSortDown'=>true] );
-        foreach( $raKfrG as $kfr ) {
-            if( $kfr->value('dEnd') && $kfr->value('dEnd') != "0000-00-00" ) {
-                // nGerm is always the % and it has been verified correct. nGerm_count is only set by the new system so there are many nGerm_count==0
-                if( !$kfr->Value('nGerm_count') && $kfr->Value('nGerm') > 0 ) {
-                    // calculate nGerm_count so the correct value is used below
-                    $kfr->SetValue('nGerm_count', ($kfr->Value('nGerm') * $kfr->Value('nSown')) / 100 );
-                }
-                $nGermPercent = $this->germPercent( $kfr->value('nSown'), $kfr->value('nGerm_count') );
-                $nGermPercent = $nGermPercent ? "($nGermPercent%)" : "";
-                $s .= $kfr->Expand( "<tr style='text-align:center' class='germTests'>"
-                                   ."<td>[[dStart]]</td><td>[[dEnd]]</td><td>[[nSown]]</td><td>[[nGerm_count]] &nbsp;&nbsp; $nGermPercent</td>"
-                                   ."<td style='text-align:left'>[[notes]]</td>"
-                                   ."<td>&nbsp;</td>"   // space for the delete button
-                                   ."<td style='padding-left:30px'>{$this->deleteButton($kfr)}</td>"
-                                   ."</tr>");
-            } else {
-                $this->oForm->IncRowNum();
-                $this->oForm->SetKFR( $kfr );
-                $s .= $this->germRowInput( $this->oForm );
-            }
-        }
-        $s .= "</table></form>";
-
-        $s .= "<p style='margin-top:30px'>Required: Number seeds sown.</p><p>Start date defaults to today. Records shown until End Date set.</p>";
-
-        //done:
-        return($s);
     }
 
     private function accForm()
     {
+        // add a dummy field iLotParent (sl_inventory.inv_number) to the form instead of kLotParent (sl_inventory._key)
+        list($iLotParent,$kCollDummy) = $this->sldbCollection->Get_LotNumberFromKey($this->oFormA->Value('kLotParent'));
+        $this->oFormA->SetValue('iLotParent',$iLotParent);
+
+        $sCultivarInfo = [];
+        if( ($kPcv = $this->oFormA->Value('fk_sl_pcv')) &&
+            ($rQ = (new QServerRosetta($this->oApp, ['config_bUTF8'=>false]))->Cmd('rosetta-cultivarinfo', ['kPcv'=>$kPcv, 'mode'=>'all'])) &&
+            $rQ['bOk'] )
+        {
+            $sCultivarInfo =
+                 // display:inline-block fits the div's width to its content so it centers the content (because content doesn't know to center itself)
+                 "<div style='background-color:#eee;padding:1em;text-align:center'>
+                      <h3>About {$rQ['raOut']['PxS']['P_name']} {$rQ['raOut']['PxS']['S_name_en']}</h3>
+                      <p>{$rQ['raOut']['PxS']['P_packetLabel']}</p>
+                      <p>".nl2br($rQ['raOut']['PxS']['P_notes'])."</p>
+                      <h3>Collection Status of {$rQ['raOut']['PxS']['P_name']} {$rQ['raOut']['PxS']['S_name_en']}</h3>
+                      <div style='margin:0 auto;display:inline-block'>{$rQ['raOut']['sTable_IxA']}</div>
+                  </div>";
+
+
+        }
+
         $s =  "<div class='container-fluid'>
                <div class='myc_accform_static'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Cultivar*                || [[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])
+               ||| *Cultivar*                || [[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])
                ||| *Original Name*           || [[Value:oname]]
                ||| *Grower/Source*           || [[Value:x_member]]
                ||| *Date Harvested*          || [[Value:x_d_harvest]]
                ||| *Notes* || &nbsp;
-               ||| {replaceWith class='col-md-12'} <div style='border:1px solid #aaa;padding:5px'>[[Value:notes]]</div>
+               ||| {replaceWith class='col-md-12'} <div style='border:1px solid #aaa;padding:5px'>[[nl2br: [[Value:notes]] ]]</div>
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[Value:g_original]]
                ||| *Grams 100 seeds*   || [[Value:g_100]]
-               ||| *Parent Lot #*   || [[Value:kLotParent]]
+               ||| *Parent Lot #*   || [[Value:iLotParent]]
                ||| *Grower rating* || [[Value:iGrowerRating]]
                ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n"
 
@@ -164,13 +163,14 @@ class CollectionTab_Accession
               : "")
              ."|||ENDTABLE "
 
+             .$sCultivarInfo
              ."</div>" // myc_accform_static
 
              ."<div class='myc_accform_edit' style='display:none'>"
 
              ."|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                ||| <input type='submit' value='Save'> || \n
-               ||| *Cultivar*                || <span id='cultivarText' style='font-size:9pt'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
+               ||| *Cultivar*                || <span id='cultivarText' style='font-size:9pt'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>
                                                 [[dummy_pcv | size:10 class:SFU_AutoComplete | placeholder='Search']]
                                                 [[hidden:fk_sl_pcv]]
                                                 <select class='SFUAC_Select'></select>
@@ -182,7 +182,7 @@ class CollectionTab_Accession
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[g_original]]
                ||| *Grams 100 seeds*   || [[g_100]]
-               ||| *Parent Lot #*   || [[kLotParent]]
+               ||| *Parent Lot #*   || [[iLotParent]]
                ||| *Grower rating* || [[iGrowerRating]]"
 
              .($this->oApp->sess->GetUID() == 1499 ?
@@ -201,6 +201,7 @@ class CollectionTab_Accession
               : "")
              ."|||ENDTABLE "
 
+            .$sCultivarInfo
             ."</div>
               </div>";
 
@@ -276,71 +277,5 @@ function doEdit()
 
         done:
         return( $s );
-    }
-
-
-
-    private function germPercent( $nSown, $nGerm_count )
-    {
-        return( $nSown ? intval(floatval($nGerm_count) / floatval($nSown) * 100.00) : 0 );
-    }
-
-    private function germRowInput( KeyframeForm $oForm )
-    {
-        // blank looks nicer than zero
-        if( !$oForm->Value('nSown') ) $oForm->SetValue('nSown', '');
-        if( !$oForm->Value('nGerm_count') ) $oForm->SetValue('nGerm_count', '');
-
-        return( "<tr class='germRowInput'>{$oForm->HiddenKey()}"
-                   ."<td>{$oForm->Date('dStart')}</td><td>{$oForm->Date('dEnd')}</td>"
-                   ."<td>{$oForm->Text('nSown')}</td><td>{$oForm->Text('nGerm_count')}</td>"
-                   ."<td>{$oForm->Text('notes','',['size'=>'40'])}</td>"
-                   ."<td><input type='submit' value='Save' /></td>"
-                   ."<td style='padding-left:30px'>{$this->deleteButton($oForm->GetKFR())}</td>"
-               ."</tr>" );
-    }
-
-    private function deleteButton( KeyframeRecord $kfr )
-    /***************************************************
-        Make a button that will delete the given germ test (only if it's your test, and it's pretty recent)
-
-        sf{cid}d{R} doesn't work the way we want it to here, so do it with a custom parameter instead
-     */
-    {
-        $bRecent  = ($t = strtotime($kfr->Value('_created'))) > 1000000     // probably a valid timestamp
-                    && time() - $t < (3600*24*60);                          // past 60 days
-
-        $sDeleteButton = ($kfr->Key() && $kfr->Value('_created_by')==$this->oApp->sess->GetUID()
-                                      && $bRecent)
-                                ? ("<a href='{$this->oApp->PathToSelf()}?germdel={$kfr->Key()}'>"
-                                  ."<img src='".SEEDW_URL."img/ctrl/delete01.png' height='20'/>"
-                                  ."</a>")
-                                : "";
-        return( $sDeleteButton );
-    }
-
-    function dsPreStore( Keyframe_DataStore $oDS )
-    {
-// this should have more in common with CollectionBatchOps::PreStoreGerm
-        $oDS->CastInt('nSown');
-        $oDS->CastInt('nGerm');
-
-        // nSown is the only required field
-        if( !$oDS->Value('nSown') ) return( false );
-
-        // if dStart not defined default to today
-        if( !$oDS->Value('dStart') ) {
-            $oDS->SetValue( 'dStart', date('Y-m-d') );
-        }
-        // if dEnd not defined yet it has to be NULL in the db because DATE doesn't allow ''
-        if( !$oDS->Value('dEnd') ) {
-            $oDS->SetNull('dEnd');
-        }
-// temp: nGerm is %, should be the count
-        $oDS->SetValue( 'nGerm', $this->germPercent($oDS->Value('nSown'), $oDS->Value('nGerm_count')) );
-
-// could set fk_sl_inventory here instead of sending it via http
-
-        return( true );
     }
 }

@@ -19,8 +19,10 @@ insert into sl_varinst (fk_mbr_contacts,fk_sl_pcv,year) values (1499,188,2024);
 
 add sl_varinst.fk_mbr_contacts to test for deleting mbr_contacts
  */
-// padding under images for phone width
-// re-enable select control after canceling tomato, or refresh page
+
+include_once("myprojects_ts_signup.php");
+include_once("myprojects_ts_projects.php");
+include_once("myprojects_ts_office.php");
 
 include_once( SEEDCORE."console/console02.php" );
 //include_once( SEEDLIB."google/GoogleSheets.php" );
@@ -41,7 +43,9 @@ $consoleConfig = [
     'HEADER' => "My Projects",
 //    'HEADER_LINKS' => array( array( 'href' => 'mbr_email.php',    'label' => "Email Lists",  'target' => '_blank' ),
 //                             array( 'href' => 'mbr_mailsend.php', 'label' => "Send 'READY'", 'target' => '_blank' ) ),
-    'TABSETS' => ['main'=> ['tabs' => [ 'projects' => ['label'=>'My Projects'],
+    'TABSETS' => ['main'=> ['tabs' => [
+                                        'signup'   => ['label'=>'Join a Project'],
+                                        'projects' => ['label'=>'My Projects'],
                                         'sites'    => ['label'=>'My Sites'],
                                         'office'   => ['label'=>'Office'],
                                       //'settings'     => ['label'=>'Settings']
@@ -72,22 +76,22 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
      */
     if( $qcmd == 'myprojects--add' ) {
         $kLot = 0;
-        $psp = $oname = "";
+        $psp = $oname = $projcode = "";
 
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
-        switch( ($sProjname = SEEDInput_Str('projectName')) ) {
-            case 'cgo2026gc':
+        switch( ($projcode = SEEDInput_Str('projcode')) ) {
+            case 'cgo_gc':
                 /* record project, psp, oname
                  */
                 $psp = 'ground-cherry';
                 $oname = "Tall-bearing selection from ".(date('Y')-1)."";
                 break;
-            case 'cgo2026tomato':
-            case 'cgo2026bean':
+            case 'cgo_tomato':
+            case 'cgo_bean':
                 /* record project, kLot, and psp just for good measure
                  */
-                $psp = substr($sProjname,7); // 'tomato' or 'bean'
+                $psp = substr($projcode,4); // 'tomato' or 'bean'
                 if( ($iLot = SEEDInput_Int('iLot')) ) {
                     $kLot = (new SLDBCollection($oApp))->GetRecordVal1Cond('I', "fk_sl_collection='1' AND inv_number='$iLot'", '_key');
                 }
@@ -104,8 +108,9 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
             $kfr->SetValue('psp', $psp);
             $kfr->SetValue('oname', $oname);
             $kfr->SetValue('fk_sl_inventory', $kLot);
-            $kfr->UrlParmSet('metadata', 'project', $sProjname);
-            $kfr->SetValue('year', 2026);
+// obsolete            $kfr->UrlParmSet('metadata', 'project', $sProjname);
+            $kfr->SetValue('projcode', $projcode);
+            $kfr->SetValue('year', $oP->CurrentYear());
 
             if( $kfr->PutDBRow() ) {
                 $rQ['bOk'] = true;
@@ -119,9 +124,9 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
     if( $qcmd == 'myprojects--remove' ) {
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
-        if( ($sProjname = SEEDInput_Str('projectName')) &&
+        if( ($projcode = SEEDInput_Str('projcode')) &&
 // oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
-            ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} && metadata LIKE '%project=".addslashes($sProjname)."%'")) )
+            ($kfr = $oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$uid} AND year={$oP->CurrentYear()} AND projcode='{$projcode}'")) )
         {
             $kfr->StatusSet(KeyFrameRecord::STATUS_DELETED);
             if( $kfr->PutDBRow() ) {
@@ -130,6 +135,7 @@ if( ($qcmd = SEEDInput_Str('qcmd')) ) {
         }
     }
 
+// obsolete since 2025
     if( $qcmd == 'myprojects--choosebean' ) {
         if( !($uid = $oP->CanWriteOtherUsers() ? SEEDInput_Int('uid') : $oApp->sess->GetUID()) )  goto skip;
 
@@ -166,7 +172,8 @@ class MyConsole02TabSet extends Console02TabSet
     private $oApp;
 
     private $oProjects;
-    private $oW;
+    private $oProjectsUI;
+    private $oW = null;
 
     function __construct( SEEDAppConsole $oApp )
     {
@@ -175,11 +182,13 @@ class MyConsole02TabSet extends Console02TabSet
 
         $this->oApp = $oApp;
         $this->oProjects = new ProjectsCommon($this->oApp);
+        $this->oProjectsUI = new ProjectsCommonUI($this->oProjects, $this);
     }
 
     function TabSetPermission( $tsid, $tabname )
     {
         switch($tabname) {
+            case 'signup': break; // don't show this one for now
             case 'projects':
             case 'sites':
                 return( Console02TabSet::PERM_SHOW );
@@ -190,19 +199,35 @@ class MyConsole02TabSet extends Console02TabSet
         return( Console02TabSet::PERM_HIDE );
     }
 
+    function TabSetGetDefaultTab( string $tsid ) : string
+    {
+        /* Specify the default tab when not stored in the session vars (on a cold start).
+         * Use signups if the logged-in user has no projects this year.
+         * Use projects if they have projects this year.
+         *
+         * N.B. $this->oW==null at this point because this is called before any tab is drawn.
+         */
+        return( count($this->oProjects->oProfilesDB->GetVarInstNames($this->oApp->sess->GetUID(), $this->oProjects->CurrentYear())) ? "projects" : "signup" );
+    }
 
-    function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this); $this->oW->Init(); }
+    function TabSet_main_signup_Init()           { $this->oW = new ProjectsTabSignup($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
+    function TabSet_main_signup_StyleDraw()      { return( $this->oW->StyleDraw() ); }
+
+    function TabSet_main_projects_Init()         { $this->oW = new ProjectsTabProjects($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
     function TabSet_main_projects_StyleDraw()    { return( $this->oW->StyleDraw() ); }
-    function TabSet_main_projects_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_projects_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+//    function TabSet_main_projects_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+//    function TabSet_main_projects_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_sites_Init()         { $this->oW = new ProjectsTabSites($this->oProjects); $this->oW->Init(); }
-    function TabSet_main_sites_ControlDraw()  { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_sites_ContentDraw()  { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_sites_Init()         { $this->oW = new ProjectsTabSites($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
+//    function TabSet_main_sites_ControlDraw()  { return( $this->oW->ControlDraw() ); }
+//    function TabSet_main_sites_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_office_Init()          { $this->oW = new ProjectsTabOffice($this->oProjects, $this); $this->oW->Init(); }
-    function TabSet_main_office_ControlDraw()   { return( $this->oW->ControlDraw() ); }
-    function TabSet_main_office_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+    function TabSet_main_office_Init()          { $this->oW = new ProjectsTabOffice($this->oProjects, $this->oProjectsUI); $this->oW->Init(); }
+//    function TabSet_main_office_ControlDraw()   { return( $this->oW->ControlDraw() ); }
+//    function TabSet_main_office_ContentDraw()   { return( $this->oW->ContentDraw() ); }
+
+    function TabSetControlDraw($tsid, $tabname) { return( $this->oW->ControlDraw() ); }
+    function TabSetContentDraw($tsid, $tabname) { return( $this->oW->ContentDraw() ); }
 
 //    function TabSet_main_settings_Init()         { $this->oW = new GrowoutsTabSettings($this->oGO); $this->oW->Init(); }
 //    function TabSet_main_settings_ControlDraw()  { return( $this->oW->ControlDraw() ); }
@@ -214,6 +239,7 @@ class ProjectsCommon
     const  BUCKET_NS = 'AppMyProjects';
     public $oApp;
     public $oProfilesDB;
+    public $oMbr;
     public $oL;
 
     public const workflowcodes =
@@ -229,14 +255,35 @@ class ProjectsCommon
                  "-3 - Did not return seeds"        => -3,
                 ];
 
-    function __construct( SEEDAppConsole $oApp, array $raParms = [] )
+    private $currYear;
+    private $kCurrMbr = 0;
+
+    function __construct( SEEDAppConsole $oApp, array $raConfig = [] )
     {
         $this->oApp = $oApp;
         $this->oProfilesDB = new SLProfilesDB($oApp);
+        $this->oMbr = new Mbr_Contacts($oApp);
         $this->oL = new SEED_Local( $this->sLocalStrs(),
-                                    @$raParms['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
+                                    @$raConfig['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
                                     'myprojects' );
+
+        $this->currYear = @$this->raConfig['currYear'] ?: date("Y", time()+3600*24*30 );  // year of 30 days from now (so Dec,Jan-Nov is same year as Jan)
+
+        // default to current login - office staff can choose the current participant via FormSVA
+        $this->kCurrMbr = $this->oApp->sess->GetUID();
     }
+
+    /**
+     * The current project year
+     */
+    function CurrentYear() : int  { return($this->currYear); }
+
+    /**
+     * The current participant
+     */
+    function KCurrMbr() : int     { return($this->kCurrMbr); }
+    function SetKCurrMbr(int $k)  { $this->kCurrMbr = $k; }
+
 
     function CanReadOtherUsers()
     {
@@ -268,81 +315,22 @@ class ProjectsCommon
     }
 }
 
-class ProjectsTabProjects
+
+class ProjectsCommonUI
 {
-    private $oCTS;
     private $oP;
-    private $oMbr;
-    private $oSLDB;
+    public  $oCTS;
 
-    private $oUIProfile, $oUIRecord;
-
-    private $kCurrMbr = 0;
-    private $kfrCurrVI = null;
-    private $bNew = false;      // a new record is requested
-
-    function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
+    function __construct(ProjectsCommon $oP, MyConsole02TabSet $oCTS )
     {
-        $this->oCTS = $oCTS;
         $this->oP = $oP;
-        $this->oMbr = new Mbr_Contacts($this->oP->oApp);
-        $this->oSLDB = new SLDBProfile($this->oP->oApp);
-
-        // ui components of this tab view
-        $this->oUIProfile = new ProjectsTabProjects_UI_Profile($this, $oP);
-        $this->oUIRecord = new ProjectsTabProjects_UI_Record($this, $oP);
-
-        // default to current login - change to the SVA selected kMbr if allowed to do that below
-        $this->kCurrMbr = $this->oP->oApp->sess->GetUID();
+        $this->oCTS = $oCTS;
     }
 
-    /* Profile and Record UI components need to reference the current kfr, but each can potentially update it.
-     * Use this as the one true copy, allowing Updates to change it.
+    /**
+     * Same ControlDraw for Signup, Projects, and Sites
      */
-    function KFRCurrVI()  { return($this->kfrCurrVI); }
-    function KCurrVI()    { return($this->kfrCurrVI ? $this->kfrCurrVI->Key() : 0); }
-
-    function Init()
-    {
-        /* vi == -1 indicates Add New Project mode
-         * vi > 0   when user clicks in project list. forms must propagate this because it is not persistent
-         */
-        if( SEEDInput_Str('action') == 'Add New Project' ) {
-            $this->bNew = true;
-        } else if( ($kVI = SEEDInput_Int('vi')) > 0 ) {
-            $this->kfrCurrVI = $this->oP->oProfilesDB->oSLDB->GetKFR('VI', $kVI);
-        }
-
-        /* kCurrMbr is GetUID unless office mode allows member selection
-         */
-
-        /* kfrCurrVI and kCurrMbr must be correct before initializing ui components
-         */
-        $this->kfrCurrVI = $this->oUIRecord->Init($this->kCurrMbr);     // returns kfrCurrVI because Update could have created a new record (if bNew)
-
-        $this->oUIProfile->Init();
-    }
-
-    function StyleDraw()
-    {
-        return(
-            "<style>
-                 .projlist-item-workflow { display:inline-block; color:#777; border:1px solid #777; border-radius:3px; padding:0 2px }
-                 .projlist-item-workflow-0  {}
-                 .projlist-item-workflow-1  {}
-                 .projlist-item-workflow-2  {}
-                 .projlist-item-workflow-3  {color:orange; background-color:#ffa}
-                 .projlist-item-workflow-4  {color:blue; background-color:#ddf}
-                 .projlist-item-workflow-5  {color:blue; background-color:#ddf}
-                 .projlist-item-workflow-6  {color:red; background-color:#fdd}
-                 .projlist-item-workflow-20 {color:green; background-color:#dfd}
-                 .projlist-item-workflow--1 {color:black; background-color:#fdd}
-                 .projlist-item-workflow--2 {color:black; background-color:#fdd}
-                 .projlist-item-workflow--3 {color:black; background-color:#fdd}
-             </style>");
-    }
-
-    function ControlDraw()
+    function Participant_ControlDraw()
     {
         $s = "";
 
@@ -351,7 +339,9 @@ class ProjectsTabProjects
 // make a checkbox Show What Members See to turn off CanReadOtherUsers() -- except for that checkbox
             $y = 2024;
 
-            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
+//            $oFormCurrentTab = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'Plain');
+            // use the same SVA for all tabs so values are the same across them (projects is an arbitrary choice)
+            $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVA('main','projects'), 'Plain');
 
             // the SVA is active so you can get old values to compare
             $iWorkflowOld = $oForm->Value('workflow');
@@ -375,33 +365,33 @@ class ProjectsTabProjects
              */
             $raOpts = [];
             $condWorkflow = $iWorkflow ? " AND workflow=$iWorkflow" : "";
-            foreach( $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y {$condWorkflow}") as $kMbr ) {
-                $raOpts[$this->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
+            foreach( $this->oP->oProfilesDB->oSLDB->Get1List('VI', 'fk_mbr_contacts', "VI.year>=$y {$condWorkflow}") as $kMbr ) {
+                $raOpts[$this->oP->oMbr->GetContactName($kMbr)." ($kMbr)"] = $kMbr;                     // uniquifies the list
             }
             ksort($raOpts);
 
             /* If member selected via search
              */
             if( $kMbrSearch ) {
-                $name = $this->oMbr->GetContactName($kMbrSearch);
+                $name = $this->oP->oMbr->GetContactName($kMbrSearch);
                 $raOpts["$name ($kMbrSearch)"] = $kMbrSearch;  // add to the dropdown (idempotent if it is already there)
-                $this->kCurrMbr = $kMbrSearch;                 // current in ui
+                $this->oP->SetKCurrMbr($kMbrSearch);           // current in ui
             } else
             /* If member chosen from dropdown or recalled from oSVA.
              * If workflow changed, it's best to forget the kMbr state so the default reset() behaviour should happen instead.
              * Adding to dropdown for rare cases where kMbr already selected but no projects yet. e.g. search for member without project, click Add Project : won't be loaded into dropdown
              */
             if( !$bWorkflowChanged && ($kMbr = $oForm->ValueInt('kMbr')) ) {
-                $name = $this->oMbr->GetContactName($kMbr);
+                $name = $this->oP->oMbr->GetContactName($kMbr);
                 $raOpts["$name ($kMbr)"] = $kMbr;           // add to the dropdown (idempotent if it is already there)
-                $this->kCurrMbr = $kMbr;                    // current in ui
+                $this->oP->SetKCurrMbr($kMbr);              // current in ui
             } else {
-                $this->kCurrMbr = reset($raOpts);
+                $this->oP->SetKCurrMbr(reset($raOpts));     // default to first kMbr in the list
             }
-            $oForm->SetValue('kMbr', $this->kCurrMbr);      // make this member persistent in oFormSVA
+            $oForm->SetValue('kMbr', $this->oP->KCurrMbr()); // make this participant persistent in oFormSVA
 
             $s .= "<div style='display:inline-block'>
-                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->kCurrMbr, 'attrs'=>"onChange='submit();'"])
+                       <form method='post'>".$oForm->Select('kMbr', $raOpts, "", ['selected'=>$this->oP->KCurrMbr(), 'attrs'=>"onChange='submit();'"])
                      ."<br/><br/>"
                      .$oForm->Select('workflow', array_merge(['-- Filter by workflow --'=>'0'],$this->oP::workflowcodes), "", ['selected'=>$iWorkflow, 'attrs'=>"onChange='submit();'"])
                      ."</form>
@@ -417,18 +407,19 @@ class ProjectsTabProjects
         }
 
         // show the kCurrMbr's name on the right
-        $s .= "<div style='text-align:right'><h3 style='padding:0;margin:0;color:white'>{$this->oMbr->GetContactName($this->kCurrMbr)}</h3></div>";
+        $s .= "<div style='text-align:right'><h3 style='padding:0;margin:0;color:white'>{$this->oP->oMbr->GetContactName($this->oP->KCurrMbr())}</h3></div>";
 
         return( $s );
     }
 
-    function ContentDraw()
+    /**
+     * Show participant's status and suggest verify/update contact info
+     */
+    function Participant_StatusAndRenewal()
     {
         $s = "";
 
-        /* Membership status and renewal
-         */
-        if( $this->kCurrMbr ) {
+        if($this->oP->KCurrMbr()) {
             $parms = $this->oP->oL->GetLang()=='EN'
                         ? ['sExtra_Current' => "<br/>We're glad to help at <a href='mailto:growers@seeds.ca'>growers@seeds.ca</a>.",
                            'sExtra_Expired' => "Then refresh this page and join our projects.<br/><br/>"]
@@ -436,8 +427,10 @@ class ProjectsTabProjects
                            'sExtra_Expired' => "Rafra&icirc;chissez ensuite cette page et rejoignez nos projets.<br/><br/>"];
             $parms['lang'] = $this->oP->oL->GetLang();
 
-            $sL = (new MbrContactsDraw($this->oP->oApp))->DrawExpiryNotice($this->kCurrMbr, $parms );
-            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$this->oMbr->DrawAddressBlock($this->kCurrMbr)}</div>";
+            $oMbrDraw = new MbrContactsDraw($this->oP->oApp);
+            $sL = $oMbrDraw->DrawExpiryNotice($this->oP->KCurrMbr(), $parms );
+
+            $sR = "<div style='border:1px solid #aaa;padding:1em;'>{$oMbrDraw->DrawAddressBlock($this->oP->KCurrMbr(), ['bShowEmail'=>true])}</div>";
             $s .= "<div class='container-fluid'><div class='row'>
                        <div class='col-md-6'>$sL</div>
                        <div class='col-md-3'>&nbsp;</div>
@@ -445,342 +438,10 @@ class ProjectsTabProjects
                    </div>";
         }
 
-        $s .= "<hr/>";
-
-// TODO: Each project configurable by control panel in Office tab
-// TODO: Add a lettuce project as an entry point for future core growers
-        $s .= $this->cgoSignup();
-
-
-        /* CGO bean selection
-         */
-/*
-        if( ($kfrBean = $this->oP->oProfilesDB->GetKFRCond('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2025bean%'")) ) {
-            if( !$kfrBean->Value('fk_sl_inventory') ) {
-                include_once("cgo_signup.php");
-
-                $s .= (new CGOSignup_Bean($this->oP))->Draw2();
-
-                // For Office mode, tell cgosignup the uid to sign up
-                $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
-            }
-        }
-*/
-
-
-        /* Show projects
-         */
-        $sLeft = $sOfficePanel = $sProfile = "";
-
-        // Add New Project button
-        if( $this->oP->CanWriteOtherUsers() ) {
-            $sLeft .= "<form method='post'><input type='submit' name='action' value='Add New Project'/></form>";
-        }
-
-
-// TODO: show current year projects before sign-ups, past project after sign-ups. When sign-ups go invisible they will all be together, but still would be good to have a marker between.
-        /* 2025 and 2024 projects
-         */
-        if( ($u = intval($this->kCurrMbr)) ) {
-            $raY = [];
-            foreach([2026,2025,2024] as $year) {
-                foreach( $this->oP->oProfilesDB->GetVarInstNames($u, $year) as $ra ) {
-                    if(!isset($raY[$year])) {
-                        $sLeft .= "<h4>$year projects for {$this->oMbr->GetContactName($u)}</h4>";
-                        $raY[$year] = 1;
-                    }
-
-                    $namelink = "<a href='?vi={$ra['kVI']}'>{$ra['sp']} : {$ra['cv']}</a>";
-                    $iWorkflow = $ra['raVI']['workflow'];
-
-                    if( $this->oP->CanReadOtherUsers() ) {
-                        $sItem = "<div class='col-md-1'><div class='projlist-item-workflow projlist-item-workflow-{$iWorkflow}'>{$iWorkflow}</div></div>
-                                  <div class='col-md-11'>$namelink {$ra['raVI']['projcode']}</div>";
-                    } else {
-                        $sItem = "<div class='col-md-12'>$namelink</div>";
-                    }
-                    $sLeft .= "<div class='row projlist-item'>$sItem</div>";
-                }
-            }
-            if( !$raY ) {
-                $sLeft .= "<h4 style='color:#777'>You haven't signed up for any projects (yet!)</h3>";
-            }
-        }
-
-        /* Show profile if project selected in the list or new project created
-         */
-        if( $this->kfrCurrVI ) {
-            $sProfile .= $this->oUIProfile->DrawProfile();
-        }
-
-        /* Show record form if project selected in the list or new project requested (Add New Project)
-         */
-        if( ($this->bNew || $this->kfrCurrVI) && $this->oP->CanWriteOtherUsers() ) {
-            $sOfficePanel .= ("<h3>".($this->bNew ? "New " : "")."Project Record</h3>")
-                            .$this->oUIRecord->DrawRecord( $this->kCurrMbr /*kluge: remove when kCurrMbr is known in Init()*/);
-        }
-
-        if( $this->oP->CanWriteOtherUsers() ) {
-            $s .= "<div class='container-fluid'><div class='row'>
-                   <div class='col-md-3'>$sLeft</div>
-                   <div class='col-md-5'>$sProfile</div>
-                   <div class='col-md-4'>$sOfficePanel</div>
-                   </div></div>";
-        } else {
-            $s .= "<div class='container-fluid'><div class='row'>
-                   <div class='col-md-3'>$sLeft</div>
-                   <div class='col-md-9'>$sProfile</div>
-                   </div></div>";
-
-        }
-
-        return( $s );
-    }
-
-
-    private function cgoSignup()
-    {
-        $s = "";
-
-        if(!$this->kCurrMbr)  goto done;
-
-        include_once("cgo_signup.php");
-
-// oProfilesDB is obsolete as a named relation object - use oProfilesDB->oSLDB
-        $bRegisteredGC     = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026gc%'");
-        $bRegisteredTomato = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026tomato%'");
-        $bRegisteredBean   = $this->oP->oProfilesDB->GetCount('VI', "fk_mbr_contacts={$this->kCurrMbr} AND metadata LIKE '%project=cgo2026bean%'");
-
-        //$s .= "<h4 class='alert alert-success' style='color:green'>We have lots of seeds left so we've extended the deadline!</h4>";
-
-        $s .= "<h3>{$this->oP->oL->S('Join Our Community Seed Growouts')}</h3>";
-        $s .= (new CGOSignup_GC($this->oP))->Draw($bRegisteredGC)
-             ."<br/><br/>"
-             .(new CGOSignup_Tomato($this->oP))->Draw($bRegisteredTomato)
-             ."<br/><br/>"
-             .(new CGOSignup_Bean($this->oP))->Draw($bRegisteredBean);
-
-        /* For Office mode, tell cgosignup the uid to sign up
-         */
-        $s .= "<script>var CGOSignup_Uid=".($this->oP->CanReadOtherUsers() ? $this->kCurrMbr : 0).";</script>";
-
-        done:
         return($s);
     }
+
 }
-
-class ProjectsTabProjects_UI_Profile
-{
-    private $oP;
-    private $oPTP;
-    private $oProfilesReport;
-    private $oForm;
-
-    function __construct( ProjectsTabProjects $oPTP, ProjectsCommon $oP )
-    {
-        $this->oP = $oP;
-        $this->oPTP = $oPTP;
-        $this->oProfilesReport = new SLProfilesReport($this->oP->oProfilesDB, new SLProfilesDefs($this->oP->oProfilesDB), $this->oP->oApp );
-    }
-
-    function Init()
-    {
-        /* Process form submission before drawing any other components' content.
-         * kfrCurrVI is correct at this point
-         */
-        $this->oForm = new SLProfilesForm( $this->oP->oProfilesDB, $this->oPTP->KCurrVI() );
-        $this->oForm->Update();  // record the sl_desc_obs returned from the form
-
-        /* The code above doesn't update the VI record. If it ever does, this method should return a new kfr.
-         */
-    }
-
-    function DrawProfile()
-    /*********************
-        Draw the profile for the selected VI
-        Switch between profile summary and profile form
-     */
-    {
-        $s = "";
-
-        $kfrVI = $this->oPTP->KFRCurrVI();
-        if( !$kfrVI || !$kfrVI->Key() )  goto done;
-
-        list($psp,$sSp,$sCv) = $this->oP->oProfilesDB->ComputeVarInstName($kfrVI);
-
-        $s .= "<h2>$sSp : $sCv</h2>";
-
-//what is this for
-        $oUI = new SEEDUI();
-        $oComp = new SEEDUIComponent($oUI);
-        $oComp->Update();
-        $oComp->Set_kCurr($kfrVI->Key());   // initialize the list to the right row e.g. if we just created a new row
-
-// require $this->kCurrMbr==$this->oApp->sess->GetUID() || $this->oP->CanWriteOtherUsers()
-        if( SEEDInput_Int('doForm') ) {
-            // Show the form
-            $oChooseForm = new SEEDCoreForm('Plain');
-            $oChooseForm->Update();
-            if( !$oChooseForm->Value('chooseForm') )  $oChooseForm->SetValue('chooseForm', 'cgo');
-
-            $s .= "<div style='float:right'><form method='post'>
-                   <p><b>Choose Your Form</b></p>"
-                  .$oChooseForm->Select('chooseForm',
-                                  ["Trial performance form for Community Grow-outs" => 'cgo',
-                                   "Shortened descriptive form"                     => 'short',
-                                   "Full taxonomic form"                            => 'long'],
-                                  "",
-                                  ['attrs'=>"onchange='submit()'"] )
-                  ."<input type='hidden' name='doForm' value='1'/>
-                    <input type='hidden' name='vi' value='{$kfrVI->Key()}'/>
-                    </form></div>
-
-                    <h3>Edit Record</h3>" //  for $sSp : $sCv</h3>" // (#$kVI)</h3>
-                   .$this->oProfilesReport->DrawVIForm( $kfrVI, $oComp, $oChooseForm->Value('chooseForm') );
-        } else {
-            // Show the summary
-            $s .= "<div style='border-left:1px solid #ddd;border-bottom:1px solid #ddd'>
-                       <div style='float:left;margin-right:20px;'>
-                           <form method='post'>
-                               <input type='hidden' name='doForm' value='1'/>
-                               <input type='hidden' name='vi' value='{$kfrVI->Key()}'/>
-                               <input type='submit' value='Edit'/>
-                      ".        //.$oComp->HiddenFormUIParms( array('kCurr', 'sortup', 'sortdown') )
-                                     //.$oComp->HiddenKCurr()
-                      "    </form>
-                       </div>"
-                       //."<h3>Record #$kVI</h3>"
-                      .$this->oProfilesReport->DrawVIRecord( $kfrVI, true )
-                 ."</div>";
-        }
-
-        done:
-        return( $s );
-    }
-}
-
-class ProjectsTabProjects_UI_Record
-{
-    private $oP, $oPTP;
-    private $kVI = 0;
-    private $kMbr = 0;
-    private $oForm;
-
-    function __construct( ProjectsTabProjects $oPTP, ProjectsCommon $oP )
-    {
-        $this->oP = $oP;
-        $this->oPTP = $oPTP;
-    }
-
-    function Init( int $kMbr )
-    {
-        /* Process form submission before drawing any other components' content.
-         * kCurrVI is correct at this point
-         */
-        $this->kVI = $this->oPTP->KCurrVI();
-        $this->kMbr = $kMbr;
-
-        $this->oForm = new KeyframeForm($this->oP->oProfilesDB->oSLDB->Kfrel('VI'), 'R', ['DSParms'=>['fn_DSPreStore'=>[$this,'DSPreStore_UIRecord']]]);
-        $this->oForm->Update();
-
-        /* If a record was submitted, return the form's new kfr to the caller to become the shared kfr for all ui components.
-         * Otherwise use the parent's kfr to draw the form (return that kfr redundantly to keep the code simple)
-         */
-        if( $this->oForm->GetKey() ) {
-            // A record was submitted via the form.
-            if( $this->kVI && $this->kVI != $this->oForm->GetKey() ) {
-                // some bad hacky thing is going on
-                $this->oP->oApp->oC->AddErrMsg("mismatched varinst keys : {$this->kVI} and {$this->oForm->GetKey()}");
-            }
-            $kfrVI = $this->oForm->GetKFR();
-        } else {
-            // Form was not submitted, so use the pre-loaded kfr to draw the form
-            if( ($kfrVI = $this->oPTP->KFRCurrVI()) ) {
-                $this->oForm->SetKFR($kfrVI);
-            } else {
-                // blank form for new record; set default values
-                if( !$this->oForm->Value('year') ) $this->oForm->SetValue('year', date('Y'));
-            }
-        }
-        return($kfrVI);
-    }
-
-    function DSPreStore_UIRecord( Keyframe_DataStore $oDS )
-    {
-        /* Lot #: we store fk_sl_inventory but use inv_number in the form.
-         */
-        $kI = 0;
-        if( ($iLot = $oDS->ValueInt('iLot')) ) {
-            $kI = $this->oP->oProfilesDB->oSLDB->GetRecordVal1Cond('I', "inv_number=$iLot", '_key');
-        }
-        $oDS->SetValue('fk_sl_inventory', $kI);     // even if 0 because iLot could have changed to 0 or blank
-
-        return(true);
-    }
-
-
-// move to ProjectsCommon
-    private $projcodes =
-                ["Core"              => 'core',
-                 "CGO ground cherry" => 'cgo_gc',
-                 "CGO tomato"        => 'cgo_tomato',
-                 "CGO bean"          => 'cgo_bean',
-                ];
-
-    function DrawRecord( $kMbrKluge )
-    /********************
-        Show the details of the varinst record
-        Switch between record summary and form
-     */
-    {
-        /*
-          alter table sl_varinst add projcode varchar(100) not null default '';
-          alter table sl_varinst add workflow int not null default 0;
-          alter table sl_varinst add notes_office text not null;
-         */
-        $s = "";
-
-$this->kMbr = $kMbrKluge;   // remove this when kMbr is confirmed in Init()
-
-        $kfrInv = null;
-        if( ($kI = $this->oForm->Value('fk_sl_inventory')) && ($kfrInv = $this->oP->oProfilesDB->oSLDB->GetKFR('I', $kI)) ) {
-            $this->oForm->SetValue('iLot', $kfrInv->Value('inv_number'));
-        }
-
-
-        $oExpand = new SEEDFormExpand($this->oForm);
-
-        $s .= "<div><form method='post'>"
-             .$oExpand->ExpandForm(
-                  "|||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-                   ||| <input type='submit' value='Save Project Record'/>
-                   ||| *Project #*               || [[Key: | readonly]]
-                   ||| *Project group*           || ".$this->oForm->Select('projcode', array_merge(['-- Choose --'=>''], $this->projcodes))."
-                   ||| *Year*                    || [[Text:year]]
-                   ||| *Workflow*                || ".$this->oForm->Select('workflow', array_merge(['-- Choose --'=>''], $this->oP::workflowcodes))."
-                   ||| *SoD Lot #*               || [[Text:iLot]]  ".($kfrInv ? $kfrInv->Value('location') : "")." &nbsp;&nbsp;(kInv [[fk_sl_inventory | readonly]])
-                   ||| &nbsp;
-                   ||| *Species* psp             || [[Text:psp | width:100%]]
-                   ||| *Species* osp             || [[Text:osp | width:100%]]
-                   ||| *Variety* pname           || [[Text:pname | width:100%]]
-                   ||| *Variety* oname           || [[Text:oname | width:100%]]
-                   ||| metadata                  || [[Text:metadata | width:100%]]
-                   ||| fk_sl_species             || [[Text:fk_sl_species]]
-                   ||| fk_sl_pcv                 || [[Text:fk_sl_pcv]]
-                   ||| &nbsp;                    || \n
-                   ||| {replaceWith class='col-md-12'} <label>Office notes</label><br/>[[TextArea: notes_office | width:100% rows:10]]
-                   |||ENDTABLE
-                   [[Hidden: action | value=saveProj]]
-                   [[Hidden: fk_mbr_contacts | value={$this->kMbr}]]
-                 ")
-             ."<input type='hidden' name='vi' value='{$this->kVI}'/>"       // -1 will cause UI to do this function, which will create new record via Update(); HiddenKey will be 0
-             ."</form></div>";
-
-        done:
-        return($s);
-    }
-}
-
 
 class ProjectsTabSites
 {
@@ -806,346 +467,6 @@ class ProjectsTabSites
         $s = "Sites will be here soon";
 
         return( $s );
-    }
-}
-
-class ProjectsTabOffice
-{
-    private $oCTS;
-    private $oP;
-    private $oMbr;
-    private $oSLDB;
-
-    function __construct( ProjectsCommon $oP, MyConsole02TabSet $oCTS )
-    {
-        $this->oCTS = $oCTS;
-        $this->oP = $oP;
-        $this->oMbr = new Mbr_Contacts($this->oP->oApp);
-        $this->oSLDB = new SLDBProfile($this->oP->oApp);
-    }
-
-    function Init()
-    {
-    }
-
-    function ControlDraw()
-    {
-        $s = "";
-
-        return($s);
-    }
-
-    function ContentDraw()
-    {
-        $s = "";
-
-        $oForm = new SEEDCoreFormSVA($this->oCTS->TabSetGetSVACurrentTab('main'), 'A',
-                                     ['fields'=>['all'          =>['control'=>'checkbox'],
-                                                 'ground-cherry'=>['control'=>'checkbox'],
-                                                 'tomato'       =>['control'=>'checkbox'],
-                                                 'bean'         =>['control'=>'checkbox'],
-                                     ]]);
-        $oForm->Update();
-        $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:5px;padding:1em'><form>
-               <p>".$oForm->Select('mode', ["CGO growers"=>'cgo_growers', "Core growers"=>'core_growers', "Profile Observations"=>'desc_obs'])."</p>
-               <p>".$oForm->Select('year', ['2025'=>2025, '2024'=>2024])."</p>
-               <p>".$oForm->Text('workflow','',['size'=>4])." min workflow</p>"
-
-/*
-               <p>".$oForm->Checkbox('all', "All")."</p>
-               <p>".$oForm->Checkbox('ground-cherry', "Ground cherry")."</p>
-               <p>".$oForm->Checkbox('tomato', "Tomato")."</p>
-               <p>".$oForm->Checkbox('bean', "Bean")."</p>
-*/
-             ."<p><input type='submit' value='Show'/></p>
-               </form></div>
-               <div style='display:inline-block;vertical-align:top;padding-left:1em'>
-                   <a href='?xlsx=1' target='_blank'><img src='https://seeds.ca/w/std/img/dr/xls.png' style='height:30px'/></a>
-               </div>";
-
-        switch($oForm->Value('mode')) {
-            case 'cgo_growers':     $s .= $this->drawCGOGrowers($oForm);    break;
-            case 'core_growers':    $s .= $this->drawCoreGrowers($oForm);   break;
-            case 'desc_obs':        $s .= $this->drawDescObs($oForm);       break;
-        }
-
-        return( $s );
-    }
-
-    private function drawCGOGrowers( SEEDCoreForm $oForm )
-    {
-        $bShow = true;
-        $raProj = [];
-        $s = "";
-
-        if( $oForm->Value('all') ) {
-            $bShow = true;
-        } else {
-            foreach( ['ground-cherry','tomato','bean'] as $proj ) {
-                if( $oForm->Value($proj) ) {
-                    $bShow = true;
-                    $raProj[] = $proj;
-                }
-            }
-        }
-
-        if( !$bShow )  goto done;
-
-        /* Integrity tests
-         */
-        if( ($n = $this->oSLDB->GetCount('VI', "year='{$oForm->ValueDB('year')}' AND projcode<>'core' AND projcode NOT LIKE 'cgo_%'")) ) {
-            $this->oP->oApp->oC->AddErrMsg("$n records have invalid projcode<br/>");
-        }
-
-        if( ($raTest = $this->oP->oApp->kfdb->QueryRowsRA(
-                "SELECT V1.fk_mbr_contacts as kMbr , V1._key FROM {$this->oP->oApp->DBName('seeds1')}.sl_varinst V1, {$this->oP->oApp->DBName('seeds1')}.sl_varinst V2
-                 WHERE V1._status=0 AND V2._status=0 AND
-                       V1.year={$oForm->ValueDB('year')} AND V2.year={$oForm->ValueDB('year')} AND
-                       V1.fk_mbr_contacts=V2.fk_mbr_contacts AND
-                       V1._key < V2._key AND
-                       V1.projcode <> V2.projcode")) )
-        {
-            $this->oP->oApp->oC->AddErrMsg(count($raTest)." growers are in multiple projects: ".SEEDCore_ArrayExpandRows($raTest, "[[kMbr]] ")."<br/>");
-        }
-
-        $sCond = "year='{$oForm->ValueDB('year')}' AND projcode LIKE 'cgo_%'"
-                .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "")
-                .($raProj ? (" AND psp in ('".implode("','", $raProj)."')") : "");
-
-        $raMbr = [];
-        foreach( $this->oSLDB->GetList('VI', $sCond) as $raVI ) {
-            $kMbr = $raVI['fk_mbr_contacts'];
-
-            if( !isset($raMbr[$kMbr]) ) {
-                $ra = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
-                $raMbr[$kMbr] = ['member_name' => $ra ? $this->oMbr->GetContactNameFromMbrRA($ra) : "",
-                                 'member_email'=> @$ra['email'],
-                                 'ground-cherry' => '',
-                                 'tomato' => '',
-                                 'bean' => '',
-                ];
-            }
-
-// use ComputeVarInstName - needs kfrVI instead of raVI
-            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
-            $psp = $kfrLot ? $kfrLot->Value('P_psp') : $raVI['psp'];
-
-            switch( $psp ) {
-                case 'ground-cherry':
-                    $raMbr[$kMbr]['ground-cherry'] = 1;
-                    break;
-                case 'tomato':
-                case 'bean':
-                    if( $kfrLot ) {
-                        $raMbr[$kMbr][$psp] .= "{$kfrLot->Value('P_name')} ({$kfrLot->Value('inv_number')}) ";
-                    }
-                    break;
-            }
-        }
-
-        if( SEEDInput_Int('xlsx') ) {
-            // output as a spreadsheet
-            include_once( SEEDCORE."SEEDXLSX.php" );
-
-            $title = "Seeds of Diversity CGO Projects {$oForm->Value('year')}";
-            $oXLSX = new SEEDXlsWrite( ['title'=> $title,
-                                        'filename'=>$title.'.xlsx',
-                                        'creator'=>$this->oP->oApp->sess->GetName(),
-                                        'author'=>$this->oP->oApp->sess->GetName()] );
-
-            $raKeys = ['member_name','member_email','ground-cherry','tomato','bean'];
-
-            $oXLSX->WriteHeader( 0, array_merge(['member'],$raKeys));
-
-            $iRow = 2;  // rows are origin-1 so this is the row below the header
-            foreach( $raMbr as $kMbr => $ra ) {
-                // reorder the $ra values to the same order as $raKeys
-                $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode( array_merge([$kMbr],array_replace(array_fill_keys($raKeys,''), array_intersect_key($ra,array_fill_keys($raKeys,''))))) );
-            }
-
-            $oXLSX->OutputSpreadsheet();
-            exit;
-        }
-
-        $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
-               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>Ground cherry</th><th>Tomato</th><th>Bean</th></tr>";
-        foreach( $raMbr as $kMbr => $ra ) {
-            $s .= "<tr><td>{$ra['member_name']} ({$kMbr})</td><td>{$ra['member_email']}</td>
-                       <td>{$ra['ground-cherry']}</td><td>{$ra['tomato']}</td><td>{$ra['bean']}</td></tr>";
-        }
-        $s .= "</table>";
-
-        done:
-        return($s);
-    }
-
-    private function drawCoreGrowers( SEEDCoreForm $oForm )
-    {
-        $s = "";
-
-        /* We want to show all seeds being grown by Core growers, but those aren't necessarily all Core seeds. e.g. some will be cgo_gc
-         * Get distinct kMbr of all the growers doing Core projects of the chosen workflow,
-         * then get all their projects regardless of projcode.
-         */
-        $sCond = "year='{$oForm->ValueDB('year')}'"
-                .(($iWorkflow = $oForm->ValueInt('workflow')) ? " AND workflow >= $iWorkflow" : "");
-
-        // growers doing projects with the basic constraints where at least one is a Core project - this returns [kMbr1, kMbr2, kMbr2, ...]
-        $raMbr = $this->oSLDB->Get1List('VI', 'fk_mbr_contacts', $sCond." AND projcode='core'", ['sGroupAliases'=>"fk_mbr_contacts"]);
-        // all projects with the basic constraints, for those growers, regardless of projcode
-        $raVIRows = $this->oSLDB->GetList('VI', $sCond." AND fk_mbr_contacts IN (".implode(',',$raMbr).")", ['sSortCol'=>"fk_mbr_contacts"]);
-
-// make VIxM_IxAxP_P2
-        $raOut = [];
-        foreach( $raVIRows as $raVI ) {
-            $kMbr = $raVI['fk_mbr_contacts'];
-            $raM = $this->oMbr->oDB->GetRecordVals('M', $kMbr);
-
-// use ComputeVarInstName - needs kfrVI instead of raVI
-            $kfrLot = $raVI['fk_sl_inventory'] ? $this->oSLDB->GetKFR('IxAxP', $raVI['fk_sl_inventory']) : null;
-
-            $raOut[] = ['member' => $kMbr,
-                        'member_name'  => ($raM ? $this->oMbr->GetContactNameFromMbrRA($raM) : ""),
-                        'member_email' => $raM['email'],
-                        'projcode'     => $raVI['projcode'],
-                        'psp'          => $kfrLot ? $kfrLot->Value('P_psp')  : ($raVI['psp'] ?: $raVI['osp']),
-                        'pname'        => $kfrLot ? $kfrLot->Value('P_name') : ($raVI['pname'] ?: $raVI['oname']),
-                        'lot'          => $kfrLot ? $kfrLot->Value('inv_number') : ""
-                       ];
-        }
-
-        if( SEEDInput_Int('xlsx') ) {
-            // output as a spreadsheet
-            include_once( SEEDCORE."SEEDXLSX.php" );
-
-            $title = "Seeds of Diversity Core Projects {$oForm->Value('year')}";
-            $oXLSX = new SEEDXlsWrite( ['title'=> $title,
-                                        'filename'=>$title.'.xlsx',
-                                        'creator'=>$this->oP->oApp->sess->GetName(),
-                                        'author'=>$this->oP->oApp->sess->GetName()] );
-
-            $raKeys = ['member','member_name','member_email','projcode','psp','pname','lot'];
-
-            $oXLSX->WriteHeader( 0, $raKeys);
-
-            $iRow = 2;  // rows are origin-1 so this is the row below the header
-            foreach( $raOut as $ra ) {
-                // reorder the $ra values to the same order as $raKeys
-                $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode( array_replace(array_fill_keys($raKeys,''), array_intersect_key($ra,array_fill_keys($raKeys,'')))) );
-            }
-
-            $oXLSX->OutputSpreadsheet();
-            exit;
-        }
-
-        $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
-               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>project</th><th>psp</th><th>pname</th><th>Lot</th></tr>";
-        foreach( $raOut as $ra ) {
-            $s .= "<tr><td>{$ra['member_name']} ({$ra['member']})</td><td>{$ra['member_email']}</td>
-                       <td>{$ra['projcode']}</td><td>{$ra['psp']}</td><td>{$ra['pname']}</td><td>{$ra['lot']}</td></tr>";
-        }
-        $s .= "</table>";
-
-        done:
-        return($s);
-    }
-
-    private function drawDescObs( SEEDCoreForm $oForm )
-    {
-        $bShow = false;
-        $raProj = [];
-        $s = "";
-
-        // you can only select one of these
-        $psp = '';
-        if( $oForm->Value('bean') )   $psp = 'bean';
-        if( $oForm->Value('tomato') ) $psp = 'tomato';
-        if( $oForm->Value('ground-cherry') ) $psp = 'ground-cherry';
-
-        if( !$psp) {
-            $s .= "<b>Choose a species</b>";
-            goto done;
-        }
-
-        $year = $oForm->ValueDB('year');
-        $sCond = "year='{$year}' AND VI.psp='{$psp}'";
-
-        $raMbr = [];
-        $raVI = [];
-        $raDescKeys = [];
-        foreach( $this->oSLDB->GetList('VOxVI', $sCond) as $vo ) {
-            $kVI = $vo['fk_sl_varinst'];
-            if( !isset($raVI[$kVI]) ) {
-                $raVI[$kVI]['VO'] = [];
-
-                $raVI[$kVI]['psp'] = $psp;
-                $raVI[$kVI]['year'] = $year;
-                $raVI[$kVI]['kMbr'] = $vo['VI_fk_mbr_contacts'];
-
-                if( ($raMbr = $this->oMbr->GetBasicValues($vo['VI_fk_mbr_contacts'])) ) {
-                    $raVI[$kVI]['member_province'] = $raMbr['province'];
-                    $raVI[$kVI]['member_email'] = $raMbr['email'];
-                } else {
-                    $raVI[$kVI]['member_province'] = "";
-                    $raVI[$kVI]['member_email'] = "";
-                }
-
-                ($cv = $vo['VI_pname'])
-                or
-                ($cv = $vo['VI_oname'])
-                or
-                ($vo['VI_fk_sl_pcv'] && ($cv = $this->oSLDB->GetRecordVal1('P', $vo['VI_fk_sl_pcv'], 'pname')))
-                or
-                ($vo['VI_fk_sl_inventory'] && ($cv = $this->oSLDB->GetRecordVal1('IxAxP', $vo['VI_fk_sl_inventory'], 'P_pname')));
-
-                $raVI[$kVI]['cv'] = $cv;
-            }
-            $raVI[$kVI]['VO-record'][$vo['k']] = $vo['v'];
-            $raDescKeys[$vo['k']] = 1;
-        }
-
-        // $raVI[]['VO'] is an array of descObs_k => descObs_v for each varinst : an arbitrary set of those in arbitrary order
-        // Using $raDescKeys which is a set of all descObs_k transform each ['VO'] to an identical format filling unknown values with ''
-        $raDescKeys = array_keys($raDescKeys);
-        foreach( $raVI as $kVI => $ra ) {
-            $raVI[$kVI]['VO-expanded'] = array_replace(array_fill_keys($raDescKeys,''), array_intersect_key($ra['VO-record'],array_fill_keys($raDescKeys,'')));
-        }
-
-        if( SEEDInput_Int('xlsx') ) {
-            // output as a spreadsheet
-            include_once( SEEDCORE."SEEDXLSX.php" );
-
-            $title = "Seeds of Diversity Projects {$oForm->Value('year')}";
-            $oXLSX = new SEEDXlsWrite( ['title'=> $title,
-                                        'filename'=>$title.'.xlsx',
-                                        'creator'=>$this->oP->oApp->sess->GetName(),
-                                        'author'=>$this->oP->oApp->sess->GetName()] );
-
-            $raKeys = ['member_name','member_email','member_province','year','species','cultivar'];
-
-            $oXLSX->WriteHeader( 0, array_merge(['member'],$raKeys, $raDescKeys));
-
-            $iRow = 2;  // rows are origin-1 so this is the row below the header
-            foreach( $raVI as $k => $ra ) {
-                // reorder the $ra values to the same order as $raKeys
-                $oXLSX->WriteRow( 0, $iRow++, SEEDCore_utf8_encode(
-                    array_merge( [$ra['kMbr'], '', $ra['member_email'], $ra['member_province'], $ra['year'], $ra['psp'], $ra['cv']], $ra['VO-expanded'] )) );
-            }
-
-            $oXLSX->OutputSpreadsheet();
-            exit;
-        }
-
-        $s .= "<style>.myproj_table td, .myproj_table th {padding:0 5px}</style>
-               <table class='myproj_table' style=''><tr><th>Member</th><th>email</th><th>province</th><th>Species</th><th>Cultivar</th><th>Profile</th></tr>";
-        foreach( $raVI as $kVI => $ra ) {
-            $s .= "<tr><td>{$ra['kMbr']}</td><td>{$ra['member_email']}</td><td>{$ra['member_province']}</td><td>{$ra['psp']}</td><td>{$ra['cv']}</td>
-                       <td>".SEEDCore_ArrayExpandSeries($ra['VO-record'], "[[k]]=[[v]], ")."</td></tr>";
-        }
-        $s .= "</table>";
-
-        done:
-        return($s);
     }
 }
 
@@ -1182,18 +503,18 @@ class CGOSignup
     static doRegister(jThis)
     {
         let jForm = jThis.closest('.cgosignup-form');
-        let projName = jForm.data('project');
+        let projcode = jForm.data('projcode');
         let iLot = 0;
 
-        if(projName=='cgo2026tomato') {
+        if(projcode=='cgo_tomato') {
             iLot = document.getElementById('cgosignup-form-tomatoselect').value;
         }
-        if(projName=='cgo2026bean') {
+        if(projcode=='cgo_bean') {
             iLot = document.getElementById('cgosignup-form-beanselect').value;
         }
 
         let o = {qcmd:'myprojects--add',
-                projectName: projName,
+                projcode: projcode,
                 uid: CGOSignup_Uid,
                 iLot: iLot};
         let rQ = SEEDJXAsync2("myprojects.php", o,
@@ -1204,16 +525,16 @@ class CGOSignup
                          }
                      });
 
-        console.log(rQ);
+        //console.log(rQ);
     }
 
 	static doUnregister(jThis)
     {
         let jForm = jThis.closest('.cgosignup-form');
-        let projName = jForm.data('project');
+        let projcode = jForm.data('projcode');
 
         let o = {qcmd:'myprojects--remove',
-                projectName: projName,
+                projcode: projcode,
                 uid: CGOSignup_Uid};
         let rQ = SEEDJXAsync2("myprojects.php", o,
                      function (rQ) {
@@ -1225,7 +546,7 @@ class CGOSignup
 
     }
 
-    static doChooseBean(jThis)
+    static doChooseBean_ObsoleteSince2025(jThis)
     {
         let jForm = jThis.closest('.cgosignup-form');
         let iLot = document.getElementById('cgosignup-form-beanselect').value;

@@ -93,21 +93,24 @@ function SEEDCore_utf8_decode( $v ) { return( SEEDCore_CharsetConvert( $v, 'utf-
 function SEEDCore_CharsetConvert( $val, $sCharsetFrom, $sCharsetTo, $bTransliterate = true )
 /*******************************************************************************************
     Convert val from one charset to another.
-    Transliteration allows approximate conversions if the destination charset has no exact conversion for a certain
-    character. Setting this to false will cause a fatal error if that happens.
  */
 {
-    if( $bTransliterate ) $sCharsetTo .= '//TRANSLIT';
+// iconv() is no longer used in favour of mb_convert_encoding() which is more forgiving of unknown chars
+//    Transliteration allows approximate conversions if the destination charset has no exact conversion for a certain
+//    character. Setting this to false will cause a fatal error if that happens.
+//    if( $bTransliterate ) $sCharsetTo .= '//TRANSLIT';
 
     if($val === null) $val = "";
 
     if( is_string($val) ) {
-        $val = iconv( $sCharsetFrom, $sCharsetTo, $val );
+//        $val = iconv( $sCharsetFrom, $sCharsetTo."//IGNORE", $val );
+        $val = mb_convert_encoding($val, $sCharsetTo, $sCharsetFrom);
     } else
     if( is_array($val) ) {
         array_walk_recursive( $val,
                     function (&$v,$k) use ($sCharsetFrom,$sCharsetTo) {
-                        if( is_string($v) ) { $v = iconv( $sCharsetFrom, $sCharsetTo, $v ); }
+                        if( is_string($v) ) { $v = mb_convert_encoding($v, $sCharsetTo, $sCharsetFrom); }
+                                              //$v = iconv( $sCharsetFrom, $sCharsetTo."//IGNORE", $v );
                     } );
     }
     return( $val );

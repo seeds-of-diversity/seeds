@@ -37,8 +37,9 @@ class CollectionMain_NewMode
 
         $s = "<h3>Add New Accession</h3>"
             .$oTmpl->ExpandTmpl('mycollStyle')
-            .$oTmpl->ExpandTmpl('mycollJS', ['qUrl'=>$this->oApp->UrlQ(),
-                                                                'qUrlOld'=>SITEROOT_URL."app/q/index.php"])
+            .$oTmpl->ExpandTmpl('mycollJS',                    ['qUrl'=>$this->oApp->UrlQ(),
+                                                                'qUrlOld'=>SITEROOT_URL."app/q/index.php",
+                                                                'oPopsCommercial'=> json_encode(SLUtil::GetPopulationCommercialRA())])
             .$oTmpl->ExpandTmpl('mycollConsolePage_AddNewLot', ['qUrl'=>$this->oApp->UrlQ(),
                                                                 'qUrlOld'=>SITEROOT_URL."app/q/index.php"]);   // rosettaPCVSearch is still in the original Q code
 
@@ -107,7 +108,7 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
 
         if( !$raRow['A_x_d_harvest'] ) $raRow['A_x_d_harvest'] = $raRow['A_x_d_received'];
 
-        if( $raRow['bDeAcc'] )  $raRow['P_name'] = "<span class='color:red'>{$raRow['P_name']} (Deaccessioned)</span>";
+        if( $raRow['bDeAcc'] )  $raRow['P_name'] = "<span style='color:red'>{$raRow['P_name']} (Deaccessioned)</span>";
 
         return( $raRow );
     }
@@ -133,6 +134,9 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
             $sAccession = "<p>Please select a seed lot from the list</p>";
             goto draw;
         }
+
+        // Draw the subtabs first because they contain form Update() code that will affect the list and Accession data
+        $sSubTabs = $this->drawCollectionSubtabs();
 
         $sDrawList = $this->DrawList();
 
@@ -163,8 +167,6 @@ class CollectionMain_EditMode extends KeyframeUI_ListFormUI
                                   .($sHref ? "<a $sHref style='text-decoration:none;color:black'>$sRet</a>" : $sRet)
                                   ."</div>" );
                         });
-
-        $sSubTabs = $this->drawCollectionSubtabs();
 
         draw:
 

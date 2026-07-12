@@ -17,26 +17,31 @@ class SLPcvSelect2
     constructor( raConfig )
     {
         this.raConfig = raConfig;
+        if( typeof(this.raConfig['eDatasets']) == 'undefined' )  this.raConfig['eDatasets'] = " ALL ";
         $(document).ready( this.init() );
     }
     
     init()
     {
+        let saveThis = this;
         this.raConfig.jSelect.select2({ 
               ajax:{ url: this.raConfig.qUrl,
                      /* select2 has a default ajax data format; it provides this function to allow translation to our mbr-search data format  
                       */
                      data: function (p) {
-                               //console.log(p);
-                               return { sSrch: p.term,
-                                        qcmd: 'rosetta-cultivarsearch'
-                                        //type: 'public'
-                                      };
+                               let ret = 
+							       { sSrch: p.term,
+                                     eDatasets: saveThis.raConfig['eDatasets'],
+                                     qcmd: 'rosetta-cultivarsearch'
+                                     //type: 'public'
+                                   };
+							   //console.log(p, saveThis.raConfig.qUrl, ret);
+						       return(ret);
                            },
                      /* select2 provides this for translation of the successful ajax response to its expected response format
                       *    { results: [ {id:1, text:'one'}, {id:2, text:'two'} ] }
                       */
-                     processResults: function (data) {console.log(data);
+                     processResults: function (data) {
                                          data= window.JSON.parse(data);
                                          //console.log(data);
 

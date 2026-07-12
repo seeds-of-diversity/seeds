@@ -72,11 +72,13 @@ class QServerCollection2 extends SEEDQ
 
         Output
             raOut['raILots'] : [iLot0, iLot1]
-
+            raOut['raLots']  : [ ['kLot'=>kLot0, 'iLot'=>iLot0], ['kLot'=>kLot1, 'iLot'=>iLot1] ]
      */
     {
         $ok = false;
-        $raOut = ['raILots'=>[0,0]];  // inv_numbers of the created lots
+        $raOut = ['raILots'=>[0,0],     // inv_numbers of the created lots (deprecate)
+                  'raLots' =>[ ['kLot'=>0,'iLot'=>0], ['kLot'=>0,'iLot'=>0] ]
+                 ];
         $sErr = "";
 
         /* Check existence and write access to Collection
@@ -139,6 +141,7 @@ $bCanWrite = true;
 
                 if( $kfrI->PutDBRow() ) {
                     $raOut['raILots'][$k] = $kfrI->Value('inv_number');
+                    $raOut['raLots'][$k] = ['kLot'=>$kfrI->Key(), 'iLot'=>$kfrI->Value('inv_number')];
                 }
             }
         }

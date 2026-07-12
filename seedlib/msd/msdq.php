@@ -50,7 +50,8 @@ class MSDQ extends SEEDQ
 
             $kfrS = $kSeed ? $this->oMSDCore->GetSeedKfr( $kSeed ) : $this->oMSDCore->CreateSeedKfr();
             if( !$kfrS || ($kSeed && !$this->canWriteSeed($kfrS) )) {
-                $rQ['sErr'] = "<p>Cannot update information for seed #$kSeed.</p>";
+                // most likely cause is login timeout in seed edit
+                $rQ['sErr'] = "<p>Cannot update information for seed #$kSeed. Please refresh your screen and login again</p>";
                 goto done;
             }
 
@@ -101,10 +102,10 @@ class MSDQ extends SEEDQ
                  *
                  * output: bOk, sErr, raOut=validated and stored seed record, sOut=revised html seedDraw
                  */
-// if login times out this is what people see
                 if( ($this->kUidSeller == 0 || $this->kUidSeller == -1) && !$kSeed ) {
                     // -1 is only possible with MSDOffice. It means don't override uid_seller, not allowed for Add
-                    $rQ['sErr'] = "Cannot add a seed item in species-edit mode";
+// most likely cause is login timeout - would be nice to redirect to login but the ajax client has to do that
+                    $rQ['sErr'] = "Cannot save - please refresh your screen and login again"; //"Cannot add a seed item in species-edit mode";
                     goto done;
                 }
 
@@ -501,7 +502,14 @@ class MSDQ extends SEEDQ
          */
         if( !($price = $kfrS->Value('item_price')) ) {
             // blank so set default
-            $price = in_array( $kfrS->Value('species'), array('POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC') ) ? "18.00" : "3.50";
+            $price = "4.00";
+            $sp = strtoupper($kfrS->Value('species'));
+            if( in_array($sp, ['POTATO','JERUSALEM ARTICHOKE','ONION','GARLIC']) ) {
+                $price = "20.00";
+            } else
+            if( SEEDCore_StartsWith($sp, 'BEAN') || SEEDCore_StartsWith($sp, 'PEA') || SEEDCore_StartsWith($sp, 'SQUASH') ) {
+                $price = "5.00";
+            }
             $kfrS->SetValue( 'item_price', $price );
         } else if( is_numeric($price) ) {
             $price = sprintf( "%.2f", floatval($price) );

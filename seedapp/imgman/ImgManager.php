@@ -114,28 +114,25 @@ class SEEDAppImgManager
                 goto skipCmd;
             }
 
-            if( $cmd == 'singlekeep' || $cmd == 'singledelete' ) {
+            if( $cmd == 'singlekeep' || $cmd == 'singledelete' || $cmd == 'singleconvertmp4' ) {
                 if( !($relbase = SEEDInput_Str('relbase')) )  die( "relbase not specified with cmd $cmd" );
                 $searchForFilebase = $this->rootdir.$relbase;
             }
             foreach( $raFiles as $dir => $raF ) {
                 foreach( $raF as $filebase => $raFVar ) {
-                    if( ($cmd == 'convert' && $raFVar['action'] == 'CONVERT') ||
-                        ($cmd == 'multikeep' && SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' )) ||
-                        ($cmd == 'multidelete' && SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' )) )
-                    {
+                    if( ($cmd == 'convert'          && $raFVar['action'] == 'CONVERT') ||
+                        ($cmd == 'multikeep'        && SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' )) ||
+                        ($cmd == 'multidelete'      && SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' )) ||
+                        ($cmd == 'singlekeep'       && SEEDCore_StartsWith($raFVar['action'],'KEEP_ORIG')   && $dir.$filebase == $searchForFilebase) ||
+                        ($cmd == 'singledelete'     && SEEDCore_StartsWith($raFVar['action'],'DELETE_ORIG') && $dir.$filebase == $searchForFilebase) ||
+                        ($cmd == 'singleconvertmp4' && SEEDCore_StartsWith($raFVar['action'],'CONVERT_MP4') && $dir.$filebase == $searchForFilebase) )
+                   {
                         $bConvertInBackground = $this->bUsePFork && $raFVar['action'] == 'CONVERT';
                         $ret = $this->oIML->DoAction( $dir, $filebase, $raFVar, $bConvertInBackground );
 
                         if( $bConvertInBackground && $this->oSEEDProcCtrl ) {
                             $this->oSEEDProcCtrl->AddProc($ret);   // store the convert process pid so it can be monitored
                         }
-                    }
-
-                    if( ($cmd == 'singlekeep' && SEEDCore_StartsWith($raFVar['action'],'KEEP_ORIG') && $dir.$filebase == $searchForFilebase) ||
-                        ($cmd == 'singledelete' && SEEDCore_StartsWith($raFVar['action'],'DELETE_ORIG') && $dir.$filebase == $searchForFilebase) )
-                    {
-                        $this->oIML->DoAction( $dir, $filebase, $raFVar );
                     }
                 }
             }
@@ -239,6 +236,8 @@ class SEEDAppImgManager
 
                 if( $raFVar['action'] == 'CONVERT' ) {
                     $nActionConvert++;
+                } else if( $raFVar['action'] == 'CONVERT_MP4' ) {
+                    // special ui for video conversion
                 } else if( SEEDCore_StartsWith( $raFVar['action'], 'KEEP_ORIG' ) ) {
                     $nActionKeep++;
                 } else if( SEEDCore_StartsWith( $raFVar['action'], 'DELETE_ORIG' ) ) {
@@ -392,7 +391,12 @@ class SEEDAppImgManager
 
 $fScalePercentThreshold = 90.0;
                 $sMsg = "";
-                if( $scaleR && $scaleO && $sizeR && $sizeO && @$raFVar['action'] ) {
+                if(@$raFVar['action'] == 'CONVERT_MP4') {
+                    $colour = 'blue';
+                    $sMsg = "<b><a href='?cmd=singleconvertmp4&relbase=$relfurl'>Convert video</a></b>";
+                } else
+                if( /*$scaleR && $scaleO && $sizeO &&*/ $sizeR && @$raFVar['action'] ) {
+                    // Conversion has been done on this file.  -- should be a clearer way to indicate this N.B. convertmp4 has no scale recorded
                     list($action,$reason) = explode( ' ', $raFVar['action'] );
                     if( $action == 'DELETE_ORIG' && $reason == 'MAJOR_FILESIZE_REDUCTION' ) {
                         if( $raFVar['analysis']['scalePercent'] > $fScalePercentThreshold ) {

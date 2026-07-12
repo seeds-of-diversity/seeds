@@ -48,6 +48,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
              'kfrel'                => $kfrel,
              'raListConfig_cols'    => $cols,
              'raSrchConfig_filters' => $raSrch,
+             'charsets'             => "HttpUtf8&DbLatin"
             ]);
         // note that raConfig references methods like FormTemplate() which use $this->oComp which is not defined now but will be after Init()
         parent::__construct($oApp, $raConfig);
@@ -141,7 +142,7 @@ JSEditButton;
                ||| *Amount*     || [[text:amount|readonly]]
                ||| *Received*   || [[text:D_date_received|readonly]]
 
-               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:P_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
                ||| &nbsp;               || <div style='position:relative'>
                                            <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
                                            </div>

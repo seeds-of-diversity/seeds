@@ -46,23 +46,32 @@ class SEEDImgMan
 
     function ImgInfoByFilename( $filename )
     {
-        $ra = array( 'w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0, 'filesize_human'=>0 );
-
-        if( !in_array( strtolower(pathinfo($filename,PATHINFO_EXTENSION)), ['gif','png','jpg','jpeg','webp'] ) ) {
-            goto done;
-        }
+        $ra = ['w'=>0, 'h'=>0, 'mime'=>'', 'filesize'=>0, 'filesize_human'=>0];
 
         if( file_exists($filename) ) {
             //var_dump($filename);
-            if( !($sz = getimagesize($filename)) ) {
-                echo "<p>Could not read $filename</p>";
-                goto done;
-            }
-            $ra['w'] = $sz[0];
-            $ra['h'] = $sz[1];
-            $ra['mime'] = $sz['mime'];
             $ra['filesize'] = filesize($filename);
             $ra['filesize_human'] = SEEDCore_HumanFilesize( $ra['filesize'] );
+
+            switch(strtolower(pathinfo($filename,PATHINFO_EXTENSION))) {
+                case 'gif':
+                case 'png':
+                case 'jpg':
+                case 'jpeg':
+                case 'webp':
+                    if( !($sz = getimagesize($filename)) ) {
+                        echo "<p>Could not read $filename</p>";
+                        goto done;
+                    }
+                    $ra['w'] = $sz[0];
+                    $ra['h'] = $sz[1];
+                    $ra['mime'] = $sz['mime'];
+                    break;
+                case 'mp4':
+                    // size is recorded as 0,0 which is fine
+                    $ra['mime'] = "video/mp4";
+                    break;
+            }
         }
         done:
         return( $ra );
@@ -339,5 +348,3 @@ function SEEDImgMan_ParseFilename( $sName )
 
     return( $raOut );
 }
-
-?>

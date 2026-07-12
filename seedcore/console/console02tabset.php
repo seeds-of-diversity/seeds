@@ -144,16 +144,18 @@ class Console02TabSet
 
         if( !($raTS = $this->raConfig[$tsid]) ) goto done;
 
-        // If tab is blank or not in tabs list or not visible, find the first visible tab
+        // If tab is blank or not in tabs list or not visible, use the default tab (typically the first visible tab)
         if( !$tabname || !isset($raTS['tabs'][$tabname]) || $this->TabSetPermission( $tsid, $tabname ) != self::PERM_SHOW ) {
 
             $tabname = '';  // return this if no default found
             if( $bFindDefaultIfNoneCurrent ) {
-                // Find the first tab that is PERM_SHOW
-                foreach( $raTS['tabs'] as $k => $ra ) {
-                    if( $this->TabSetPermission( $tsid, $k ) == self::PERM_SHOW ) {
-                        $tabname = $k;
-                        break;
+                if( !($tabname = $this->TabSetGetDefaultTab($tsid)) ) {  // derived class can set its own default tab
+                    // Find the first tab that is PERM_SHOW
+                    foreach( array_keys($raTS['tabs']) as $k ) {
+                        if( $this->TabSetPermission( $tsid, $k ) == self::PERM_SHOW ) {
+                            $tabname = $k;
+                            break;
+                        }
                     }
                 }
             }
@@ -163,6 +165,14 @@ class Console02TabSet
 
         done:
         return( $tabname );
+    }
+
+    /**
+     * Override to specify the default tab when no current tab is stored in session vars. If this returns "", the first visible tab will be the default.
+     */
+    function TabSetGetDefaultTab( string $tsid ) : string
+    {
+        return("");
     }
 
     function TabSetInit2( Console02TabSet_TabInfo $oTab )

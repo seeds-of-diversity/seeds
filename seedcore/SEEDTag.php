@@ -155,6 +155,7 @@ class SEEDTagParser
             case 'ifnotMT':   // implemented the same, but different tags in case they are implemented differently someday
             case 'ifnot0':    return( $target ? str_replace( ($p2 ? $p2 : '[]'), $this->oDSVars->Value($target), $p1 ) : "" );
             case 'nbsp':      return( ($n = intval($target)) ? SEEDStd_StrNBSP('',$n) : "" );
+            case 'nl2br':     return( nl2br($target) );
             case 'trim':      return( trim($target) );
             case 'lower':     return( strtolower($target) );
             case 'upper':     return( strtoupper($target) );

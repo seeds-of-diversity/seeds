@@ -10,14 +10,14 @@ class SLUtil
     static function SeedsFromGrams( float $g, array $raParms ) : int
     {
         $nSeeds = 0;
-        
+
         if( @$raParms['g_100'] ) {
             // weight of 100 seeds is given
             $nSeeds = intval($g * 100 / $raParms['g_100']);
-        } else 
+        } else
         if( ($seedsPerGram = self::GetSeedsPerGram(@$raParms['psp'])) > 0 ) {
             // use standard seeds/gram
-            $nSeeds = intval($g * $seedsPerGram); 
+            $nSeeds = intval($g * $seedsPerGram);
         }
         return($nSeeds);
     }
@@ -31,12 +31,13 @@ class SLUtil
     {
         return( $nSeeds / (@$raParms['popsize'] ?: self::GetPopulationCommercial($raParms['psp'])) );
     }
-    
-    
+
+    static function GetPopulationCommercialRA()  { return(self::popsCommercial); }
+
     static function GetPopulationCommercial( string $psp )
     {
         $psp = self::normalizePSP($psp);
-        return(@self::commercial_population[$psp] ?: 40);
+        return(@self::popsCommercial[$psp] ?: 40);
     }
 
     static function normalizePSP( string $psp )
@@ -114,17 +115,21 @@ class SLUtil
             'tomato-cherry' => 353,
             'turnip' => 335,
             'watermelon' => 14,
-            
+
             'emmer' => 18,  // should be wheat-emmer in rosetta
             'einkorn' => 18,  // should be wheat-einkorn in rosetta
-            
+
             'wheat' => 18,
         ];
 
         return( @$raSeedsPerGram[$psp] ?: -1 );
     }
 
-    const commercial_population = [
+    /**
+     * Number of plants needed to preserve a representative genetic sample of a cultivar.
+     * 0 === unknown, probably okay to use 40
+     */
+    private const popsCommercial = [
     	"arugula" => 80,
     	"asparagus" => 100,
     	"barley" => 80,
@@ -208,10 +213,10 @@ class SLUtil
     	"turnip" => 80,
     	"turnip-rutabaga" => 80,
     	"watermelon-citron" => 20,
-        
+
         'emmer' => 80,  // should be wheat-emmer in rosetta
         'einkorn' => 80,  // should be wheat-einkorn in rosetta
-        
+
         'wheat'        => 80,
         'wheat, durum' => 80,
     ];

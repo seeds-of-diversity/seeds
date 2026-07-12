@@ -91,6 +91,8 @@ class CollectionBatchOps_UpdateLots
 
                 if( $this->isUpdatable('location') ) {
                     $p = $this->bCtrlSame ? $pGlobalLocation : $ra['values']['location'];
+                    // this app uses utf-8 but the db is still iso8859
+                    $p = SEEDCore_utf8_decode($p);
                     if( $p != $kfr->Value('location') ) {
                         $sRes .= ", location {$kfr->Value('location')} to {$p}";
                         $kfr->SetValue( 'location', $p );
@@ -130,7 +132,7 @@ class CollectionBatchOps_UpdateLots
         $raLots = [];
         foreach( SEEDCore_ParseRangeStrToRA($rLots) as $kLot ) {
             $raLots[$kLot] = ['kLot'=>$kLot, 'kfr'=>$this->kfrLot($kLot)];
-            $raLots[$kLot]['psp-cv'] = $raLots[$kLot]['kfr'] ? $raLots[$kLot]['kfr']->Expand("[[P_psp]] - [[P_name]]") : 'Unknown Cultivar';
+            $raLots[$kLot]['psp-cv'] = $raLots[$kLot]['kfr'] ? $raLots[$kLot]['kfr']->Expand("[[S_psp]] - [[P_name]]") : 'Unknown Cultivar';
         }
 
         return( $raLots );

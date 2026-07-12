@@ -2,7 +2,7 @@
 
 /* Seed collection manager - batch operations - record germination tests in batches
  *
- * Copyright 2020-2021 Seeds of Diversity Canada
+ * Copyright 2020-2026 Seeds of Diversity Canada
  */
 
 
@@ -33,10 +33,10 @@ class CollectionBatchOps_GermTest
                          <td style='width:15%'>[[XCvName     | width:100% | class='@XCvClass@' disabled]]</td>
                          <td style='width:10%'>[[nSown       | width:100% | @OthersDisabled@ ]]</td>
                          <td style='width:10%'>[[nGerm_count | width:100% | @OthersDisabled@ ]]</td>
-                         <td style='width:15%'>[[Date:dStart | width:100% | @OthersDisabled@ ]]</td>
-                         <td style='width:15%'>[[Date:dEnd   | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:10%'>[[Date:dStart | width:100% | @OthersDisabled@ ]]</td>
+                         <td style='width:10%'>[[Date:dEnd   | width:100% | @OthersDisabled@ ]]</td>
                          <td style='width:40%'>[[notes       | width:100% | @OthersDisabled@ ]]</td>
-                         <td style='width:40%'> @DelButton@</td>
+                         <td style='width:10%'> @DelButton@</td>
                      </tr>";
 
         // the blank rows use a special lotnum field (onblur looks up the XCvName) and never have a delete button
@@ -61,31 +61,77 @@ class CollectionBatchOps_GermTest
         }
 
 
+        // This updates the individual rows, but not the Multi row
         $oForm = new KeyFrameForm( $this->oSLDB->KFRel('G'), 'A', ['DSParms'=>['fn_DSPreStore'=>[$this,'PreStoreGerm']] ] );
-        $oForm->Update();
+        $oForm->Update(['sCharsetHTTP'=>"utf8", 'sCharsetDb'=>'cp1252']);
 
+
+        // This updates the Multi row
+        $oFormMulti = new SEEDCoreForm('M');
+        $oFormMulti->Update();
+        $sMultiLotNum = $oFormMulti->Value('MultiLotNum');
+        $nMultiNSown = $oFormMulti->ValueInt('MultiNSown');
+        $dMultiStart = $oFormMulti->Value('MultiDStart');
+        $sMultiNotes = $oFormMulti->Value('MultiNotes');
+        if($sMultiLotNum) {
+            // lot numbers can be SeedCoreRanges, where whitespace is treated as a comma
+            if( ($raMultiLots = SEEDCore_ParseRangeStrToRA(preg_replace('#\s+#', ',', trim($sMultiLotNum)))) &&
+                $nMultiNSown )
+            {
+// this should do the same as PreStoreGerm()
+                if( !$dMultiStart ) {
+                    $this->sGermFeedback .= "Defaulting multiple tests to today's date<br/>";
+                    $dMultiStart = date('Y-m-d');
+                }
+                foreach($raMultiLots as $iLot) {
+// is this parameterized somewhere
+                    $kColl = 1;
+                    if( ($kfrI = $this->oSLDB->GetKFR_LotFromNumber($kColl, $iLot)) ) {
+                        $kfrG = $this->oSLDB->KFRel('G')->CreateRecord();
+                        $kfrG->SetValue('fk_sl_inventory', $kfrI->Key());
+                        $kfrG->SetValue('nSown', $nMultiNSown);
+                        $kfrG->SetValue('dStart', $dMultiStart);
+                        $kfrG->SetNull('dEnd');
+                        $kfrG->SetValue('notes', SEEDCore_utf8_decode($sMultiNotes));
+                        $kfrG->PutDBRow();
+                    }
+                }
+            }
+        }
+        $oFormMulti->Clear();   // the multi form should be drawn blank every time (instead of having previous screen's inputs)
+        $sMultiRow = (new SEEDFormExpand($oFormMulti))->ExpandForm(
+                "<tr><td colspan='8'>&nbsp;</td></tr>
+                 <tr><td colspan='8'><h4>Multiple lots</h4></td></tr>
+                 <tr><td colspan='2'>[[MultiLotNum | width:95%]] </td>
+                     <td>            [[MultiNSown | width:100%]]</td>
+                     <td>            [[Dummy_Germ_count | width:100% | disabled ]]</td>
+                     <td>            [[Date:MultiDStart | width:100%]]</td>
+                     <td>            [[Date:Dummy_dEnd  | width:100% | disabled]]</td>
+                     <td>            [[MultiNotes | width:100%]]</td>
+                     </tr>");
+
+
+        $sBlank = $sMine = $sOthers = "";
+
+        /* Draw individual blank test rows
+         */
+        $oFE = new SEEDFormExpand($oForm);
         // initialize form to draw blank entries
         $oForm->SetKFR( $this->oSLDB->KFRel('G')->CreateRecord() );
         // blank looks nicer than zero
         $oForm->SetValue('nSown', '');
         $oForm->SetValue('nGerm_count', '');
-
-        $oFE = new SEEDFormExpand( $oForm );
-        $s .= "<form method='post'><input type='submit'/>"
-             ."<table>"
-             ."<tr><th>Lot</th><th>Cultivar</th><th>Number Sown</th><th>Number Germ</th><th>Start Date</th><th>End Date</th><th>Notes</th></tr>";
         for( $i = 0; $i < 5; ++$i ) {
-            $s .= $oFE->ExpandForm( $sRowBlank );
+            $sBlank .= $oFE->ExpandForm( $sRowBlank );
             $oForm->IncRowNum();
         }
 
-        //$s .= "<div id='collection-batch-germ-container'></div>";
 
-        $s .= "<tr><td colspan='7'>&nbsp;</td></tr>"
-             ."<tr><td colspan='7'>&nbsp;</td></tr>";
-
+        /* Get current tests underway
+         * sMine   = tests created by current user
+         * sOthers = tests created by other people
+         */
         if( ($raKfrG = $this->oSLDB->KFRel('GxIxAxPxS')->GetRecordSet( 'dEnd is null', ['sSortCol'=>'dStart','bSortDown'=>true] )) ) {
-            $sMine = $sOthers = "";
             foreach( $raKfrG as $kfr ) {
                 $oForm->SetKFR($kfr);
 
@@ -96,24 +142,33 @@ class CollectionBatchOps_GermTest
                 if( !$oForm->Value('nGerm_count') ) $oForm->SetValue('nGerm_count', '');
 
                 if( $oForm->Value('_created_by')==$this->oApp->sess->GetUID() ) {
-                    $sMine .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($oForm->GetKFR()), $sRowMine ) );
+                    $sMine .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($kfr), $sRowMine ) );
                 } else {
-                    $sOthers .= $oFE->ExpandForm( $sRowOthers );
+                    $sOthers .= $oFE->ExpandForm( str_replace( '@DelButton@', $this->deleteButton($kfr, true), $sRowMine ) );
+// this used to show other peoples' tests but not allow editing - maybe a control could switch editing on - for now allow editing
+//                    $sOthers .= $oFE->ExpandForm( $sRowOthers );
                 }
                 $oForm->IncRowNum();
             }
-            $s .= "<tr><td colspan='7'><h4>Your Tests In Progress</h4></td></tr>".$sMine;
-            if( $sOthers ) {
-                $s .= "<tr><td colspan='7'>&nbsp;</td></tr>"
-                     ."<tr><td colspan='7'><h4>Other Peoples' Tests In Progress</h4></td></tr>".$sOthers;
-            }
         }
 
-        $s .= "</table></form>";
-
-        $s .= "<p style='margin-top:30px'>{$this->sGermFeedback}</p>";
-
-        $s .= "<p style='margin-top:30px;padding:10px;background-color:#ddd'>
+        //$s .= "<div id='collection-batch-germ-container'></div>";
+        $s .= "<form method='post'><input type='submit'/>"
+             ."<table>"
+             ."<tr><th>Lot</th><th>Cultivar</th><th>Number Sown</th><th>Number Germ</th><th>Start Date</th><th>End Date</th><th>Notes</th></tr>"
+             .$sBlank
+             .$sMultiRow
+             ."<tr><td colspan='8'>&nbsp;</td></tr>
+               <tr><td colspan='8'>&nbsp;</td></tr>
+               <tr><td colspan='8'><h4>Your Tests In Progress</h4></td></tr>
+               {$sMine}"
+             .($sOthers ? "<tr><td colspan='8'>&nbsp;</td></tr>
+                           <tr><td colspan='8'><h4>Other Peoples' Tests In Progress</h4></td></tr>
+                           {$sOthers}"
+                        : "")
+             ."</table></form>
+               <p style='margin-top:30px'>{$this->sGermFeedback}</p>
+               <p style='margin-top:30px;padding:10px;background-color:#ddd'>
                  1. Enter Lot #, number of seeds sown.<br/>
                  2. On first count enter number germinated.<br/>
                  3. If further counts, update number germinated<br/>
@@ -124,14 +179,14 @@ class CollectionBatchOps_GermTest
     }
 
     // this is also in CollectionTab_GerminationTests
-    private function deleteButton( KeyframeRecord $kfr )
+    private function deleteButton( KeyframeRecord $kfr, bool $bOverrideSelftest = false )
     /***************************************************
         Make a button that will delete the given germ test (only if it's your test)
 
         sf{cid}d{R} doesn't work the way we want it to here, so do it with a custom parameter instead
      */
     {
-        $sDeleteButton = ($kfr->Key() && $kfr->Value('_created_by')==$this->oApp->sess->GetUID())
+        $sDeleteButton = ($kfr->Key() && ($bOverrideSelftest || $kfr->Value('_created_by')==$this->oApp->sess->GetUID()))
                                 ? ("<a href='{$this->oApp->PathToSelf()}?germdel={$kfr->Key()}'>"
                                   ."<img src='".SEEDW_URL."img/ctrl/delete01.png' height='20'/>"
                                   ."</a>")

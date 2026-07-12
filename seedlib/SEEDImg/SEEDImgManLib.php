@@ -109,9 +109,9 @@ class SEEDImgManLib
                 // If there are both, recommend to KEEP or DELETE.
                 if( $raFVar['o']['filename'] && !$raFVar['r']['filename'] ) {
                     if( $raFVar['o']['info']['filesize'] ) {
-                        // the file should be converted - unless it is not a convertible image (e.g. mp4, docx, etc)
+                        // the file should be converted - unless it is not a convertible image (e.g. txt, docx, etc)
                         // sort of a kluge: if the original file is not a convertible type it is not given a filesize in ImgInfoByFilename()
-                        $raFVar['action'] = 'CONVERT';
+                        $raFVar['action'] = ($raFVar['o']['info']['mime'] != 'video/mp4') ? 'CONVERT' : 'CONVERT_MP4';
                     }
                 } else
                 if( $raFVar['o']['filename'] && $raFVar['r']['filename'] ) {
@@ -164,6 +164,25 @@ class SEEDImgManLib
                        // necessary for animations and seems to be ignored for non-animations
                        ."-coalesce "
                        ."\"{$sFileR}\""
+                       /* To convert in background put & at end of command line.
+                        * exec() will wait to collect output unless the output is redirected somewhere
+                        * echo $! outputs the process's pid
+                        */
+                       .($bBackground ? "> /dev/null 2>&1 & echo $!;" : "");
+                if( $this->bDebug ) echo $exec."<br/>";
+                $ret = exec( $exec );   // if bBackground this will be the pid of the convert process
+                // note cannot chown apache->other_user because only root can do chown (and we don't run apache as root)
+                break;
+
+            case 'CONVERT_MP4':
+                $sFileO = $dir.$raFVar['o']['filename'];
+                $sFileR = "{$dir}{$filebase}_r.mp4";
+                $crfarg = "-crf 28";
+                $maxsize = 720;
+                $exec = "ffmpeg -i  \"{$sFileO}\" "
+                       ."-c:v libx264 -preset slower -codec:a aac "
+                       ."-hide_banner  {$crfarg}  -vf \"scale='if(gte(a,1.0),min({$maxsize},iw),-2):if(gte(a,1.0),-2,min({$maxsize},ih))'\" "
+                       ."{$sFileR}"
                        /* To convert in background put & at end of command line.
                         * exec() will wait to collect output unless the output is redirected somewhere
                         * echo $! outputs the process's pid
