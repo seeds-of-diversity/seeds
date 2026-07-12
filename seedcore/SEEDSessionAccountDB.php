@@ -919,7 +919,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations {
         $raOut = [];
         foreach($raGroups as $ra) {
             if(isset($raParams['bNames']) && boolval($raParams['bNames'])) {
-                $ra[$ra['gid']] = $ra['groupname'];
+                $raOut[$ra['gid']] = $ra['groupname'];
             } else {
                 $raOut[] = $ra['gid'];
             }
@@ -993,7 +993,7 @@ SQL;
         $raOut = [];
         foreach($raGroups as $ra) {
             if(isset($raParams['bNames']) && boolval($raParams['bNames'])) {
-                $ra[$ra['gid']] = $ra['groupname'];
+                $raOut[$ra['gid']] = $ra['groupname'];
             } else {
                 $raOut[] = $ra['gid'];
             }
@@ -1272,6 +1272,7 @@ WHERE id IN ([[GROUPS]]);
 SQL;
         $query = str_replace(['[[GROUPS]]', '[[DB]]'], [implode(',', array_fill(0, count($raGroups), '?')), $this->sDB], $query);
         $raOut = $this->GetKFDB()->QueryRowsRA1_prepared($query, $raGroups);
+        return($raOut);
     }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
