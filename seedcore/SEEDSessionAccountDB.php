@@ -873,8 +873,8 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations {
         );
 
         // sql must contain [[statusCond]] which is replaced by the status conditions
-        $st  = $raParms['_status'] ?: 0;
-        $est = $raParms['eStatus'] ?: "'ACTIVE'";
+        $st  = @$raParms['_status'] ?: 0;
+        $est = @$raParms['eStatus'] ?: "'ACTIVE'";
         $sCondStatus = "U.eStatus IN ($est)"
                       .($st == -1 ? "" : " AND U._status='$st'");
         $sql = str_replace( "[[statusCond]]", $sCondStatus, $sql );
