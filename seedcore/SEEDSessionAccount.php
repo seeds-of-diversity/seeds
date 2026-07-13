@@ -84,7 +84,7 @@ class SEEDSessionAccount extends SEEDSession
 
     private $bLogin = false;
     private $eLoginState = self::SESSION_NONE;
-    
+
     /**
      * The real user id of the currently logged in user.
      * @var int
@@ -128,7 +128,7 @@ class SEEDSessionAccount extends SEEDSession
         $sUid = @$raParms['uid'] ?: SEEDInput_Str( $this->httpNameUID );
         $sPwd = @$raParms['pwd'] ?: SEEDInput_Str( $this->httpNamePWD );
         $sMagicLink = @$raParms['ml'] ?: SEEDInput_Str( $this->httpNameML );
-        
+
         /* It is imperative that these be removed from the _REQUEST array, because several applications copy
          * and reissue GPC parms to subsequent pages.  This would reveal the password in client application links.
          */
@@ -141,7 +141,7 @@ class SEEDSessionAccount extends SEEDSession
         unset($_REQUEST[$this->httpNameUID]);
         unset($_REQUEST[$this->httpNamePWD]);
         unset($_REQUEST[$this->httpNameML]);
-        
+
         /* First see if the user is trying to login, because they can login to override a current session (especially on a page
          * where their current user session doesn't have the required perms).
          * If no login is being attempted, look for an existing user session.
@@ -192,7 +192,7 @@ class SEEDSessionAccount extends SEEDSession
      * @return bool
      */
     function IsLogin(): bool       { return( $this->bLogin ); }
-    
+
     /**
      * Get the current login state
      * @return int
@@ -232,7 +232,7 @@ class SEEDSessionAccount extends SEEDSession
         }
         return '';
     }
-    
+
     /**
      * Return the email of the logged in user.
      * Returns the email of the effective user by default.
@@ -250,7 +250,7 @@ class SEEDSessionAccount extends SEEDSession
         }
         return '';
     }
-    
+
     /**
      * Compute and return the name of the logged in user.
      * Falls back to email if the user does not have a real name set.
@@ -271,7 +271,7 @@ class SEEDSessionAccount extends SEEDSession
         }
         return '';
     }
-    
+
     /**
      * Check if the user has logged in as another user.
      * A user is considered to be logged in as another user if their current real and effective id's don't match
@@ -286,7 +286,7 @@ class SEEDSessionAccount extends SEEDSession
      * @return string
      */
     function GetHTTPNameUID(): string { return( $this->httpNameUID ); }
-    
+
     /**
      * Get the name of the password HTTP parameter
      * @return string
@@ -410,7 +410,7 @@ class SEEDSessionAccount extends SEEDSession
         if( $this->IsLogin() && $this->GetUID($useRUID))
         {
             $raPerms = $this->oDB->GetPermsFromUser($this->GetUID($useRUID))['mode2perms'][$mode] ?? [];
-            
+
             $ok = in_array($perm, $raPerms);
         }
         return( $ok );
@@ -562,7 +562,7 @@ class SEEDSessionAccount extends SEEDSession
                  */
                 setcookie(session_name(),'',0,'/');
                 session_regenerate_id(true);
-                
+
                 /* Destroy session variables here. Otherwise someone else logging in on the same session will get the first user's variables.
                  * This logout happens when a login is done in the middle of a session, e.g. for a page inaccessible by the first login.
                  */
@@ -637,8 +637,8 @@ class SEEDSessionAccount extends SEEDSession
      * @return boolean - true if the login was successful, false otherwise
      */
     private function makeSession( string|int $userIdOrEmail, string $sPwd ): bool {
-        $bOk = false;
-        
+        $ok = false;
+
         list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo( $userIdOrEmail );
 
         if ($kUser && @$raUser['eStatus'] == 'ACTIVE') {
@@ -674,7 +674,7 @@ class SEEDSessionAccount extends SEEDSession
     private function makeSessionRecord( int $kUser ) {
         $this->rUID = $kUser;
         $this->eUID = $kUser;
-        
+
         $this->VarSet($this->kRealUID, $kUser);
         $this->VarSet($this->kEffectiveUID, $kUser);
     }
