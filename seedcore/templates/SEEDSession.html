@@ -31,6 +31,11 @@
 %% AccountSendPassword-1
 [[Include:SEEDSessionUser_SendPassword-1]]
 
+%% AccountResetPassword-0
+[[Include:SEEDSessionUser_ResetPassword-0]]
+%% AccountResetPassword-1
+[[Include:SEEDSessionUser_ResetPassword-1]]
+
 
 %% SSA_Local
 # Twig variables only exist in scope, so the only way to set variables inside an include, embed, extends is to use SEEDTag variables
@@ -39,12 +44,14 @@
 [[SetVar: ssaYourPassword       |[[ifeq:$lang|EN|   Your password       |   Votre mot de passe          ]]]]
 [[SetVar: ssaLogin              |[[ifeq:$lang|EN|   Sign In             |   Ouvrez une session          ]]]]
 
-# Logout
+# Back
 [[SetVar: ssaBackToLogin        |[[ifeq:$lang|EN|   Back To Login       |   Ouvrez une autre session    ]]]]
 
 # Forgot/Send password
 [[SetVar: ssaForgotYourPassword |[[ifeq:$lang|EN|   Forgot your password? |  Oubliez votre mot de passe?    ]]]]
 [[SetVar: ssaSendMyPassword     |[[ifeq:$lang|EN|   Send me my password   |  Envoyez-moi mon mot de passe   ]]]]
+[[SetVar: ssaResetMyPassword    |[[ifeq:$lang|EN|   Reset my password     |  Changez mon mot de passe       ]]]]
+[[SetVar: ssaResetPwd_SendLink  |[[ifeq:$lang|EN|   Send Reset Link       |  Envoyez-moi la lien            ]]]]
    
 # Change password
 [[SetVar: ssaChangePwd_newPassword      |[[ifeq:$lang|EN|  Type your new password           |  Tapez votre nouveau mot de passe    ]]]]
@@ -107,9 +114,9 @@
 <td valign='top'>
   <p style='font-size:8pt'>[[Var:ssaForgotYourPassword]]</p>
   <form method='post' action=''>
-  [[FormHidden: sessioncmd | value:sendPwd]]
+  [[FormHidden: sessioncmd | value:resetPwd]]
   [[FormHidden: seedsession_uid | value:[[Var:seedsession_uid]] ]]
-  <input type='submit' value='[[Var:ssaSendMyPassword]]' style='font-size:8pt'/>
+  <input type='submit' value='[[Var:ssaResetMyPassword]]' style='font-size:8pt'/>
   </form>
 </td>
 </tr>
@@ -325,6 +332,34 @@ $(document).ready(function(){
 %% SEEDSessionUser_SendPassword-1
 <h2>Your password has been sent to you by email</h2>
 <p>You should receive an email shortly containing login instructions.</p>
+[[Include:SEEDSessionUser_LinkGoToLogin]]
+
+
+%% SEEDSessionUser_ResetPassword-0
+#if ResetPassword-1 fails it goes back here with sErrMsg
+[[Include:ssu-ErrMsg]]
+{% include 'SSA_Local' %}
+{% if lang=='EN' %}
+    <h2>We'll send you a link by email to reset your Seeds of Diversity password</h2>
+    <p>Type your email address here and click 'Reset my password'. You will receive an email shortly.</p>
+{% else %}
+    <h2>We'll send you a link by email to reset your Seeds of Diversity password</h2>
+    <p>Type your email address here and click 'Reset my password'. You will receive an email shortly.</p>
+{% endif %}
+<form method='post' action=''>
+[[FormHidden: sessioncmd | value:resetPwd-1]]
+<table border='0' cellspacing='0' cellpadding='10'>
+<tr><td valign='top'>[[Var:ssaYourEmailAddress]]</td><td valign='top'>[[FormText:resetPwd_uid|class:text]]</td></tr>
+<tr><td valign='top'>&nbsp;</td>
+<td valign='top'>
+  <input type='submit' value='[[Var:ssaResetPwd_SendLink]]'>
+  [[Include:SEEDSessionUser_LinkGoToLogin]]
+</td></tr></table></form>
+
+%% SEEDSessionUser_ResetPassword-1
+{% include 'SSA_Local' %}
+<h2>A password reset link has been sent to you by email</h2>
+<p>You should receive an email shortly containing instructions.</p>
 [[Include:SEEDSessionUser_LinkGoToLogin]]
 
 

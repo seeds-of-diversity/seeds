@@ -163,6 +163,14 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
             case 'sendpwd-0':   $sOut = $this->sendPwd0();  break;
             case 'sendpwd-1':   $sOut = $this->sendPwd1();  break;
 
+            /* Reset Password
+                   0 = form to type your email address
+                   1 = result page (we sent you an email; never heard of that email address)
+             */
+            case 'resetpwd':
+            case 'resetpwd-0':   $sOut = $this->resetPwd0();  break;
+            case 'resetpwd-1':   $sOut = $this->resetPwd1();  break;
+
             case 'jxupdateaccount':
                 // update account metadata within an authenticated SEEDSessionAccount
                 break;
@@ -490,6 +498,52 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
         return( $s );
     }
 
+    private function resetPwd0()
+    /**************************
+        Draw the Reset Password form
+     */
+    {
+        return( $this->oTmpl->ExpandTmpl( "AccountResetPassword-0", [] ) );
+    }
+
+    private function resetPwd1()
+    /**************************
+        Respond to the Reset Password form by checking for the given user and a) sending the reset by email, or b) saying why not
+     */
+    {
+        $s = "";
+        $sErrMsg = "";
+        $bOk = false;
+
+        // Get the uid from $this->httpNameUID.'1' so the uid can be propagated to the Reset Password form's initial value without confusion
+        if( ($sUid = SEEDInput_Str('resetPwd_uid', $_POST)) ) {
+            list($kUid,$raUser) = $this->oAcctDB->GetUserInfo($sUid);
+
+            if( !$kUid ) {
+                // not giving this information
+                //$sErrMsg = $this->oTmpl->ExpandTmpl('errmsg_SendPassword_user_not_registered', ['uid'=>$sUid]);
+            } else if( $raUser['eStatus'] != 'ACTIVE' ) {
+                // not giving this information
+                //$sErrMsg = $raUser['eStatus'] == 'PENDING'  ? $this->oLocal->S('login_err_userstatus_pending', [$sUid])
+                //                                            : $this->oLocal->S('login_err_userstatus_inactive', [$sUid]);
+            } else {
+                assert( !empty($this->raConfig['urlSendPasswordSite']) );
+                $sMLReset = "{$this->config_urlSendPasswordSite}?sessioncmd=changepwd&seedsession_ml=".SEEDSessionAccount_MagicLogin::CreateMagicLoginLink($this->oAcctDB, 'ResetPassword', $kUid);
+                $sMail = $this->oTmpl->ExpandTmpl('ResetPassword_email_body', ['ml_resetPassword'=>$sMLReset]);
+                $bOk = $this->SendMail( $raUser['email'], $this->oTmpl->ExpandTmpl('ResetPassword_email_subject'), $sMail);
+                       $this->SendMail( "bob@seeds.ca",   $this->oTmpl->ExpandTmpl('ResetPassword_email_subject'), $sMail);
+            }
+        }
+
+        if( $bOk ) {
+            $s .= $this->oTmpl->ExpandTmpl( "AccountResetPassword-1", [] );
+        } else {
+            $s .= $this->oTmpl->ExpandTmpl( "AccountResetPassword-0", ['sErrMsg'=>$sErrMsg] );
+        }
+
+        return( $s );
+    }
+
 
     private $userDataKeys = array(
         'user_firstname',
@@ -664,7 +718,6 @@ class SEEDSessionAuthUI_Local2
         "SendPassword_email_subject" => array(
             "EN" => "Seeds of Diversity web site - Password reminder",
 /* ! */     "FR" => "Seeds of Diversity web site - Password reminder" ),
-
 
         "SendPassword_email_body" => array(
             "EN" => "You have requested a password reminder from Seeds of Diversity. Please use the following "

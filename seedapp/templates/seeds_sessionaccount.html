@@ -24,7 +24,11 @@
 %% AccountSendPassword-1
 {% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_SendPassword-1]] {% endblock %}
 
- 
+%% AccountResetPassword-0
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_ResetPassword-0]] {% endblock %}
+%% AccountResetPassword-1
+{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_ResetPassword-1]] {% endblock %}
+
 
 
 
@@ -63,4 +67,26 @@ Seeds of Diversity web site - Password reminder
 %% SendPassword_email_body
 You have requested a password reminder from Seeds of Diversity. Please use the following to login to our web site.\n\nWeb site: {{website}}\nUser:     {{uid}}\nPassword: {{pwd}}\n\n
 If you have any questions, please contact office@seeds.ca
+
+
+%% ResetPassword_email_subject
+{% if lang=='EN' %}
+Seeds of Diversity web site - Password reset
+{% else %}
+Seeds of Diversity web site - Password reset
+{% endif %}
+
+%% ResetPassword_email_body
+<p>We're sending this email because someone requested a password reset link from Seeds of Diversity.</p>
+<p>If this was you, please click here to change your Seeds of Diversity password: [[var:ml_resetPassword]]</p>
+<p>If you didn't request a password reset, or if you have any questions, please contact our office at <a href='mailto:office@seeds.ca'>office@seeds.ca</a></p>
+
+%% ResetPassword_success
+<h2>A password reset link has been sent to you by email</h2>
+<p>You should receive an email shortly containing instructions.</p>
+
+ResetPassword_fail
+<h3>User not known</h3>
+<p>User '%1%' is not registered on our web site. Do you have another email that you might have registered here instead?
+Please try again using a different email address, or contact our office if you need help, at <a href='mailto:office@seeds.ca'>office@seeds.ca</a></p>
 

@@ -583,15 +583,12 @@ class SEEDSessionAccount extends SEEDSession
      * @return bool - true if the login was successful, false otherwise
      */
     function LoginAsUser(int $uid): bool {
-        if ($this->IsLogin() && $this->rUID) {
-            // Could add a perms check to prevent unauthorized users from changing their permissions
-            if ($this->oDB->GetEmail($uid)) {
-                // Set the effective user id to the provided id.
-                // N.B. This could be used to log into inactive or pending user
-                $this->eUID = $uid;
-                $this->VarSet($this->kEffectiveUID, $uid);
-                return true;
-            }
+        if ($this->IsLogin() && $this->rUID && $this->canUserLogin($uid)) {
+            // Set the effective user id to the provided id.
+            // N.B. This could be used to log into inactive or pending user
+            $this->eUID = $uid;
+            $this->VarSet($this->kEffectiveUID, $uid);
+            return true;
         }
         // Optionally could support logging into freshly created accounts (eg. accounts that were created within the last 5 mins)
         // This could allow for seemless account creation & login for new users if desired, while limiting annonymous access to any account
@@ -630,6 +627,17 @@ class SEEDSessionAccount extends SEEDSession
     }
 
     /**
+     * Check requirements to allow login for a user.
+     *
+     * @param string|int $uidOrEmail
+     * @return bool                     true if they exist and are allowed to login
+     */
+    private function canUserLogin( string|int $uidOrEmail ): bool {
+        list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo( $uidOrEmail );
+        return( $kUser && @$raUser['eStatus']=='ACTIVE' );
+    }
+
+    /**
      * Attempt to login using a user's id or email, as well as their password.
      * This will handle upgrading the password if necessary on successful login.
      * @param string|int $userIdOrEmail - id or email of the user to login as
@@ -639,8 +647,8 @@ class SEEDSessionAccount extends SEEDSession
     private function makeSession( string|int $userIdOrEmail, string $sPwd ): bool {
         $ok = false;
 
+// use canUserLogin()
         list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo( $userIdOrEmail );
-
         if ($kUser && @$raUser['eStatus'] == 'ACTIVE') {
             if (@$raUser['password'] && password_verify($sPwd, $raUser['password'])) {
                 $ok = true;
@@ -697,7 +705,7 @@ class SEEDSessionAccount extends SEEDSession
     {
         $ok = false;
 
-        list($bOk,$kUid,$sPerms,$errcode) = SEEDSessionAccount_MagicLogin::ValidateMagicLoginLink($this->oDB2, $sMagicLink);
+        list($bOk,$kUid,$sPerms,$errcode) = SEEDSessionAccount_MagicLogin::ValidateMagicLoginLink($this->oDB, $sMagicLink);
 
         if( !$bOk ) {
 // set err $errcode
@@ -705,6 +713,7 @@ class SEEDSessionAccount extends SEEDSession
         }
 
         // The magic login is good; make sure the user is ACTIVE
+// use canUserLogin()
         list($kUser,$raUser,$raMetadata) = $this->oDB->GetUserInfo($kUid);
         if( !$kUser || @$raUser['eStatus'] != 'ACTIVE' ) {
 // set err SEEDSESSION_ERR_USERSTATUS_INACTIVE
@@ -713,7 +722,9 @@ class SEEDSessionAccount extends SEEDSession
 
         /* Magic Login has passed all tests. Login kUser with given perms (if blank, makeSessionRecord looks up the user's default perms)
          */
-        $ok = $this->makeSessionRecord( $kUser, $raUser['realname'], $raUser['email'], $sPerms);
+        $this->makeSessionRecord($kUser);
+
+        $ok = true;
 
         done:
         return( $ok );
