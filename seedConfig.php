@@ -230,5 +230,5 @@ function SEEDConfig_NewAppConsole( $raConfig = array() ) : SEEDAppConsole
 
 function klugeMailFromHere( $mailto, $subject, $body )
 {
-    return( SEEDEmailSend( 'Seeds of Diversity <office@seeds.ca>', $mailto, $subject, $body ) );
+    return( SEEDEmailSend( 'Seeds of Diversity <office@seeds.ca>', $mailto, $subject, "", $body ) );
 }
