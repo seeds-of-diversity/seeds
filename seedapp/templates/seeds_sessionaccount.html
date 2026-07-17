@@ -15,7 +15,14 @@
 {% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_AccountUpdate]] {% endblock %}
 
 %% AccountChangePassword-0
-{% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_ChangePassword-0]] {% endblock %}
+{% extends 'SessionAccountTop' %} 
+    {% block acctForm %}
+        <h3>Hi [[var:realname]]!</h3>
+        <p>This is where you can change your Seeds of Diversity password.</p>
+        <div style='margin-top:1em'>
+        [[Include:SEEDSessionUser_ChangePassword-0]]
+        </div> 
+    {% endblock %}
 %% AccountChangePassword-1
 {% extends 'SessionAccountTop' %} {% block acctForm %} [[Include:SEEDSessionUser_ChangePassword-1]] {% endblock %}
 
@@ -77,6 +84,7 @@ Seeds of Diversity web site - Password reset
 {% endif %}
 
 %% ResetPassword_email_body
+<p>Hi [[var:realname]],</p>
 <p>We're sending this email because someone requested a password reset link from Seeds of Diversity.</p>
 <p>If this was you, please click here to change your Seeds of Diversity password: [[var:ml_resetPassword]]</p>
 <p>If you didn't request a password reset, or if you have any questions, please contact our office at <a href='mailto:office@seeds.ca'>office@seeds.ca</a></p>

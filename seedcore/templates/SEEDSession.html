@@ -135,6 +135,10 @@
 {% if errmsg %}
   {% if IsSeedLiving %}
     <div style='color:red;margin:5px;padding:5px;border:1px solid #f66;border-radius:2px;text-align:center'>[[Var:errmsg]]</div>
+  {% elseif errlevel == 'green' %}
+    <div class='alert alert-success' style='width:50%'>[[Var:errmsg]]</div>
+  {% elseif errlevel == 'yellow' %}
+    <div class='alert alert-warning' style='width:50%'>[[Var:errmsg]]</div>
   {% else %}
     <div class='alert alert-danger' style='width:50%'>[[Var:errmsg]]</div>
   {% endif %}

@@ -426,13 +426,14 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
      */
     {
         $bSuccess = false;
-        $raVars = [];
+        $raVars = ['realname'=>$this->oApp->sess->GetRealname(),'errlevel'=>'red'];
 
         $pwd1 = SEEDInput_Str('user_pass1');
         $pwd2 = SEEDInput_Str('user_pass2');
 
         if( !$pwd1 || !$pwd2 ) {
             $raVars['errmsg'] = "Please enter a password, and retype it to make sure.";
+            $raVars['errlevel'] = 'yellow';
             goto done;
         }
         if( $pwd1 != $pwd2 ) {
@@ -529,7 +530,10 @@ if( !$this->bTmpActivate ) return;  // set in config to use DoUI. Eventually it 
             } else {
                 assert( !empty($this->raConfig['urlSendPasswordSite']) );
                 $sMLReset = "{$this->config_urlSendPasswordSite}?sessioncmd=changepwd&seedsession_ml=".SEEDSessionAccount_MagicLogin::CreateMagicLoginLink($this->oAcctDB, 'ResetPassword', $kUid);
-                $sMail = $this->oTmpl->ExpandTmpl('ResetPassword_email_body', ['ml_resetPassword'=>$sMLReset]);
+                $sMail = $this->oTmpl->ExpandTmpl('ResetPassword_email_body',
+                                                  ['ml_resetPassword'=>$sMLReset,
+                                                   'realname'=>$raUser['realname']
+                                                  ]);
                 $bOk = $this->SendMail( $raUser['email'], $this->oTmpl->ExpandTmpl('ResetPassword_email_subject'), $sMail);
                        $this->SendMail( "bob@seeds.ca",   $this->oTmpl->ExpandTmpl('ResetPassword_email_subject'), $sMail);
             }
