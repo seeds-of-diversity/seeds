@@ -938,7 +938,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations {
      */
     function GetGroupsFromUser( int $kUser, array $raParams = [] ): array {
         $query = <<<SQL
-WITH RECURSIVE groups AS (
+WITH RECURSIVE groups_cte AS (
     SELECT
         _key AS gid,
         _key AS id,
@@ -953,7 +953,7 @@ WITH RECURSIVE groups AS (
         parent._status,
     	parent.gid_inherited AS parent_id,
     	CONCAT(path, ',', parent._key) AS path
-    FROM groups
+    FROM groups_cte
     INNER JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
     WHERE parent_id IS NOT NULL AND parent_id > 0
     	AND FIND_IN_SET(parent._key, path) = 0
@@ -961,18 +961,18 @@ WITH RECURSIVE groups AS (
 usersxgroups AS (
     SELECT
     	id as gid,
-        groups._status,
+        groups_cte._status,
     	users._key AS uid
     FROM [[DB]]SEEDSession_Users AS users
-    INNER JOIN groups ON gid = users.gid1
+    INNER JOIN groups_cte ON gid = users.gid1
     WHERE users._status = 0
     UNION ALL
     SELECT
     	id as gid,
-        groups._status,
+        groups_cte._status,
     	SEEDSession_UsersXGroups.uid AS uid
     FROM [[DB]]SEEDSession_UsersXGroups
-    INNER JOIN groups ON SEEDSession_UsersXGroups.gid = groups.gid
+    INNER JOIN groups_cte ON SEEDSession_UsersXGroups.gid = groups_cte.gid
     WHERE SEEDSession_UsersXGroups._status = 0
 )
 SELECT DISTINCT gid, groupname
@@ -1092,7 +1092,7 @@ WITH RECURSIVE perms AS (
     UNION
     SELECT gid, uid, 'A' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%A%' AND _status = 0
 ),
-groups AS (
+groups_cte AS (
     SELECT
         _key AS gid,
         _key AS id,
@@ -1106,7 +1106,7 @@ groups AS (
     	parent._key as id,
     	parent.gid_inherited AS parent_id,
     	CONCAT(path, ',', parent._key) AS path
-    FROM groups
+    FROM groups_cte
     INNER JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
     WHERE parent_id IS NOT NULL AND parent_id > 0
     	AND FIND_IN_SET(parent._key, path) = 0
@@ -1117,14 +1117,14 @@ usersxgroups AS (
     	id as gid,
     	users._key AS uid
     FROM [[DB]]SEEDSession_Users AS users
-    INNER JOIN groups ON gid = users.gid1
+    INNER JOIN groups_cte ON gid = users.gid1
     WHERE users._status = 0
     UNION ALL
     SELECT 
     	id as gid,
     	SEEDSession_UsersXGroups.uid AS uid
     FROM [[DB]]SEEDSession_UsersXGroups
-    INNER JOIN groups ON SEEDSession_UsersXGroups.gid = groups.gid
+    INNER JOIN groups_cte ON SEEDSession_UsersXGroups.gid = groups_cte.gid
     WHERE SEEDSession_UsersXGroups._status = 0
 )
 SELECT DISTINCT mode, perm
@@ -1160,7 +1160,7 @@ WITH RECURSIVE perms AS (
     UNION
     SELECT gid, uid, 'A' AS mode, perm FROM [[DB]]SEEDSession_Perms WHERE modes LIKE '%A%' AND _status = 0
 ),
-groups AS (
+groups_cte AS (
     SELECT
         _key AS gid,
         _key AS id,
@@ -1174,7 +1174,7 @@ groups AS (
     	parent._key as id,
     	parent.gid_inherited AS parent_id,
     	CONCAT(path, ',', parent._key) AS path
-    FROM groups
+    FROM groups_cte
     INNER JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
     WHERE parent_id IS NOT NULL AND parent_id > 0
     	AND FIND_IN_SET(parent._key, path) = 0
@@ -1182,7 +1182,7 @@ groups AS (
 )
 SELECT DISTINCT mode, perm
 FROM [[DB]]SEEDSession_Groups
-INNER JOIN perms ON gid IN (SELECT id FROM groups WHERE gid = SEEDSession_Groups._key)
+INNER JOIN perms ON gid IN (SELECT id FROM groups_cte WHERE gid = SEEDSession_Groups._key)
 WHERE SEEDSession_Groups._key = ?;
 SQL;
         $query = str_replace('[[DB]]', $this->sDB, $query);
@@ -1206,7 +1206,7 @@ SQL;
      */
     private function getGroupAncestors( array $raGroups ): array {
         $query = <<<SQL
-WITH RECURSIVE groups AS (
+WITH RECURSIVE groups_cte AS (
     SELECT
         _key AS gid,
         _key AS id,
@@ -1220,7 +1220,7 @@ WITH RECURSIVE groups AS (
     	parent._key as id,
     	parent.gid_inherited AS parent_id,
     	CONCAT(path, ',', parent._key) AS path
-    FROM groups
+    FROM groups_cte
     JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
     WHERE parent_id IS NOT NULL AND parent_id > 0
     	AND FIND_IN_SET(parent._key, path) = 0
@@ -1228,7 +1228,7 @@ WITH RECURSIVE groups AS (
 )
 SELECT DISTINCT
     id
-FROM groups
+FROM groups_cte
 WHERE gid IN ([[GROUPS]]);
 SQL;
         $query = str_replace(['[[GROUPS]]', '[[DB]]'], [implode(',', array_fill(0, count($raGroups), '?')), $this->sDB], $query);
@@ -1245,7 +1245,7 @@ SQL;
      */
     private function getGroupDescendants( array $raGroups ): array {
         $query = <<<SQL
-WITH RECURSIVE groups AS (
+WITH RECURSIVE groups_cte AS (
     SELECT
         _key AS gid,
         _key AS id,
@@ -1259,7 +1259,7 @@ WITH RECURSIVE groups AS (
     	parent._key as id,
     	parent.gid_inherited AS parent_id,
     	CONCAT(path, ',', parent._key) AS path
-    FROM groups
+    FROM groups_cte
     JOIN [[DB]]SEEDSession_Groups AS parent ON parent._key = parent_id
     WHERE parent_id IS NOT NULL AND parent_id > 0
     	AND FIND_IN_SET(parent._key, path) = 0
@@ -1267,7 +1267,7 @@ WITH RECURSIVE groups AS (
 )
 SELECT DISTINCT
     gid
-FROM groups
+FROM groups_cte
 WHERE id IN ([[GROUPS]]);
 SQL;
         $query = str_replace(['[[GROUPS]]', '[[DB]]'], [implode(',', array_fill(0, count($raGroups), '?')), $this->sDB], $query);
