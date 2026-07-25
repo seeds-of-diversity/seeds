@@ -1471,7 +1471,7 @@ class SEEDSessionAccountDB2 extends SEEDSessionAccountDBRead2 {
     function ChangeUserPassword( int $kUser, string $sPwd ): bool {
         $sdbPwd = password_hash($sPwd, PASSWORD_BCRYPT);
 
-        return( $kUser ? $this->GetKFDB()->Execute_prepared( "UPDATE {$this->sDB}.SEEDSession_Users SET password = ? WHERE _key = ?;", [$sdbPwd, $kUser] ) : false );
+        return( $kUser ? $this->GetKFDB()->Execute_prepared( "UPDATE {$this->sDB}SEEDSession_Users SET password = ? WHERE _key = ?;", [$sdbPwd, $kUser] ) : false );
     }
 
     /**
