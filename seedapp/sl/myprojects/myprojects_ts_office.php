@@ -64,7 +64,7 @@ class ProjectsTabOffice
 
              /* google sheet controls
               */
-             ."<div style='display:inline-block;vertical-align:top;padding-left:1em'border:1px solid #aaa;border-radius:5px'><form>
+             ."<div style='display:inline-block;vertical-align:top;padding-left:1em;border:1px solid #aaa;border-radius:5px'><form>
                {$oForm->Text('idSpreadsheet', "", ['size'=>50, 'placeholder'=>"spreadsheet id"])}<br/>
                {$oForm->Text('nameSheet',     "", ['size'=>30, 'placeholder'=>"sheet name"])}<br/>
                <input type='submit' name='cmd_g' value='Write to sheet'/> &nbsp;&nbsp;&nbsp; <input type='submit' name='cmd_g' value='Read workflow from sheet'/>
