@@ -2,7 +2,7 @@
 
 /* xlsupload
  *
- * Copyright 2014-2020 Seeds of Diversity Canada
+ * Copyright 2014-2026 Seeds of Diversity Canada
  *
  * Upload and download the contents of table seeds2.xlsupload to/from a spreadsheet.
  * This is useful for transferring data conveniently from database relations to files.
@@ -26,12 +26,17 @@ $oApp = SEEDConfig_NewAppConsole( ['db'=>'seeds2', 'sessPermsRequired'=>''] );  
 
 $s = "";
 
+$oXUD = new XLSUploadDownload($oApp);
+
 switch( ($cmd = SEEDInput_Str( 'cmd' )) ) {
     case 'upload':
-        $fileFmt = SEEDInput_Str( 'fileFmt' );      // xlsx or csv
+        $fileFmt = SEEDInput_Str( 'fileFmt' );      // xlsx, csv, gsheet
         $charset = SEEDInput_Str( 'charset' );
 
-        $s .= uploadFile( $oApp, $charset, ($fileFmt == 'csv') );
+        switch($fileFmt) {
+            case 'gsheet':  $s .= $oXUD->uploadFileFromGSheet($charset);              break;
+            default:        $s .= $oXUD->uploadFile($charset, ($fileFmt == 'csv'));   break;
+        }
         break;
 
     case 'download':
@@ -52,6 +57,21 @@ switch( ($cmd = SEEDInput_Str( 'cmd' )) ) {
         $s .= "<style>"
              .".ctrl {border:1px solid #aaa;margin-bottom:20px;padding:10px;}"
              ."</style>";
+
+        $s .= "<div class='ctrl'>
+                Upload google sheet to 'xlsupload' - the top row will be used as keys<br/><br/>
+                <form action='{$oApp->PathToSelf()}' method='post'>
+                {$oXUD->oForm->Text('idSpreadsheet', "", ['size'=>50, 'placeholder'=>"spreadsheet id"])}<br/>
+                {$oXUD->oForm->Text('nameSheet',     "", ['size'=>30, 'placeholder'=>"sheet name"])}<br/>
+                <select name='charset'>
+                   <option value='fileUtf8-dbWin'>Windows-1252</option>
+                   <option value='fileUtf8-dbUtf8'>UTF-8</option>
+                </select> Charset in database table<br/>
+                <input type='hidden' name='fileFmt' value='gsheet' />
+                <input type='hidden' name='cmd' value='upload' />
+                <input type='submit' value='Read from sheet'/>
+                </form>
+               </div>";
 
         $s .= "<div class='ctrl'>"
             ."Upload any spreadsheet to 'xlsupload' using PHPSpreadsheet - the top row will be used as keys<br/><br/>"
@@ -118,79 +138,121 @@ switch( ($cmd = SEEDInput_Str( 'cmd' )) ) {
 
 echo Console02Static::HTMLPage( $oApp->oC->DrawConsole($s), "", "EN", [] );
 
-
-
-function uploadFile( SEEDAppConsole $oApp, $charset, $bCSV )
+class XLSUploadDownload
 {
-    include_once( SEEDCORE."SEEDTableSheets.php" );
+    private $oApp;
+    public  $oForm;
 
-
-    $s = "";
-
-    // charset is one of fileWin-dbWin, fileWin-dbUtf8, fileUtf8-dbWin, fileUtf8-dbUtf8
-    $sCharsetFile = SEEDCore_StartsWith( $charset, 'fileWin' ) ? "Windows-1252" : "utf-8";
-    $sCharsetTable = SEEDCore_EndsWith( $charset, 'dbWin' ) ? "Windows-1252" : "utf-8";
-
-    $parms = [ // parms for SEEDTableSheetsFile constructor
-               'raSEEDTableSheetsFileParms' => [],
-               // parms for LoadFromFile()
-               'raSEEDTableSheetsLoadParms' => ['fmt' => ($bCSV ? 'csv' : 'xls'),
-                                                'charset-file' => $sCharsetFile,
-                                                'charset-sheet' => $sCharsetTable,
-                                                //'sheets' => [1]                 // just the first sheet
-                                               ]
-             ];
-
-    list($oSheets,$sErr) = SEEDTableSheets_LoadFromUploadedFile( 'uploadfile', $parms );
-    if( !$oSheets ) die( "Error: $sErr" );
-
-    $sheetname = $oSheets->GetSheetList()[0];
-    $raRows = $oSheets->GetSheet($sheetname);
-    if( !count($raRows) )  die( "Empty spreadsheet" );
-
-    $keys = array_keys($raRows[0]);
-    //var_dump($keys,$raData);
-
-    $oApp->kfdb->SetDebug(2);
-
-    /* Drop the db-table if it was left over from last time
-     */
-    $oApp->kfdb->Execute( "DROP TABLE IF EXISTS xlsupload" );
-
-    /* Create a db-table with the required fields
-     */
-    $raK = array();
-    foreach( $keys as $k ) {
-        // the purpose of addslashes is to prevent sql insertion attacks; the sql will still fail if a field name contains quotes or other weird characters
-        $raK[] = addslashes($k)." text";
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oForm = new SEEDCoreForm('Plain');
+        $this->oForm->Update();
     }
-    $oApp->kfdb->Execute( "CREATE TABLE xlsupload (".implode(",",$raK).");" );
 
-    // the insert statement is only interesting if something goes wrong
-    $oApp->kfdb->SetDebug(1);
+    function uploadFileFromGSheet( string $charset )
+    {
+        $s = "";
 
+        include_once(SEEDLIB."google/GoogleSheets.php");
 
-    /* Generate an INSERT statement to fill the db-table.
-     * A single INSERT is efficent:  INSERT INTO xlsupload (keys) VALUES (values-row-1),(values-row-2),(values-row-3)...
-     */
-    $raK = array();
-    $raR = array();
-    foreach( $keys as $k ) {
-        $raK[] = addslashes($k);
+        $idSpreadsheet = $this->oForm->Value('idSpreadsheet');
+        $nameSheet = $this->oForm->Value('nameSheet');
+        $oGoogleSheet = new SEEDGoogleSheets_NamedColumns(
+                    ['appName' => 'My PHP App',
+                     'authConfigFname' => SEEDCONFIG_DIR."sod-public-outreach-info-e36071bac3b1.json",
+                     'idSpreadsheet' => $idSpreadsheet] );
+        $raRows = $oGoogleSheet->GetRowsWithNamedColumns($nameSheet);
+
+        return($this->_uploadRows($raRows));
     }
-    foreach( $raRows as $ra ) {
-        $raV = array();
+
+    function uploadFile( $charset, $bCSV )
+    {
+        include_once( SEEDCORE."SEEDTableSheets.php" );
+
+        $s = "";
+
+        // charset is one of fileWin-dbWin, fileWin-dbUtf8, fileUtf8-dbWin, fileUtf8-dbUtf8
+        $sCharsetFile = SEEDCore_StartsWith( $charset, 'fileWin' ) ? "Windows-1252" : "utf-8";
+        $sCharsetTable = SEEDCore_EndsWith( $charset, 'dbWin' ) ? "Windows-1252" : "utf-8";
+
+        $parms = [ // parms for SEEDTableSheetsFile constructor
+                   'raSEEDTableSheetsFileParms' => [],
+                   // parms for LoadFromFile()
+                   'raSEEDTableSheetsLoadParms' => ['fmt' => ($bCSV ? 'csv' : 'xls'),
+                                                    'charset-file' => $sCharsetFile,
+                                                    'charset-sheet' => $sCharsetTable,
+                                                    //'sheets' => [1]                 // just the first sheet
+                                                   ]
+                 ];
+
+        list($oSheets,$sErr) = SEEDTableSheets_LoadFromUploadedFile( 'uploadfile', $parms );
+        if( !$oSheets ) die( "Error: $sErr" );
+
+        $sheetname = $oSheets->GetSheetList()[0];
+        $raRows = $oSheets->GetSheet($sheetname);
+
+        return($this->_uploadRows($raRows));
+    }
+
+    /**
+     * @param array $raRows  [0 =>[row data], 1 => [row data]]
+     * @return string
+     */
+    private function _uploadRows( array $raRows )
+    {
+        $s = "";
+
+        if( !count($raRows) )  die( "Empty spreadsheet" );
+
+        $keys = array_keys($raRows[0]);
+        //var_dump($keys,$raData);
+
+        $this->oApp->kfdb->SetDebug(2);
+
+        /* Drop the db-table if it was left over from last time
+         */
+        $this->oApp->kfdb->Execute( "DROP TABLE IF EXISTS xlsupload" );
+
+        /* Create a db-table with the required fields
+         */
+        $raK = array();
         foreach( $keys as $k ) {
-            $raV[] = "'".addslashes($ra[$k])."'";
+            // the purpose of addslashes is to prevent sql insertion attacks; the sql will still fail if a field name contains quotes or other weird characters
+            $raK[] = addslashes($k)." text";
         }
-        $raR[] = "(".implode(',',$raV).")";
+        $this->oApp->kfdb->Execute( "CREATE TABLE xlsupload (".implode(",",$raK).");" );
+
+        // the insert statement is only interesting if something goes wrong
+        $this->oApp->kfdb->SetDebug(1);
+
+
+        /* Generate an INSERT statement to fill the db-table.
+         * A single INSERT is efficent:  INSERT INTO xlsupload (keys) VALUES (values-row-1),(values-row-2),(values-row-3)...
+         */
+        $raK = array();
+        $raR = array();
+        foreach( $keys as $k ) {
+            $raK[] = addslashes($k);
+        }
+        foreach( $raRows as $ra ) {
+            $raV = array();
+            foreach( $keys as $k ) {
+//charset
+                $raV[] = "'".addslashes($ra[$k])."'";
+            }
+            $raR[] = "(".implode(',',$raV).")";
+        }
+        $this->oApp->kfdb->Execute( "INSERT INTO xlsupload (".implode(',',$raK).") VALUES ".implode(',',$raR) );
+
+        $s .= "xlsupload is ready with ".$this->oApp->kfdb->Query1( "SELECT count(*) FROM xlsupload" )." rows!";
+
+        return( $s );
     }
-    $oApp->kfdb->Execute( "INSERT INTO xlsupload (".implode(',',$raK).") VALUES ".implode(',',$raR) );
-
-    $s .= "xlsupload is ready with ".$oApp->kfdb->Query1( "SELECT count(*) FROM xlsupload" )." rows!";
-
-    return( $s );
 }
+
+
 
 function downloadXLS( SEEDAppConsole $oApp, $charset )
 {
