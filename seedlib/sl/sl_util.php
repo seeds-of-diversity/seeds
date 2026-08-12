@@ -23,6 +23,23 @@ class SLUtil
     }
 
     /**
+     * Median grams of 100 seeds for the given cultivar = median of all non-zero g_100 for given kPcv
+     *
+     * @param SLDBCollection $oSLDB
+     * @param int $kPcv
+     * @return float grams or 0 if not found
+     */
+    static function Grams100MedianFromPcv( SLDBCollection $oSLDB, int $kPcv )
+    {
+        $fG100 = 0.0;
+
+        $ra = $oSLDB->Get1List('A', 'g_100', "fk_sl_pcv='$kPcv' AND g_100<>0");
+
+//median would be better
+        return( count($ra) ? (array_sum($ra) / count($ra)) : 0.0 );
+    }
+
+    /**
      * @param int $nSeeds number of seeds
      * @param array $raParms popsize => population size ; psp to use standard population size
      * @return float

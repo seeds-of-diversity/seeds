@@ -635,6 +635,8 @@ this is for sure not the best place to put this
             }
         }
 
+        $fGrams100Median = SLUtil::Grams100MedianFromPcv($this->oSLDB, $kPCV);
+
         /* Get all IxA for this cultivar.
          * Count the total weight and find the newest lot.
          * Also record the weight and year of the lots in reverse chronological order. This is hard because the year can come from
@@ -715,7 +717,7 @@ this is for sure not the best place to put this
 
                 $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
 // look up g_100 for lot, another lot of the same pcv, rosetta, etc
-                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>0, 'psp'=>$psp]);
+                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
                 $raOut['total_viable_pops'] = SLUtil::PopsFromSeeds($raOut['total_viable_seeds'], ['psp'=>$psp]);
             }
 
@@ -723,7 +725,7 @@ this is for sure not the best place to put this
                 /* Note that everything returned by this method has QCharset, so avoid double-converting by clients.
                  */
                 $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
-                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>0, 'psp'=>$psp]);
+                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
 
                 $loc = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T';
