@@ -13,7 +13,7 @@ class SLUtil
 
         if( @$raParms['g_100'] ) {
             // weight of 100 seeds is given
-            $nSeeds = intval($g * 100 / $raParms['g_100']);
+            $nSeeds = intval($g * 100.0 / floatval($raParms['g_100']));
         } else
         if( ($seedsPerGram = self::GetSeedsPerGram(@$raParms['psp'])) > 0 ) {
             // use standard seeds/gram
