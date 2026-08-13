@@ -48,6 +48,9 @@ function SEEDEmailSend( $from, $to, $subject, $bodyText, $bodyHTML = "", $raParm
         $sFrom = $sFromName ? "{$sFromName} <{$sFromEmail}>" : $sFromEmail;
         if( empty($bodyText) ) $bodyText = strip_tags( $bodyHTML );
 
+        // default assume not utf8
+        if( !array_key_exists('bInputNotUTF8',$raParms) )  $raParms['bInputNotUTF8'] = true;
+
         return( SEEDEmailSend_Postmark( $sFrom, $to, $subject, $bodyText, $bodyHTML, array_merge($raParms,['MessageStream'=>'outbound']) ) );
 
         /* On production machines use the local SMTP
@@ -103,6 +106,7 @@ function SEEDEmailSend_Postmark( $from, $to, $subject, $bodyText, $bodyHTML = ""
 
     $sMessageStream = SEEDCore_ArraySmartVal($raParms,'MessageStream',['broadcast','outbound']);
     if( @$raParms['bInputNotUTF8'] ) {
+        $to       = SEEDCore_utf8_encode($to);          // can include accents "My Name Accented <my@email.address>"
         $subject  = SEEDCore_utf8_encode($subject);
         $bodyText = SEEDCore_utf8_encode($bodyText);
         $bodyHTML = SEEDCore_utf8_encode($bodyHTML);
