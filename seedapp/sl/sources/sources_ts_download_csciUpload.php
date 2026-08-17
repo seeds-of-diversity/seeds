@@ -1,22 +1,28 @@
 <?php
 
 include_once( "sources_download_googlesync.php" );
+include_once( "sources_download_xlsxsync.php" );
 
 
 class SLSourcesAppDownload_CSCIUpload
 {
     private $oApp;
+    private $oSVA;
+    private $bUIModeGsheet = true;   // gsheet ui mode is default
     private $tmpTable;
     private $oUploadUIGsheet;
     private $oUploadUIXLS;
     private $oUploadLib;
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, SEEDSessionVarAccessor $oSVA, array $raParms = [] )
     {
         $this->oApp = $oApp;
+        $this->oSVA = $oSVA;
         $this->oUploadLib = new SLSourcesCVUpload($this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0, "");
         $this->oUploadUIGsheet = new SLSourcesAppDownload_CSCIUpload_GoogleSheet($this->oApp, $this->oUploadLib, []);
-        $this->oUploadUIXLS = null; // SLSourcesAppDownload_CSCIUpload_XLS($this->oApp, $this->oUploadLib, []);
+        $this->oUploadUIXLS = new SLSourcesAppDownload_CSCIUpload_XLSX($this->oApp, $this->oUploadLib, []);
+
+        if( @$raParms['bUIModeXLSX'] )  $this->bUIModeGsheet = false;
     }
 
     function DoUI()
@@ -31,7 +37,8 @@ class SLSourcesAppDownload_CSCIUpload
             case 'Start over':                      $iStep = 0;                           break;      // override iStep to force restart
             case 'Redo this step':                                                        break;      // use iStep again
             case 'Commit to Seed Finder Database':  if($iStep==3) $this->CommitToDb();    break;
-            case 'Write to Google Sheet':           if($iStep==3) $this->oUploadUIGsheet->WriteToSheet();  break;
+            // only available in gsheet ui
+            case 'Write to Google Sheet':           if($iStep==3 && $this->bUIModeGsheet) $this->oUploadUIGsheet->WriteToSheet();  break;
             default:                                ++$iStep;                             break;      // button label described step 1, 2, 3
         }
         $iStep = min($iStep, 3);
@@ -46,15 +53,33 @@ class SLSourcesAppDownload_CSCIUpload
                    5 => ['name'=>"Write to sheet"],
             ];
 
+        $btnNext = "";
+        if($iStep < 3) {
+            // the first three steps have a Next button
+            $btnNext = "<input type='submit' name='actionStep' value='Next: ".$raStep[$iStep+1]['name']."'/>";
+        } else {
+            // the final step has various operations that lead to the same state
+            $raReport = $this->oUploadLib->CalculateUploadReport();
+            $sDisableCommit = !($ok && $this->oUploadLib->IsCommitAllowed($raReport)) ? " disabled" : "";
+            $sDisableSheetWrite = !($ok && true /* google sheet mode */) ? " disabled" : "";
+            $btnNext .= "<input type='submit' name='actionStep' value='Commit to Seed Finder Database' $sDisableCommit/>&nbsp;&nbsp;&nbsp;";
+            $btnNext .= "<input type='submit' name='actionStep' value='Write to Google Sheet'          $sDisableSheetWrite/>";
+        }
 
-        $sCtrls = $sResults = "";
+        $sCtrls = $sFullForm = $sResults = "";
         switch($iStep) {
             default:
             case 0:
                 /* Starting form: get config for spreadsheet to load
                  */
                 $ok = true;
-                $sCtrls = $this->oUploadUIGsheet->GetFormControls();
+                if( $this->bUIModeGsheet ) {
+                    // returns sCtrls to put in the standard form
+                    $sCtrls = $this->oUploadUIGsheet->GetFormControls($this->oSVA);
+                } else {
+                    // returns a whole form to substitute the standard form
+                    $sFullForm = $this->oUploadUIXLS->GetFormControls($this->oSVA, ['uploadctrlbelow'=>$btnNext, 'uploadctrl'=>"<input type='hidden' name='iStep' value='{$iStep}'/>"] );
+                }
                 break;
             case 1:
                 /* Fetch from google sheet, insert to tmp table
@@ -73,31 +98,25 @@ class SLSourcesAppDownload_CSCIUpload
                 break;
         }
 
-        $btnNext = "";
-        if($iStep < 3) {
-            // the first three steps have a Next button
-            $btnNext = "<input type='submit' name='actionStep' value='Next: ".$raStep[$iStep+1]['name']."'/>";
-        } else {
-            // the final step has various operations that lead to the same state
-            $raReport = $this->oUploadLib->CalculateUploadReport();
-            $sDisableCommit = !($ok && $this->oUploadLib->IsCommitAllowed($raReport)) ? " disabled" : "";
-            $sDisableSheetWrite = !($ok && true /* google sheet mode */) ? " disabled" : "";
-            $btnNext .= "<input type='submit' name='actionStep' value='Commit to Seed Finder Database' $sDisableCommit/>&nbsp;&nbsp;&nbsp;";
-            $btnNext .= "<input type='submit' name='actionStep' value='Write to Google Sheet'          $sDisableSheetWrite/>";
-        }
-
         $s .= "<h3>Step $iStep : {$raStep[$iStep]['name']}</h3>";
 
-        $s .= "<form method='post'>
-                   $sCtrls
-                   <input type='hidden' name='iStep' value='{$iStep}'/>"
-                 // last step has no Next button
-                 .$btnNext
-                 // first step has no Redo or Start over
-                 .($iStep ? "<input style='float:right' type='submit' name='actionStep' value='Redo this step'/>
-                             <input style='float:right' type='submit' name='actionStep' value='Start over'/>" : "")
-             ."</form>
-               <div style='margin:2em'>$sResults</div>";
+        if( $this->bUIModeGsheet || $iStep ) {
+            // do this for all gsheet steps, and xlsx steps > 0
+            $s .= "<form method='post'>
+                       $sCtrls
+                       <input type='hidden' name='iStep' value='{$iStep}'/>"
+                     // last step has no Next button
+                     .$btnNext
+                     // first step has no Redo or Start over
+                     .($iStep ? "<input style='float:right' type='submit' name='actionStep' value='Redo this step'/>
+                                 <input style='float:right' type='submit' name='actionStep' value='Start over'/>" : "")
+                 ."</form>";
+        } else {
+            // only for xlsx step 0
+            $s .= $sFullForm;
+        }
+
+        $s .= "<div style='margin:2em'>$sResults</div>";
 
         return($s);
     }
@@ -107,7 +126,7 @@ class SLSourcesAppDownload_CSCIUpload
         $s = "";
         $ok = false;
 
-        list($ok,$s) = $this->oUploadUIGsheet->FetchSheetToTmpTable();
+        list($ok,$s) = $this->bUIModeGsheet ? $this->oUploadUIGsheet->FetchSheetToTmpTable() : $this->oUploadUIXLS->FetchSheetToTmpTable();
 
         return([$ok,$s]);
     }
@@ -166,6 +185,26 @@ class SLSourcesAppDownload_CSCIUpload
         if($sErr) $s .= "<div class='alert alert-warning'>$sErr</div>";
 
         return([$ok,$s]);
+    }
+}
+
+class SLSourcesAppDownload_CSCIArchive
+{
+    private $oApp;
+    private $oUploadLib;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oUploadLib = new SLSourcesCVUpload($this->oApp, SLSourcesCVUpload::ReplaceWholeCSCI, 0, "");
+    }
+
+    function DoUI()
+    {
+        $s = "";
+        $ok = false;
+
+        return( $s );
     }
 }
 

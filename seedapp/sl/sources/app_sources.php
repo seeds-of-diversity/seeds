@@ -84,7 +84,7 @@ class MyConsole02TabSet extends Console02TabSet
         return( $s );
     }
 
-    function TabSet_main_downloadupload_Init()
+    function TabSet_main_downloadupload_Init( Console02TabSet_TabInfo $oT )  // use $oT to get SVA
     {
         $this->oW = new SLSourcesAppDownload( $this->oApp, $this->TabSetGetSVA('main','downloadupload') );
     }
