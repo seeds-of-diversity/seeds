@@ -94,12 +94,12 @@ $this->oApp->kfdb->Execute( SLDB_Create::SEEDS_DB_TABLE_SL_TMP_CV_SOURCES );
             $nRow++;
 
             $k = intval($ra['k']);
-            $company = trim(addslashes($ra['company']));
-            $species = trim(addslashes($ra['species']));
-            $cultivar = trim(addslashes($ra['cultivar']));
-            $organic = in_array( trim($ra['organic']), [1,'1','x','X','y','Y','yes','YES'] ) ? 1 : 0;
-            $bulk = trim(addslashes($ra['bulk']));
-            $notes = trim(addslashes($ra['notes']));
+            $company = trim(addslashes($ra['company']??""));
+            $species = trim(addslashes($ra['species']??""));
+            $cultivar = trim(addslashes($ra['cultivar']??""));
+            $organic = in_array( trim($ra['organic']??""), [1,'1','x','X','y','Y','yes','YES'] ) ? 1 : 0;
+            $bulk = trim(addslashes($ra['bulk']??""));
+            $notes = trim(addslashes($ra['notes']??""));
             $year = intval(@$ra['year']) or ($year = date("Y"));
 
             // (D) skip blank lines (but increment the nRow counter)
