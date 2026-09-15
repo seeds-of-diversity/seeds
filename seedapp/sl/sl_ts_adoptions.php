@@ -62,21 +62,9 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
     function ControlDraw()
     {
         return( "<div style='float:right;background-color:white;padding:5px;border-radius:5px'>
-                     <form><input type='checkbox' onclick='doEditButton(this)'/> Edit mode</form>
                      <br/>Button to split current record</div>"
-                .$this->jsDoEditButton
                 .$this->DrawSearch() );
     }
-
-    private $jsDoEditButton = <<<JSEditButton
-        <script>
-        function doEditButton(that)
-        {
-            $(that).closest('form').submit();console.log($(that).closest('form'));
-        }
-        </script>
-JSEditButton;
-
 
     function ContentDraw()
     {
@@ -155,10 +143,26 @@ JSEditButton;
                <div class='container-fluid'>
                <div class='row'><div class='col-md-6'>
 
+               <div class='sladoptform_static'>
                |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Adopter*    || $sAdopter ([[text:fk_mbr_contacts|readonly]])
-               ||| *Recognized as* || [[text:public_name|readonly]]
-               ||| *Request*    || [[text:sPCV_request|readonly]]
+               ||| *Adopter*    || $sAdopter ([[Value:fk_mbr_contacts]])
+               ||| *Recognized as* || [[value:public_name]]
+               ||| *Request*    || [[value:sPCV_request]]
+               ||| *Amount*     || [[value:amount]]
+               ||| *Received*   || [[value:D_date_received]]
+               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+               ||| &nbsp        || &nbsp;
+               ||| *Notes*      || <div style='border:1px solid #aaa;padding:5px'>[[nl2br: [[Value:notes]] ]]</div>
+               ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n
+               |||ENDTABLE
+               </div>
+
+               <div class='sladoptform_edit' style='display:none'>
+               |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+               ||| <input type='submit' value='Save'> || \n
+               ||| *Adopter*    || $sAdopter ([[Value:fk_mbr_contacts]])
+               ||| *Recognized as* || [[text:public_name | width:100%]]
+               ||| *Request*    || [[text:sPCV_request | width:100%]]
                ||| *Amount*     || [[text:amount|readonly]]
                ||| *Received*   || [[text:D_date_received|readonly]]
 
@@ -169,9 +173,9 @@ JSEditButton;
                                            [[hidden:fk_sl_pcv]]
 
                ||| &nbsp        || &nbsp;
-               ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )."
-               ||| &nbsp;       || <input type='submit' value='Save'/>
+               ||| *Notes*      || {$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )}
                |||ENDTABLE
+               </div>
 
                <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
                <div class='slAdoptionFormInfo'>{$sTicket}</div>
@@ -194,6 +198,16 @@ JSEditButton;
                }
                setupMbrSelector();
                </script>";
+
+        $s .= "<script>
+function doEdit()
+{
+    event.preventDefault();
+    $('.sladoptform_static').hide();
+    $('.sladoptform_edit').show();
+    $('#editbutton').html('');      /* remove the edit button so typing Enter in text field goes to Save instead of this (even though it's hidden) */
+}
+</script>";
 
         return( $s );
     }
