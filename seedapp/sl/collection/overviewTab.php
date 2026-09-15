@@ -15,7 +15,8 @@ class CollectionOverview
         $this->oSLDB = new SLDBCollection($oApp);
         $this->oQCollReports = new QServerSLCollectionReports($oApp);
 
-        $raOps = ['Active lots'        =>'lot_all',
+        $raOps = ['-- Choose Report --'=>'',
+                  'Active lots'        =>'lot_all',
                   'Adoption priorities'=>'adopt_priorities',
                   'Growout priorities' =>'growout_priorities',
                   'Other Operation'    =>'other'];
