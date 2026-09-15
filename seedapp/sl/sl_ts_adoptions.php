@@ -128,6 +128,26 @@ JSEditButton;
 
         $urlQ = SITEROOT_URL."app/q/index.php";     // rosettaPCVSearch is still in the original Q code
 
+        $sTicket = "";
+        if( ($kDonation = $oForm->Value('D__key')) ) {
+            /* Show the order ticket for this donation
+             */
+            include_once( SEEDAPP."basket/basketProductHandlers.php" );
+            $oSB = new SEEDBasketCoreSoD( $this->oApp );
+            $oHandler = new SEEDBasketProductHandler_Donation( $oSB );
+            if( ($oPur = $oHandler->GetPurchaseFromKDonation( $kDonation )) &&
+                ($kB = $oPur->GetBasketKey()) &&
+                ($kOrder = $this->oApp->kfdb->Query1("SELECT _key FROM {$this->oApp->GetDBName('seeds1')}.mbr_order_pending WHERE kBasket='$kB'")) )
+            {
+                // this is coming from seedsx
+                include_once( SEEDCOMMON."mbr/mbrOrder.php" );
+                $kfdb = SiteKFDB();
+                $oMbrOrder = new MbrOrder( $this->oApp, $kfdb, "EN", $kOrder );
+                $sTicket = $oMbrOrder->DrawTicket();
+            }
+        }
+
+
         $s =  "<style>
                .slAdoptionFormInfo { border:1px solid #aaa; margin:2em; padding:1em }
                </style>
@@ -154,6 +174,7 @@ JSEditButton;
                |||ENDTABLE
 
                <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
+               <div class='slAdoptionFormInfo'>{$sTicket}</div>
                </div><div class='col-md-6'>
 
                <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
