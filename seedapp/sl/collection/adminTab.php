@@ -1,5 +1,7 @@
 <?php
 
+include_once(SEEDCORE."SEEDCoreFormSession.php");   // SEEDCoreFormStringBucket
+
 class CollectionAdmin
 {
     private $oApp;
@@ -31,7 +33,7 @@ class CollectionAdmin
     {
         $s = "";
 
-        $oForm = new SEEDCoreFormSVA($this->oSVA, 'A');
+        $oForm = new SEEDCoreFormStringBucket($this->oApp, "slcoll_admin", 'A');
         $oForm->Update();
 
         /* google sheet controls
