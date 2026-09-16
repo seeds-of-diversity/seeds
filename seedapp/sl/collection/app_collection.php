@@ -25,6 +25,7 @@ include_once( SEEDAPP."sl/sl_ts_adoptions.php");
 include_once( "collectionTab.php" );
 include_once( "batchopsTab.php" );
 include_once( "overviewTab.php" );
+include_once( "adminTab.php" );
 
 class SLApp
 {
@@ -36,6 +37,7 @@ class SLApp
               'slcollBatch' => ["W SLCollection", "A SL", "|"],
               'slcollAdopt' => ["W SLCollection", "A SL", "|"],
               'slcollOver'  => ["W SLCollection", "A SL", "|"],
+              'slcollAdmin' => ["A SLCollection", "A SL", "|"],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
     ];
@@ -51,6 +53,7 @@ $consoleConfig = [
                                         'slcollBatch'  => ['label'=>'Batch Operations'],
                                         'slcollAdopt'  => ['label'=>'Adoptions'],
                                         'slcollOver'   => ['label'=>'Overview'],
+                                        'slcollAdmin'  => ['label'=>'Admin'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
@@ -115,6 +118,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_slcollBatch_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new CollectionBatchOps($this->oApp, $oT->oSVA); $this->oW->Init(); }
     function TabSet_main_slcollAdopt_Init()                             { $this->oW = new MbrAdoptionsListForm($this->oApp);          $this->oW->Init(); }
     function TabSet_main_slcollOver_Init(Console02TabSet_TabInfo $oT)   { $this->oW = new CollectionOverview($this->oApp, $oT->oSVA); $this->oW->Init(); }
+    function TabSet_main_slcollAdmin_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new CollectionAdmin($this->oApp, $oT->oSVA); $this->oW->Init(); }
 
     function TabSetControlDraw($tsid, $tabname)
     {
