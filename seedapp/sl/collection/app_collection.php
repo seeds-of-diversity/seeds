@@ -37,7 +37,7 @@ class SLApp
               'slcollBatch' => ["W SLCollection", "A SL", "|"],
               'slcollAdopt' => ["W SLCollection", "A SL", "|"],
               'slcollOver'  => ["W SLCollection", "A SL", "|"],
-              'slcollAdmin' => ["A SLCollection", "A SL", "|"],
+              'slcollAdmin' => ["W SLCollection", "A SL", "|"],
               '|'  // allows screen-login even if some tabs are ghosted
             ],
     ];
