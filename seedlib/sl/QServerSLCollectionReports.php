@@ -142,12 +142,12 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 /* format an html table showing the IxA status
 this is for sure not the best place to put this
                  */
-                $rQ['raOut']['sTable_IxA'] = "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est viable pops</th></tr>";
+                $rQ['raOut']['sTable_IxA'] = "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est-viable / total pops</th></tr>";
                 foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
                     $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
                     $sCol2 = ($y = intval($kEncodesYear)) ?: "";
                     $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
-                    $sCol4 = $raI['pops_estimate'];
+                    $sCol4 = "{$raI['pops_estimate']} / {$raI['pops_raw']}";
 
                     $rQ['raOut']['sTable_IxA'] .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
                                <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
@@ -727,7 +727,8 @@ this is for sure not the best place to put this
                 $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
                 $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
-
+                $fPopsRaw             = SLUtil::PopsFromSeeds(SLUtil::SeedsFromGrams($g, ['g_100'=>$fGrams100Median, 'psp'=>$psp]), ['psp'=>$psp]);   // not considering germ rate
+                
                 $loc = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T';
                 $invnum = $kfrcI->Value('inv_number');
                 $raOut['raIxA']["0$y $i"] = $this->QCharsetFromLatin(
@@ -742,6 +743,7 @@ this is for sure not the best place to put this
                              'current_germ_model' => $nGermModel,
                              'g_weight_viable_estimate' => $fGramsViableEstimate,
                              'pops_estimate' => $fPopsViableEstimate,
+                             'pops_raw' => $fPopsRaw,
                              'notes' => (($bFullDetails && $bCanReadInternal) ? trim($kfr->Expand("[[notes]] [[A_notes]]")) : ""),
                             ]);
             }
