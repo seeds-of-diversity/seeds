@@ -128,7 +128,10 @@ $(document).ready( function() {
     <div class='row' style='margin-top:1.5em'>
         <div class='col-md-4'>Total weight (g): [[formtext:gtotal | class:cpvar_gtotal]]<br/>
                               If you are doing a germination test, set those seeds aside first.</div>
-        <div class='col-md-4'>100 seed weight (g): [[formtext:g100 | class:cpvar_g100]]</div>        
+        <div class='col-md-4'>100 seed weight (g): [[formtext:g100 | class:cpvar_g100]]<br/>
+                              <!-- this is filled with a <select> offering various default options for g100 -->
+                              <div id='mode_g100_container' style=''></div>
+        </div>
         <div class='col-md-4'>Seeds / population: [[formtext:pop | class:cpvar_pop]] <br/>(take germ % into account if known)</div>
     </div>
 
