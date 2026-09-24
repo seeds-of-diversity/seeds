@@ -635,7 +635,7 @@ this is for sure not the best place to put this
             }
         }
 
-        $fGrams100Median = SLUtil::Grams100MedianFromPcv($this->oSLDB, $kPCV);
+        $fGrams100Median = SLUtil::Grams100MedianFromPcv($this->oSLDB, $kPCV);  // use this if g_100 is not defined for a particular lot
 
         /* Get all IxA for this cultivar.
          * Count the total weight and find the newest lot.
@@ -652,6 +652,8 @@ this is for sure not the best place to put this
 
             $g = intval($kfrcI->Value('g_weight')*1000.0)/1000.0;     // round to 0.001
             $raOut['nWeightTotal'] += $g;
+
+            $fGrams100 = $kfrcI->Value('g_100') ?: $fGrams100Median;
 
             // sometimes these fields contain a date and sometimes just the year. Mysql doesn't allow dates to just be years, so these are plain strings.
             $yHarvested = intval(substr($kfrcI->Value('A_x_d_harvest'),0,4));
@@ -716,8 +718,7 @@ this is for sure not the best place to put this
                 }
 
                 $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
-// look up g_100 for lot, another lot of the same pcv, rosetta, etc
-                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
+                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>$fGrams100, 'psp'=>$psp]);
                 $raOut['total_viable_pops'] = SLUtil::PopsFromSeeds($raOut['total_viable_seeds'], ['psp'=>$psp]);
             }
 
@@ -725,10 +726,10 @@ this is for sure not the best place to put this
                 /* Note that everything returned by this method has QCharset, so avoid double-converting by clients.
                  */
                 $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
-                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
+                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>$fGrams100, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
-                $fPopsRaw             = SLUtil::PopsFromSeeds(SLUtil::SeedsFromGrams($g, ['g_100'=>$fGrams100Median, 'psp'=>$psp]), ['psp'=>$psp]);   // not considering germ rate
-                
+                $fPopsRaw             = SLUtil::PopsFromSeeds(SLUtil::SeedsFromGrams($g, ['g_100'=>$fGrams100, 'psp'=>$psp]), ['psp'=>$psp]);   // not considering germ rate
+
                 $loc = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T';
                 $invnum = $kfrcI->Value('inv_number');
                 $raOut['raIxA']["0$y $i"] = $this->QCharsetFromLatin(
