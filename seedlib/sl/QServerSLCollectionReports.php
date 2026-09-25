@@ -579,6 +579,12 @@ this is for sure not the best place to put this
                   'notes'                  => $sNotes,           // already QCharset in the method that aggregates it
                   'raIxA'                  => @$ra['raIxA'] ?? [],
                   'sIxA'                   => $ra['sIxA'],
+
+                  // deprecate, only used for writing to Management Master spreadsheet
+                  'newest_lot_year'        => $ra['yNewest'],
+                  'newest_lot_grams'       => $ra['newest_lot_grams'],
+                  'newest_lot_germ_result' => $ra['newest_lot_germ_result'],
+                  'newest_lot_germ_year'   => $ra['newest_lot_germ_year'],
                  ];
 
         return( $raOut );
