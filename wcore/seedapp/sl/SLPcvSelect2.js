@@ -5,7 +5,7 @@
    Documentation: https://select2.org
 
    Usage:
-       <select id='pcvChooseOne' style='width:40em'><option value='0'>Choose a cultivar</option></select>
+       <select id='pcvChooseOne' name='pcvChooseOne' style='width:40em'><option value='0'>Choose a cultivar</option></select>
 
        <script>let o = new SLPcvSelect2( { jSelect: $('#pcvChooseOne'),
                                            qUrl: '{$this->oP->oApp->UrlQ()}' } );
