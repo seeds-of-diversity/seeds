@@ -1,13 +1,13 @@
-/* Selector tool for choosing a contact from MbrContacts
+/* Selector tool for choosing a pcv from sl_pcv
 
    Requires: select2.js
 
    Documentation: https://select2.org
 
    Usage:
-       <select id='mbrChooseOne' style='width:40em'><option value='0'>Choose a member</option></select>
+       <select id='pcvChooseOne' style='width:40em'><option value='0'>Choose a cultivar</option></select>
 
-       <script>let o = new SLPcvSelect2( { jSelect: $('#mbrChooseOne'),
+       <script>let o = new SLPcvSelect2( { jSelect: $('#pcvChooseOne'),
                                            qUrl: '{$this->oP->oApp->UrlQ()}' } );
        </script>
 */
