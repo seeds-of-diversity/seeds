@@ -27,16 +27,31 @@ class SLUtil
      *
      * @param SLDBCollection $oSLDB
      * @param int $kPcv
-     * @return float grams or 0 if not found
+     * @return float grams or 0.0 if not found
      */
-    static function Grams100MedianFromPcv( SLDBCollection $oSLDB, int $kPcv )
+    static function Grams100MedianFromPcv( SLDBCollection $oSLDB, int $kPcv ) : float
     {
-        $fG100 = 0.0;
-
         $ra = $oSLDB->Get1List('A', 'g_100', "fk_sl_pcv='$kPcv' AND g_100<>0");
 
 //median would be better
-        return( count($ra) ? (array_sum($ra) / count($ra)) : 0.0 );
+        return( count($ra) ? (floatval(array_sum($ra)) / floatval(count($ra))) : 0.0 );
+    }
+
+    /**
+     * Typical grams of 100 seeds for the given species
+     *
+     * @param string $psp
+     * @return float grams or 0.0 if not found
+     */
+    static function Grams100FromPsp( string $psp ) : float
+    {
+        $g100 = 0.0;
+
+        if( ($seedsPerGram = self::GetSeedsPerGram($psp)) ) {
+            $g100 = (100.0 / floatval($seedsPerGram));
+        }
+
+        return($g100);
     }
 
     /**

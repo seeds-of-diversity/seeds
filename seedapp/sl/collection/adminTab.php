@@ -62,15 +62,22 @@ class CollectionAdmin
                     $rQ = (new QServerSLCollectionReports($this->oApp))->Cmd('collreport-cultivarlist_active_lots_combined', $raQCmdParms);
 //var_dump($rQ['raOut'][0]);
                     if( $rQ['bOk'] ) {
-                        $raG[] = ['cv','species','cultivar','csci_count','adoption','total g','est total viable g','est total viable pops','notes'];
+                        $raG[] = ['cv','species','cultivar','csci_count','adoption',
+                                  'newest_lot_year','total g','newest_lot_grams','newest_lot_germ_result','newest_lot_germ_year',
+                                  'est total viable g','est total viable pops','notes'];
                         foreach($rQ['raOut'] as $ra) {
-                            $raG[] = [$ra['kPcv'],$ra['species'],$ra['cultivar'],$ra['csci_count'],$ra['adoption']??'',
-                                      $ra['total_grams']??0,$ra['est_total_viable_grams']??0,$ra['est_total_viable_pops']??0,$ra['notes']??""];
+                            $raG[] = [$ra['kPcv'], $ra['species'], $ra['cultivar'], $ra['csci_count'], $ra['adoption']??'',
+                                      $ra['newest_lot_year'],         // deprecate
+                                      $ra['total_grams']??0,
+                                      $ra['newest_lot_grams'],        // deprecate
+                                      $ra['newest_lot_germ_result'],  // deprecate
+                                      $ra['newest_lot_germ_year'],    // deprecate
+                                      $ra['est_total_viable_grams']??0, $ra['est_total_viable_pops']??0, $ra['notes']??""];
                         }
                         //$raG = SEEDCore_utf8_encode($raG);    using config_bUTF8=true above
 //var_dump($raG);
                         $nBottom = count($raG)+1;
-                        $oGoogleSheet->WriteValues($nameSheet."!A1:I{$nBottom}", $raG);
+                        $oGoogleSheet->WriteValues($nameSheet."!A1:M{$nBottom}", $raG);
                         $this->oApp->oC->AddUserMsg("Wrote table to google sheet");
                     }
                     break;
