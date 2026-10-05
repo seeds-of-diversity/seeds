@@ -150,7 +150,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                ||| *Request*    || [[value:sPCV_request]]
                ||| *Amount*     || [[value:amount]]
                ||| *Received*   || [[value:D_date_received]]
-               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+               ||| *Variety adopted*    || <span id='cultivarText_static'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
                ||| &nbsp        || &nbsp;
                ||| *Notes*      || <div style='border:1px solid #aaa;padding:5px'>[[nl2br: [[Value:notes]] ]]</div>
                ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n
