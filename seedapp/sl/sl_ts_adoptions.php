@@ -190,6 +190,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                [[hiddenkey:]]
 
                <script>let o = new SLPcvSelect2( { jSelect: $('#sfAp_fk_sl_pcv'),
+                                                   jLabel: $('#cultivarText'),
                                                    qUrl: '{$this->oApp->UrlQ()}' } );
                </script>
 
