@@ -75,14 +75,20 @@ class SLSearchApp
 
     function Style()
     {
+        // !important because this is in conflict with wordpress theme's css
         return( "
             <style>
-            .sl_srch_heading          { background-color:#777; font-weight:bold; padding:5px 15px; color:white; }
-            .sl_srch_heading h2       { font-size:18pt }
-            .sl_srch_heading h3       { font-size:14pt }
-            .sl_srch_header_cvname    { font-size:22pt;font-weight:bold }
+            .sl_srch_heading          { position: relative !important; background-color:#777 !important; padding:5px 15px !important; }
+            .sl_srch_heading h2       { font-size:18pt !important; font-weight:bold !important; color:white !important; }
+            .sl_srch_heading h3,
+                .sl_srch_body h3      { font-size:14pt !important; font-weight:bold !important; color:white !important; }
+            .sl_srch_header_cvname    { font-size:22pt !important; font-weight:bold !important; color:white !important; }
             .sl_srch_heading_srchctrl { position:absolute; top:10px; right:30px; color:black; }
+            .sl_srch_heading_srchctrl input  { height: 30px; padding:3px }
+            .sl_srch_heading_srchctrl button { height: 30px; padding:3px; width: 60px; font-size:15px }
             .sl_srch_body             { margin: 20px }
+            .sl_srch_body h3          { font-size:14pt !important;  }
+            .sl_srch_body h4          { font-size:14pt !important }
             .sl_srch_roundbox         { border:1px solid #888; border-radius:5px; padding:10px; margin-bottom:10px; max-width:30em; }
             </style>
             ");
@@ -95,7 +101,7 @@ class SLSearchApp
         /* Keyword search - find all pcv that match the keyword
          */
         $o = new QServerRosetta( $this->oApp );
-        $rQ = $o->Cmd( 'rosetta-cultivarSearch', ['sSrch'=>$sSrch] );
+        $rQ = $o->Cmd( 'rosetta-cultivarSearch', ['sSrch'=>$sSrch,'eDatasets'=>' ALL '] );
         if( count($rQ['raOut']) ) {
             $sTitle = "<h2>Here are some seeds that match <span class='sl_srch_header_cvname'>\"".SEEDCore_HSC($sSrch)."\"</span></h3>";
             $sBody = "<h4 style='margin-bottom:30px;'><span style='background-color:#ddd;padding:10px;border-radius:10px'>Click each name for more information</span></h4>";
