@@ -2,7 +2,7 @@
 
 /* RosettaSEED app
  *
- * Copyright (c) 2014-2024 Seeds of Diversity Canada
+ * Copyright (c) 2014-2026 Seeds of Diversity Canada
  *
  */
 
@@ -11,9 +11,9 @@ include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/QServerRosetta.php" );
 
-include_once( "rosetta_ts_cultivars.php" );
-include_once( "rosetta_ts_cultivarsyn.php" );
-include_once( "rosetta_ts_species.php" );
+include_once("rosetta/rosetta_ts_cultivars.php" );
+include_once("rosetta/rosetta_ts_cultivarsyn.php" );
+include_once("rosetta/rosetta_ts_species.php" );
 include_once("rosetta/rosetta_ts_admin.php");
 
 $consoleConfig = [
