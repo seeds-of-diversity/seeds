@@ -647,7 +647,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
 
     private function newKfrel( $kfreldef )
     {
-        return( new Keyframe_Relation( $this->kfdb, $kfreldef, $this->uidOwnerOrAdmin, array('logfile'=>SITE_LOG_ROOT."seedsessionauth.log") ) );
+        return( new Keyframe_Relation( $this->kfdb, $kfreldef, $this->uidOwnerOrAdmin, array('logfile'=>SEED_LOG_DIR."seedsessionauth.log") ) );
     }
 }
 

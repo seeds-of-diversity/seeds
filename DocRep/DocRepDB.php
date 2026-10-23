@@ -1679,7 +1679,7 @@ class drRel extends Keyframe_NamedRelations
                    "Doc" =>  array( "Table" => "{$this->sDB}docrep2_docs",      "Fields" => "Auto" ) ) );
 
 
-        $raParms = defined('SITE_LOG_ROOT') ? array( 'logfile' => $logdir."docrep2.log" ) : array();
+        $raParms = $logdir ? ['logfile'=>$logdir."docrep2.log"] : [];
         $raKfrel = array();
         $raKfrel['Doc']              = new KeyFrame_Relation( $kfdb, $kdefDoc,      $uid, $raParms );
         $raKfrel['Data']             = new KeyFrame_Relation( $kfdb, $kdefData,     $uid, $raParms );
