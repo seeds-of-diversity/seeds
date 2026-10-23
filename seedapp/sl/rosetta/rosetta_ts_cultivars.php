@@ -8,6 +8,7 @@
 include_once("rosetta_ts_cultivars_ts_synonyms.php");
 include_once(SEEDLIB."sl/sl_integrity.php");
 include_once(SEEDLIB."sl/sources/sl_sources_rosetta.php");      // to reindex cultivars after add/rename/delete of pname/sname
+include_once(SEEDLIB."sl/sl_rosetta_ui.php");
 
 class RosettaCultivarListForm extends KeyframeUI_ListFormUI
 {
@@ -54,11 +55,6 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
      */
     function FormTemplate( SEEDCoreForm $oForm )
     {
-        // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
-        $raPCVReport = ($kPcv = $this->oComp->Get_kCurr()) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv, " ALL ") : [];
-        $sSyn   = @$raPCVReport['syn'] ?? "";
-        $sStats = @$raPCVReport['stats'] ?? "";
-
         // get all species for dropdown
         $raSpOpts = ["-- Choose --"=>0];
         foreach( $this->oSLDB->GetList('S', "", ['sSortCol'=>'psp']) as $ra ) {
@@ -80,9 +76,7 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
         $s = $this->oComp->DrawFormEditLabel('Cultivar')
             ."<div class='container-fluid'><div class='row'>
                   <div class='col-md-9'>{$sForm}</div>
-
-show this in Overview not Edit
-                  <div class='col-md-3'>{$sSyn}{$sStats}</div>
+                  <div class='col-md-3'><div style='margin:1em;border:1px solid #aaa'>Tags</div></div>
               </div></div>"
             ."[[hiddenkey:]]"
             ."<INPUT type='submit' value='Save'>";
@@ -119,7 +113,7 @@ show this in Overview not Edit
          *      i.e. the UI state is not based on the deleted row.
          *      This means you have to get rosetta-cultivaroverview for the deleted row here.
          */
-        $rQ = (new QServerRosetta($this->oApp))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$oDS->Key()]);
+        $rQ = (new QServerRosetta($this->oApp,['config_bUTF8'=>false]))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$oDS->Key()]);    // this app encodes output to utf8
         $raOverview = $rQ['bOk'] ? $rQ['raOut'] : [];
 
         // Don't delete a cultivar if it's referenced in a table (return false to disallow delete)
@@ -174,7 +168,34 @@ class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
 
         if( !$this->kPcv )  goto done;
 
-        $s = "<div>{$this->kPcv}</div>";
+        $rQ = (new QServerRosetta($this->oApp,['config_bUTF8'=>false]))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$this->kPcv]);    // this app encodes output to utf8
+        if( !$rQ['bOk'] ) goto done;
+
+        // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
+        $raPCVReport = $this->kPcv ? SLIntegrity::GetPCVReport($this->oApp, $this->kPcv, " ALL ") : [];
+        $sSyn   = @$raPCVReport['syn'] ?? "";
+        $sStats = @$raPCVReport['stats'] ?? "";
+
+        $sOrigin = $sNotes = "";
+        if( ($kfr = (new SLDBRosetta($this->oApp))->GetKFR('PxS', $this->kPcv)) ) {
+            $sOrigin = $kfr->Value('originHistory');
+            $sNotes = $kfr->Value('notes');
+        }
+
+        $s = SLRosettaUI::Style()
+            ."<h4>".SLRosettaUI::DrawCultivarName($rQ['raOut'])."</h4>
+              <div class='container-fluid'>
+              <div class='row'>
+                  <div class='col-md-4'>".SLRosettaUI::DrawPacketLabel($rQ['raOut'])."</div>
+                  <div class='col-md-4'>{$sSyn}</div>
+                  <div class='col-md-4'>{$sStats}</div>
+              </div>
+              <div class='row'>
+                  <div class='col-md-4'><p><b>Origin/History</b></p><div style='border:1px solid #aaa;padding:0.5em'>{$sOrigin}&nbsp;</div></div>
+                  <div class='col-md-4'><p><b>Notes</b></p>         <div style='border:1px solid #aaa;padding:0.5em'>{$sNotes}&nbsp;</div></div>
+              </div>
+              </div>
+             ";
 
         done:
         return($s);

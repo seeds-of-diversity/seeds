@@ -27,7 +27,7 @@ $consoleConfig = [
                                         'speciessyn'   => ['label'=>'Species Synonyms'],
                                         'admin'        => ['label'=>'Admin']
                                       ],
-                            'perms' =>[ 'cultivar'     => ["W SL"],
+                            'perms' =>[ 'cultivar'     => ["R SL"],         // W SL perm is enforced by subtab perms (Edit, Synonym, etc)
                                         'species'      => ["W SL"],
                                         'speciessyn'   => ["W SLbob"],
                                         'cultivarsyn'  => ["W SLbob"],
@@ -42,8 +42,8 @@ $consoleConfig = [
                                                 'synonyms'   => ['label'=>'Synonyms'],
                                                 'adoption'   => ['label'=>'Adoption'],
                                                ],
-                                     'perms'=> ['overview'   => ["W notyet"],
-                                                'edit'       => ["W SL"],
+                                     'perms'=> ['overview'   => ["R SL"],       // readonly functionality here
+                                                'edit'       => ["W SL"],       // write functionality here
                                                 'synonyms'   => ["W SL"],
                                                 'adoption'   => ["W SLAdoption"],
                                                 '|'  // allows screen-login even if some tabs are ghosted
