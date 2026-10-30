@@ -9,7 +9,7 @@
  */
 
 include_once(SEEDLIB."sl/QServerRosetta.php");
-include_once(SEEDLIB."sl/sl_rosetta_ui.php");
+include_once(SEEDLIB."sl/sl_report_ui.php");
 
 
 class SLSearchApp
@@ -30,7 +30,7 @@ class SLSearchApp
         if( $sSrch )  $this->oFormSearch->SetValue('search', $sSrch);
 
         $s = $this->Style()
-            .SLRosettaUI::Style();
+            .SLReportUI::Style();
 
         $sTitle = "";
 
@@ -143,11 +143,11 @@ class SLSearchApp
 
         /* Main Heading
          */
-        $sTitle .= "<h2><span class='sl_srch_header_cvname'>".SLRosettaUI::DrawCultivarName($rQ['raOut'])."</span>".SEEDCore_NBSP('',10)."Here's everything we know about it</h2>";
+        $sTitle .= "<h2><span class='sl_srch_header_cvname'>".SLReportUI::DrawCultivarName($rQ['raOut'])."</span>".SEEDCore_NBSP('',10)."Here's everything we know about it</h2>";
 
         /* Packet label and Synonyms - these are written even if empty
          */
-        $raOut['packetlabel'] = SLRosettaUI::DrawPacketLabel($rQ['raOut']);
+        $raOut['packetlabel'] = SLReportUI::DrawPacketLabel($rQ['raOut']);
         $raOut['synonyms'] = ($raSyn = $oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'"))
                                 ? ("Also known as:<div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raSyn,"[[name]]<br/>")."</div>") : "";
 
@@ -190,7 +190,7 @@ class SLSearchApp
                        <p>Seeds of Diversity backs up rare and endangered heritage seeds in a national collection,
                           engages volunteers to multiply them, and redistributes seeds to community groups and seed swaps all across Canada.
                           Find out how you can help!</p>
-                       <p>We have these samples of ".SLRosettaUI::DrawCultivarName($rQ['raOut'])." in storage:</p>";
+                       <p>We have these samples of ".SLReportUI::DrawCultivarName($rQ['raOut'])." in storage:</p>";
             foreach( $rQ['raOut']['raIxA']  as $ra ) {
                 $y = ($y = $ra['year_harvested'] ?: $ra['year_received']) ? " from $y" : "";
                 $raOut['sl_collection'] .= "<div style='margin-left:50px'>Lot #{$ra['inv_number']}: {$ra['g_weight']} grams $y</div>";

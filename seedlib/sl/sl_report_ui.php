@@ -1,14 +1,14 @@
 <?php
 
-/* SL Rosetta UI
+/* SL Report UI
  *
  * Copyright 2026 Seeds of Diversity Canada
  *
- * Common display methods for species and cultivars
+ * Common methods for reporting cultivarData
  */
 
 
-class SLRosettaUI
+class SLReportUI
 {
     private $oApp;
 
@@ -21,7 +21,7 @@ class SLRosettaUI
     {
         return( "
             <style>
-            .sl_rosettaui_packetLabel { border:1px solid #888; border-radius:5px; padding:10px; margin-bottom:10px; max-width:30em; }
+            .slreportui_packetLabel { border:1px solid #888; border-radius:5px; padding:10px; margin-bottom:10px; max-width:30em; }
             </style>
         ");
     }
@@ -33,5 +33,5 @@ class SLRosettaUI
         return( "{$sNameCultivar} {$sNameSpecies}" );
     }
 
-    static function DrawPacketLabel( array $raCVData )   { return( ($p = @$raCVData['PxS']['P_packetLabel']) ? "<div class='sl_rosettaui_packetLabel'>$p</div>" : "" ); }
+    static function DrawPacketLabel( array $raCVData )   { return( ($p = @$raCVData['PxS']['P_packetLabel']) ? "<div class='slreportui_packetLabel'>$p</div>" : "" ); }
 }

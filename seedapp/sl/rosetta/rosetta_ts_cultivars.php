@@ -8,7 +8,7 @@
 include_once("rosetta_ts_cultivars_ts_synonyms.php");
 include_once(SEEDLIB."sl/sl_integrity.php");
 include_once(SEEDLIB."sl/sources/sl_sources_rosetta.php");      // to reindex cultivars after add/rename/delete of pname/sname
-include_once(SEEDLIB."sl/sl_rosetta_ui.php");
+include_once(SEEDLIB."sl/sl_report_ui.php");
 
 class RosettaCultivarListForm extends KeyframeUI_ListFormUI
 {
@@ -182,11 +182,11 @@ class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
             $sNotes = $kfr->Value('notes');
         }
 
-        $s = SLRosettaUI::Style()
-            ."<h4>".SLRosettaUI::DrawCultivarName($rQ['raOut'])."</h4>
+        $s = SLReportUI::Style()
+            ."<h4>".SLReportUI::DrawCultivarName($rQ['raOut'])."</h4>
               <div class='container-fluid'>
               <div class='row'>
-                  <div class='col-md-4'>".SLRosettaUI::DrawPacketLabel($rQ['raOut'])."</div>
+                  <div class='col-md-4'>".SLReportUI::DrawPacketLabel($rQ['raOut'])."</div>
                   <div class='col-md-4'>{$sSyn}</div>
                   <div class='col-md-4'>{$sStats}</div>
               </div>
