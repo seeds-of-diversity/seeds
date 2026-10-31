@@ -2,7 +2,7 @@
 
 /* SEEDCoreFormSession
  *
- * Copyright 2019 Seeds of Diversity Canada
+ * Copyright 2026 Seeds of Diversity Canada
  *
  * Implement a SEEDCoreForm using a session namespace
  */
@@ -73,6 +73,20 @@ class SEEDCoreFormSVA extends SEEDCoreForm
     {
         $this->oDS = new SEEDDataStoreSVA( $oSVA, @$raConfig['DSParms'] ?: array() );
         $this->oSVACtrlGlobal = $oSVA->CreateChild( "_ctrlGlobal" );
+        parent::__construct( $cid, $raConfig );
+    }
+}
+
+
+include_once( SEEDCORE."SEEDDataStoreStringBucket.php" );
+class SEEDCoreFormStringBucket extends SEEDCoreForm
+/*****************************
+    Same as SEEDCoreForm but store the data in a SEEDMetaTable_StringBucket
+ */
+{
+    function __construct( SEEDAppDB $oApp, string $namespace, $cid = null, $raConfig = [] )
+    {
+        $this->oDS = new SEEDDataStoreStringBucket($oApp, $namespace, @$raConfig['DSParms'] ?: []);
         parent::__construct( $cid, $raConfig );
     }
 }

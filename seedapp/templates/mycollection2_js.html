@@ -54,9 +54,15 @@ var config = {
                              oCP.SetVar( 'psp', o['raOut']['PxS']['S_psp'] );
                              oCP.SetVar( 't_sname', o['raOut']['PxS']['S_name_en'] );
                              oCP.SetVar( 't_pname', o['raOut']['PxS']['P_name'] );
-//                             oCP.SetVar( 'fk_sl_pcv', o['raOut']['PxS']['P__key'] );
-                             oCP.SetVar( 'fk_sl_pcv', kPcv );
+                             // Due to a strange case this won't work well: oCP.SetVar( 'fk_sl_pcv', kPcv );
+                             // If you enter the iParent instead of using the kPcv selector, FormValGet('fk_sl_pcv')==0
+                             // After this code, StoreVars() copies form values to cpVars, so GetVar('fk_sl_pcv') would be reset to 0.
+                             // Another fix would be to set the kPcv selector so StoreVars would put that value back in cpVars['fk_sl_pcv']) but Select2 needs some special way do that it seems. 
+                             // So from here on, GetVar('kPcv') gets you the kPcv.
+                             oCP.SetVar('kPcv', kPcv);
                              oCP.SetVar( 'sTable_IxA', o['raOut']['sTable_IxA']);
+                             oCP.SetVar('fG100_cv', o['raOut']['raStats']['fG100_cv']);
+                             oCP.SetVar('fG100_sp', o['raOut']['raStats']['fG100_sp']);
 //                             bCV = true;
                              nextPage = "Origin";
                          } else { console.log(o); }
@@ -106,12 +112,33 @@ var config = {
                  model: 'LoadStore',
                  fnPre: function() {
                      let heading = oCP.GetVar('heading');
+                     let kPcv = oCP.GetVar('kPcv');
+
                      oCP.FormValSet('heading', heading + `<br/>by ${oCP.GetVar('supplier')} in ${oCP.GetVar('year')} with rating ${oCP.GetVar('iGrowerRating')}`);
                      $('#myc_collreport').html(oCP.GetVar('sTable_IxA'));
                      let pop = SLUtil_PopulationCommercial[oCP.GetVar('psp')];
                      if(typeof(pop) != 'undefined' && pop != 0) {
                          oCP.FormValSet('pop', pop);
                      }
+                     
+                     /* get g100 options and load them into the mode_g100 select
+                      */
+                     let jxData = { qcmd : 'collection-getG100',
+                                    kPcv : kPcv
+                                  };
+                     console.log(jxData);
+                     let o = SEEDJXSync( urlQ, jxData );
+                     if( o && o['bOk'] ) {
+                     }
+                     let sSelect = `<select id='mode_g100'>
+                         <option value=''>Count and weigh</option>
+                         <option value='[g100-cv]'>Median of this cultivar = [g100-cv]</option>
+                         <option value='[g100-sp]'>Typical for this species = [g100-sp]</option>
+                     </select>`;
+                     sSelect = sSelect.replaceAll("[g100-cv]", oCP.GetVar('fG100_cv'));
+                     sSelect = sSelect.replaceAll("[g100-sp]", oCP.GetVar('fG100_sp'));
+                     $('#mode_g100_container').html(sSelect);
+                     $('#mode_g100').on('change', function() {let g = $('#mode_g100').val(); $('#g100').val(g);});  // copy the <option> to the text box
                  },
                  fnPost: function() {
                      let g100 = oCP.FormValFloat('g100');

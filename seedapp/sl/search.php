@@ -2,13 +2,15 @@
 
 /* search app
  *
- * Copyright 2024 Seeds of Diversity Canada
+ * Copyright 2024-2026 Seeds of Diversity Canada
  *
  * Search for a variety.
  * Report everything we know about a variety.
  */
 
-include_once( SEEDLIB."sl/QServerRosetta.php" );
+include_once(SEEDLIB."sl/QServerRosetta.php");
+include_once(SEEDLIB."sl/sl_report_ui.php");
+
 
 class SLSearchApp
 {
@@ -27,7 +29,8 @@ class SLSearchApp
         if( $kPcv )   $this->oFormSearch->SetValue('cv', $kPcv);
         if( $sSrch )  $this->oFormSearch->SetValue('search', $sSrch);
 
-        $s = $this->Style();
+        $s = $this->Style()
+            .SLReportUI::Style();
 
         $sTitle = "";
 
@@ -75,15 +78,20 @@ class SLSearchApp
 
     function Style()
     {
+        // !important because this is in conflict with wordpress theme's css
         return( "
             <style>
-            .sl_srch_heading          { background-color:#777; font-weight:bold; padding:5px 15px; color:white; }
-            .sl_srch_heading h2       { font-size:18pt }
-            .sl_srch_heading h3       { font-size:14pt }
-            .sl_srch_header_cvname    { font-size:22pt;font-weight:bold }
+            .sl_srch_heading          { position: relative !important; background-color:#777 !important; padding:5px 15px !important; }
+            .sl_srch_heading h2       { font-size:18pt !important; font-weight:bold !important; color:white !important; }
+            .sl_srch_heading h3,
+                .sl_srch_body h3      { font-size:14pt !important; font-weight:bold !important; color:white !important; }
+            .sl_srch_header_cvname    { font-size:22pt !important; font-weight:bold !important; color:white !important; }
             .sl_srch_heading_srchctrl { position:absolute; top:10px; right:30px; color:black; }
+            .sl_srch_heading_srchctrl input  { height: 30px; padding:3px }
+            .sl_srch_heading_srchctrl button { height: 30px; padding:3px; width: 60px; font-size:15px }
             .sl_srch_body             { margin: 20px }
-            .sl_srch_roundbox         { border:1px solid #888; border-radius:5px; padding:10px; margin-bottom:10px; max-width:30em; }
+            .sl_srch_body h3          { font-size:14pt !important;  }
+            .sl_srch_body h4          { font-size:14pt !important }
             </style>
             ");
     }
@@ -94,12 +102,12 @@ class SLSearchApp
 
         /* Keyword search - find all pcv that match the keyword
          */
-        $o = new QServerRosetta( $this->oApp );
-        $rQ = $o->Cmd( 'rosetta-cultivarSearch', ['sSrch'=>$sSrch] );
+        $rQ = (new QServerRosetta( $this->oApp ))->Cmd( 'rosetta-cultivarSearch', ['sSrch'=>$sSrch,'eDatasets'=>' ALL '] );
         if( count($rQ['raOut']) ) {
             $sTitle = "<h2>Here are some seeds that match <span class='sl_srch_header_cvname'>\"".SEEDCore_HSC($sSrch)."\"</span></h3>";
             $sBody = "<h4 style='margin-bottom:30px;'><span style='background-color:#ddd;padding:10px;border-radius:10px'>Click each name for more information</span></h4>";
             foreach( $rQ['raOut'] as $k => $ra ) {
+// about ... syn ... stats incl adoption
                 $sBody .= "<div><h4><a href='?sfSp_cv={$ra['kPcv']}'>{$ra['sSpecies']}, {$ra['sCultivar']}</a></h4>
                                <p style='margin-left:30px'>{$ra['about_cultivar']}</p>
                            </div>";
@@ -125,8 +133,7 @@ class SLSearchApp
         $sTitle = $sBody = "";
         $raOut = [];
 
-        $o = new QServerRosetta( $this->oApp );
-        $rQ = $o->Cmd( 'rosetta-cultivaroverview', ['kPcv'=>$kPcv] );
+        $rQ = (new QServerRosetta( $this->oApp ))->Cmd( 'rosetta-cultivaroverview', ['kPcv'=>$kPcv] );
         if( !$rQ['bOk'] ) {
             $sBody .= "<div class='alert alert_warning'>Sorry, apparently we don't know much about that variety.</div>";
             goto done;
@@ -136,13 +143,11 @@ class SLSearchApp
 
         /* Main Heading
          */
-        $sNameSpecies = @$rQ['raOut']['PxS']['S_name_en'] ?: "Unknown species";
-        $sNameCultivar = @$rQ['raOut']['PxS']['P_name']   ?: "Unknown cultivar";
-        $sTitle .= "<h2><span class='sl_srch_header_cvname'>{$sNameCultivar} {$sNameSpecies}</span>".SEEDCore_NBSP('',10)."Here's everything we know about it</h2>";
+        $sTitle .= "<h2><span class='sl_srch_header_cvname'>".SLReportUI::DrawCultivarName($rQ['raOut'])."</span>".SEEDCore_NBSP('',10)."Here's everything we know about it</h2>";
 
         /* Packet label and Synonyms - these are written even if empty
          */
-        $raOut['packetlabel'] = ($p = @$rQ['raOut']['PxS']['P_packetLabel']) ? "<div class='sl_srch_roundbox'>$p</div>" : "";
+        $raOut['packetlabel'] = SLReportUI::DrawPacketLabel($rQ['raOut']);
         $raOut['synonyms'] = ($raSyn = $oSLDB->GetList('PY', "fk_sl_pcv='$kPcv'"))
                                 ? ("Also known as:<div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raSyn,"[[name]]<br/>")."</div>") : "";
 
@@ -155,16 +160,7 @@ class SLSearchApp
 
         /* Sources
          */
-        $cSrc = count($rQ['raOut']['raSrc']);
-        $raOut['csci'] = "<h3 class='sl_srch_heading'>Where you can buy it in Canada".($cSrc ? (" ($cSrc companies)") : "")."</h3>";
-        if( $cSrc ) {
-            $raOut['csci'] .= "<div style='border:1px solid white;max-height:200px;overflow-y:auto;width:50%'>"
-                     .SEEDCore_ArrayExpandRows( $rQ['raOut']['raSrc'],
-                                                "<div><a href='http://[[SRC_web]]' target='_blank'>[[SRC_name_en]] in [[SRC_prov]]</a></div>" )
-                     ."</div>";
-        } else {
-            $raOut['csci'] .= "<p>We don't know of any Canadian seed companies that sell this. If you do, please tell us.</p>";
-        }
+        $raOut['csci'] = SLReportUI::DrawSources($rQ['raOut']);
 
         /* Seed Exchange
          */
@@ -185,7 +181,7 @@ class SLSearchApp
                        <p>Seeds of Diversity backs up rare and endangered heritage seeds in a national collection,
                           engages volunteers to multiply them, and redistributes seeds to community groups and seed swaps all across Canada.
                           Find out how you can help!</p>
-                       <p>We have these samples of $sNameCultivar $sNameSpecies in storage:</p>";
+                       <p>We have these samples of ".SLReportUI::DrawCultivarName($rQ['raOut'])." in storage:</p>";
             foreach( $rQ['raOut']['raIxA']  as $ra ) {
                 $y = ($y = $ra['year_harvested'] ?: $ra['year_received']) ? " from $y" : "";
                 $raOut['sl_collection'] .= "<div style='margin-left:50px'>Lot #{$ra['inv_number']}: {$ra['g_weight']} grams $y</div>";

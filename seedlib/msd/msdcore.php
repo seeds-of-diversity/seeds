@@ -908,7 +908,7 @@ class MSDBasketCore extends SEEDBasketCore
                              array( 'seeds'=>SEEDBasketProducts_SoD::$raProductTypes['seeds'] ),
 
                              ['fn_sellerNameFromUid' => [$this,"cb_SellerNameFromUid"],
-                              'logdir'=>SITE_LOG_ROOT,      // SEEDBasketCore should get this from oApp instead
+                              'logdir'=>SEED_LOG_DIR,      // SEEDBasketCore should get this from oApp instead
                               'sbdb_config' =>
                                      ['raCustomProductKfrelDefs' => ['PxPEMSD' => $this->GetSeedKeys('PRODEXTRA')],
                                       'sbdb' => @$raConfig['sbdb'] ?: 'seeds1'

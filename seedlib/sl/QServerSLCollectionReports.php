@@ -142,12 +142,12 @@ $rQ['raOut'] = $this->getInvDetailsForPCV($parms['kPcv'], $parms['kCollection'],
                 /* format an html table showing the IxA status
 this is for sure not the best place to put this
                  */
-                $rQ['raOut']['sTable_IxA'] = "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est viable pops</th></tr>";
+                $rQ['raOut']['sTable_IxA'] = "<table><tr><th>&nbsp;</th><th>&nbsp;</th><th style='text-align:center'>germ</th><th style='text-align:center'>est-viable / total pops</th></tr>";
                 foreach( (@$rQ['raOut']['raIxA'] ?? []) as $kEncodesYear => $raI ) {
                     $sCol1 = "<nobr>{$raI['location']} {$raI['inv_number']}: {$raI['g_weight']} g</nobr>";
                     $sCol2 = ($y = intval($kEncodesYear)) ?: "";
                     $sCol3 = $raI['latest_germtest_date'] ? "<nobr>{$raI['latest_germtest_result']}% on {$raI['latest_germtest_date']}</nobr>" : "";
-                    $sCol4 = $raI['pops_estimate'];
+                    $sCol4 = "{$raI['pops_estimate']} / {$raI['pops_raw']}";
 
                     $rQ['raOut']['sTable_IxA'] .= "<tr><td style='padding:0 1em;border:1px solid #bbb'>$sCol1</td>
                                <td style='padding:0 1em;border:1px solid #bbb'>$sCol2</td>
@@ -579,6 +579,12 @@ this is for sure not the best place to put this
                   'notes'                  => $sNotes,           // already QCharset in the method that aggregates it
                   'raIxA'                  => @$ra['raIxA'] ?? [],
                   'sIxA'                   => $ra['sIxA'],
+
+                  // deprecate, only used for writing to Management Master spreadsheet
+                  'newest_lot_year'        => $ra['yNewest'],
+                  'newest_lot_grams'       => $ra['newest_lot_grams'],
+                  'newest_lot_germ_result' => $ra['newest_lot_germ_result'],
+                  'newest_lot_germ_year'   => $ra['newest_lot_germ_year'],
                  ];
 
         return( $raOut );
@@ -635,7 +641,7 @@ this is for sure not the best place to put this
             }
         }
 
-        $fGrams100Median = SLUtil::Grams100MedianFromPcv($this->oSLDB, $kPCV);
+        $fGrams100Median = SLUtil::Grams100MedianFromPcv($this->oSLDB, $kPCV);  // use this if g_100 is not defined for a particular lot
 
         /* Get all IxA for this cultivar.
          * Count the total weight and find the newest lot.
@@ -652,6 +658,8 @@ this is for sure not the best place to put this
 
             $g = intval($kfrcI->Value('g_weight')*1000.0)/1000.0;     // round to 0.001
             $raOut['nWeightTotal'] += $g;
+
+            $fGrams100 = $kfrcI->Value('g_100') ?: $fGrams100Median;
 
             // sometimes these fields contain a date and sometimes just the year. Mysql doesn't allow dates to just be years, so these are plain strings.
             $yHarvested = intval(substr($kfrcI->Value('A_x_d_harvest'),0,4));
@@ -716,8 +724,7 @@ this is for sure not the best place to put this
                 }
 
                 $raOut['total_viable_grams'] += ($g * $nGermNow) / 100.0;
-// look up g_100 for lot, another lot of the same pcv, rosetta, etc
-                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
+                $raOut['total_viable_seeds'] = SLUtil::SeedsFromGrams($raOut['total_viable_grams'], ['g_100'=>$fGrams100, 'psp'=>$psp]);
                 $raOut['total_viable_pops'] = SLUtil::PopsFromSeeds($raOut['total_viable_seeds'], ['psp'=>$psp]);
             }
 
@@ -725,8 +732,9 @@ this is for sure not the best place to put this
                 /* Note that everything returned by this method has QCharset, so avoid double-converting by clients.
                  */
                 $fGramsViableEstimate = $bGetIxG ? (intval($g * $nGermNow) / 100.0) : 0;
-                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>$fGrams100Median, 'psp'=>$psp]);
+                $nSeedsViableEstimate = SLUtil::SeedsFromGrams($fGramsViableEstimate, ['g_100'=>$fGrams100, 'psp'=>$psp]);
                 $fPopsViableEstimate  = SLUtil::PopsFromSeeds($nSeedsViableEstimate, ['psp'=>$psp]);
+                $fPopsRaw             = SLUtil::PopsFromSeeds(SLUtil::SeedsFromGrams($g, ['g_100'=>$fGrams100, 'psp'=>$psp]), ['psp'=>$psp]);   // not considering germ rate
 
                 $loc = SEEDCore_StartsWith($kfrcI->Value('location'), 'P') ? 'P' : 'T';
                 $invnum = $kfrcI->Value('inv_number');
@@ -742,6 +750,7 @@ this is for sure not the best place to put this
                              'current_germ_model' => $nGermModel,
                              'g_weight_viable_estimate' => $fGramsViableEstimate,
                              'pops_estimate' => $fPopsViableEstimate,
+                             'pops_raw' => $fPopsRaw,
                              'notes' => (($bFullDetails && $bCanReadInternal) ? trim($kfr->Expand("[[notes]] [[A_notes]]")) : ""),
                             ]);
             }

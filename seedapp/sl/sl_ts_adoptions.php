@@ -62,21 +62,9 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
     function ControlDraw()
     {
         return( "<div style='float:right;background-color:white;padding:5px;border-radius:5px'>
-                     <form><input type='checkbox' onclick='doEditButton(this)'/> Edit mode</form>
                      <br/>Button to split current record</div>"
-                .$this->jsDoEditButton
                 .$this->DrawSearch() );
     }
-
-    private $jsDoEditButton = <<<JSEditButton
-        <script>
-        function doEditButton(that)
-        {
-            $(that).closest('form').submit();console.log($(that).closest('form'));
-        }
-        </script>
-JSEditButton;
-
 
     function ContentDraw()
     {
@@ -128,50 +116,102 @@ JSEditButton;
 
         $urlQ = SITEROOT_URL."app/q/index.php";     // rosettaPCVSearch is still in the original Q code
 
+        $sTicket = "";
+        if( ($kDonation = $oForm->Value('D__key')) ) {
+            /* Show the order ticket for this donation
+             */
+            include_once( SEEDAPP."basket/basketProductHandlers.php" );
+            $oSB = new SEEDBasketCoreSoD( $this->oApp );
+            $oHandler = new SEEDBasketProductHandler_Donation( $oSB );
+            if( ($oPur = $oHandler->GetPurchaseFromKDonation( $kDonation )) &&
+                ($kB = $oPur->GetBasketKey()) &&
+                ($kOrder = $this->oApp->kfdb->Query1("SELECT _key FROM {$this->oApp->GetDBName('seeds1')}.mbr_order_pending WHERE kBasket='$kB'")) )
+            {
+                // this is coming from seedsx
+                include_once( SEEDCOMMON."mbr/mbrOrder.php" );
+                $kfdb = SiteKFDB();
+                $oMbrOrder = new MbrOrder( $this->oApp, $kfdb, "EN", $kOrder );
+                $sTicket = $oMbrOrder->DrawTicket();
+            }
+        }
+
+
         $s =  "<style>
                .slAdoptionFormInfo { border:1px solid #aaa; margin:2em; padding:1em }
                </style>
 
-               <div class='container-fluid'>
-               <div class='row'><div class='col-md-6'>
+               <div class='container-fluid'><div class='row'>
+               <div class='col-md-6'>
+                   <div class='sladoptform_static'>
+                       |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+                       ||| *Adopter*    || $sAdopter ([[Value:fk_mbr_contacts]])
+                       ||| *Recognized as* || [[value:public_name]]
+                       ||| *Request*    || [[value:sPCV_request]]
+                       ||| *Amount*     || [[value:amount]]
+                       ||| *Received*   || [[value:D_date_received]]
+                       ||| *Variety adopted*    || <span id='cultivarText_static'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+                       ||| &nbsp        || &nbsp;
+                       ||| *Notes*      || <div style='border:1px solid #aaa;padding:5px'>[[nl2br: [[Value:notes]] ]]</div>
+                       ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n
+                       |||ENDTABLE
+                   </div>
+    
+                   <div class='sladoptform_edit' style='display:none'>
+                       |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
+                       ||| <input type='submit' value='Save'> || \n
+                       ||| *Adopter*    || $sAdopter ([[Value:fk_mbr_contacts]])
+                       ||| *Recognized as* || [[text:public_name | width:100%]]
+                       ||| *Request*    || [[text:sPCV_request | width:100%]]
+                       ||| *Amount*     || [[text:amount|readonly]]
+                       ||| *Received*   || [[text:D_date_received|readonly]]
+        
+                       ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
+                       ||| &nbsp;               || <div style='position:relative;display:none'>
+                                                   <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
+                                                   </div>
+                                                   [[hidden:fk_sl_pcvXXX]]
+                                                   <select id='sfAp_fk_sl_pcv' name='sfAp_fk_sl_pcv' style='width:40em'><option value='0'>Choose a cultivar</option></select>
+                       ||| &nbsp        || &nbsp;
+                       ||| *Notes*      || {$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )}
+                       |||ENDTABLE
+                   </div>
+    
+                   <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
+                   <div class='slAdoptionFormInfo'>{$sTicket}</div>
+               </div>
 
-               |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
-               ||| *Adopter*    || $sAdopter ([[text:fk_mbr_contacts|readonly]])
-               ||| *Recognized as* || [[text:public_name|readonly]]
-               ||| *Request*    || [[text:sPCV_request|readonly]]
-               ||| *Amount*     || [[text:amount|readonly]]
-               ||| *Received*   || [[text:D_date_received|readonly]]
+               <div class='col-md-6'>
+                   <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
+                   <div class='slAdoptionFormInfo'>{$this->getCollectionInfo($oForm)}</div>
+                   <div style='margin:2em'>{$sSyn}{$sStats}</div>
+               </div>
+               </div></div>
 
-               ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
-               ||| &nbsp;               || <div style='position:relative'>
-                                           <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
-                                           </div>
-                                           [[hidden:fk_sl_pcv]]
+               [[hiddenkey:]]
 
-               ||| &nbsp        || &nbsp;
-               ||| *Notes*      || {colspan='2'} ".$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )."
-               ||| &nbsp;       || <input type='submit' value='Save'/>
-               |||ENDTABLE
+               <script>let o = new SLPcvSelect2( { jSelect: $('#sfAp_fk_sl_pcv'),
+                                                   jLabel: $('#cultivarText'),
+                                                   qUrl: '{$this->oApp->UrlQ()}' } );
+               </script>
 
-               <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
-               </div><div class='col-md-6'>
-
-               <div class='slAdoptionFormInfo'>{$this->getCultivarAdoptionHistory($oForm)}</div>
-               <div class='slAdoptionFormInfo'>{$this->getCollectionInfo($oForm)}</div>
-               <div style='margin:2em'>{$sSyn}{$sStats}</div>
-              </div></div>
-
-              [[hiddenkey:]]
-              </div>
-
-              <script>
+               <script>/*
                function setupMbrSelector() {
                let o = new SLPcvSelector( { urlQ:'{$urlQ}',
                                             idTxtSearch:'dummy_pcv',
                                             idOutReport:'cultivarText',
                                             idOutKey:'sfAp_fk_sl_pcv' } );
                }
-               setupMbrSelector();
+               setupMbrSelector();*/
+               </script>";
+
+        $s .= "<script>
+               function doEdit()
+               {
+                   event.preventDefault();
+                   $('.sladoptform_static').hide();
+                   $('.sladoptform_edit').show();
+                   $('#editbutton').html('');      /* remove the edit button so typing Enter in text field goes to Save instead of this (even though it's hidden) */
+               }
                </script>";
 
         return( $s );

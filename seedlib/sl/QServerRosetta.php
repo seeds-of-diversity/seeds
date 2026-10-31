@@ -22,7 +22,7 @@ class QServerRosetta extends SEEDQ
     function __construct( SEEDAppSessionAccount $oApp, $raConfig = [] )
     {
         parent::__construct( $oApp, $raConfig );
-        $this->oSLDB = new SLDBRosetta( $oApp );
+        $this->oSLDB = new SLDBRosetta( $oApp );        // but SLDBCollection is an extension of this
         $this->oSLDBSrc = new SLDBSources( $oApp );
         $this->oSLDBColl = new SLDBCollection( $oApp );
     }
@@ -395,6 +395,11 @@ class QServerRosetta extends SEEDQ
              * If these are used to check for pre-delete referential integrity, it's okay to delete a cultivar if any of these are _status<>0 because the cultivar will
              * also be preserved as _status<>0, retaining referential integrity in Trash.
              */
+            $raOut['raStats'] = ['fG100_cv' => round(SLUtil::Grams100MedianFromPcv($this->oSLDBColl, $kPcv), 3),      // median of g100 for all lots of this cv
+                                 'fG100_sp' => round(SLUtil::Grams100FromPsp($raOut['PxS']['S_psp']), 3),             // typical g100 for this sp
+                                ];
+
+            // put these into raStats
             $dbname = $this->oApp->DBName('seeds1');
             $raOut['nAcc']    = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_accession WHERE _status='0' AND fk_sl_pcv='$kPcv'" );
             $raOut['nAdopt']  = $this->oApp->kfdb->Query1( "SELECT count(*) FROM $dbname.sl_adoption WHERE _status='0' AND fk_sl_pcv='$kPcv'" );

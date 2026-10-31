@@ -1,14 +1,16 @@
-/* Selector tool for choosing a contact from MbrContacts
+/* Selector tool for choosing a pcv from sl_pcv
 
    Requires: select2.js
 
    Documentation: https://select2.org
 
    Usage:
-       <select id='mbrChooseOne' style='width:40em'><option value='0'>Choose a member</option></select>
+   	   <span id='pcvLabel'>Optional place to show the cultivar name</span>
+       <select id='pcvChooseOne' name='pcvChooseOne' style='width:40em'><option value='0'>Choose a cultivar</option></select>
 
-       <script>let o = new SLPcvSelect2( { jSelect: $('#mbrChooseOne'),
-                                           qUrl: '{$this->oP->oApp->UrlQ()}' } );
+       <script>let o = new SLPcvSelect2( { jSelect: $('#pcvChooseOne'),
+                                           qUrl: '{$this->oP->oApp->UrlQ()}'
+										   jLabel: $('#pcvLabel') } );
        </script>
 */
 
@@ -26,7 +28,7 @@ class SLPcvSelect2
         let saveThis = this;
         this.raConfig.jSelect.select2({ 
               ajax:{ url: this.raConfig.qUrl,
-                     /* select2 has a default ajax data format; it provides this function to allow translation to our mbr-search data format  
+                     /* select2 has a default ajax data format; it provides this function to allow translation to our rosetta-search data format  
                       */
                      data: function (p) {
                                let ret = 
@@ -59,5 +61,12 @@ class SLPcvSelect2
                      minimumInputLength: 3,
                    } 
         });
+		
+		// when a selection is made, copy the cultivar name to a designated label container if defined
+		this.raConfig.jSelect.on('select2:select', function (e) {
+		    if( "jLabel" in saveThis.raConfig ) {
+				saveThis.raConfig.jLabel.html(e.params.data.text);
+ 	        }
+		});
     }
 }

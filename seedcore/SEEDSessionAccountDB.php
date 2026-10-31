@@ -647,7 +647,7 @@ class SEEDSessionAccountDB extends SEEDSessionAccountDBRead
 
     private function newKfrel( $kfreldef )
     {
-        return( new Keyframe_Relation( $this->kfdb, $kfreldef, $this->uidOwnerOrAdmin, array('logfile'=>SITE_LOG_ROOT."seedsessionauth.log") ) );
+        return( new Keyframe_Relation( $this->kfdb, $kfreldef, $this->uidOwnerOrAdmin, array('logfile'=>SEED_LOG_DIR."seedsessionauth.log") ) );
     }
 }
 
@@ -744,7 +744,7 @@ class SEEDSessionAccountDBRead2 extends Keyframe_NamedRelations {
      * @param bool $bGetMetadata - whether or not to include the users metadata. Default: true
      * @param bool $bIncludeDeletedAndHidden - whether to look in all users, or just "normal" ones.
      * Only supported when using user id to prevent conflicts with old records. Default: false
-     * @return array[] - array of 3 elements containing user data. First element is the users id,
+     * @return array - array of 3 elements containing user data. First element is the users id,
      * second element is an array of user information, third element is an array of user metadata if requested
      */
     function GetUserInfo(string|int $userIdOrEmail, bool $bGetMetadata = true, bool $bIncludeDeletedAndHidden = false): array {

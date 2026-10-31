@@ -248,7 +248,7 @@ function doEdit()
                      "|||TABLE(border='0')
                       ||| Weight (g)    || ".($bWeightRO ? "[[Value:g_weight]]" : "[[g_weight]]")
                     .($bShowLoc ? "||| Location      || [[location]]" : "")
-." ".($oFormI->GetKey() ? ($this->oApp->kfdb->Query1( "SELECT loc_old FROM sl_inventory WHERE _key='".$oFormI->GetKey()."'")) : "")
+//." ".($oFormI->GetKey() ? ($this->oApp->kfdb->Query1( "SELECT loc_old FROM sl_inventory WHERE _key='".$oFormI->GetKey()."'")) : "")
 //                    ."||| Split from    || [[parent_kInv]]"
 //                    ."||| Split date    || [[dCreation]]"
                     .($bShowDeacc ? "||| Deaccessioned || [[bDeAcc]]" : "")
@@ -266,7 +266,7 @@ function doEdit()
                      "|||TABLE(border='0')
                       ||| Weight (g)    || [[Value:g_weight]]"
                     .($bShowLoc ? "||| Location      || [[Value:location]]" : "")
-." ".($oFormI->GetKey() ? ($this->oApp->kfdb->Query1( "SELECT loc_old FROM sl_inventory WHERE _key='".$oFormI->GetKey()."'")) : "")
+//." ".($oFormI->GetKey() ? ($this->oApp->kfdb->Query1( "SELECT loc_old FROM sl_inventory WHERE _key='".$oFormI->GetKey()."'")) : "")
 //                    ."||| Split from    || [[parent_kInv]]"
 //                    ."||| Split date    || [[dCreation]]"
                     .($bShowDeacc ? "||| Deaccessioned &nbsp;&nbsp; || [[Value:bDeAcc]]" : "")

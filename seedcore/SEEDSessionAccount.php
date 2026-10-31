@@ -242,11 +242,11 @@ class SEEDSessionAccount extends SEEDSession
     function GetEmail(bool $useRUID = false): string {
         if ($this->bLogin) {
             if ($useRUID) {
-                $user = $this->oDB->GetEmail($this->rUID);
-                return $user['email'];
+                $email = $this->oDB->GetEmail($this->rUID);
+                return $user;
             }
-            $user = $this->oDB->GetEmail($this->eUID);
-            return $user['email'];
+            $email = $this->oDB->GetEmail($this->eUID);
+            return $email;
         }
         return '';
     }
