@@ -160,16 +160,7 @@ class SLSearchApp
 
         /* Sources
          */
-        $cSrc = count($rQ['raOut']['raSrc']);
-        $raOut['csci'] = "<h3 class='sl_srch_heading'>Where you can buy it in Canada".($cSrc ? (" ($cSrc companies)") : "")."</h3>";
-        if( $cSrc ) {
-            $raOut['csci'] .= "<div style='border:1px solid white;max-height:200px;overflow-y:auto;width:50%'>"
-                     .SEEDCore_ArrayExpandRows( $rQ['raOut']['raSrc'],
-                                                "<div><a href='http://[[SRC_web]]' target='_blank'>[[SRC_name_en]] in [[SRC_prov]]</a></div>" )
-                     ."</div>";
-        } else {
-            $raOut['csci'] .= "<p>We don't know of any Canadian seed companies that sell this. If you do, please tell us.</p>";
-        }
+        $raOut['csci'] = SLReportUI::DrawSources($rQ['raOut']);
 
         /* Seed Exchange
          */
