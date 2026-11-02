@@ -3,16 +3,19 @@
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 include_once( SEEDLIB."mbr/MbrDonations.php" );
 include_once(SEEDLIB."sl/QServerRosetta.php");
+include_once(SEEDLIB."sl/sl_report_ui.php");
 
 class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 {
     private $oMbrContacts;
     private $oSLDB;
+    private $sCharset;      // the charset to output from ControlDraw/ContentDraw
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
         $this->oMbrContacts = new Mbr_Contacts($oApp);
         $this->oSLDB = new SLDBBase($oApp);
+        $this->sCharset = $raConfig['charset'];
 
         $cols = [['label'=>"#",                 'col'=>"_key",              'w'=>" 5%"],
                  ['label'=>"Adopter",           'col'=>"M_lastname",        'w'=>"15%"],    // replaced by GetContactName() (will sort by M_lastname)
@@ -112,8 +115,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
         $sLinkRosetta = ($k = $oForm->Value('P__key')) ? "<a href='./rosetta.php?c02ts_main=cultivar&sfRui_k=$k' target='_blank'>See this in Rosetta</a>" : "";
         $sStats = $sSyn = "";
 
-// constructor parm for charset
-        $rQ = (new QServerRosetta($this->oApp,['config_bUTF8'=>false]))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$kPcv]);    // this app encodes output to utf8
+        $rQ = (new QServerRosetta($this->oApp,['config_bUTF8'=>($this->sCharset=='utf8')]))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$kPcv]);    // this app encodes output to utf8
         if( $rQ['bOk'] ) {
             $sStats = SLReportUI::DrawCultivarReferences($rQ['raOut']);
             $sSyn = SLReportUI::DrawCultivarSynonyms($rQ['raOut'],['fmt'=>"internal"]);

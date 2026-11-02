@@ -53,12 +53,13 @@ $consoleConfig = [
     'TABSETS' => ['main'=> ['tabs' => [ 'slcollMain'   => ['label'=>'My Collection'],
                                         'slcollBatch'  => ['label'=>'Batch Operations'],
                                         'slcollAdopt'  => ['label'=>'Adoptions'],
-                                        'slcollOver'   => ['label'=>'Overview'],
+                                        'slcollOver'   => ['label'=>'Overview', 'charset'=>'utf8'],
                                         'slcollAdmin'  => ['label'=>'Admin'],
                                         //'cultivarsyn'  => ['label'=>'Cultivar Synonyms'],
                                         //'ghost'        => ['label'=>'Ghost']
                                       ],
-                            'perms' => SLApp::$raAppPerms['slCollection']
+                            'perms' => SLApp::$raAppPerms['slCollection'],
+                            'charset'=>'iso8859-1'
                            ],
 
                   // sub-tabs for collection
@@ -70,19 +71,20 @@ $consoleConfig = [
                                             'germ'         => ["PUBLIC"],
                                             'packetlabels' => ["PUBLIC"],
                                             '|'
-                                          ]
+                                          ],
+                                'charset'=>'iso8859-1'
                                 ],
 
                   // sub-tabs for batch
                   'batchtabs'=> ['tabs' => [ 'germ' => ['label'=>'Germination Tests'],
                                              //'packetlabels' => ['label'=>'Packet Labels'],
                                           ],
-                                'perms' =>[ 'germ'   => ["PUBLIC"],
+                                 'perms' =>[ 'germ'   => ["PUBLIC"],
                                             //'packetlabels'   => ["PUBLIC"],
                                             '|'
-                                          ]
+                                          ],
+                                 'charset'=>'iso8859-1'
                                 ],
-
                  ],
     'pathToSite' => '../../',
 
@@ -117,7 +119,7 @@ class MyConsole02TabSet extends Console02TabSet
         $this->oW->Init();
     }
     function TabSet_main_slcollBatch_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new CollectionBatchOps($this->oApp, $oT->oSVA); $this->oW->Init(); }
-    function TabSet_main_slcollAdopt_Init()                             { $this->oW = new MbrAdoptionsListForm($this->oApp);          $this->oW->Init(); }
+    function TabSet_main_slcollAdopt_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new MbrAdoptionsListForm($this->oApp,['charset'=>$oT->charset]); $this->oW->Init(); }
     function TabSet_main_slcollOver_Init(Console02TabSet_TabInfo $oT)   { $this->oW = new CollectionOverview($this->oApp, $oT->oSVA); $this->oW->Init(); }
     function TabSet_main_slcollAdmin_Init(Console02TabSet_TabInfo $oT)  { $this->oW = new CollectionAdmin($this->oApp, $oT->oSVA); $this->oW->Init(); }
 
@@ -142,6 +144,7 @@ $s = $oApp->oC->DrawConsole( "[[TabSet:main]]", ['oTabSet'=>$oCTS] );
 
 /* Overview tab gets data from QServer in utf8, others are iso8859
  */
+// get this from config
 if( $oCTS->TabSetGetCurrentTab('main') != 'slcollOver' ) {
     $s = SEEDCore_utf8_encode($s);
 }
