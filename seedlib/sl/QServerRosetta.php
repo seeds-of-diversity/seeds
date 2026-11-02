@@ -130,22 +130,28 @@ class QServerRosetta extends SEEDQ
                      'psp'             => $kfr->Value('S_psp'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
                      'sCultivar'       => $kfr->Value('name'),
+                     'sCultivar_matched' => $kfr->Value('name'),        // the search term matched the pname
                      'about_cultivar' => $kfr->Value('packetLabel')
                     ] );
             }
         }
 
-        /* Add sl_pcv_syn whose names match dbSrch. Return (name=syn.name, kPcv=fk_sl_pcv)
+        /* Add sl_pcv_syn whose names match dbSrch. Return (name=P.name, kPcv=fk_sl_pcv)
+         * Since the search term can match a shared part of the sname and pname, check that this cv wasn't already found above.
          */
         if( $bCheckPCV && ($kfr = $this->oSLDB->GetKFRC('PYxPxS', "PY.name LIKE '%$dbSrch%'")) ) {
             while( $kfr->CursorFetch() ) {
-                $raOut[$kfr->Expand("[[S_psp]]|[[name]]")] = $this->QCharsetFromLatin(
-                    ['kPcv'            => $kfr->Value('P__key'),
-                     'psp'             => $kfr->Value('S_psp'),
-                     'sSpecies'        => $kfr->Value('S_name_en'),
-                     'sCultivar'       => $kfr->Value('P_name'),
-                     'about_cultivar' => $kfr->Value('P_packetLabel')
-                    ] );
+                $k = $kfr->Expand("[[S_psp]]|[[P_name]]");  // pcv name
+                if(!isset($raOut[$k])) {
+                    $raOut[$k] = $this->QCharsetFromLatin(
+                        ['kPcv'            => $kfr->Value('P__key'),
+                         'psp'             => $kfr->Value('S_psp'),
+                         'sSpecies'        => $kfr->Value('S_name_en'),
+                         'sCultivar'       => $kfr->Value('P_name'),
+                         'sCultivar_matched' => $kfr->Value('name'),        // the search term matched an sname
+                         'about_cultivar' => $kfr->Value('P_packetLabel')
+                        ] );
+                }
             }
         }
 
@@ -158,6 +164,7 @@ class QServerRosetta extends SEEDQ
                      'psp'             => $kfr->Value('S_psp'),
                      'sSpecies'        => $kfr->Value('S_name_en'),
                      'sCultivar'       => $kfr->Value('ocv'),
+                     'sCultivar_matched' => $kfr->Value('ocv'),
                      'about_cultivar' => "",//$kfr->Value('P_packetLabel')
                     ] );
             }
@@ -174,13 +181,17 @@ class QServerRosetta extends SEEDQ
             foreach($raMSE as $ra) {
                 $dbSp = addslashes($ra['sp']);
                 if( ($kfr = $this->oSLDB->GetKFRCond('S',"psp='$dbSp' OR name_en='$dbSp'")) ) {  // or other synonyms or language variants
-                    $raOut["{$kfr->Value('psp')}|{$ra['cv']}"] = $this->QCharset(
-                        ['kPcv'            => $ra['k'] * -1,
-                         'psp'             => $kfr->Value('psp'),
-                         'sSpecies'        => $kfr->Value('name_en'),
-                         'sCultivar'       => $ra['cv'],
-                         'about_cultivar' => "",//$kfr->Value('P_packetLabel')
-                        ] );
+                    $k = "{$kfr->Value('psp')}|{$ra['cv']}";
+                    if(!isset($raOut[$k])) {
+                        $raOut[$k] = $this->QCharset(
+                            ['kPcv'            => $ra['k'] * -1,
+                             'psp'             => $kfr->Value('psp'),
+                             'sSpecies'        => $kfr->Value('name_en'),
+                             'sCultivar'       => $ra['cv'],
+                             'sCultivar_matched' => $ra['cv'],
+                             'about_cultivar' => "",//$kfr->Value('P_packetLabel')
+                            ] );
+                    }
                 }
             }
         }
