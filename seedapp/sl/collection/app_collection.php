@@ -20,6 +20,7 @@ include_once( SEEDCORE."console/console02.php" );
 include_once( SEEDCORE."SEEDUI.php" );
 include_once( SEEDROOT."Keyframe/KeyframeUI.php" );
 include_once( SEEDLIB."sl/sldb.php" );
+include_once( SEEDLIB."sl/sl_report_ui.php" );
 include_once( SEEDAPP."sl/sl_ts_adoptions.php");
 
 include_once( "collectionTab.php" );

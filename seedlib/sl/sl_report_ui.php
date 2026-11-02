@@ -55,4 +55,40 @@ class SLReportUI
         }
         return($s);
     }
+
+    static function DrawCultivarReferences( array $raCVData )
+    {
+        $s = "<strong>Cultivar References: {$raCVData['nTotal']}</strong><br/><br/>
+              Seed Library accessions: {$raCVData['nAcc']}<br/>
+              Source list records: "
+            .($raCVData['nSrcCv1'] ? "PGRC, " : "")
+            .($raCVData['nSrcCv2'] ? "NPGS, " : "")
+            .("{$raCVData['nSrcCv3']} compan".($raCVData['nSrcCv3'] == 1 ? "y" : "ies"))."<br/>"
+            ."Adoptions: {$raCVData['nAdopt']}<br/>
+              Profile Observations: {$raCVData['nDesc']}<br/>";
+
+        $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
+
+        return($s);
+    }
+
+    static function DrawCultivarSynonyms( array $raCVData, array $raParms = [] )
+    {
+        // render differently in internal/public views
+        $bFmt1 = !isset($raParms['fmt']) || $raParms['fmt']=='internal';
+        $bFmt2 = @$raParms['fmt']=='public';
+
+        $s = $raCVData['raPY']
+                ? ("<b>Also known as</b><div style='margin:0px 20px'>".SEEDCore_ArrayExpandRows($raCVData['raPY'],"[[name]]<br/>")."</div>")
+                : "";
+
+        if( $bFmt1 && $s ) $s = "<div style='border:1px solid #aaa;padding:10px'>$s</div>";
+
+        return($s);
+    }
+
+    static function Rosetta_About_Cultivar( array $raCVData, SLDBRosetta $sldb )
+    {
+
+    }
 }

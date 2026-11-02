@@ -6,7 +6,6 @@
  *
  */
 include_once("rosetta_ts_cultivars_ts_synonyms.php");
-include_once(SEEDLIB."sl/sl_integrity.php");
 include_once(SEEDLIB."sl/sources/sl_sources_rosetta.php");      // to reindex cultivars after add/rename/delete of pname/sname
 include_once(SEEDLIB."sl/sl_report_ui.php");
 
@@ -66,10 +65,10 @@ class RosettaCultivarListForm extends KeyframeUI_ListFormUI
              "|||TABLE(width='10%'|width='40%'|width='50%' || class='slAdminForm' width='100%' border='0')
               ||| *Species*       || ".SEEDFormBasic::DrawSelectCtrlFromOptsArray('sfRp_fk_sl_species','fk_sl_species',$raSpOpts, ['sSelAttrs'=>"style='width:95%'"])."
               ||| *Name*          || [[text:name|width:95%]]
-              ||| {colspan='2'} *Description for seed packets (write what you would put in a seed catalogue)*  || *Origin / History*
-              ||| {colspan='2'} [[textarea:packetLabel|width:95% nRows:3]]                                     || {replaceWith width='50%'}[[textarea:originHistory|width:95% nRows:3]]
-              ||| {colspan='2'} *Notes*
-              ||| {colspan='2'} [[textarea:notes|width:95% nRows:7]]
+              ||| {colspan='2'} *Description for seed packets (write what you would put in a seed catalogue)*  || &nbsp;
+              ||| {colspan='2'} [[textarea:packetLabel|width:95% nRows:3]]                                     || &nbsp;
+              ||| {colspan='2'} *Notes*                                                                        || *Origin / History*
+              ||| {colspan='2'} [[textarea:notes|width:95% nRows:7]]                                           || {replaceWith width='50%'}[[textarea:originHistory|width:95% nRows:3]]
               |||ENDTABLE";
 
 
@@ -171,13 +170,9 @@ class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
         $rQ = (new QServerRosetta($this->oApp,['config_bUTF8'=>false]))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$this->kPcv]);    // this app encodes output to utf8
         if( !$rQ['bOk'] ) goto done;
 
-        // If a cultivar is selected, get info about it (e.g. references in collection, sources, etc)
-        $raPCVReport = $this->kPcv ? SLIntegrity::GetPCVReport($this->oApp, $this->kPcv, " ALL ") : [];
-        $sSyn   = @$raPCVReport['syn'] ?? "";
-        $sStats = @$raPCVReport['stats'] ?? "";
-
         $sOrigin = $sNotes = "";
         if( ($kfr = (new SLDBRosetta($this->oApp))->GetKFR('PxS', $this->kPcv)) ) {
+            // these tend to have internal notes so they are not included in rosetta-cultivarOverview
             $sOrigin = $kfr->Value('originHistory');
             $sNotes = $kfr->Value('notes');
         }
@@ -187,12 +182,18 @@ class Rosetta_CultivarTabs_Console02Tabset extends Console02TabSet
               <div class='container-fluid'>
               <div class='row'>
                   <div class='col-md-4'>".SLReportUI::DrawPacketLabel($rQ['raOut'])."</div>
-                  <div class='col-md-4'>{$sSyn}</div>
-                  <div class='col-md-4'>{$sStats}</div>
+                  <div class='col-md-4'>".SLReportUI::DrawCultivarSynonyms($rQ['raOut'],['fmt'=>"internal"])."</div>
+                  <div class='col-md-4'>".SLReportUI::DrawCultivarReferences($rQ['raOut'])."</div>
               </div>
               <div class='row'>
-                  <div class='col-md-4'><p><b>Origin/History</b></p><div style='border:1px solid #aaa;padding:0.5em'>{$sOrigin}&nbsp;</div></div>
-                  <div class='col-md-4'><p><b>Notes</b></p>         <div style='border:1px solid #aaa;padding:0.5em'>{$sNotes}&nbsp;</div></div>
+                  <div class='col-md-4'><p><b>Notes</b></p>         <div style='border:1px solid #aaa;padding:0.5em'>".nl2br($sNotes??"")."&nbsp;</div></div>
+                  <div class='col-md-4'><p><b>Origin/History</b></p><div style='border:1px solid #aaa;padding:0.5em'>".nl2br($sOrigin??"")."&nbsp;</div></div>
+              </div>
+              <hr style='margin-top:1.5em'/>
+              <div class='row'>
+                  <div class='col-md-4'>".SLReportUI::DrawSources($rQ['raOut'])."</div>
+                  <div class='col-md-4'> </div>
+                  <div class='col-md-4'> </div>
               </div>
               </div>
              ";
