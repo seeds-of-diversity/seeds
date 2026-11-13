@@ -147,12 +147,12 @@ class CollectionTab_Accession
                ||| *Grams original*   || [[Value:g_original]]
                ||| *Grams 100 seeds*   || [[Value:g_100]]
                ||| *Parent Lot #*   || [[Value:iLotParent]]
-               ||| *Grower rating* || [[Value:iGrowerRating]]
                ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n"
 
              .($this->oApp->sess->GetUID() == 1499 ?
               "||| &nbsp; || \n
                ||| *--- deprecate ---* || \n
+               ||| Grower rating || [[Value:iGrowerRating]]
                ||| old Parent Lot #   || [[Value:parent_acc]]
                ||| Parent Desc    || [[Value:parent_src]]
                ||| Date Received (no parent lot) || [[Value:x_d_received]]
@@ -185,12 +185,12 @@ class CollectionTab_Accession
                ||| &nbsp;     || \n
                ||| *Grams original*   || [[g_original]]
                ||| *Grams 100 seeds*   || [[g_100]]
-               ||| *Parent Lot #*   || [[iLotParent]]
-               ||| *Grower rating* || [[iGrowerRating]]"
+               ||| *Parent Lot #*   || [[iLotParent]]"
 
              .($this->oApp->sess->GetUID() == 1499 ?
               "||| &nbsp; || \n
                ||| *--- deprecate ---* || \n
+               ||| Grower rating || [[iGrowerRating]]
                ||| old Parent Lot #   || [[parent_acc]]
                ||| Parent Desc    || [[parent_src | width:100%]]
                ||| Date Received (no parent lot) || [[x_d_received]]
