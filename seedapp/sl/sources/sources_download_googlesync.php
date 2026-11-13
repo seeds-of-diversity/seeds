@@ -50,7 +50,8 @@ class SLSourcesAppDownload_CSCIUpload_GoogleSheet
                              'idSpreadsheet' => $idSpreadsheet] );
     }
 
-    function GetFormControls()
+// make these parameters in constructor and put this class in seedlib
+    function GetFormControls( SEEDSessionVarAccessor $oSVAdummy )
     {
         return( "{$this->oForm->Text('idSpreadsheet', "", ['size'=>50, 'placeholder'=>"spreadsheet id"])}<br/>
                  {$this->oForm->Text('nameSheet',     "", ['size'=>30, 'placeholder'=>"sheet name"])}<br/>" );

@@ -2,7 +2,7 @@
 
 /* mbrPrint
  *
- * Copyright 2020-2025 Seeds of Diversity Canada
+ * Copyright 2020-2026 Seeds of Diversity Canada
  *
  * App that prints membership and donation slips, and donation receipts
  */
@@ -34,6 +34,7 @@ $consoleConfig = [
                                       ],
                             // this doubles as sessPermsRequired and console::TabSetPermissions
                             'perms' => MbrApp::$raAppPerms['mbrPrint'],
+                            'charset' => 'iso8859-1'    // this app always transcodes output to utf8 at the end; this can be defined per-tab above
                            ],
                  ],
     'urlLogin'=>'../login/',
@@ -233,7 +234,7 @@ class MyConsole02TabSet extends Console02TabSet
         $cmd = SEEDInput_Str('cmd');
         $year = SEEDInput_Int('year');
         $kMbr = SEEDInput_Int('kMbr');
-        
+
         if( $cmd=='showReceiptLinksForMember' && $kMbr ) {
             if( ($sMbrReceiptsLinks = $this->oDonations->DrawReceiptLinks($kMbr)) ) {
                 $sMbrReceiptsLinks = "<div style='margin:10px; padding:10px; background-color:#eee'>
@@ -253,14 +254,14 @@ class MyConsole02TabSet extends Console02TabSet
                 $this->oApp->oC->AddUserMsg($raD['receipt_num']." ");
             }
         }
-         
+
         $sBtnMarkAccessed = "";
         if( SEEDInput_Int('bShowDoAccessedBtn') ) {
-            $sBtnMarkAccessed = 
+            $sBtnMarkAccessed =
                 "<p>Mark all unaccessed receipts from $year as accessed by uid ".Mbr_ContactsDB::MbrDonationsReceiptAccessor_Mailed.".</p>
-                 <form><input type='submit' value='Mark all $year accessed'/><input type='hidden' name='cmd' value='doMarkAccessed'/><input type='hidden' name='year' value='$year'/></form>";     
+                 <form><input type='submit' value='Mark all $year accessed'/><input type='hidden' name='cmd' value='doMarkAccessed'/><input type='hidden' name='year' value='$year'/></form>";
         }
-        
+
         $s = "<div class='container-fluid'><div class='row'>
                   <div class='col-md-3'>
                       <form target='_blank'>
@@ -303,7 +304,7 @@ class MyConsole02TabSet extends Console02TabSet
     function TabSet_main_donations_ControlDraw()  { return( $this->oW->ControlDraw() ); }
     function TabSet_main_donations_ContentDraw()  { return( $this->oW->ContentDraw() ); }
 
-    function TabSet_main_donationsSL_Init()       { $this->oW = new MbrAdoptionsListForm( $this->oApp ); $this->oW->Init(); }
+    function TabSet_main_donationsSL_Init()       { $this->oW = new MbrAdoptionsListForm($this->oApp, ['charset'=>$this->TabSetGetCharset('main', 'donationsSL')]); $this->oW->Init(); }
     function TabSet_main_donationsSL_ControlDraw(){ return( $this->oW->ControlDraw() ); }
     function TabSet_main_donationsSL_ContentDraw(){ return( $this->oW->ContentDraw() ); }
 

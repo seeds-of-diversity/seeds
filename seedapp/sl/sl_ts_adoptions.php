@@ -2,18 +2,20 @@
 
 include_once( SEEDLIB."mbr/MbrContacts.php" );
 include_once( SEEDLIB."mbr/MbrDonations.php" );
-include_once(SEEDLIB."sl/sl_integrity.php");
 include_once(SEEDLIB."sl/QServerRosetta.php");
+include_once(SEEDLIB."sl/sl_report_ui.php");
 
 class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 {
     private $oMbrContacts;
     private $oSLDB;
+    private $sCharset;      // the charset to output from ControlDraw/ContentDraw
 
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, $raConfig = [] )
     {
         $this->oMbrContacts = new Mbr_Contacts($oApp);
         $this->oSLDB = new SLDBBase($oApp);
+        $this->sCharset = $raConfig['charset'];
 
         $cols = [['label'=>"#",                 'col'=>"_key",              'w'=>" 5%"],
                  ['label'=>"Adopter",           'col'=>"M_lastname",        'w'=>"15%"],    // replaced by GetContactName() (will sort by M_lastname)
@@ -108,11 +110,16 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
 
     function FormTemplate( SEEDCoreForm $oForm )
     {
+        $kPcv = $oForm->Value('fk_sl_pcv');
         $sAdopter = $this->oMbrContacts->GetContactName($oForm->Value('fk_mbr_contacts'));
         $sLinkRosetta = ($k = $oForm->Value('P__key')) ? "<a href='./rosetta.php?c02ts_main=cultivar&sfRui_k=$k' target='_blank'>See this in Rosetta</a>" : "";
-        $raPCVReport = ($kPcv = $oForm->Value('fk_sl_pcv')) ? SLIntegrity::GetPCVReport($this->oApp, $kPcv, " ALL ") : [];
-        $sSyn   = @$raPCVReport['syn'] ?? "";
-        $sStats = @$raPCVReport['stats'] ?? "";
+        $sStats = $sSyn = "";
+
+        $rQ = (new QServerRosetta($this->oApp,['config_bUTF8'=>($this->sCharset=='utf8')]))->Cmd('rosetta-cultivaroverview', ['kPcv'=>$kPcv]);    // this app encodes output to utf8
+        if( $rQ['bOk'] ) {
+            $sStats = SLReportUI::DrawCultivarReferences($rQ['raOut']);
+            $sSyn = SLReportUI::DrawCultivarSynonyms($rQ['raOut'],['fmt'=>"internal"]);
+        }
 
         $urlQ = SITEROOT_URL."app/q/index.php";     // rosettaPCVSearch is still in the original Q code
 
@@ -155,7 +162,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                        ||| <div id='editbutton'><button onclick='doEdit()'>Edit</button></div> &nbsp; || \n
                        |||ENDTABLE
                    </div>
-    
+
                    <div class='sladoptform_edit' style='display:none'>
                        |||BOOTSTRAP_TABLE(class='col-md-4'|class='col-md-8')
                        ||| <input type='submit' value='Save'> || \n
@@ -164,7 +171,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                        ||| *Request*    || [[text:sPCV_request | width:100%]]
                        ||| *Amount*     || [[text:amount|readonly]]
                        ||| *Received*   || [[text:D_date_received|readonly]]
-        
+
                        ||| *Variety adopted*    || <span id='cultivarText'>[[Value:S_psp]] : [[Value:P_name]] ([[Value:P__key]])</span>&nbsp;&nbsp;&nbsp;$sLinkRosetta
                        ||| &nbsp;               || <div style='position:relative;display:none'>
                                                    <input type='text' id='dummy_pcv' size='10' class='SFU_TextComplete' placeholder='Search'/>
@@ -175,7 +182,7 @@ class MbrAdoptionsListForm extends KeyframeUI_ListFormUI
                        ||| *Notes*      || {$oForm->TextArea( "notes", ['width'=>'90%','nRows'=>'5'] )}
                        |||ENDTABLE
                    </div>
-    
+
                    <div class='slAdoptionFormInfo'>{$this->getMemberAdoptionHistory($oForm)}</div>
                    <div class='slAdoptionFormInfo'>{$sTicket}</div>
                </div>

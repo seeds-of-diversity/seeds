@@ -70,6 +70,20 @@ class Console02TabSet
         return( $this->TabSetGetSVA( $tsid, $this->TabSetGetCurrentTab($tsid) ) );
     }
 
+    /**
+     * Get the optional charset parm from the given tab's config
+     * @return string
+     */
+    function TabSetGetCharset( string $tsid, string $tabname ) : string
+    {
+        if( !($charset = @$this->raConfig[$tsid]['tabs'][$tabname]['charset']) &&   // per-tab charset  ['TABSETs' => [tsid => ['tabs'=> [tabname => ['label'=>..., 'charset'=>...
+            !($charset = @$this->raConfig[$tsid]['charset']) )                      // all-tabs charset ['TABSETs' => [tsid => ['tabs'=>..., 'charset'=>...
+        {
+            $charset = "";
+        }
+        return($charset);
+    }
+
     function TabSetDraw( $tsid )
     /***************************
         Draw a tabbed form, getting the current tab from the console session vars.
@@ -317,12 +331,14 @@ class Console02TabSet_TabInfo
     public $tsid;
     public $tabname;
     public $oSVA;
+    public $charset;
 
     function __construct( Console02TabSet $oCTS, $tsid, $tabname )
     {
         $this->tsid = $tsid;
         $this->tabname = $tabname;
         $this->oSVA = $oCTS->TabSetGetSVA( $tsid, $tabname );
+        $this->charset = $oCTS->TabSetGetCharset($tsid, $tabname);
     }
 }
 

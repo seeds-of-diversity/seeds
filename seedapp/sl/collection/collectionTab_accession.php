@@ -117,12 +117,15 @@ class CollectionTab_Accession
             ($rQ = (new QServerRosetta($this->oApp, ['config_bUTF8'=>false]))->Cmd('rosetta-cultivarinfo', ['kPcv'=>$kPcv, 'mode'=>'all'])) &&
             $rQ['bOk'] )
         {
-            $sCultivarInfo =
+            $sCultivarInfo = SLReportUI::Style().
                  // display:inline-block fits the div's width to its content so it centers the content (because content doesn't know to center itself)
                  "<div style='background-color:#eee;padding:1em;text-align:center'>
-                      <h3>About {$rQ['raOut']['PxS']['P_name']} {$rQ['raOut']['PxS']['S_name_en']}</h3>
-                      <p>{$rQ['raOut']['PxS']['P_packetLabel']}</p>
-                      <p>".nl2br($rQ['raOut']['PxS']['P_notes'])."</p>
+                      <h3>About ".SLReportUI::DrawCultivarName($rQ['raOut'])."</h3>
+                      <p>".SLReportUI::DrawPacketLabel($rQ['raOut'])."</p>
+                      <div class='container-fluid'><div class='row'>
+                          <div class='col-md-6'><b>Notes</b><p>".nl2br($rQ['raOut']['PxS']['P_notes']??"")."</p></div>
+                          <div class='col-md-6'><b>Adoption</b><p>[adoption status here]</p></div>
+                      </div></div>
                       <h3>Collection Status of {$rQ['raOut']['PxS']['P_name']} {$rQ['raOut']['PxS']['S_name_en']}</h3>
                       <div style='margin:0 auto;display:inline-block'>{$rQ['raOut']['sTable_IxA']}</div>
                   </div>";
