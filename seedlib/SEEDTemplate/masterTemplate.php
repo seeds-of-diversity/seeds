@@ -179,6 +179,12 @@ class SoDMasterTemplate
                 $bHandled = true;
                 break;
 
+            case 'store2':
+                include_once(SEEDAPP."website/store2.php");
+                $s .= (new Store2App($this->oApp, ['lang'=>$lang]))->DrawApp();
+                $bHandled = true;
+                break;
+
             default:
                 $bHandled = false;
         }
