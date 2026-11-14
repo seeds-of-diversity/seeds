@@ -195,10 +195,10 @@ class Store2App
              ."<div class='container-fluid'><div class='row'>
                <div class='col-md-6'>
 
-               <table class='mbro_ctrl'><tr valign='top'>
-               <td valign='top'>{$this->oL->S('Choose a variety to adopt')}</td>
+               <table class='mbro_ctrl'><tr>
+               <td style='vertical-align: top'>{$this->oL->S('Choose a variety to adopt')}</td>
                <td style='padding-left:15px'>
-                   {$this->oForm->Radio('slcvchoose','as_needed','')} {$this->oL->S('as needed')}<br/>
+                   {$this->oForm->Radio('slcvchoose','as_needed','',['checked'=>true])} {$this->oL->S('as needed')}<br/>
                    {$this->oForm->Radio('slcvchoose','priority','')} {$this->oForm->Select('slAdopt_kPcv', $raPriorityOpts)}<br/>
                    {$this->oForm->Radio('slcvchoose','','')} {$this->oForm->Text('slAdopt_cv',"",array("size"=>15))}  Enter your favourite variety - <a href='https://seeds.ca/diversity/seed-library/list' target='_blank'>See All Our Varieties Here</a>
                </td></tr>
@@ -206,7 +206,7 @@ class Store2App
                <tr><td colspan='2'><hr/></td></tr>
 
                <tr>
-               <td valign='top' style='padding-bottom:1em'>{$this->oL->S("Full adoption")}</td>
+               <td style='vertical-align: top;padding-bottom:1em'>{$this->oL->S("Full adoption")}</td>
                <td style='padding-left:15px'>{$this->oForm->Radio("slAdopt_amount", 250, '')} {$this->oL->Dollar(250)}</td>
                </tr>"
 /*
@@ -224,7 +224,7 @@ class Store2App
              ."</td></tr>
 */
 
-             ."<tr><td valign='top'>{$this->oL->S("Partial adoption")}</td>
+             ."<tr><td style='vertical-align: top'>{$this->oL->S("Partial adoption")}</td>
                    <td style='padding-left:15px'>"
                    .SEEDCore_ArrayExpandSeries( $raAdopt,
                                                 function($k,$d) { return($d<>250 ? "{$this->oForm->Radio('slAdopt_amount',$d,'')}&nbsp;{$this->oL->Dollar($d)}<br/>" : "" ); }
@@ -237,9 +237,9 @@ class Store2App
                <tr><td colspan='2'><hr/></td></tr>
 
                <tr>
-               <td valign='top'>{$this->oL->S('Adopt in the name of')}</td>
+               <td style='vertical-align: top'>{$this->oL->S('Adopt in the name of')}</td>
                <td style='padding-left:15px'>"
-             .$this->oForm->Radio('slnamechoose',0,'')." ".$this->oL->S('my name')."<br/>"
+             .$this->oForm->Radio('slnamechoose',0,'',['checked'=>true])." ".$this->oL->S('my name')."<br/>"
              .$this->oForm->Radio('slnamechoose',1,'')." ".$this->oL->S('anonymous')."<br/>"
              .$this->oForm->Radio('slnamechoose',2,'')." ".$this->oL->S('as a gift to')." ".$this->oForm->Text('slAdopt_name',"",array("size"=>25))
              //."<div class='mbro_infobox'>Gift donors will be sent a card in the recipient's name, describing the adopted variety. Please make your donation by Dec 14 for holiday delivery.</div>"
