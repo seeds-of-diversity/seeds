@@ -29,7 +29,6 @@ class Store2_Basket
 
     function UpdateBasket()
     {
-        var_dump($_REQUEST);
         $this->oForm->Update();
 
         if(($p = $this->oForm->Value('donationX'))) {
