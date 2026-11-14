@@ -21,14 +21,14 @@ class Store2App
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
         $this->p = [
-            'donation' => ['fn'=>[$this,'sectionDonation'], 'button'=>"Give Now", 'title'=>"Give a Charitable Donation"],
-            'sladopt'  => ['fn'=>[$this,'sectionSLAdopt'],  'button'=>"Give Now", 'title'=>"Adopt a Variety into the Canadian Seed Library"],
-            'se'       => ['fn'=>[$this,'sectionSE'],       'button'=>"Join Now", 'title'=>"Join the Seed Exchange"],
-            'cgo'      => ['fn'=>[$this,'sectionCGO'],      'button'=>"Join Now", 'title'=>"Join our Seed Grow-out Projects"],
-            'garlic'   => ['fn'=>[$this,'sectionGarlic'],   'button'=>"Buy Now",  'title'=>"Purchase Garlic Bulbils for Planting"],
-            'book'     => ['fn'=>[$this,'sectionBook'],     'button'=>"Buy Now",  'title'=>"Buy a Book"],
-            'member'   => ['fn'=>[$this,'sectionMember'],   'button'=>"Join Now", 'title'=>"Join our Membership"],
-            'other'    => ['fn'=>[$this,'sectionOther'],    'button'=>"More",     'title'=>"Special Orders"],
+            'donation' => ['fn'=>[$this,'page0_donation'], 'button'=>"Give Now", 'title'=>"Give a Charitable Donation"],
+            'sladopt'  => ['fn'=>[$this,'page0_SLAdopt'],  'button'=>"Give Now", 'title'=>"Adopt a Variety into the Canadian Seed Library"],
+//            'se'       => ['fn'=>[$this,'page0_SE'],       'button'=>"Join Now", 'title'=>"Join the Seed Exchange"],
+//            'cgo'      => ['fn'=>[$this,'page0_CGO'],      'button'=>"Join Now", 'title'=>"Join our Seed Grow-out Projects"],
+//            'garlic'   => ['fn'=>[$this,'page0_garlic'],   'button'=>"Buy Now",  'title'=>"Purchase Garlic Bulbils for Planting"],
+//            'book'     => ['fn'=>[$this,'page0_book'],     'button'=>"Buy Now",  'title'=>"Buy a Book"],
+//            'member'   => ['fn'=>[$this,'page0_member'],   'button'=>"Join Now", 'title'=>"Join our Membership"],
+//            'other'    => ['fn'=>[$this,'page0_other'],    'button'=>"More",     'title'=>"Special Orders"],
         ];
         $this->oForm = new SEEDCoreFormSession($oApp->sess, 'store_basket', 'A');
         $this->oBasket = new Store2_Basket($oApp, $this->oForm);
@@ -41,6 +41,27 @@ class Store2App
     function DrawApp()
     {
         $s = $this->oBasket->Style().$this->style();
+
+        $this->oBasket->UpdateBasket(); // updates the form from http, and normalizes basket contents ; this should not be done on every page though
+
+        // don't allow going back
+        if( $this->oForm->Value('kOrder') && !in_array($this->oForm->Value('page'), ['0-clear','2-payment','3-final']) )  $this->oForm->SetValue('page','2-payment');
+
+        switch($this->oForm->Value('page')) {
+            case '1-confirm': $s .= $this->page1_confirm(); break;
+            case '2-payment': $s .= $this->page2_payment(); break;
+            case '3-final':   $s .= $this->page3_final();   break;
+            case '0-clear':   $this->oForm->Clear();
+                              $s .= $this->page0_start();   break;
+            default:          $s .= $this->page0_start();   break;
+        }
+
+        return($s);
+    }
+
+    private function page0_start()
+    {
+        $s = "";
 
         $sSection = SEEDInput_Str('p_section');
         if( isset($this->p[$sSection]) ) {
@@ -58,16 +79,16 @@ class Store2App
             /* Show the main page
              */
             if( ($sAddSection = SEEDInput_Str('p_add_section')) ) {
-                $this->oBasket->UpdateBasket();
+                //$this->oBasket->UpdateBasket();
 //                $s .= "<div class='alert alert-success'>Evaluating $sAddSection</div>";
             }
-            $s .= $this->sectionMain();
+            $s .= $this->page0_main();
         }
 
         return($s);
     }
 
-    private function sectionMain()
+    private function page0_main()
     {
         $s = "";
 
@@ -81,7 +102,7 @@ class Store2App
                        <input type='submit' value='Confirm your order >>'/>
                    </div>
                    </div></div>
-                   <input type='hidden' name='storepage' value='confirm'/>
+                   {$this->oForm->Hidden('page',['value'=>"1-confirm"])}
                    </form>";
         }
 
@@ -101,7 +122,7 @@ class Store2App
         return($s);
     }
 
-    private function sectionDonation()
+    private function page0_donation()
     {
         $s = "";
 
@@ -146,7 +167,7 @@ class Store2App
 
     private function myNumber($n) { return($n ? $n : ""); }
 
-    private function sectionSLAdopt()
+    private function page0_SLAdopt()
     {
         $s = "";
 
@@ -206,7 +227,7 @@ class Store2App
         return($s);
     }
 
-    private function sectionSE()
+    private function page0_SE()
     {
         $s = "";
         $s = "<div style='font-weight:bold;margin-bottom:5px'>{$this->oL->S('membership')}</div>"
@@ -221,14 +242,14 @@ class Store2App
         return($s);
     }
 
-    private function sectionCGO()
+    private function page0_CGO()
     {
         $s = "";
 
         return($s);
     }
 
-    private function sectionGarlic( string $sSection )
+    private function page0_garlic( string $sSection )
     {
         $s = "";
 
@@ -244,7 +265,7 @@ class Store2App
         return($s);
     }
 
-    private function sectionBook( string $sSection )
+    private function page0_book( string $sSection )
     {
         $s = "";
 
@@ -256,8 +277,8 @@ class Store2App
              ."<td width='60'><b>".$this->oL->S('quantity')."</b></td>"
              ."</tr>";
 
-        $s .= $this->mbr_pub( "ssh_en6_20", 20 );
-        $s .= $this->mbr_pub( "ssh_fr6_20", 20 );
+        $s .= $this->page0_book_item( "ssh_en6_20", 20 );
+        $s .= $this->page0_book_item( "ssh_fr6_20", 20 );
 
         $s .= "</table>"
              ."<p>U.S. orders: please add $5 for shipping in the Miscellaneous Payment box below</p>"
@@ -267,7 +288,7 @@ class Store2App
         return($s);
     }
 
-    private function mbr_pub( string $type, int $price )
+    private function page0_book_item( string $type, int $price )
     {
         $s = "<TR><TD>".$this->oL->S('vend_'.$type)."</TD>"
             ."<TD>".$this->oL->S('pub_'.$type)."</TD>"
@@ -280,7 +301,7 @@ class Store2App
         return( $s );
     }
 
-    private function sectionMember( string $sSection )
+    private function page0_member( string $sSection )
     {
         $s = "";
 
@@ -288,11 +309,232 @@ class Store2App
         return($s);
     }
 
-    private function sectionOther( string $sSection )
+    private function page0_other( string $sSection )
     {
         $s = "";
 
         $s = "<p>".$this->oL->S('Misc_payment_instructions').$this->oForm->Text('fMisc',"",["size"=>5])."</p>";
+
+        return($s);
+    }
+
+    private function page1_confirm()
+    {
+        $s = "";
+
+        $sContactForm =
+              $this->page1_confirm_mail_line("mail_email")
+             .$this->page1_confirm_mail_line("mail_firstname")
+             .$this->page1_confirm_mail_line("mail_lastname")
+             .$this->page1_confirm_mail_line("mail_company")
+             .$this->page1_confirm_mail_line("mail_addr")
+             .$this->page1_confirm_mail_line("mail_city")
+             .$this->page1_confirm_mail_line("mail_prov")
+//             .$mL->S('mail_prov')."<br/>";
+//        $sfProv = $this->oKForm->oFormParms->sfParmField("mail_prov");
+//        $s .= SelectProvinceOrState( "mbrocForm1", $sfProv, $this->lang, $this->oKForm->oDS->Value("mail_prov") ); //(!$kfr->IsEmpty('mail_prov') ? ($kfr->value('mail_prov').($kfr->value('mail_country')=='Canada' ? 1 : 2)) : "" ) );
+             .$this->page1_confirm_mail_line("mail_postcode")
+             .$this->page1_confirm_mail_line("mail_phone");
+
+        $s .= "<form method='post'>
+               <div class='container-fluid'><div class='row'>
+               <div class='col-md-6'>
+                   <div>{$this->oBasket->DrawBasket(['bNotesEditable'=>false])}</div>
+               </div>
+               <div class='col-md-6'>
+                   <div style='background-color:#eee;width:32em;padding:1em 1em 3em 1em;border-radius:5px'>
+                       $sContactForm
+                       <div style='width:30em;margin-top:1em'><div style='display:inline-block;float:left'><input type='submit' value='<< Back'/></div> <div style='display:inline-block;float:right'><input type='submit' value='Payment >>'/></div></div
+                   </div>
+               </div>
+               </div></div>
+               {$this->oForm->Hidden('page',['value'=>"2-payment"])}
+               </form>";
+
+        return($s);
+    }
+
+    private function page1_confirm_mail_line( string $name, $size = 30 )
+    {
+        //return( $o->oKForm->TextTD($name, $o->oL->S($name), array("size"=>$size) ) );
+        return( $this->oL->S($name)."<br/>".$this->oForm->Text($name, "", ['width'=>'30em'])."<br/>" );
+    }
+
+
+    private function page2_payment()
+    {
+        $s = "";
+
+include_once(SEEDAPP."basket/sodBasketFulfil.php");
+        $oOrder = new SodOrder($this->oApp);
+
+        if( ($kOrder = $this->oForm->ValueInt('kOrder')) ) {
+            $kfrOrder = $oOrder->KfrelOrder()->GetRecordFromDBKey($kOrder);
+        } else {
+            $kfrOrder = $oOrder->KfrelOrder()->CreateRecord();
+            $kfrOrder->SetValue('eStatus', "NEW");
+            $kfrOrder->SetValue('country', "Canada");
+            foreach( ["mail_firstname", "mail_lastname",
+                      "mail_company",   "mail_addr",
+                      "mail_city",      "mail_postcode",
+                      "mail_phone",     "mail_email",
+                      "mail_prov",
+                      "notes"] as $k )
+            {
+                $kfrOrder->SetValue($k, $this->oForm->Value($k));
+            }
+
+            $fTotal = 0.0;
+
+            /* Donation
+             */
+            if(($p = floatval($this->oForm->Value('donation')))) {
+                $kfrOrder->SetValue('donation',$p);
+                $fTotal += $p;
+            }
+
+            /* SLAdopt
+             */
+            $slAdopt_amount = $this->oForm->Value("slAdopt_amount") == 'X' ? floatval($this->oForm->Value("slAdopt_amountX")) : floatval($this->oForm->Value("slAdopt_amount"));
+            if( $slAdopt_amount > 0 ) {
+                $fTotal += $slAdopt_amount;
+
+                $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_amount', $slAdopt_amount );
+
+                if( !($slAdopt_cv = $this->oForm->Value("slAdopt_cv")) ) {
+                    if( $this->oForm->Value("slcvchoose") == "as_needed" )  $slAdopt_cv = "as needed";
+                }
+                $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_cv', $slAdopt_cv );
+
+                switch( $this->oForm->Value("slnamechoose") ) {
+                    case 1:     $name = "anonymous";                                    break;
+                    case 2:     $name = "gift: {$this->oForm->Value('slAdopt_name')}";  break;
+                    case 0:
+                    default:    $name = "";                                             break;
+                }
+                $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_name', $name );
+            }
+            $kfrOrder->SetValue('pay_total', $fTotal);
+            $kfrOrder->PutDBRow();
+            $kOrder = $kfrOrder->Key();
+            $this->oForm->SetValue('kOrder', $kOrder);
+            $this->oForm->SetValue('fTotal', $fTotal);
+
+            $oSoDOrder = new SoDOrder_MbrOrder($this->oApp);
+            $oSoDOrder->CreateFromMbrOrder($kOrder);
+        }
+
+        $s .= "<div class='container-fluid'><div class='row'>
+               <div class='col-md-6'>
+                   <h4 style='text-align:center'>Order #{$kOrder}</h4>
+                   <div>{$this->oBasket->DrawBasket(['bNotesEditable'=>false])}</div>
+
+                   <div><form method='post'><input type='submit' value='Start a New Order'/>{$this->oForm->Hidden('page',['value'=>'0-clear'])}</form></div>
+               </div>
+               <div class='col-md-6'>
+                   <div style='background-color:#eee;border:1px solid #aaa;border-radius:10px;padding:1em 2em;margin:2em'>
+                       <h3>{$this->oL->S('Pay by e-transfer')}</h3>
+                       <div class='store_payment_expand'>{$this->oL->S('etransfer_instructions',['kOrder'=>$kOrder])}</div>
+                   </div>
+                   <div style='background-color:#eee;border:1px solid #aaa;border-radius:10px;padding:1em 2em;margin:2em'>
+                       <h3>{$this->oL->S('Pay by credit card / Paypal')}</h3>
+                       <div class='store_payment_expand'>
+                           <div style='display:inline-block'>{$this->page2_paypalButton()}</div>
+                           <!-- also submit the paypal form if clicked on the instructions -->
+                           <div style='display:inline-block; cursor:pointer;margin-left:3em' onclick='document.getElementById(\"store2_paypal_button_form\").submit()'>{$this->oL->S('paypal_instructions')}</div>
+                       </div>
+                   </div>
+                   <div style='background-color:#eee;border:1px solid #aaa;border-radius:10px;padding:1em 2em;margin:2em'>
+                       <h3>{$this->oL->S('Pay by cheque')}</h3>
+                       <div class='store_payment_expand'>{$this->oL->S('cheque_instructions')}</div>
+                   </div>
+               </div>
+               </div></div>";
+
+        return($s);
+    }
+
+//https://www.paypal.com/cgi-bin/webscr?cmd=p/pdn/howto_checkout-outside
+    private function page2_paypalButton( $raVars = array() )
+    {
+		$raPP = array();
+
+        /* SYSTEM
+         */
+		$raPP['cmd']                   = '_xclick';                  // Buy Now button  - see value='_donations' for donation button
+		$raPP['business']              = 'mail@seeds.ca';
+        $raPP['quantity']              = 1;                          // multiplies the 'amount' to make a bulk payment!  Must be 1.
+        $raPP['no_shipping']           = 1;                          // the buyer is not prompted for a shipping address (in addition to billing address)
+        $raPP['no_note']               = 1;                          // the buyer is not prompted to enter a note
+//TODO: explicitly set charset to iso, instead of relying on their default
+        //$raPP['charset']               = 'utf-8';                  // PayPal "sends data to you" in the charset specified here. It also seems to expect data to be sent to it in this charset.
+                                                                     // We used to set this to UTF-8, but accented characters in our posted parms (like Adh�sion in item_name) caused immediate PayPal fatal error about character encoding.
+        /* TRANSACTION
+         */
+        $raPP['item_name']             = "Donation"; //$this->oMbrOrder->tinySummary();
+        $raPP['amount']                = $this->oForm->Value('fTotal');  // $this->oMbrOrder->kfr->value('pay_total');
+        $raPP['currency_code']         = "CAD"; // ($this->oMbrOrder->kfr->value('mail_country')=='Canada'? "CAD" : "USD");
+        $raPP['item_number']           = $this->oForm->ValueInt('kOrder');  // Passthrough variables: PayPal doesn't use these, but transmits them to IPN.
+        $raPP['invoice']               = $this->oForm->ValueInt('kOrder');  // Though PayPal docs say that they are neither used nor recorded by PayPal, we've seen PayPal complain when an invoice number duplicates an earlier one.
+     // $raPP['custom']                = merchant_custom_value
+
+        /* PAGES - these can also be set as an option in the PayPal account, but we want to propagate parms and use different checkoutApp urls
+         */
+        $raPP['notify_url']            = 'https://www.seeds.ca/l/mbr/mbr_PPipn.php'; // Instant Payment Notification
+// TODO: assemble the full url for PHP_SELF with the PHPSESSID propagated.  cancel_return should somehow cause mbrocst=MBROC_ST_CANCEL
+        $raPP['return']                = $this->oL->GetLang() == 'EN' ? "https://www.seeds.ca/store" : "https://www.semences.ca/boutique";
+        $raPP['cancel_return']         = $this->oL->GetLang() == 'EN' ? "https://www.seeds.ca/store" : "https://www.semences.ca/boutique";
+        $raPP['rm']                    = 2;                          // Return Method: how parms sent to return page: 1:GET, 2:POST
+        $raPP['cbt']                   = $this->oL->S('Return to SoD button'); // The text on the Continue button on completion
+
+        /* DECORATION
+         */
+     // $raPP['image_url']             = 'http://www.seeds.ca/img/logo/logo02_EN_150.png';  // logo image max 150x50
+     // $raPP['cpp_header_image']      = 'http://www.seeds.ca/img/logo/logo02_EN_750.png';  // header image max 750x90
+     // $raPP['cpp_headerback_color']  = 'FFFFFF';                                          // header background colour
+     // $raPP['cpp_headerborder_color'] = '555555';                                         // header border colour
+     // $raPP['cpp_payflow_color']     = 'AAAAAA';                                          // page background colour below header
+
+        /* PREPOPULATE
+         */
+        $raPP['first_name']            = $this->oForm->Value('mail_firstname');
+        $raPP['last_name']             = $this->oForm->Value('mail_lastname');
+        $raPP['address1']              = $this->oForm->Value('mail_addr');
+        $raPP['city']                  = $this->oForm->Value('mail_city');
+        $raPP['state']                 = $this->oForm->Value('mail_prov');
+        $raPP['zip']                   = $this->oForm->Value('mail_postcode');
+        $raPP['country']               = ($this->oForm->Value('mail_country')=='Canada' ? "CA" : "US");
+
+        $raPP['lc'] = $raPP['country'] == 'US' ? 'en_US'
+                                               : ($this->oL->GetLang()=='FR' ? 'fr_CA' : 'en_CA');
+
+
+/*
+    <input type="hidden" name="tax" value="0">
+    <input type="hidden" name="shipping" value="5.00">
+    <input type="hidden" name="bn" value="PP-DonationsBF">
+    <input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but04.gif" border="0" name="submit" alt="Make payments with PayPal - it's fast, free and secure!">
+    <img alt="" border="0" src="https://www.paypal.com/de_DE/i/scr/pixel.gif" width="1" height="1">
+*/
+
+        foreach( $raVars as $k => $v ) {
+            $raPP[$k] = $v;
+        }
+        $s = "\n<FORM id='store2_paypal_button_form' action='https://www.paypal.com/cgi-bin/webscr' method='post'>"
+            ."\n<INPUT type='image' src='https://www.paypal.com/en_US/i/btn/x-click-but6.gif' name='submit' alt='".$this->oL->S('secure_payment_paypal')."'>";
+        foreach( $raPP as $k => $v ) {
+            $s .= "\n<INPUT type='hidden' name='$k' value='".SEEDCore_HSC($v)."'/>";
+        }
+        $s .= "\n</FORM>";
+
+        return( $s );
+    }
+
+    private function page3_final()
+    {
+        $s = "";
+
+        $s = "Final";
 
         return($s);
     }
@@ -327,6 +569,70 @@ class Store2App
             'Choose a variety'
                 => ['EN'=>"[[]]",
                     'FR'=>"Choisissez une vari&eacute;t&eacute;"],
+
+            "mail_firstname"
+                => array( "EN" => "First Name",
+                          "FR" => "Pr&eacute;nom" ),
+
+            "mail_lastname"
+                => array( "EN" => "Last Name",
+                          "FR" => "Nom" ),
+
+            "mail_company"
+                => array( "EN" => "Organization or company",   // (if applicable)"
+                          "FR" => "Organisme ou compagnie" ),  // (si applicable)"
+
+            "mail_addr"
+                => array( "EN" => "Address",
+                          "FR" => "Adresse" ),
+
+            "mail_city"
+                => array( "EN" => "City or Town",
+                          "FR" => "Ville" ),
+
+            "mail_prov"
+                => array( "EN" => "Province/State",
+                          "FR" => "Province/&Eacute;tat" ),
+
+            "mail_postcode"
+                => array( "EN" => "Postal Code / Zip",
+                          "FR" => "Code postal" ),
+
+            "mail_phone"
+                => array( "EN" => "Telephone (with area code)",
+                          "FR" => "T&eacute;l&eacute;phone" ),
+
+            "mail_email"
+                => array( "EN" => "Email",
+                          "FR" => "Courriel" ),
+
+            "Pay by e-transfer"           => ['EN' => "[[]]", "FR" => "Payer par Virement Interac"],
+            "Pay by credit card / Paypal" => ['EN' => "[[]]", "FR" => "Payer par carte de cr&eacute;dit / Paypal"],
+            "Pay by cheque"               => ['EN' => "[[]]", "FR" => "Payer par ch&egrave;que"],
+
+            "etransfer_instructions"
+                => ["EN" => "<p style='margin-left:1em'>Send your e-transfer to mail@seeds.ca and please mention the order number <strong>[[kOrder]]</strong>. No security question is needed.</p>",
+                    "FR" => "<p style='margin-left:1em'>L'envoyez &agrave; mail@seeds.ca et notez le nombre de l'ordre <strong>[[kOrder]]</strong>. Aucune question de s&eacute;curit&eacute; n'est n&eacute;cessaire.</p>"],
+
+            "cheque_instructions"
+                => ["EN" => "<p style='margin-left:1em'>Please print this summary page and mail it with a cheque or money order payable to <b>Seeds of Diversity Canada</b>.</p>
+                             <div style='margin-left:2em;font-weight:bold'>Seeds of Diversity Canada<br/>#1-12 Dupont St West<br/>Waterloo ON N2L 2X6</div>",
+                    "FR" => "<p style='margin-left:1em'>Veuillez faire imprimer ce page et exp&eacute;dier avec un ch&egrave;que ou mandat postal.
+                                                        Libellez votre ch&egrave;que au nom de <b>Semences du patrimoine Canada</b>.</p>
+                             <div style='margin:1em;font-weight:bold'>Semences du patrimoine<BR>#1-12 Dupont St West<br/>Waterloo ON N2L 2X6</div>"],
+
+            "paypal_instructions"
+                => ["EN" => "<p><strong>Click here to pay by credit card</strong><br/>You don't need a PayPal account to pay for your order, just a credit card.</p>",
+/* TODO */          "FR" => "<P>Cliquez ici pour employer notre page s&ucirc;re de PayPal pour le paiement de carte de cr&eacute;dit.</P>"],
+
+            "Return to SoD button"
+                => array( "EN" => "Return to Seeds of Diversity",
+                          "FR" => "Retour au Semences du patrmoine"),
+            "secure_payment_paypal"
+                => array( "EN" => "Secure payment through PayPal",
+                          "FR" => "Paiement s&ucirc;r via PayPal" ),
+
+
         ]] ];
 
         $sSiteImg = /* $this->bDrupal ? ("https://seeds.ca/i/img/") : */ SITEIMG;

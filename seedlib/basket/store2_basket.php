@@ -58,19 +58,23 @@ class Store2_Basket
                 if($this->oForm->Value($k)) $raSPurpose[] = $raDP['label'];
             }
             $sPurpose = $raSPurpose ? (" - <span style='font-size:small'>".implode(", ", $raSPurpose)."</span>") : "";
-            $sBasket .= "<div class='store2_drawbasket_item'>Donation: {$p} {$sPurpose}</div>";
+            $sBasket .= "<div class='store2_drawbasket_item'>Donation: \${$p} {$sPurpose}</div>";
         }
         if(($p = $this->oForm->Value('slAdopt_amount'))) {
-            $sBasket .= "<div class='store2_drawbasket_item'>Seed Adoption donation: {$p}</div>";
+            $sBasket .= "<div class='store2_drawbasket_item'>Seed Adoption donation: \${$p}<br/>{$this->oForm->Value('slAdopt_cv')}<br/>{$this->oForm->Value('slAdopt_name')}</div>";
             // show adoption details
 
         }
 
-        $sBasket .= $bNotesEditable ? "<div class='store2_drawbasket_item'><p><strong>Send us a note</strong></p>{$this->oForm->Textarea('notes')}</div>"
+        if(($p = floatval($this->oForm->Value('fTotal')))) {
+            $sBasket .= "<div class='store2_drawbasket_item' style='padding-top:1em'><strong>Total: \${$p}</strong></div>";
+        }
+
+        $sBasket .= $bNotesEditable ? "<div class='store2_drawbasket_item' style='padding:1em 0'><p><strong>Send us a note</strong></p>{$this->oForm->Textarea('notes')}</div>"
                                     : "<div style='border:1px solid #ccc;padding:1em'>{$this->oForm->Value('notes')}</div>";
 
 
-        $s .= "<div style='border:1px solid #aaa;margin:1em; border-radius:3px;text-align:center'><span style='font-size:large;color:gray'>Your Basket</span> $sBasket</div>";
+        $s .= "<div style='border:1px solid #aaa;margin:1em; border-radius:3px;text-align:center;max-width:40em'><span style='font-size:large;color:gray'>Your Basket</span> $sBasket</div>";
 
         return($s);
     }
