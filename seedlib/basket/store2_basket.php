@@ -54,7 +54,7 @@ class Store2_Basket
 
         switch($this->oForm->Value('slnamechoose')) {
             case 1: $this->oForm->SetValue('slAdopt_name', "anonymous");    break;
-            case 2: $this->oForm->SetValue('slAdopt_name', "as a gift to: {$this->oForm->Value('slAdopt_name')}");    break;
+            case 2: $this->oForm->SetValue('slAdopt_name', "as a gift to: {$this->oForm->Value('slAdopt_giftname')}");    break;
         }
     }
 

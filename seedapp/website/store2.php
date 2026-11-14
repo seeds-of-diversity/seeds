@@ -241,7 +241,7 @@ class Store2App
                <td style='padding-left:15px'>"
              .$this->oForm->Radio('slnamechoose',0,'',['checked'=>true])." ".$this->oL->S('my name')."<br/>"
              .$this->oForm->Radio('slnamechoose',1,'')." ".$this->oL->S('anonymous')."<br/>"
-             .$this->oForm->Radio('slnamechoose',2,'')." ".$this->oL->S('as a gift to')." ".$this->oForm->Text('slAdopt_name',"",array("size"=>25))
+             .$this->oForm->Radio('slnamechoose',2,'')." ".$this->oL->S('as a gift to')." ".$this->oForm->Text('slAdopt_giftname',"",array("size"=>25))
              //."<div class='mbro_infobox'>Gift donors will be sent a card in the recipient's name, describing the adopted variety. Please make your donation by Dec 14 for holiday delivery.</div>"
              ."</td></tr></table>
              </div>
