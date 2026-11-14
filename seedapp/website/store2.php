@@ -39,7 +39,7 @@ class Store2App
                                     @$raConfig['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
                                     'store' );
 
-         $this->formAction = SEED_isLocal ? "" : "https://seeds.ca/adopt-a-variety";
+         $this->formAction = SEED_isLocal ? "" : "https://seeds.ca/store2";
     }
 
     function DrawApp()
