@@ -36,11 +36,31 @@ class Store2_Basket
             $this->oForm->SetValue('donation', $p);
             $this->oForm->SetValue('donationX', '');
         }
+
+        if(($p = $this->oForm->Value('slAdopt_amountX'))) {
+            // The type-your-own-number donation box
+            $this->oForm->SetValue('slAdopt_amount', $p);
+            $this->oForm->SetValue('slAdopt_amountX', '');
+        }
+        if( !($slAdopt_cv = $this->oForm->Value("slAdopt_cv")) ) {
+            if( $this->oForm->Value("slcvchoose") == "as_needed" ) {
+                $this->oForm->SetValue('slAdopt_cv', "as needed");
+            }
+            if(($p = $this->oForm->Value('slAdopt_kPcv'))) {
+                $kfr = (new SLDBRosetta($this->oApp))->GetKFR('PxS',$p);
+                $this->oForm->SetValue('slAdopt_cv', $kfr->Expand("[[P_name]] [[S_name_en]]"));
+            }
+        }
+
+        switch($this->oForm->Value('slnamechoose')) {
+            case 1: $this->oForm->SetValue('slAdopt_name', "anonymous");    break;
+            case 2: $this->oForm->SetValue('slAdopt_name', "as a gift to: {$this->oForm->Value('sl_adopt_name')}");    break;
+        }
     }
 
     function HasContents()
     {
-        $bHasContent = ($this->oForm->Value('donation') || false);
+        $bHasContent = ($this->oForm->Value('donation') || floatval($this->oForm->Value('slAdopt_amount')));
         return($bHasContent);
     }
 
@@ -49,6 +69,15 @@ class Store2_Basket
         $s = "";
 
         $bNotesEditable = SEEDCore_ArraySmartBool($raParms, 'bNotesEditable', false);
+
+        $sContact =
+            "<div class='store2_drawbasket_item'>
+             {$this->oForm->Value('mail_firstname')} {$this->oForm->Value('mail_lastname')}<br/>"
+           .(($p = $this->oForm->Value('mail_company')) ? "$p<br/>" : "")
+           ."{$this->oForm->Value('mail_address')}<br/>
+             {$this->oForm->Value('mail_city')} {$this->oForm->Value('mail_prov')} {$this->oForm->Value('mail_postcode')}<br/>
+             {$this->oForm->Value('mail_email')} {$this->oForm->Value('mail_phone')}
+             </div>";
 
         $sBasket = "";
         if(($p = $this->oForm->Value('donation'))) {
@@ -73,7 +102,11 @@ class Store2_Basket
                                     : "<div style='border:1px solid #ccc;padding:1em'>{$this->oForm->Value('notes')}</div>";
 
 
-        $s .= "<div style='border:1px solid #aaa;margin:1em; border-radius:3px;text-align:center;max-width:40em'><span style='font-size:large;color:gray'>Your Basket</span> $sBasket</div>";
+        $s .= "<div style='border:1px solid #aaa;margin:1em; border-radius:3px;text-align:center;max-width:40em'>
+                   <div style='font-size:large;color:gray'>Your Basket</div>
+                   $sContact
+                   $sBasket
+               </div>";
 
         return($s);
     }
@@ -81,7 +114,7 @@ class Store2_Basket
     function Style() {
         return("
             <style>
-            .store2_drawbasket_item { border-top:1px solid #ccc; }
+            .store2_drawbasket_item { border-top:1px solid #ccc; padding:0.5em 0 }
             </style>
         ");
     }

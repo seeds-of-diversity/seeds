@@ -51,6 +51,9 @@ class Store2App
         // don't allow going back
         if( $this->oForm->Value('kOrder') && !in_array($this->oForm->Value('page'), ['0-clear','2-payment','3-final']) )  $this->oForm->SetValue('page','2-payment');
 
+        // kluge to allow going back from 1-confirm
+        if( $this->oForm->Value('page')=='2-payment' && SEEDInput_Str('klugeBack') )  $this->oForm->SetValue('page','0-back');
+
         switch($this->oForm->Value('page')) {
             case '1-confirm': $s .= $this->page1_confirm(); break;
             case '2-payment': $s .= $this->page2_payment(); break;
@@ -116,7 +119,7 @@ class Store2App
                    <div class='store2_sect_minor'>
                        <div class='store2_sect_minor_header'>{$ra['title']}</div>
                        <div class='store2_sect_minor_body'>
-                           <p>Foo</p>
+                           <p></p>
                            <p><form action='{$this->formAction}' method='post'><button>{$ra['button']}</button><input type='hidden' name='p_section' value='{$k}'/></form>
                        </div>
                    </div></div>";
@@ -175,15 +178,28 @@ class Store2App
     {
         $s = "";
 
+        $sPriorityList = "<h4>Our Current Priority Varieties</h4>";
+        $raPriorityOpts = ['-- Choose a Priority Variety --'=>0];
+        foreach( $this->page0_SLAdopt_priorities() as $raP ) {
+            $sPriorityList .= "<p style='font-weight:bold'>{$raP['name']}</p><p style='padding-left:2em'>{$raP['desc']}</p>";
+            $raPriorityOpts[$raP['name']] = $raP['kPcv'];
+        }
+
+
         $fAmount = floatval($this->oForm->Value('slAdopt_amount'));
         $raAdopt = array( 50, 100, 150, 200, 250 );
         $bAdoptX = !in_array($fAmount, $raAdopt);     // using the type-your-own-number box
 
         $s =  $this->oL->S("You can adopt etc")
-             ."<table class='mbro_ctrl'><tr valign='top'>
+             ."<div class='container-fluid'><div class='row'>
+               <div class='col-md-6'>
+
+               <table class='mbro_ctrl'><tr valign='top'>
                <td valign='top'>{$this->oL->S('Choose a variety to adopt')}</td>
-               <td style='padding-left:15px'>{$this->oForm->Radio('slcvchoose','as_needed','')} {$this->oL->S('as needed')}<br/>
-                                     {$this->oForm->Radio('slcvchoose','','')} {$this->oForm->Text('slAdopt_cv',"",array("size"=>15))}&nbsp;&nbsp;&nbsp;<A href='https://seeds.ca/diversity/seed-library/list' target='_blank'>See Varieties Here</A>
+               <td style='padding-left:15px'>
+                   {$this->oForm->Radio('slcvchoose','as_needed','')} {$this->oL->S('as needed')}<br/>
+                   {$this->oForm->Radio('slcvchoose','priority','')} {$this->oForm->Select('slAdopt_kPcv', $raPriorityOpts)}<br/>
+                   {$this->oForm->Radio('slcvchoose','','')} {$this->oForm->Text('slAdopt_cv',"",array("size"=>15))}  Enter your favourite variety - <a href='https://seeds.ca/diversity/seed-library/list' target='_blank'>See All Our Varieties Here</a>
                </td></tr>
 
                <tr><td colspan='2'><hr/></td></tr>
@@ -226,10 +242,42 @@ class Store2App
              .$this->oForm->Radio('slnamechoose',1,'')." ".$this->oL->S('anonymous')."<br/>"
              .$this->oForm->Radio('slnamechoose',2,'')." ".$this->oL->S('as a gift to')." ".$this->oForm->Text('slAdopt_name',"",array("size"=>25))
              //."<div class='mbro_infobox'>Gift donors will be sent a card in the recipient's name, describing the adopted variety. Please make your donation by Dec 14 for holiday delivery.</div>"
-             ."</td></tr></table>";
+             ."</td></tr></table>
+             </div>
+
+             <div class='col-md-6'>
+             {$sPriorityList}
+             </div>
+             </div></div>";
 
         return($s);
     }
+
+    private function page0_SLAdopt_priorities()
+    {
+        $raPriorities = [];
+
+        $raP = [
+            1600,   // Puck
+            1806,   // Tumbling Tom
+            1034,   // Gregori
+        ];
+
+        $oSLDB = new SLDBRosetta($this->oApp);
+        foreach( $raP as $kPcv ) {
+            // kluge if a priority variety is already in an order, don't show it
+            if( $this->oApp->kfdb->Query1("SELECT count(*) FROM {$this->oApp->DBName('seeds1')}.mbr_order_pending WHERE _status=0 AND sExtra LIKE '%slAdopt_kPcv={$kPcv}&%'") ) {
+                continue;
+            }
+
+            if( ($kfr = $oSLDB->GetKFR('PxS', $kPcv)) ) {
+                $raPriorities[] = ['kPcv'=>$kPcv, 'name'=>"{$kfr->Value('P_name')} {$kfr->Value('S_name_en')}", 'desc'=>$kfr->Value('packetLabel')];
+            }
+        }
+
+        return($raPriorities);
+    }
+
 
     private function page0_SE()
     {
@@ -348,7 +396,7 @@ class Store2App
                <div class='col-md-6'>
                    <div style='background-color:#eee;width:32em;padding:1em 1em 3em 1em;border-radius:5px'>
                        $sContactForm
-                       <div style='width:30em;margin-top:1em'><div style='display:inline-block;float:left'><input type='submit' value='<< Back'/></div> <div style='display:inline-block;float:right'><input type='submit' value='Payment >>'/></div></div
+                       <div style='width:30em;margin-top:1em'><div style='display:inline-block;float:left'><input type='submit' name='klugeBack' value='<< Back'/></div> <div style='display:inline-block;float:right'><input type='submit' value='Payment >>'/></div></div
                    </div>
                </div>
                </div></div>
@@ -399,22 +447,21 @@ include_once(SEEDAPP."basket/sodBasketFulfil.php");
 
             /* SLAdopt
              */
-            $slAdopt_amount = $this->oForm->Value("slAdopt_amount") == 'X' ? floatval($this->oForm->Value("slAdopt_amountX")) : floatval($this->oForm->Value("slAdopt_amount"));
-            if( $slAdopt_amount > 0 ) {
+            if(($slAdopt_amount = floatval($this->oForm->Value('slAdopt_amount')))) {
                 $fTotal += $slAdopt_amount;
 
                 $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_amount', $slAdopt_amount );
-
-                if( !($slAdopt_cv = $this->oForm->Value("slAdopt_cv")) ) {
-                    if( $this->oForm->Value("slcvchoose") == "as_needed" )  $slAdopt_cv = "as needed";
+                // kluge: put this one early so LIKE '%slAdopt_kPcv=NNNN&%' works because there's always an & after the number
+                if(($p = $this->oForm->Value('slAdopt_kPcv'))) {
+                    $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_kPcv', $p);
                 }
-                $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_cv', $slAdopt_cv );
+                $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_cv',     $this->oForm->Value('slAdopt_cv'));
 
                 switch( $this->oForm->Value("slnamechoose") ) {
-                    case 1:     $name = "anonymous";                                    break;
-                    case 2:     $name = "gift: {$this->oForm->Value('slAdopt_name')}";  break;
+                    case 1:     $name = "anonymous";                                       break;
+                    case 2:     $name = "gift to: {$this->oForm->Value('slAdopt_name')}";  break;
                     case 0:
-                    default:    $name = "";                                             break;
+                    default:    $name = "";                                                break;
                 }
                 $kfrOrder->UrlParmSet( "sExtra", 'slAdopt_name', $name );
             }
