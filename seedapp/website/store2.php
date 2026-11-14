@@ -16,6 +16,7 @@ class Store2App
     private $oApp, $raConfig;
     private $p = [];    // dynamically filled because contains $this
     private $oForm, $oL, $oBasket;
+    private $formAction;    // action='' for forms, necessary when embedding in Wordpress
 
     function __construct( SEEDAppConsole $oApp, array $raConfig )
     {
@@ -37,6 +38,8 @@ class Store2App
         $this->oL = new SEED_Local( $this->sLocalStrs(),
                                     @$raConfig['lang'] ?: $this->oApp->lang,     // specify lang or use oApp's lang
                                     'store' );
+
+         $this->formAction = SEED_isLocal ? "" : "https://seeds.ca/adopt-a-variety";
     }
 
     function DrawApp()
@@ -70,7 +73,7 @@ class Store2App
              */
             $s .= "<div class='store2_sect_major'>
                        <div class='store2_sect_major_header'>{$this->p[$sSection]['title']}</div>
-                       <form method='post'>
+                       <form action='{$this->formAction}' method='post'>
                        {$this->p[$sSection]['fn']($sSection)}
                        <div><input type='submit' name='p_add' value='Continue'/></div>
                        <input type='hidden' name='p_add_section' value='$sSection'/>
@@ -94,7 +97,7 @@ class Store2App
         $s = "";
 
         if( $this->oBasket->HasContents() ) {
-            $s .= "<form method='post'>
+            $s .= "<form action='{$this->formAction}' method='post'>
                    <div class='container-fluid'><div class='row'>
                    <div class='col-md-6'>
                        {$this->oBasket->DrawBasket(['bNotesEditable'=>true])}
@@ -114,7 +117,7 @@ class Store2App
                        <div class='store2_sect_minor_header'>{$ra['title']}</div>
                        <div class='store2_sect_minor_body'>
                            <p>Foo</p>
-                           <p><form method='post'><button>{$ra['button']}</button><input type='hidden' name='p_section' value='{$k}'/></form>
+                           <p><form action='{$this->formAction}' method='post'><button>{$ra['button']}</button><input type='hidden' name='p_section' value='{$k}'/></form>
                        </div>
                    </div></div>";
         }
@@ -337,7 +340,7 @@ class Store2App
              .$this->page1_confirm_mail_line("mail_postcode")
              .$this->page1_confirm_mail_line("mail_phone");
 
-        $s .= "<form method='post'>
+        $s .= "<form action='{$this->formAction}' method='post'>
                <div class='container-fluid'><div class='row'>
                <div class='col-md-6'>
                    <div>{$this->oBasket->DrawBasket(['bNotesEditable'=>false])}</div>
@@ -430,7 +433,7 @@ include_once(SEEDAPP."basket/sodBasketFulfil.php");
                    <h4 style='text-align:center'>Order #{$kOrder}</h4>
                    <div>{$this->oBasket->DrawBasket(['bNotesEditable'=>false])}</div>
 
-                   <div><form method='post'><input type='submit' value='Start a New Order'/>{$this->oForm->Hidden('page',['value'=>'0-clear'])}</form></div>
+                   <div><form action='{$this->formAction}' method='post'><input type='submit' value='Start a New Order'/>{$this->oForm->Hidden('page',['value'=>'0-clear'])}</form></div>
                </div>
                <div class='col-md-6'>
                    <div style='background-color:#eee;border:1px solid #aaa;border-radius:10px;padding:1em 2em;margin:2em'>
