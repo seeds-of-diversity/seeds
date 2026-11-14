@@ -24,8 +24,8 @@ class Store2App
         $this->oApp = $oApp;
         $this->raConfig = $raConfig;
         $this->p = [
-            'donation' => ['fn'=>[$this,'page0_donation'], 'button'=>"Give Now", 'title'=>"Give a Charitable Donation"],
-            'sladopt'  => ['fn'=>[$this,'page0_SLAdopt'],  'button'=>"Give Now", 'title'=>"Adopt a Variety into the Canadian Seed Library"],
+            'donation' => ['fn'=>[$this,'page0_donation'], 'button'=>"Give Now", 'title'=>"Give a Charitable Donation", 'content'=>"<p>Please support our horticultural preservation and educational projects by making a tax-creditable donation.</p>"],
+            'sladopt'  => ['fn'=>[$this,'page0_SLAdopt'],  'button'=>"Give Now", 'title'=>"Adopt a Variety into the Canadian Seed Library", 'content'=>"<p>You can adopt a heritage seed variety into our Seed Library collection forever, with a donation!</p>"],
 //            'se'       => ['fn'=>[$this,'page0_SE'],       'button'=>"Join Now", 'title'=>"Join the Seed Exchange"],
 //            'cgo'      => ['fn'=>[$this,'page0_CGO'],      'button'=>"Join Now", 'title'=>"Join our Seed Grow-out Projects"],
 //            'garlic'   => ['fn'=>[$this,'page0_garlic'],   'button'=>"Buy Now",  'title'=>"Purchase Garlic Bulbils for Planting"],
@@ -120,7 +120,7 @@ class Store2App
                    <div class='store2_sect_minor'>
                        <div class='store2_sect_minor_header'>{$ra['title']}</div>
                        <div class='store2_sect_minor_body'>
-                           <p></p>
+                           {$ra['content']}
                            <p><form action='{$this->formAction}' method='post'><button>{$ra['button']}</button><input type='hidden' name='p_section' value='{$k}'/></form>
                        </div>
                    </div></div>";
@@ -937,15 +937,16 @@ $sGarlicVarieties =
                 => array( "EN" => "Adopt a Variety into the Canadian Seed Library",
                           "FR" => "Adoptez une vari&eacute;t&eacute; &agrave; la Biblioth&egrave;que canadienne des semences" ),
             "You can adopt etc"
-                => array( "EN" => "<P>You can adopt a heritage seed variety into our Seed Library collection forever, with a donation!</P>"
-                                 ."<P>A full adoption of $250 will preserve a seed variety for all time. You can also make a partial adoption of any amount. "
-                                 ."Donations of $50 or more will be permanently recognized in the Seed Library, and the "
-                                 ."full amount of every adoption is a tax-receiptable charitable donation.</P>",
+                => ['EN' => "<p>Seeds of Diversity's Canadian Seed Library is a collection of more than 3000 varieties of rare and endangered food plants,
+                                backing up the work of our seed savers and Canadian heritage seed suppliers.</p>
+                             <p>You can adopt a heritage seed variety into our Seed Library collection forever, with a donation!</p>
+                             <p>A full adoption of $250 will preserve a seed variety for all time. You can also make a partial adoption of any amount. Donations of $50 or more
+                                will be permanently recognized in the Seed Library, and the full amount of every adoption is a tax-receiptable charitable donation.</p>",
 /* TODO */                "FR" => "<P>Vous pouvez adopter une vari&eacute;t&eacute; dans notre Biblioth&egrave;que des semences, en permanence.</P>"
                                  ."<P>Chaque don de 250$ nous permet de rendre une vari&eacute;t&eacute; disponible pour les jardiniers pour toujours. "
                                  ."Vous pouvez aussi partager une adoption partielle. Tous les dons au montant de 50$ ou de plus seront identifi&eacute;es "
                                  ."pour toujours dans la Biblioth&egrave;que des semences, et le montant total de chaque adoption est un don charitable "
-                                 ."pour lequel le donneur recevra un re&ccedil;u.</P>" ),
+                                 ."pour lequel le donneur recevra un re&ccedil;u.</P>"],
             "Full adoption"
                 => array( "EN" => "Full adoption",
                           "FR" => "Adoption compl&egrave;ve" ),
