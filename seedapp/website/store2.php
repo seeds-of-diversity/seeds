@@ -7,8 +7,9 @@
  * Second generation Seeds of Diversity store app
  */
 
-include_once(SEEDCORE."SEEDCoreFormSession.php");
 include_once(SEEDLIB."basket/store2_basket.php");
+include_once(SEEDCORE."SEEDCoreFormSession.php");
+include_once(SEEDCORE."SEEDLocal.php");
 
 class Store2App
 {
