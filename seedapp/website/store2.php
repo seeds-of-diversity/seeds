@@ -595,9 +595,9 @@ include_once(SEEDAPP."basket/sodBasketFulfil.php");
     {
         return(
             "<style>
-             .store2_sect_minor        { margin-bottom:20px; }
+             .store2_sect_minor        { padding-bottom:20px; background-color:#eee; }
              .store2_sect_minor_header { background-color:#aaa; color:white; text-align:center; padding:4px; font-weight:bold; font-size:11pt; }
-             .store2_sect_minor_body   { background-color:#eee; padding:15px; font-size:10pt }
+             .store2_sect_minor_body   { padding:15px; font-size:10pt }
              .store2_sect_major        { margin-bottom:20px; }
              .store2_sect_major_header { background-color:#aaa; color:white; text-align:center; padding:4px; font-weight:bold; font-size:12pt; }
              .store2_sect_major_body   { }
