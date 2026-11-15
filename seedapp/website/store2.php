@@ -203,7 +203,9 @@ class Store2App
              ."<div class='container-fluid'><div class='row'>
                <div class='col-md-6'>
 
-               <table class='mbro_ctrl'><tr>
+               <table class='mbro_ctrl'>
+               <tr><td colspan='2'><hr/></td></tr>
+               <tr>
                <td style='vertical-align: top'>{$this->oL->S('Choose a variety to adopt')}</td>
                <td style='padding-left:15px'>
                    {$this->oForm->Radio('slcvchoose','as_needed','',['checked'=>true])} {$this->oL->S('as needed')}<br/>
@@ -252,10 +254,13 @@ class Store2App
              .$this->oForm->Radio('slnamechoose',2,'')." ".$this->oL->S('as a gift to')." ".$this->oForm->Text('slAdopt_giftname',"",array("size"=>25))
              //."<div class='mbro_infobox'>Gift donors will be sent a card in the recipient's name, describing the adopted variety. Please make your donation by Dec 14 for holiday delivery.</div>"
              ."</td></tr></table>
+             <p>&nbsp;</p>
              </div>
 
              <div class='col-md-6'>
-             {$sPriorityList}
+                 <div style='border:1px solid #aaa;border-radius:5px;padding:1em'>
+                 {$sPriorityList}
+                 </div>
              </div>
              </div></div>";
 

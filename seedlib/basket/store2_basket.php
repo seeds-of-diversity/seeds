@@ -74,10 +74,10 @@ class Store2_Basket
             "<div class='store2_drawbasket_item'>
              {$this->oForm->Value('mail_firstname')} {$this->oForm->Value('mail_lastname')}<br/>"
            .(($p = $this->oForm->Value('mail_company')) ? "$p<br/>" : "")
-           ."{$this->oForm->Value('mail_address')}<br/>
-             {$this->oForm->Value('mail_city')} {$this->oForm->Value('mail_prov')} {$this->oForm->Value('mail_postcode')}<br/>
-             {$this->oForm->Value('mail_email')} {$this->oForm->Value('mail_phone')}
-             </div>";
+           .(($p = $this->oForm->Value('mail_address')) ? "$p<br/>" : "")
+           .(($p = trim("{$this->oForm->Value('mail_city')} {$this->oForm->Value('mail_prov')} {$this->oForm->Value('mail_postcode')}")) ? "$p<br/>" : "")
+           .(($p = trim("{$this->oForm->Value('mail_email')} {$this->oForm->Value('mail_phone')}")) ? "$p<br/>" : "")
+           ."</div>";
 
         $sBasket = "";
         if(($p = $this->oForm->Value('donation'))) {
@@ -98,7 +98,7 @@ class Store2_Basket
             $sBasket .= "<div class='store2_drawbasket_item' style='padding-top:1em'><strong>Total: \${$p}</strong></div>";
         }
 
-        $sBasket .= $bNotesEditable ? "<div class='store2_drawbasket_item' style='padding:1em 0'><p><strong>Send us a note</strong></p>{$this->oForm->Textarea('notes')}</div>"
+        $sBasket .= $bNotesEditable ? "<div class='store2_drawbasket_item' style='padding:1em'><p><strong>Send us a note</strong></p>{$this->oForm->Textarea('notes')}</div>"
                                     : "<div style='border:1px solid #ccc;padding:1em'>{$this->oForm->Value('notes')}</div>";
 
 
