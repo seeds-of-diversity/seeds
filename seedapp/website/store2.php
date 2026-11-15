@@ -272,9 +272,26 @@ class Store2App
         $raPriorities = [];
 
         $raP = [
-            1600,   // Puck
-            1806,   // Tumbling Tom
+             376,   // Amish Salad
+             238,   // Burgess Stuffing
+            3369,   // Dwarf Japanese
+            3046,   // Federle
+             743,   // Gallo Plum
+            3400,   // German Yellow Cherry
             1034,   // Gregori
+            3486,   // Hilda
+            3256,   // Honey Drop
+            2281,   // Jitomate Bulito
+            1645,   // Manyel
+             788,   // Milka's Red Bulgarian
+            1600,   // Puck
+            2271,   // Punta Banda
+             347,   // Red Ruffles
+            2357,   // Rumi Banjan
+             263,   // Santa Cruz Kada
+            1094,   // Summer pea
+             375,   // Thai Pink Egg
+            1806,   // Tumbling Tom
         ];
 
         $oSLDB = new SLDBRosetta($this->oApp);
